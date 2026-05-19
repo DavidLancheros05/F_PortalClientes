@@ -71,7 +71,7 @@ export default function GestionComiteCredito2Page() {
     cupo: "",
     plazoPago: "",
     formaPago: "",
-    nombreAprueba: user?.usuario_nombre || "",
+    nombreAprueba: user?.nombre || "",
     fecha: new Date().toISOString().split("T")[0],
     firma: "",
   });
@@ -89,11 +89,13 @@ export default function GestionComiteCredito2Page() {
           parametrosService.getDiasRespuesta(),
         ]);
 
-        console.log("[Gestión Comité Crédito 2] Datos de solicitud recibidos:", solicitudData);
+        console.log(
+          "[Gestión Comité Crédito 2] Datos de solicitud recibidos:",
+          solicitudData,
+        );
         console.log("[Gestión Comité Crédito 2] Días de respuesta:", dias);
         setSolicitud(solicitudData);
         setDiasRespuesta(dias);
-
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -113,7 +115,10 @@ export default function GestionComiteCredito2Page() {
       return;
     }
 
-    console.log("[handleGuardarRevision] Recomendación:", registro.recomendacion);
+    console.log(
+      "[handleGuardarRevision] Recomendación:",
+      registro.recomendacion,
+    );
     if (!registro.recomendacion) {
       alert("Debe seleccionar Aprobado o Negado.");
       return;
@@ -147,7 +152,10 @@ export default function GestionComiteCredito2Page() {
 
       const comentario = `DECISIÓN: ${registro.recomendacion.toUpperCase()}\nNOMBRE QUIEN APRUEBA: ${registro.nombreAprueba}\nFECHA: ${registro.fecha}`;
 
-      console.log("[handleConfirmGuardarRevision] Llamando API con solicitud ID:", solicitud.sol_id);
+      console.log(
+        "[handleConfirmGuardarRevision] Llamando API con solicitud ID:",
+        solicitud.sol_id,
+      );
 
       const payloadComite: any = {
         comentario,
@@ -165,7 +173,10 @@ export default function GestionComiteCredito2Page() {
         solicitud.sol_id,
         payloadComite,
       );
-      console.log("[handleConfirmGuardarRevision] Respuesta del API:", respuesta);
+      console.log(
+        "[handleConfirmGuardarRevision] Respuesta del API:",
+        respuesta,
+      );
 
       setShowConfirmModal(false);
       setShowSuccessModal(true);
@@ -208,7 +219,9 @@ export default function GestionComiteCredito2Page() {
     );
   }
 
-  const fechaEstimada = solicitud.sol_fecha_estimada_respuesta_comercial || solicitud.fecha_estimada_respuesta_comercial;
+  const fechaEstimada =
+    solicitud.sol_fecha_estimada_respuesta_comercial ||
+    solicitud.fecha_estimada_respuesta_comercial;
 
   const pasos = [
     {
@@ -232,7 +245,7 @@ export default function GestionComiteCredito2Page() {
       nombre: "Comité Crédito 2",
       estado: "en_curso" as const,
       fecha: new Date().toISOString(),
-      usuario: user?.usuario_nombre || user?.email || "-",
+      usuario: user?.nombre || user?.email || "-",
       dias: diasRespuesta["Comité Crédito 2"] ?? 2,
     },
     {
@@ -268,7 +281,8 @@ export default function GestionComiteCredito2Page() {
                 <p className="text-xs md:text-sm text-blue-100 truncate">
                   Solicitud:{" "}
                   <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                    {solicitud.sol_numero_solicitud ||
+                      solicitud.numero_solicitud}
                   </span>
                 </p>
               </div>
@@ -312,9 +326,8 @@ export default function GestionComiteCredito2Page() {
                           : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {ESTADOS[
-                    solicitud.sol_estado_id ?? solicitud.estado_id
-                  ] || "Desconocido"}
+                  {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] ||
+                    "Desconocido"}
                 </span>
               </div>
               <div>
@@ -322,14 +335,15 @@ export default function GestionComiteCredito2Page() {
                   Consumo Proyectado
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                    ? `$${(solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado)?.toLocaleString(
-                        "es-CO",
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        },
-                      )}`
+                  {solicitud.sol_consumo_mensual_proyectado ||
+                  solicitud.consumo_mensual_proyectado
+                    ? `$${(
+                        solicitud.sol_consumo_mensual_proyectado ||
+                        solicitud.consumo_mensual_proyectado
+                      )?.toLocaleString("es-CO", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
                     : "-"}
                 </p>
               </div>
@@ -353,10 +367,17 @@ export default function GestionComiteCredito2Page() {
                   </label>
                   <div className="space-y-2">
                     {[
-                      { value: "aprobado", label: "✓ Aprobado", color: "green" },
+                      {
+                        value: "aprobado",
+                        label: "✓ Aprobado",
+                        color: "green",
+                      },
                       { value: "rechazado", label: "✗ Negado", color: "red" },
                     ].map((option) => (
-                      <label key={option.value} className="flex items-center gap-3 cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                      <label
+                        key={option.value}
+                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
                         <input
                           type="radio"
                           name="recomendacion"
@@ -370,7 +391,9 @@ export default function GestionComiteCredito2Page() {
                           }
                           className="w-4 h-4 text-blue-600"
                         />
-                        <span className={`text-sm font-semibold text-${option.color}-900`}>
+                        <span
+                          className={`text-sm font-semibold text-${option.color}-900`}
+                        >
                           {option.label}
                         </span>
                       </label>
@@ -486,7 +509,8 @@ export default function GestionComiteCredito2Page() {
                     </div>
 
                     <p className="text-xs text-gray-500 mt-3">
-                      * Estos campos son obligatorios para guardar una aprobación
+                      * Estos campos son obligatorios para guardar una
+                      aprobación
                     </p>
                   </div>
                 )}
@@ -497,7 +521,10 @@ export default function GestionComiteCredito2Page() {
                     onClick={handleGuardarRevision}
                     disabled={
                       !registro.recomendacion ||
-                      (registro.recomendacion === "aprobado" && (!registro.cupo.trim() || !registro.plazoPago.trim() || !registro.formaPago.trim())) ||
+                      (registro.recomendacion === "aprobado" &&
+                        (!registro.cupo.trim() ||
+                          !registro.plazoPago.trim() ||
+                          !registro.formaPago.trim())) ||
                       registro.guardando
                     }
                     className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"

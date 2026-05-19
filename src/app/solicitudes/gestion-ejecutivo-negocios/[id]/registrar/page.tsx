@@ -245,7 +245,7 @@ export default function RegistrarConceptoPage() {
       nombre: "Concepto",
       estado: "en_curso" as const,
       fecha: new Date().toISOString(),
-      usuario: user?.usuario_nombre || user?.email || "-",
+      usuario: user?.nombre || user?.email || "-",
       dias: diasRespuesta["Concepto"] ?? 1,
     },
     {

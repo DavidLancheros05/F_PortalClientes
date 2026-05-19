@@ -32,8 +32,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         subModulos: Array.isArray(m.subModulos)
           ? m.subModulos.map((c: any) => transformModulo(c))
           : Array.isArray(m.children)
-          ? m.children.map((c: any) => transformModulo(c))
-          : [],
+            ? m.children.map((c: any) => transformModulo(c))
+            : [],
       });
 
       const withPermisos = parsed.map((m: any) => transformModulo(m));
@@ -75,10 +75,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           user
             ? typeof user.rol === "string"
               ? user.rol
-              : user.rol?.nombre ?? ""
+              : (user.rol?.nombre ?? "")
             : "Usuario"
         }
-        nombreUsuario={user?.usuario_nombre || user?.email || "Usuario"}
+        nombreUsuario={user?.nombre || user?.email || "Usuario"}
       />
       <main className={isInicioPage ? "" : "p-0"}>{children}</main>
     </div>

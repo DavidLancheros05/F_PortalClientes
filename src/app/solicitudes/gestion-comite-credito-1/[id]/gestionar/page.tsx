@@ -8,7 +8,14 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
-import { ArrowLeft, FileText, CheckCircle, AlertCircle, MessageSquare, TrendingUp } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  MessageSquare,
+  TrendingUp,
+} from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
@@ -84,11 +91,13 @@ export default function GestionComiteCredito1Page() {
           parametrosService.getDiasRespuesta(),
         ]);
 
-        console.log("[Gestión Comité Crédito 1] Datos de solicitud recibidos:", solicitudData);
+        console.log(
+          "[Gestión Comité Crédito 1] Datos de solicitud recibidos:",
+          solicitudData,
+        );
         console.log("[Gestión Comité Crédito 1] Días de respuesta:", dias);
         setSolicitud(solicitudData);
         setDiasRespuesta(dias);
-
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -197,7 +206,9 @@ export default function GestionComiteCredito1Page() {
     );
   }
 
-  const fechaEstimada = solicitud.sol_fecha_estimada_respuesta_comercial || solicitud.fecha_estimada_respuesta_comercial;
+  const fechaEstimada =
+    solicitud.sol_fecha_estimada_respuesta_comercial ||
+    solicitud.fecha_estimada_respuesta_comercial;
 
   const pasos = [
     {
@@ -213,7 +224,7 @@ export default function GestionComiteCredito1Page() {
       nombre: "Comité Crédito 1",
       estado: "en_curso" as const,
       fecha: new Date().toISOString(),
-      usuario: user?.usuario_nombre || user?.email || "-",
+      usuario: user?.nombre || user?.email || "-",
       dias: diasRespuesta["Comité Crédito 1"] ?? 2,
     },
     {
@@ -255,7 +266,8 @@ export default function GestionComiteCredito1Page() {
                 <p className="text-xs md:text-sm text-green-100 truncate">
                   Solicitud:{" "}
                   <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                    {solicitud.sol_numero_solicitud ||
+                      solicitud.numero_solicitud}
                   </span>
                 </p>
               </div>
@@ -299,9 +311,8 @@ export default function GestionComiteCredito1Page() {
                           : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {ESTADOS[
-                    solicitud.sol_estado_id ?? solicitud.estado_id
-                  ] || "Desconocido"}
+                  {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] ||
+                    "Desconocido"}
                 </span>
               </div>
               <div>
@@ -309,14 +320,15 @@ export default function GestionComiteCredito1Page() {
                   Consumo Proyectado
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                    ? `$${(solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado)?.toLocaleString(
-                        "es-CO",
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        },
-                      )}`
+                  {solicitud.sol_consumo_mensual_proyectado ||
+                  solicitud.consumo_mensual_proyectado
+                    ? `$${(
+                        solicitud.sol_consumo_mensual_proyectado ||
+                        solicitud.consumo_mensual_proyectado
+                      )?.toLocaleString("es-CO", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
                     : "-"}
                 </p>
               </div>
@@ -336,13 +348,17 @@ export default function GestionComiteCredito1Page() {
                 {/* Ver Formulario */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={20} />
+                    <AlertCircle
+                      className="text-blue-600 flex-shrink-0 mt-1"
+                      size={20}
+                    />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-blue-900 mb-2">
                         Revisar Formulario Completo
                       </p>
                       <p className="text-sm text-blue-700 mb-3">
-                        Accede al formulario de la solicitud para revisar todas las respuestas y documentos.
+                        Accede al formulario de la solicitud para revisar todas
+                        las respuestas y documentos.
                       </p>
                       <button
                         onClick={() =>
@@ -451,9 +467,16 @@ export default function GestionComiteCredito1Page() {
                     {[
                       { value: "aprobado", label: "Aprobado", color: "green" },
                       { value: "rechazado", label: "Rechazado", color: "red" },
-                      { value: "pendiente", label: "Pendiente Análisis", color: "yellow" },
+                      {
+                        value: "pendiente",
+                        label: "Pendiente Análisis",
+                        color: "yellow",
+                      },
                     ].map((option) => (
-                      <label key={option.value} className="flex items-center gap-3 cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                      <label
+                        key={option.value}
+                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
                         <input
                           type="radio"
                           name="recomendacion"
@@ -467,7 +490,9 @@ export default function GestionComiteCredito1Page() {
                           }
                           className="w-4 h-4 text-green-600"
                         />
-                        <span className={`text-sm font-semibold text-${option.color}-900`}>
+                        <span
+                          className={`text-sm font-semibold text-${option.color}-900`}
+                        >
                           {option.label}
                         </span>
                       </label>
