@@ -1,0 +1,602 @@
+
+> frontend_tmp@0.1.0 dev:full
+> npm run db:doc && next dev
+
+
+> frontend_tmp@0.1.0 db:doc
+> tsx scripts/generate-db-doc.ts
+
+🔄 Generando documentación de base de datos...
+✅ Documentación generada en C:\Users\Dynabook\OneDrive\Documents\CARTONERA\PortalClientesCN\FRONTEND\DATABASE.md
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Dynabook\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Dynabook\OneDrive\Documents\CARTONERA\PortalClientesCN\FRONTEND\package-lock.json
+
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.3:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 2.9s
+fronted services
+ GET /login 200 in 3.4s (compile: 2.2s, render: 1260ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 3.5s (compile: 2.4s, proxy.ts: 58ms, render: 984ms)
+ GET /solicitudes/indicadores/solicitud 200 in 3.9s (compile: 2.6s, proxy.ts: 389ms, render: 879ms)
+(node:33560) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Failed to proxy http://localhost:3001/api/solicitudes/workflow/etapas AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/clientes AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/centros-operacion AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/solicitudes/workflow/resultados AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/clientes AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/centros-operacion AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/solicitudes/workflow/etapas AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/solicitudes/workflow/resultados AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+✓ Compiled in 2.2s
+ GET /solicitudes/listado-de-solicitudes 200 in 1460ms (compile: 232ms, proxy.ts: 663ms, render: 565ms)
+ GET /solicitudes/indicadores/solicitud 200 in 801ms (compile: 594ms, proxy.ts: 11ms, render: 196ms)
+ GET /login 200 in 1466ms (compile: 1185ms, render: 281ms)
+ GET /login 200 in 560ms (compile: 12ms, render: 548ms)
+ GET /solicitudes/indicadores/solicitud 200 in 600ms (compile: 22ms, proxy.ts: 79ms, render: 498ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 600ms (compile: 62ms, proxy.ts: 80ms, render: 458ms)
+ GET /login 200 in 508ms (compile: 97ms, render: 411ms)
+ GET /login 200 in 518ms (compile: 23ms, render: 495ms)
+ GET /solicitudes/indicadores/solicitud 200 in 605ms (compile: 18ms, proxy.ts: 115ms, render: 472ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 604ms (compile: 83ms, proxy.ts: 114ms, render: 407ms)
+ GET /login 200 in 493ms (compile: 125ms, render: 369ms)
+ GET /solicitudes/indicadores/solicitud 200 in 476ms (compile: 40ms, proxy.ts: 39ms, render: 397ms)
+ GET /login 200 in 349ms (compile: 13ms, render: 336ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 455ms (compile: 138ms, proxy.ts: 36ms, render: 281ms)
+ GET /login 200 in 262ms (compile: 12ms, render: 250ms)
+ GET /solicitudes/indicadores/solicitud 200 in 359ms (compile: 32ms, proxy.ts: 107ms, render: 220ms)
+ GET /login 200 in 229ms (compile: 38ms, render: 191ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 342ms (compile: 89ms, proxy.ts: 65ms, render: 188ms)
+ GET /login 200 in 212ms (compile: 8ms, render: 203ms)
+ GET /solicitudes/indicadores/solicitud 200 in 326ms (compile: 20ms, proxy.ts: 67ms, render: 239ms)
+ GET /login 200 in 323ms (compile: 11ms, render: 312ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 344ms (compile: 13ms, proxy.ts: 40ms, render: 291ms)
+ GET /login 200 in 307ms (compile: 26ms, render: 281ms)
+ GET /solicitudes/indicadores/solicitud 200 in 361ms (compile: 50ms, proxy.ts: 39ms, render: 273ms)
+ GET /login 200 in 330ms (compile: 17ms, render: 312ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 383ms (compile: 66ms, proxy.ts: 33ms, render: 284ms)
+ GET /login 200 in 261ms (compile: 6ms, render: 254ms)
+ GET /solicitudes/indicadores/solicitud 200 in 377ms (compile: 79ms, proxy.ts: 81ms, render: 217ms)
+ GET /solicitudes/indicadores/solicitud 200 in 302ms (compile: 18ms, proxy.ts: 20ms, render: 264ms)
+ GET /login 200 in 269ms (compile: 40ms, render: 229ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 324ms (compile: 72ms, proxy.ts: 28ms, render: 224ms)
+ GET /login 200 in 198ms (compile: 9ms, render: 188ms)
+ GET /solicitudes/indicadores/solicitud 200 in 272ms (compile: 15ms, proxy.ts: 72ms, render: 185ms)
+ GET /login 200 in 168ms (compile: 7ms, render: 161ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 271ms (compile: 39ms, proxy.ts: 42ms, render: 189ms)
+ GET /login 200 in 174ms (compile: 9ms, render: 165ms)
+ GET /solicitudes/indicadores/solicitud 200 in 229ms (compile: 8ms, proxy.ts: 67ms, render: 154ms)
+ GET /login 200 in 206ms (compile: 10ms, render: 196ms)
+ GET /login 200 in 210ms (compile: 26ms, render: 184ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 256ms (compile: 16ms, proxy.ts: 33ms, render: 207ms)
+ GET /solicitudes/indicadores/solicitud 200 in 255ms (compile: 47ms, proxy.ts: 36ms, render: 172ms)
+ GET /login 200 in 219ms (compile: 9ms, render: 210ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 246ms (compile: 39ms, proxy.ts: 20ms, render: 186ms)
+ GET /solicitudes/indicadores/solicitud 200 in 274ms (compile: 57ms, proxy.ts: 20ms, render: 197ms)
+ GET /login 200 in 192ms (compile: 10ms, render: 182ms)
+ GET /solicitudes/indicadores/solicitud 200 in 280ms (compile: 11ms, proxy.ts: 23ms, render: 246ms)
+ GET /login 200 in 252ms (compile: 23ms, render: 229ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 277ms (compile: 52ms, proxy.ts: 20ms, render: 205ms)
+ GET /login 200 in 224ms (compile: 11ms, render: 213ms)
+ GET /solicitudes/indicadores/solicitud 200 in 282ms (compile: 22ms, proxy.ts: 45ms, render: 215ms)
+ GET /login 200 in 224ms (compile: 34ms, render: 190ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 360ms (compile: 66ms, proxy.ts: 47ms, render: 247ms)
+ GET /login 200 in 243ms (compile: 4ms, render: 240ms)
+ GET /solicitudes/indicadores/solicitud 200 in 328ms (compile: 15ms, proxy.ts: 58ms, render: 255ms)
+ GET /login 200 in 301ms (compile: 9ms, render: 291ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 326ms (compile: 22ms, proxy.ts: 48ms, render: 255ms)
+ GET /login 200 in 267ms (compile: 34ms, render: 233ms)
+ GET /solicitudes/indicadores/solicitud 200 in 326ms (compile: 71ms, proxy.ts: 51ms, render: 204ms)
+ GET /login 200 in 246ms (compile: 9ms, render: 237ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 320ms (compile: 51ms, proxy.ts: 27ms, render: 242ms)
+ GET /login 200 in 233ms (compile: 6ms, render: 226ms)
+ GET /solicitudes/indicadores/solicitud 200 in 323ms (compile: 53ms, proxy.ts: 60ms, render: 209ms)
+ GET /login 200 in 237ms (compile: 6ms, render: 230ms)
+ GET /solicitudes/indicadores/solicitud 200 in 264ms (compile: 35ms, proxy.ts: 20ms, render: 209ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 259ms (compile: 62ms, proxy.ts: 21ms, render: 177ms)
+ GET /login 200 in 150ms (compile: 15ms, render: 135ms)
+ GET /solicitudes/indicadores/solicitud 200 in 211ms (compile: 39ms, proxy.ts: 57ms, render: 115ms)
+ GET /login 200 in 146ms (compile: 6ms, render: 140ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 213ms (compile: 61ms, proxy.ts: 60ms, render: 92ms)
+ GET /solicitudes/indicadores/solicitud 200 in 207ms (compile: 6ms, proxy.ts: 26ms, render: 175ms)
+ GET /login 200 in 228ms (compile: 6ms, render: 222ms)
+ GET /login 200 in 209ms (compile: 5ms, render: 204ms)
+ GET /solicitudes/indicadores/solicitud 200 in 275ms (compile: 31ms, proxy.ts: 35ms, render: 209ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 276ms (compile: 53ms, proxy.ts: 34ms, render: 189ms)
+ GET /login 200 in 176ms (compile: 7ms, render: 170ms)
+ GET /login 200 in 210ms (compile: 7ms, render: 204ms)
+ GET /solicitudes/indicadores/solicitud 200 in 281ms (compile: 46ms, proxy.ts: 33ms, render: 203ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 281ms (compile: 63ms, proxy.ts: 34ms, render: 184ms)
+ GET /login 200 in 213ms (compile: 9ms, render: 204ms)
+ GET /solicitudes/indicadores/solicitud 200 in 279ms (compile: 17ms, proxy.ts: 39ms, render: 222ms)
+ GET /login 200 in 217ms (compile: 13ms, render: 204ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 285ms (compile: 33ms, proxy.ts: 51ms, render: 201ms)
+ GET /login 200 in 193ms (compile: 12ms, render: 181ms)
+ GET /solicitudes/indicadores/solicitud 200 in 265ms (compile: 31ms, proxy.ts: 42ms, render: 191ms)
+ GET /login 200 in 185ms (compile: 11ms, render: 174ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 305ms (compile: 31ms, proxy.ts: 37ms, render: 237ms)
+ GET /login 200 in 234ms (compile: 7ms, render: 227ms)
+ GET /solicitudes/indicadores/solicitud 200 in 302ms (compile: 28ms, proxy.ts: 45ms, render: 230ms)
+ GET /login 200 in 270ms (compile: 6ms, render: 264ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 305ms (compile: 24ms, proxy.ts: 49ms, render: 232ms)
+ GET /login 200 in 240ms (compile: 37ms, render: 203ms)
+ GET /solicitudes/indicadores/solicitud 200 in 303ms (compile: 71ms, proxy.ts: 47ms, render: 185ms)
+ GET /login 200 in 215ms (compile: 6ms, render: 209ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 264ms (compile: 33ms, proxy.ts: 26ms, render: 205ms)
+ GET /solicitudes/indicadores/solicitud 200 in 261ms (compile: 35ms, proxy.ts: 34ms, render: 192ms)
+ GET /login 200 in 199ms (compile: 32ms, render: 167ms)
+ GET /login 200 in 223ms (compile: 27ms, render: 196ms)
+ GET /solicitudes/indicadores/solicitud 200 in 254ms (compile: 12ms, proxy.ts: 23ms, render: 220ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 283ms (compile: 59ms, proxy.ts: 20ms, render: 204ms)
+ GET /login 200 in 196ms (compile: 6ms, render: 189ms)
+ GET /solicitudes/indicadores/solicitud 200 in 251ms (compile: 16ms, proxy.ts: 52ms, render: 183ms)
+ GET /login 200 in 190ms (compile: 26ms, render: 164ms)
+ GET /login 200 in 203ms (compile: 22ms, render: 182ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 278ms (compile: 15ms, proxy.ts: 62ms, render: 200ms)
+ GET /solicitudes/indicadores/solicitud 200 in 227ms (compile: 12ms, proxy.ts: 53ms, render: 162ms)
+ GET /login 200 in 209ms (compile: 7ms, render: 202ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 295ms (compile: 33ms, proxy.ts: 46ms, render: 216ms)
+ GET /login 200 in 204ms (compile: 4ms, render: 199ms)
+ GET /solicitudes/indicadores/solicitud 200 in 269ms (compile: 49ms, proxy.ts: 36ms, render: 184ms)
+ GET /login 200 in 228ms (compile: 10ms, render: 218ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 255ms (compile: 37ms, proxy.ts: 18ms, render: 200ms)
+ GET /solicitudes/indicadores/solicitud 200 in 274ms (compile: 53ms, proxy.ts: 17ms, render: 204ms)
+ GET /login 200 in 188ms (compile: 9ms, render: 179ms)
+ GET /solicitudes/indicadores/solicitud 200 in 266ms (compile: 15ms, proxy.ts: 24ms, render: 227ms)
+ GET /login 200 in 239ms (compile: 32ms, render: 207ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 269ms (compile: 57ms, proxy.ts: 23ms, render: 189ms)
+ GET /login 200 in 197ms (compile: 11ms, render: 186ms)
+ GET /solicitudes/indicadores/solicitud 200 in 238ms (compile: 18ms, proxy.ts: 39ms, render: 181ms)
+ GET /login 200 in 192ms (compile: 29ms, render: 163ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 294ms (compile: 56ms, proxy.ts: 38ms, render: 200ms)
+ GET /login 200 in 186ms (compile: 9ms, render: 177ms)
+ GET /solicitudes/indicadores/solicitud 200 in 245ms (compile: 14ms, proxy.ts: 59ms, render: 172ms)
+ GET /login 200 in 206ms (compile: 10ms, render: 196ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 232ms (compile: 34ms, proxy.ts: 17ms, render: 181ms)
+ GET /solicitudes/indicadores/solicitud 200 in 231ms (compile: 50ms, proxy.ts: 34ms, render: 148ms)
+ GET /login 200 in 169ms (compile: 5ms, render: 164ms)
+ GET /login 200 in 172ms (compile: 6ms, render: 166ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 234ms (compile: 27ms, proxy.ts: 18ms, render: 190ms)
+ GET /solicitudes/indicadores/solicitud 200 in 235ms (compile: 30ms, proxy.ts: 32ms, render: 173ms)
+ GET /login 200 in 180ms (compile: 24ms, render: 156ms)
+ GET /login 200 in 224ms (compile: 5ms, render: 219ms)
+ GET /solicitudes/indicadores/solicitud 200 in 250ms (compile: 39ms, proxy.ts: 18ms, render: 193ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 248ms (compile: 58ms, proxy.ts: 16ms, render: 173ms)
+ GET /login 200 in 197ms (compile: 7ms, render: 190ms)
+ GET /solicitudes/indicadores/solicitud 200 in 251ms (compile: 29ms, proxy.ts: 38ms, render: 184ms)
+ GET /login 200 in 211ms (compile: 6ms, render: 205ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 259ms (compile: 55ms, proxy.ts: 19ms, render: 185ms)
+ GET /login 200 in 192ms (compile: 6ms, render: 186ms)
+ GET /solicitudes/indicadores/solicitud 200 in 251ms (compile: 12ms, proxy.ts: 54ms, render: 185ms)
+ GET /login 200 in 221ms (compile: 7ms, render: 213ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 277ms (compile: 27ms, proxy.ts: 50ms, render: 200ms)
+ GET /login 200 in 184ms (compile: 6ms, render: 178ms)
+ GET /solicitudes/indicadores/solicitud 200 in 246ms (compile: 59ms, proxy.ts: 33ms, render: 154ms)
+ GET /login 200 in 196ms (compile: 7ms, render: 189ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 259ms (compile: 35ms, proxy.ts: 38ms, render: 186ms)
+ GET /login 200 in 174ms (compile: 5ms, render: 169ms)
+ GET /solicitudes/indicadores/solicitud 200 in 242ms (compile: 50ms, proxy.ts: 36ms, render: 156ms)
+ GET /login 200 in 215ms (compile: 4ms, render: 211ms)
+ GET /solicitudes/indicadores/solicitud 200 in 237ms (compile: 28ms, proxy.ts: 15ms, render: 194ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 238ms (compile: 49ms, proxy.ts: 15ms, render: 175ms)
+ GET /login 200 in 164ms (compile: 6ms, render: 157ms)
+ GET /login 200 in 173ms (compile: 8ms, render: 165ms)
+ GET /solicitudes/indicadores/solicitud 200 in 237ms (compile: 27ms, proxy.ts: 44ms, render: 166ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 235ms (compile: 29ms, proxy.ts: 40ms, render: 167ms)
+ GET /login 200 in 178ms (compile: 25ms, render: 153ms)
+ GET /solicitudes/indicadores/solicitud 200 in 248ms (compile: 15ms, proxy.ts: 40ms, render: 193ms)
+ GET /login 200 in 202ms (compile: 8ms, render: 194ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 261ms (compile: 31ms, proxy.ts: 33ms, render: 196ms)
+ GET /login 200 in 188ms (compile: 9ms, render: 178ms)
+ GET /solicitudes/indicadores/solicitud 200 in 242ms (compile: 36ms, proxy.ts: 33ms, render: 174ms)
+ GET /login 200 in 161ms (compile: 9ms, render: 152ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 296ms (compile: 32ms, proxy.ts: 66ms, render: 198ms)
+ GET /login 200 in 185ms (compile: 7ms, render: 178ms)
+ GET /solicitudes/indicadores/solicitud 200 in 223ms (compile: 31ms, proxy.ts: 33ms, render: 158ms)
+ GET /login 200 in 235ms (compile: 9ms, render: 226ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 252ms (compile: 17ms, proxy.ts: 35ms, render: 200ms)
+ GET /login 200 in 214ms (compile: 34ms, render: 179ms)
+ GET /solicitudes/indicadores/solicitud 200 in 258ms (compile: 55ms, proxy.ts: 34ms, render: 169ms)
+ GET /login 200 in 205ms (compile: 8ms, render: 198ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 244ms (compile: 30ms, proxy.ts: 16ms, render: 197ms)
+ GET /solicitudes/indicadores/solicitud 200 in 247ms (compile: 50ms, proxy.ts: 15ms, render: 182ms)
+ GET /login 200 in 159ms (compile: 7ms, render: 152ms)
+ GET /solicitudes/indicadores/solicitud 200 in 255ms (compile: 13ms, proxy.ts: 20ms, render: 222ms)
+ GET /login 200 in 232ms (compile: 30ms, render: 203ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 258ms (compile: 52ms, proxy.ts: 17ms, render: 189ms)
+ GET /login 200 in 202ms (compile: 6ms, render: 195ms)
+ GET /solicitudes/indicadores/solicitud 200 in 287ms (compile: 11ms, proxy.ts: 55ms, render: 221ms)
+ GET /login 200 in 229ms (compile: 25ms, render: 204ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 301ms (compile: 23ms, proxy.ts: 55ms, render: 223ms)
+ GET /login 200 in 235ms (compile: 33ms, render: 202ms)
+ GET /solicitudes/indicadores/solicitud 200 in 288ms (compile: 18ms, proxy.ts: 73ms, render: 196ms)
+ GET /login 200 in 216ms (compile: 7ms, render: 208ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 298ms (compile: 31ms, proxy.ts: 47ms, render: 219ms)
+ GET /login 200 in 207ms (compile: 7ms, render: 200ms)
+ GET /solicitudes/indicadores/solicitud 200 in 267ms (compile: 35ms, proxy.ts: 58ms, render: 174ms)
+ GET /login 200 in 218ms (compile: 8ms, render: 210ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 291ms (compile: 36ms, proxy.ts: 43ms, render: 213ms)
+ GET /login 200 in 192ms (compile: 4ms, render: 188ms)
+ GET /solicitudes/indicadores/solicitud 200 in 269ms (compile: 55ms, proxy.ts: 40ms, render: 173ms)
+ GET /login 200 in 235ms (compile: 8ms, render: 227ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 259ms (compile: 31ms, proxy.ts: 17ms, render: 211ms)
+ GET /solicitudes/indicadores/solicitud 200 in 262ms (compile: 51ms, proxy.ts: 18ms, render: 193ms)
+ GET /login 200 in 173ms (compile: 8ms, render: 165ms)
+ GET /login 200 in 245ms (compile: 8ms, render: 237ms)
+ GET /solicitudes/indicadores/solicitud 200 in 294ms (compile: 33ms, proxy.ts: 42ms, render: 220ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 267ms (compile: 55ms, proxy.ts: 17ms, render: 195ms)
+ GET /login 200 in 227ms (compile: 27ms, render: 200ms)
+ GET /solicitudes/indicadores/solicitud 200 in 288ms (compile: 13ms, proxy.ts: 63ms, render: 212ms)
+ GET /login 200 in 237ms (compile: 30ms, render: 207ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 286ms (compile: 16ms, proxy.ts: 59ms, render: 211ms)
+ GET /login 200 in 219ms (compile: 32ms, render: 187ms)
+ GET /solicitudes/indicadores/solicitud 200 in 235ms (compile: 13ms, proxy.ts: 65ms, render: 157ms)
+ GET /login 200 in 198ms (compile: 5ms, render: 192ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 248ms (compile: 30ms, proxy.ts: 38ms, render: 180ms)
+ GET /login 200 in 192ms (compile: 8ms, render: 185ms)
+ GET /solicitudes/indicadores/solicitud 200 in 252ms (compile: 32ms, proxy.ts: 53ms, render: 167ms)
+ GET /login 200 in 229ms (compile: 6ms, render: 224ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 256ms (compile: 27ms, proxy.ts: 16ms, render: 212ms)
+ GET /solicitudes/indicadores/solicitud 200 in 254ms (compile: 45ms, proxy.ts: 17ms, render: 192ms)
+ GET /login 200 in 195ms (compile: 14ms, render: 182ms)
+ GET /login 200 in 184ms (compile: 5ms, render: 179ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 270ms (compile: 47ms, proxy.ts: 40ms, render: 183ms)
+ GET /solicitudes/indicadores/solicitud 200 in 274ms (compile: 29ms, proxy.ts: 42ms, render: 204ms)
+ GET /login 200 in 192ms (compile: 8ms, render: 184ms)
+ GET /solicitudes/indicadores/solicitud 200 in 253ms (compile: 14ms, proxy.ts: 41ms, render: 199ms)
+ GET /login 200 in 212ms (compile: 8ms, render: 204ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 271ms (compile: 11ms, proxy.ts: 56ms, render: 204ms)
+ GET /login 200 in 213ms (compile: 27ms, render: 186ms)
+ GET /solicitudes/indicadores/solicitud 200 in 230ms (compile: 37ms, proxy.ts: 33ms, render: 161ms)
+ GET /login 200 in 162ms (compile: 7ms, render: 155ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 278ms (compile: 12ms, proxy.ts: 61ms, render: 205ms)
+ GET /login 200 in 213ms (compile: 29ms, render: 184ms)
+ GET /solicitudes/indicadores/solicitud 200 in 252ms (compile: 37ms, proxy.ts: 57ms, render: 158ms)
+ GET /login 200 in 221ms (compile: 7ms, render: 213ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 243ms (compile: 27ms, proxy.ts: 19ms, render: 197ms)
+ GET /solicitudes/indicadores/solicitud 200 in 248ms (compile: 46ms, proxy.ts: 19ms, render: 183ms)
+ GET /login 200 in 160ms (compile: 12ms, render: 148ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 252ms (compile: 30ms, proxy.ts: 34ms, render: 187ms)
+ GET /login 200 in 216ms (compile: 6ms, render: 209ms)
+ GET /solicitudes/indicadores/solicitud 200 in 236ms (compile: 44ms, proxy.ts: 15ms, render: 177ms)
+ GET /login 200 in 175ms (compile: 4ms, render: 170ms)
+ GET /login 200 in 208ms (compile: 24ms, render: 184ms)
+ GET /solicitudes/indicadores/solicitud 200 in 255ms (compile: 15ms, proxy.ts: 37ms, render: 204ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 230ms (compile: 48ms, proxy.ts: 15ms, render: 167ms)
+ GET /login 200 in 179ms (compile: 5ms, render: 174ms)
+ GET /solicitudes/indicadores/solicitud 200 in 244ms (compile: 9ms, proxy.ts: 56ms, render: 179ms)
+ GET /login 200 in 185ms (compile: 7ms, render: 178ms)
+ GET /login 200 in 211ms (compile: 7ms, render: 204ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 298ms (compile: 31ms, proxy.ts: 53ms, render: 214ms)
+ GET /solicitudes/indicadores/solicitud 200 in 261ms (compile: 36ms, proxy.ts: 32ms, render: 193ms)
+ GET /login 200 in 193ms (compile: 9ms, render: 184ms)
+ GET /login 200 in 217ms (compile: 6ms, render: 211ms)
+ GET /solicitudes/indicadores/solicitud 200 in 279ms (compile: 51ms, proxy.ts: 32ms, render: 196ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 282ms (compile: 33ms, proxy.ts: 33ms, render: 216ms)
+ GET /login 200 in 175ms (compile: 8ms, render: 167ms)
+ GET /login 200 in 232ms (compile: 6ms, render: 226ms)
+ GET /solicitudes/indicadores/solicitud 200 in 312ms (compile: 34ms, proxy.ts: 46ms, render: 232ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 283ms (compile: 53ms, proxy.ts: 17ms, render: 213ms)
+ GET /login 200 in 210ms (compile: 8ms, render: 202ms)
+ GET /solicitudes/indicadores/solicitud 200 in 307ms (compile: 12ms, proxy.ts: 38ms, render: 257ms)
+ GET /login 200 in 263ms (compile: 33ms, render: 230ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 304ms (compile: 64ms, proxy.ts: 16ms, render: 224ms)
+ GET /login 200 in 217ms (compile: 7ms, render: 210ms)
+ GET /solicitudes/indicadores/solicitud 200 in 262ms (compile: 30ms, proxy.ts: 49ms, render: 183ms)
+ GET /login 200 in 199ms (compile: 12ms, render: 187ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 286ms (compile: 34ms, proxy.ts: 58ms, render: 194ms)
+ GET /login 200 in 176ms (compile: 9ms, render: 168ms)
+ GET /solicitudes/indicadores/solicitud 200 in 271ms (compile: 33ms, proxy.ts: 60ms, render: 178ms)
+ GET /login 200 in 185ms (compile: 7ms, render: 178ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 269ms (compile: 12ms, proxy.ts: 52ms, render: 204ms)
+ GET /login 200 in 211ms (compile: 24ms, render: 188ms)
+ GET /solicitudes/indicadores/solicitud 200 in 251ms (compile: 53ms, proxy.ts: 30ms, render: 168ms)
+ GET /login 200 in 234ms (compile: 8ms, render: 226ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 259ms (compile: 41ms, proxy.ts: 17ms, render: 201ms)
+ GET /login 200 in 189ms (compile: 25ms, render: 164ms)
+ GET /solicitudes/indicadores/solicitud 200 in 260ms (compile: 31ms, proxy.ts: 43ms, render: 186ms)
+ GET /login 200 in 202ms (compile: 5ms, render: 197ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 253ms (compile: 34ms, proxy.ts: 18ms, render: 200ms)
+ GET /solicitudes/indicadores/solicitud 200 in 253ms (compile: 54ms, proxy.ts: 18ms, render: 181ms)
+ GET /login 200 in 166ms (compile: 8ms, render: 157ms)
+ GET /solicitudes/indicadores/solicitud 200 in 255ms (compile: 12ms, proxy.ts: 38ms, render: 205ms)
+ GET /login 200 in 211ms (compile: 24ms, render: 188ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 253ms (compile: 12ms, proxy.ts: 49ms, render: 193ms)
+ GET /login 200 in 200ms (compile: 33ms, render: 167ms)
+ GET /solicitudes/indicadores/solicitud 200 in 238ms (compile: 13ms, proxy.ts: 64ms, render: 162ms)
+ GET /login 200 in 144ms (compile: 4ms, render: 140ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 247ms (compile: 12ms, proxy.ts: 52ms, render: 183ms)
+ GET /login 200 in 191ms (compile: 25ms, render: 166ms)
+ GET /solicitudes/indicadores/solicitud 200 in 233ms (compile: 15ms, proxy.ts: 48ms, render: 169ms)
+ GET /login 200 in 230ms (compile: 5ms, render: 226ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 280ms (compile: 31ms, proxy.ts: 36ms, render: 212ms)
+ GET /solicitudes/indicadores/solicitud 200 in 261ms (compile: 46ms, proxy.ts: 32ms, render: 183ms)
+ GET /login 200 in 208ms (compile: 5ms, render: 202ms)
+ GET /login 200 in 266ms (compile: 6ms, render: 260ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 334ms (compile: 30ms, proxy.ts: 57ms, render: 247ms)
+ GET /solicitudes/indicadores/solicitud 200 in 298ms (compile: 40ms, proxy.ts: 35ms, render: 223ms)
+ GET /login 200 in 232ms (compile: 31ms, render: 200ms)
+ GET /login 200 in 257ms (compile: 12ms, render: 245ms)
+ GET /solicitudes/indicadores/solicitud 200 in 286ms (compile: 39ms, proxy.ts: 22ms, render: 225ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 288ms (compile: 42ms, proxy.ts: 45ms, render: 201ms)
+ GET /login 200 in 208ms (compile: 32ms, render: 175ms)
+ GET /login 200 in 227ms (compile: 10ms, render: 218ms)
+ GET /solicitudes/indicadores/solicitud 200 in 256ms (compile: 33ms, proxy.ts: 22ms, render: 201ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 302ms (compile: 35ms, proxy.ts: 37ms, render: 230ms)
+ GET /login 200 in 245ms (compile: 32ms, render: 213ms)
+ GET /solicitudes/indicadores/solicitud 200 in 300ms (compile: 13ms, proxy.ts: 70ms, render: 217ms)
+ GET /login 200 in 234ms (compile: 8ms, render: 226ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 290ms (compile: 33ms, proxy.ts: 47ms, render: 210ms)
+ GET /login 200 in 207ms (compile: 6ms, render: 201ms)
+ GET /solicitudes/indicadores/solicitud 200 in 265ms (compile: 27ms, proxy.ts: 52ms, render: 186ms)
+ GET /login 200 in 254ms (compile: 7ms, render: 248ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 325ms (compile: 28ms, proxy.ts: 60ms, render: 237ms)
+ GET /solicitudes/indicadores/solicitud 200 in 288ms (compile: 30ms, proxy.ts: 33ms, render: 226ms)
+ GET /login 200 in 258ms (compile: 31ms, render: 227ms)
+ GET /login 200 in 300ms (compile: 14ms, render: 286ms)
+ GET /solicitudes/indicadores/solicitud 200 in 328ms (compile: 36ms, proxy.ts: 22ms, render: 270ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 355ms (compile: 67ms, proxy.ts: 44ms, render: 244ms)
+ GET /login 200 in 279ms (compile: 9ms, render: 270ms)
+ GET /login 200 in 262ms (compile: 8ms, render: 254ms)
+ GET /solicitudes/indicadores/solicitud 200 in 296ms (compile: 58ms, proxy.ts: 30ms, render: 208ms)
+ GET /login 200 in 236ms (compile: 28ms, render: 208ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 368ms (compile: 63ms, proxy.ts: 63ms, render: 242ms)
+ GET /login 200 in 222ms (compile: 7ms, render: 214ms)
+ GET /solicitudes/indicadores/solicitud 200 in 344ms (compile: 43ms, proxy.ts: 52ms, render: 249ms)
+ GET /login 200 in 312ms (compile: 7ms, render: 304ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 329ms (compile: 10ms, proxy.ts: 41ms, render: 278ms)
+ GET /login 200 in 286ms (compile: 28ms, render: 259ms)
+ GET /solicitudes/indicadores/solicitud 200 in 336ms (compile: 66ms, proxy.ts: 42ms, render: 228ms)
+ GET /login 200 in 248ms (compile: 12ms, render: 236ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 306ms (compile: 77ms, proxy.ts: 24ms, render: 205ms)
+ GET /login 200 in 191ms (compile: 4ms, render: 187ms)
+ GET /solicitudes/indicadores/solicitud 200 in 308ms (compile: 56ms, proxy.ts: 84ms, render: 169ms)
+ GET /login 200 in 237ms (compile: 4ms, render: 232ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 261ms (compile: 44ms, proxy.ts: 16ms, render: 201ms)
+ GET /solicitudes/indicadores/solicitud 200 in 266ms (compile: 27ms, proxy.ts: 17ms, render: 222ms)
+ GET /login 200 in 193ms (compile: 13ms, render: 180ms)
+ GET /login 200 in 212ms (compile: 6ms, render: 207ms)
+ GET /solicitudes/indicadores/solicitud 200 in 277ms (compile: 37ms, proxy.ts: 49ms, render: 191ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 264ms (compile: 58ms, proxy.ts: 19ms, render: 187ms)
+ GET /login 200 in 182ms (compile: 10ms, render: 172ms)
+ GET /solicitudes/indicadores/solicitud 200 in 244ms (compile: 12ms, proxy.ts: 37ms, render: 195ms)
+ GET /login 200 in 213ms (compile: 6ms, render: 207ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 267ms (compile: 34ms, proxy.ts: 30ms, render: 203ms)
+ GET /login 200 in 191ms (compile: 17ms, render: 174ms)
+ GET /solicitudes/indicadores/solicitud 200 in 224ms (compile: 31ms, proxy.ts: 37ms, render: 156ms)
+ GET /login 200 in 184ms (compile: 7ms, render: 177ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 278ms (compile: 32ms, proxy.ts: 30ms, render: 216ms)
+ GET /login 200 in 199ms (compile: 12ms, render: 188ms)
+ GET /solicitudes/indicadores/solicitud 200 in 263ms (compile: 37ms, proxy.ts: 60ms, render: 166ms)
+ GET /login 200 in 283ms (compile: 11ms, render: 272ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 303ms (compile: 30ms, proxy.ts: 15ms, render: 258ms)
+ GET /solicitudes/indicadores/solicitud 200 in 306ms (compile: 49ms, proxy.ts: 15ms, render: 241ms)
+ GET /login 200 in 214ms (compile: 10ms, render: 204ms)
+ GET /login 200 in 241ms (compile: 6ms, render: 235ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 290ms (compile: 52ms, proxy.ts: 39ms, render: 199ms)
+ GET /solicitudes/indicadores/solicitud 200 in 270ms (compile: 95ms, proxy.ts: 19ms, render: 156ms)
+ GET /solicitudes/indicadores/solicitud 200 in 236ms (compile: 35ms, proxy.ts: 16ms, render: 186ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 242ms (compile: 11ms, proxy.ts: 17ms, render: 214ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 241ms (compile: 18ms, proxy.ts: 22ms, render: 201ms)
+ GET /solicitudes/indicadores/solicitud 200 in 240ms (compile: 69ms, proxy.ts: 20ms, render: 151ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 203ms (compile: 9ms, proxy.ts: 23ms, render: 170ms)
+ GET /solicitudes/indicadores/solicitud 200 in 205ms (compile: 39ms, proxy.ts: 23ms, render: 144ms)
+ GET /solicitudes/indicadores/solicitud 200 in 208ms (compile: 32ms, proxy.ts: 21ms, render: 155ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 215ms (compile: 7ms, proxy.ts: 23ms, render: 184ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 202ms (compile: 13ms, proxy.ts: 13ms, render: 177ms)
+ GET /solicitudes/indicadores/solicitud 200 in 205ms (compile: 42ms, proxy.ts: 15ms, render: 147ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 178ms (compile: 10ms, proxy.ts: 16ms, render: 152ms)
+ GET /solicitudes/indicadores/solicitud 200 in 178ms (compile: 38ms, proxy.ts: 15ms, render: 125ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 170ms (compile: 8ms, proxy.ts: 14ms, render: 148ms)
+ GET /solicitudes/indicadores/solicitud 200 in 170ms (compile: 30ms, proxy.ts: 13ms, render: 126ms)
+ GET /solicitudes/indicadores/solicitud 200 in 175ms (compile: 33ms, proxy.ts: 16ms, render: 126ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 179ms (compile: 7ms, proxy.ts: 17ms, render: 155ms)
+ GET /solicitudes/indicadores/solicitud 200 in 172ms (compile: 30ms, proxy.ts: 15ms, render: 127ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 178ms (compile: 6ms, proxy.ts: 16ms, render: 156ms)
+ GET /solicitudes/indicadores/solicitud 200 in 181ms (compile: 39ms, proxy.ts: 15ms, render: 128ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 187ms (compile: 8ms, proxy.ts: 17ms, render: 161ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 190ms (compile: 10ms, proxy.ts: 13ms, render: 167ms)
+ GET /solicitudes/indicadores/solicitud 200 in 190ms (compile: 30ms, proxy.ts: 14ms, render: 146ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 190ms (compile: 10ms, proxy.ts: 16ms, render: 163ms)
+ GET /solicitudes/indicadores/solicitud 200 in 190ms (compile: 42ms, proxy.ts: 15ms, render: 132ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 174ms (compile: 10ms, proxy.ts: 14ms, render: 150ms)
+ GET /solicitudes/indicadores/solicitud 200 in 176ms (compile: 34ms, proxy.ts: 15ms, render: 127ms)
+ GET /solicitudes/indicadores/solicitud 200 in 203ms (compile: 25ms, proxy.ts: 15ms, render: 163ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 206ms (compile: 6ms, proxy.ts: 16ms, render: 185ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 218ms (compile: 13ms, proxy.ts: 16ms, render: 188ms)
+ GET /solicitudes/indicadores/solicitud 200 in 217ms (compile: 40ms, proxy.ts: 15ms, render: 162ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 212ms (compile: 9ms, proxy.ts: 28ms, render: 174ms)
+ GET /solicitudes/indicadores/solicitud 200 in 210ms (compile: 39ms, proxy.ts: 28ms, render: 144ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 198ms (compile: 11ms, proxy.ts: 16ms, render: 170ms)
+ GET /solicitudes/indicadores/solicitud 200 in 198ms (compile: 37ms, proxy.ts: 16ms, render: 145ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 200ms (compile: 5ms, proxy.ts: 17ms, render: 178ms)
+ GET /solicitudes/indicadores/solicitud 200 in 198ms (compile: 23ms, proxy.ts: 15ms, render: 160ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 223ms (compile: 9ms, proxy.ts: 16ms, render: 199ms)
+ GET /solicitudes/indicadores/solicitud 200 in 224ms (compile: 46ms, proxy.ts: 13ms, render: 165ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 246ms (compile: 10ms, proxy.ts: 14ms, render: 221ms)
+ GET /solicitudes/indicadores/solicitud 200 in 249ms (compile: 48ms, proxy.ts: 15ms, render: 186ms)
+ GET /solicitudes/indicadores/solicitud 200 in 267ms (compile: 48ms, proxy.ts: 18ms, render: 201ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 271ms (compile: 8ms, proxy.ts: 19ms, render: 245ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 228ms (compile: 9ms, proxy.ts: 17ms, render: 202ms)
+ GET /solicitudes/indicadores/solicitud 200 in 226ms (compile: 58ms, proxy.ts: 15ms, render: 152ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 180ms (compile: 7ms, proxy.ts: 20ms, render: 153ms)
+ GET /solicitudes/indicadores/solicitud 200 in 183ms (compile: 38ms, proxy.ts: 18ms, render: 127ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 205ms (compile: 7ms, proxy.ts: 16ms, render: 182ms)
+ GET /solicitudes/indicadores/solicitud 200 in 210ms (compile: 37ms, proxy.ts: 16ms, render: 157ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 239ms (compile: 8ms, proxy.ts: 18ms, render: 213ms)
+ GET /solicitudes/indicadores/solicitud 200 in 246ms (compile: 54ms, proxy.ts: 17ms, render: 174ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 225ms (compile: 8ms, proxy.ts: 18ms, render: 199ms)
+ GET /solicitudes/indicadores/solicitud 200 in 225ms (compile: 46ms, proxy.ts: 18ms, render: 161ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 235ms (compile: 10ms, proxy.ts: 23ms, render: 202ms)
+ GET /solicitudes/indicadores/solicitud 200 in 239ms (compile: 41ms, proxy.ts: 22ms, render: 176ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 268ms (compile: 8ms, proxy.ts: 15ms, render: 244ms)
+ GET /solicitudes/indicadores/solicitud 200 in 272ms (compile: 35ms, proxy.ts: 16ms, render: 221ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 237ms (compile: 16ms, proxy.ts: 23ms, render: 198ms)
+ GET /solicitudes/indicadores/solicitud 200 in 237ms (compile: 66ms, proxy.ts: 24ms, render: 147ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 189ms (compile: 9ms, proxy.ts: 14ms, render: 165ms)
+ GET /solicitudes/indicadores/solicitud 200 in 190ms (compile: 34ms, proxy.ts: 13ms, render: 143ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 197ms (compile: 6ms, proxy.ts: 16ms, render: 174ms)
+ GET /solicitudes/indicadores/solicitud 200 in 197ms (compile: 30ms, proxy.ts: 15ms, render: 152ms)
+ GET /solicitudes/indicadores/solicitud 200 in 202ms (compile: 35ms, proxy.ts: 17ms, render: 150ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 206ms (compile: 8ms, proxy.ts: 18ms, render: 180ms)
+ GET /solicitudes/indicadores/solicitud 200 in 199ms (compile: 39ms, proxy.ts: 20ms, render: 140ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 203ms (compile: 11ms, proxy.ts: 21ms, render: 172ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 196ms (compile: 7ms, proxy.ts: 18ms, render: 171ms)
+ GET /solicitudes/indicadores/solicitud 200 in 197ms (compile: 37ms, proxy.ts: 18ms, render: 142ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 186ms (compile: 5ms, proxy.ts: 16ms, render: 165ms)
+ GET /solicitudes/indicadores/solicitud 200 in 190ms (compile: 36ms, proxy.ts: 15ms, render: 138ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 201ms (compile: 11ms, proxy.ts: 11ms, render: 179ms)
+ GET /solicitudes/indicadores/solicitud 200 in 204ms (compile: 41ms, proxy.ts: 15ms, render: 149ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 221ms (compile: 9ms, proxy.ts: 20ms, render: 192ms)
+ GET /solicitudes/indicadores/solicitud 200 in 218ms (compile: 39ms, proxy.ts: 13ms, render: 166ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 201ms (compile: 8ms, proxy.ts: 20ms, render: 173ms)
+ GET /solicitudes/indicadores/solicitud 200 in 198ms (compile: 35ms, proxy.ts: 18ms, render: 145ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 553ms (compile: 8ms, proxy.ts: 22ms, render: 523ms)
+ GET /solicitudes/indicadores/solicitud 200 in 550ms (compile: 28ms, proxy.ts: 14ms, render: 508ms)
+ GET /solicitudes/indicadores/solicitud 200 in 478ms (compile: 42ms, proxy.ts: 12ms, render: 424ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 562ms (compile: 9ms, proxy.ts: 13ms, render: 539ms)
+ GET /solicitudes/indicadores/area 200 in 3.3s (compile: 2.6s, proxy.ts: 80ms, render: 632ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 707ms (compile: 36ms, proxy.ts: 374ms, render: 297ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 699ms (compile: 53ms, proxy.ts: 14ms, render: 632ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 572ms (compile: 416ms, proxy.ts: 32ms, render: 124ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 156ms (compile: 14ms, proxy.ts: 25ms, render: 117ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 192ms (compile: 12ms, proxy.ts: 17ms, render: 163ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 419ms (compile: 24ms, proxy.ts: 29ms, render: 367ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 414ms (compile: 15ms, proxy.ts: 30ms, render: 369ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 335ms (compile: 24ms, proxy.ts: 67ms, render: 244ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 319ms (compile: 24ms, proxy.ts: 25ms, render: 270ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 308ms (compile: 21ms, proxy.ts: 23ms, render: 263ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 327ms (compile: 36ms, proxy.ts: 34ms, render: 257ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 307ms (compile: 36ms, proxy.ts: 87ms, render: 184ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 211ms (compile: 16ms, proxy.ts: 43ms, render: 152ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 146ms (compile: 10ms, proxy.ts: 31ms, render: 105ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 123ms (compile: 9ms, proxy.ts: 13ms, render: 101ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 129ms (compile: 9ms, proxy.ts: 15ms, render: 106ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 136ms (compile: 8ms, proxy.ts: 11ms, render: 117ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 157ms (compile: 6ms, proxy.ts: 11ms, render: 141ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 169ms (compile: 14ms, proxy.ts: 10ms, render: 145ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 170ms (compile: 11ms, proxy.ts: 20ms, render: 139ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 155ms (compile: 9ms, proxy.ts: 10ms, render: 136ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 171ms (compile: 5ms, proxy.ts: 14ms, render: 152ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 182ms (compile: 6ms, proxy.ts: 26ms, render: 149ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 163ms (compile: 7ms, proxy.ts: 42ms, render: 114ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 415ms (compile: 6ms, proxy.ts: 10ms, render: 399ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 463ms (compile: 12ms, proxy.ts: 14ms, render: 438ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 228ms (compile: 9ms, proxy.ts: 30ms, render: 189ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 225ms (compile: 9ms, proxy.ts: 37ms, render: 178ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 138ms (compile: 14ms, proxy.ts: 17ms, render: 108ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 111ms (compile: 9ms, proxy.ts: 11ms, render: 92ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 98ms (compile: 7ms, proxy.ts: 10ms, render: 81ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 86ms (compile: 4ms, proxy.ts: 10ms, render: 71ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 74ms (compile: 5ms, proxy.ts: 8ms, render: 61ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 44ms (compile: 5ms, proxy.ts: 7ms, render: 31ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 74ms (compile: 7ms, proxy.ts: 6ms, render: 61ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 80ms (compile: 3ms, proxy.ts: 4ms, render: 73ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 76ms (compile: 4ms, proxy.ts: 7ms, render: 65ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 74ms (compile: 7ms, proxy.ts: 9ms, render: 57ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 81ms (compile: 6ms, proxy.ts: 5ms, render: 69ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 95ms (compile: 5ms, proxy.ts: 7ms, render: 83ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 96ms (compile: 6ms, proxy.ts: 7ms, render: 83ms)
+ GET /solicitudes/listado-de-solicitudes 200 in 54ms (compile: 8ms, proxy.ts: 13ms, render: 33ms)
+✓ Compiled in 394ms
+✓ Compiled in 272ms
+✓ Compiled in 325ms
+✓ Compiled in 190ms
+✓ Compiled in 137ms
+✓ Compiled in 152ms
+ GET /solicitudes/listado-de-solicitudes 200 in 4.1s (compile: 55ms, proxy.ts: 103ms, render: 3.9s)
+ GET /solicitudes/1173/pdf 404 in 1174ms (compile: 908ms, proxy.ts: 103ms, render: 164ms)
+ GET /solicitudes/1173/pdf 404 in 3.2s (compile: 62ms, proxy.ts: 40ms, render: 3.1s)
+ GET /solicitudes/listado-de-solicitudes 200 in 147ms (compile: 7ms, proxy.ts: 10ms, render: 130ms)
+✓ Compiled in 1506ms
+✓ Compiled in 261ms
+✓ Compiled in 153ms
+✓ Compiled in 1707ms
+Failed to proxy http://localhost:3001/api/solicitudes/listado AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/solicitudes/1173/pdf AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+Failed to proxy http://localhost:3001/api/solicitudes/1173/pdf AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
