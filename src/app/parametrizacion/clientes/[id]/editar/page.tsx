@@ -23,7 +23,7 @@ export default function EditarClientePage() {
   const clienteId = useMemo(() => Number(params?.id), [params]);
 
   const [razonSocial, setRazonSocial] = useState("");
-  const [tipoIdentificacion, setTipoIdentificacion] = useState<string>("");
+  const [tipoIdentificacion, setTipoIdentificacion] = useState<number | undefined>(undefined);
   const [tiposIdentificacion, setTiposIdentificacion] = useState<
     Array<{ id: number; nombre: string }>
   >([]);
@@ -82,25 +82,30 @@ export default function EditarClientePage() {
         setRazonSocial(clienteData.razonSocial || "");
         setTiposIdentificacion(tiposData || []);
         setTipoIdentificacion(
-          clienteData.tipoIdentificacion ||
-            (tiposData?.[0]?.id ? String(tiposData[0].id) : ""),
+          clienteData.tipoIdentificacion != null
+            ? Number(clienteData.tipoIdentificacion)
+            : (tiposData?.[0]?.id ? Number(tiposData[0].id) : undefined),
         );
         setNitDocumento(clienteData.nitDocumento || "");
-        setCorreo(clienteData.email || "");
+        setCorreo(clienteData.correo || "");
         setDireccion(clienteData.direccion || "");
         setHabilitaAcceso(Boolean(clienteData.habilitaAcceso));
         setCentroOperacionIds(
           Array.isArray(clienteCentrosData)
-            ? clienteCentrosData.map((c: any) => c.id)
+            ? clienteCentrosData.map((c: any) => c.cop_id || c.id)
             : [],
         );
-        setCentros(Array.isArray(centrosData) ? centrosData : []);
+        setCentros(
+          Array.isArray(centrosData)
+            ? centrosData.map((c: any) => ({ id: c.cop_id, nombre: c.cop_nombre }))
+            : [],
+        );
         setEjecutivos(
           Array.isArray(ejecutivosData)
             ? ejecutivosData.map((e: any) => ({ id: e.id, nombre: e.nombre }))
             : [],
         );
-        setEjecutivoId(clienteData.ejng_id || null);
+        setEjecutivoId(clienteData.ejecutivoId || null);
       } catch (err: any) {
         setError(err?.message || "Error cargando cliente");
       } finally {
@@ -232,8 +237,10 @@ export default function EditarClientePage() {
                   </span>
                 </label>
                 <select
-                  value={tipoIdentificacion}
-                  onChange={(e) => setTipoIdentificacion(e.target.value)}
+                  value={tipoIdentificacion ?? ""}
+                  onChange={(e) =>
+                    setTipoIdentificacion(e.target.value ? Number(e.target.value) : undefined)
+                  }
                   required
                   disabled={saving || success || loadingTiposIdentificacion}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"

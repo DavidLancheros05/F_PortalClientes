@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 interface FormularioPreguntaLite {
   fp_id: number;
-  fp_subtipo?: string;
+  fp_subtipo: string | null;
 }
 
 type RespuestasState = {

@@ -237,7 +237,6 @@ export default function MisPQRSPage() {
                         style={{
                           backgroundColor: estado.pe_color || "#6B7280",
                           color: "white",
-                          ringColor: estado.pe_color || "#6B7280",
                         }}
                       >
                         {estado.pe_nombre}

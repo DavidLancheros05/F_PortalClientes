@@ -2,6 +2,7 @@
 import { solicitudesService } from "@/services/solicitudes.service";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { centrosOperacionService, type CentroOperacion } from "@/services/centros-operacion/centros-operacion.service";
+import type { ClienteListResponse } from "@/types/api.types";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,11 +32,6 @@ interface Solicitud {
   estado_id?: number;
 }
 
-interface Cliente {
-  id: number;
-  razonSocial: string;
-}
-
 export default function GestionOficialCumplimientoPage() {
   console.log("[GestionOficial] Página renderizada en:", new Date().toISOString());
   const router = useRouter();
@@ -45,7 +41,7 @@ export default function GestionOficialCumplimientoPage() {
   const [loadingCentros, setLoadingCentros] = useState(true);
   const [loadingClientes, setLoadingClientes] = useState(false);
   const [centros, setCentros] = useState<CentroOperacion[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<ClienteListResponse[]>([]);
   const [centroSeleccionado, setCentroSeleccionado] = useState<number | null>(
     null,
   );
@@ -211,8 +207,8 @@ export default function GestionOficialCumplimientoPage() {
                 <option value="">Todos los clientes</option>
                 {clientes.map((cliente, index) => (
                   <option
-                    key={`cliente-${cliente.id}-${index}`}
-                    value={cliente.id}
+                    key={`cliente-${cliente.cliId}-${index}`}
+                    value={cliente.cliId}
                   >
                     {cliente.razonSocial}
                   </option>
@@ -267,7 +263,7 @@ export default function GestionOficialCumplimientoPage() {
                       })
                       .filter((s: Solicitud) => {
                         const cumpleNumero = numeroBuscado
-                          ? (s.sol_numero_solicitud || s.numero_solicitud)
+                          ? (s.sol_numero_solicitud || s.numero_solicitud || "")
                               .toLowerCase()
                               .includes(numeroBuscado)
                           : true;

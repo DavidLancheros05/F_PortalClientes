@@ -1,35 +1,32 @@
 import api from "@/services/core/api";
+import { CorreoPorRolResponse, RolResponse } from "@/types/api.types";
 
-export interface CorreoRol {
-  id: number;
-  rol_id: number;
-  correo: string;
-  activo: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+/**
+ * @deprecated Usar CorreoPorRolResponse de @/types/api.types
+ */
+export type CorreoRol = CorreoPorRolResponse;
 
-export interface RolWithCorreo {
-  rol_id: number;
-  rol_nombre: string;
-}
+/**
+ * @deprecated Usar RolResponse de @/types/api.types
+ */
+export type RolWithCorreo = RolResponse;
 
 export const correosRolService = {
-  getRoles: async (): Promise<RolWithCorreo[]> => {
+  getRoles: async (): Promise<RolResponse[]> => {
     const res = await api.get("/parametrizacion/correos-por-rol/roles");
     return res.data;
   },
 
-  getAll: async (): Promise<CorreoRol[]> => {
+  getAll: async (): Promise<CorreoPorRolResponse[]> => {
     const res = await api.get("/parametrizacion/correos-por-rol");
     return res.data;
   },
 
   create: async (payload: {
     rol_id: number;
-    correo: string;
+    email: string;
     activo?: boolean;
-  }): Promise<CorreoRol> => {
+  }): Promise<CorreoPorRolResponse> => {
     const res = await api.post("/parametrizacion/correos-por-rol", payload);
     return res.data;
   },
@@ -38,15 +35,15 @@ export const correosRolService = {
     id: number,
     payload: Partial<{
       rol_id: number;
-      correo: string;
+      email: string;
       activo: boolean;
     }>,
-  ): Promise<CorreoRol> => {
+  ): Promise<CorreoPorRolResponse> => {
     const res = await api.put(`/parametrizacion/correos-por-rol/${id}`, payload);
     return res.data;
   },
 
-  toggleEstado: async (id: number, activo: boolean): Promise<CorreoRol> => {
+  toggleEstado: async (id: number, activo: boolean): Promise<CorreoPorRolResponse> => {
     const res = await api.patch(`/parametrizacion/correos-por-rol/${id}/estado`, {
       activo,
     });

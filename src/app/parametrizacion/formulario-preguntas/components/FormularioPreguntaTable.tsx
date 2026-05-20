@@ -23,7 +23,7 @@ export default function FormularioPreguntaTable({
     if (!ok) return;
 
     try {
-      await formularioPreguntasService.update(item.fp_id, {
+      await formularioPreguntasService.update(item.fp_id!, {
         fp_estado: !item.fp_estado,
       });
       onReload();

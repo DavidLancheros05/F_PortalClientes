@@ -2,7 +2,7 @@ import api from "@/services/core/api";
 
 export interface Usuario {
   usr_id: number;
-  usuario_nombre: string;
+  nombre: string;
   usuario_email: string;
   usuario_activo: boolean;
   usuario_created_at: string;
@@ -23,12 +23,15 @@ export const usuariosService = {
     const res = await api.get("/usuarios/me");
     return {
       ...res.data,
-      rol: typeof res.data.rol === "object" ? res.data.rol : { nombre: res.data.rol },
+      rol:
+        typeof res.data.rol === "object"
+          ? res.data.rol
+          : { nombre: res.data.rol },
     };
   },
 
   create: async (payload: {
-    usuario_nombre: string;
+    nombre: string;
     usuario_email: string;
     usuario_password: string;
     usuario_rol_id: number;
@@ -41,7 +44,7 @@ export const usuariosService = {
   update: async (
     usuarioId: number,
     payload: {
-      usuario_nombre?: string;
+      nombre?: string;
       usuario_email?: string;
       usuario_rol_id?: number;
       usuario_activo?: boolean;

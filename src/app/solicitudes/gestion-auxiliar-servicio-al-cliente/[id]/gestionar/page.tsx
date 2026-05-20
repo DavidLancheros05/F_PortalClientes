@@ -112,7 +112,8 @@ export default function GestionarSolicitudPage() {
 
         // Cargar historial de forma independiente (opcional)
         try {
-          const historialData = await solicitudesService.obtenerHistorialWorkflow(solicitudId);
+          const historialData =
+            await solicitudesService.obtenerHistorialWorkflow(solicitudId);
           // console.log("[Gestionar] Historial recibido:", historialData);
           setHistorial(historialData);
         } catch (historialError) {
@@ -165,7 +166,10 @@ export default function GestionarSolicitudPage() {
       return;
     }
 
-    if (gestion.motivo_rechazo_id === 1 && gestion.documentos_faltantes.length === 0) {
+    if (
+      gestion.motivo_rechazo_id === 1 &&
+      gestion.documentos_faltantes.length === 0
+    ) {
       alert("Selecciona al menos un documento faltante.");
       return;
     }
@@ -193,8 +197,6 @@ export default function GestionarSolicitudPage() {
         {
           aprobado: gestion.aprobado === true,
           motivo_rechazo_id: gestion.motivo_rechazo_id || null,
-          modo_solucion: gestion.modo_solucion || null,
-          documentos_faltantes: gestion.documentos_faltantes.length > 0 ? gestion.documentos_faltantes : null,
           fecha_estimada_respuesta_comercial:
             solicitud.fecha_estimada_respuesta_comercial,
           fecha_real_respuesta_comercial: fechaReal,
@@ -243,7 +245,9 @@ export default function GestionarSolicitudPage() {
     );
   }
 
-  const fechaEstimada = solicitud?.sol_fecha_estimada_respuesta_comercial || solicitud?.fecha_estimada_respuesta_comercial;
+  const fechaEstimada =
+    solicitud?.sol_fecha_estimada_respuesta_comercial ||
+    solicitud?.fecha_estimada_respuesta_comercial;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -271,306 +275,325 @@ export default function GestionarSolicitudPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Formulario de Gestión - Columna Izquierda (2/3) */}
           <div className="lg:col-span-2">
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-          {/* Información de la solicitud */}
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Información de la Solicitud
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Numero Solicitud</p>
-                <p className="font-medium text-gray-900">
-                  {solicitud.sol_numero_solicitud ||
-                    solicitud.numero_solicitud}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Cliente</p>
-                <p className="font-medium text-gray-900">
-                  {solicitud.cliente_nombre}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">
-                  Centro de Operación
-                </p>
-                <p className="font-medium text-gray-900">
-                  {solicitud.centro_operacion_nombre}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Estado</p>
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                    (solicitud.sol_estado_id ?? solicitud.estado_id) === 1
-                      ? "bg-yellow-100 text-yellow-800"
-                      : (solicitud.sol_estado_id ?? solicitud.estado_id) === 2
-                        ? "bg-blue-100 text-blue-800"
-                        : (solicitud.sol_estado_id ?? solicitud.estado_id) === 3
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {ESTADOS[
-                    solicitud.sol_estado_id ?? solicitud.estado_id
-                  ] || "Desconocido"}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">
-                  Consumo Proyectado (USD)
-                </p>
-                <p className="font-medium text-gray-900">
-                  {(solicitud?.sol_consumo_mensual_proyectado || solicitud?.consumo_mensual_proyectado)
-                    ? `$${(solicitud?.sol_consumo_mensual_proyectado || solicitud?.consumo_mensual_proyectado)?.toLocaleString(
-                        "es-CO",
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        },
-                      )}`
-                    : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">
-                  Fecha Estimada Respuesta
-                </p>
-                <p className="font-medium text-gray-900">
-                  {fechaEstimada
-                    ? new Date(fechaEstimada).toLocaleDateString("es-CO")
-                    : "-"}
-                </p>
-              </div>
-            </div>
-            {solicitud.observacionesComercial && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  Observaciones Ejecutivo
-                </p>
-                <p className="text-gray-900 bg-gray-50 p-3 rounded">
-                  {solicitud.observacionesComercial}
-                </p>
-              </div>
-            )}
-          </div>
-
-          
-
-          {/* Formulario de decisión */}
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              Registrar Decisión
-            </h2>
-
-            {/* Botones Aprobar/Rechazar */}
-            <div className="mb-6">
-              <p className="text-sm font-medium text-gray-700 mb-3">
-                Decisión *
-              </p>
-              <div className="flex gap-4">
-                <button
-                  onClick={() =>
-                    setGestion((prev) => ({
-                      ...prev,
-                      aprobado: true,
-                      motivo_rechazo_id: null,
-                      modo_solucion: null,
-                      documentos_faltantes: [],
-                    }))
-                  }
-                  className={`px-6 py-3 rounded-lg font-medium border-2 transition-colors ${
-                    gestion.aprobado === true
-                      ? "bg-green-600 text-white border-green-600"
-                      : "border-green-300 text-green-700 hover:bg-green-50"
-                  }`}
-                >
-                  ✓ Aprobar
-                </button>
-                <button
-                  onClick={() =>
-                    setGestion((prev) => ({
-                      ...prev,
-                      aprobado: false,
-                    }))
-                  }
-                  className={`px-6 py-3 rounded-lg font-medium border-2 transition-colors ${
-                    gestion.aprobado === false
-                      ? "bg-red-600 text-white border-red-600"
-                      : "border-red-300 text-red-700 hover:bg-red-50"
-                  }`}
-                >
-                  ✗ Rechazar
-                </button>
-              </div>
-            </div>
-
-            {/* Motivo de rechazo (si está rechazada) */}
-            {gestion.aprobado === false && (
-              <>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Motivo del Rechazo *
-                  </label>
-                  <select
-                    value={gestion.motivo_rechazo_id ? String(gestion.motivo_rechazo_id) : ""}
-                    onChange={(e) =>
-                      setGestion((prev) => ({
-                        ...prev,
-                        motivo_rechazo_id: e.target.value
-                          ? Number(e.target.value)
-                          : null,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecciona un motivo...</option>
-                    {motivos.map((m, index) => (
-                      <option
-                        key={`motivo-${index}`}
-                        value={String(m.id)}
-                      >
-                        {m.descripcion}
-                      </option>
-                    ))}
-                  </select>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              {/* Información de la solicitud */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Información de la Solicitud
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Numero Solicitud
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {solicitud.sol_numero_solicitud ||
+                        solicitud.numero_solicitud}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Cliente</p>
+                    <p className="font-medium text-gray-900">
+                      {solicitud.cliente_nombre}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Centro de Operación
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {solicitud.centro_operacion_nombre}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Estado</p>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        (solicitud.sol_estado_id ?? solicitud.estado_id) === 1
+                          ? "bg-yellow-100 text-yellow-800"
+                          : (solicitud.sol_estado_id ?? solicitud.estado_id) ===
+                              2
+                            ? "bg-blue-100 text-blue-800"
+                            : (solicitud.sol_estado_id ??
+                                  solicitud.estado_id) === 3
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {ESTADOS[
+                        solicitud.sol_estado_id ?? solicitud.estado_id
+                      ] || "Desconocido"}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Consumo Proyectado (USD)
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {solicitud?.sol_consumo_mensual_proyectado ||
+                      solicitud?.consumo_mensual_proyectado
+                        ? `$${(
+                            solicitud?.sol_consumo_mensual_proyectado ||
+                            solicitud?.consumo_mensual_proyectado
+                          )?.toLocaleString("es-CO", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`
+                        : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Fecha Estimada Respuesta
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {fechaEstimada
+                        ? new Date(fechaEstimada).toLocaleDateString("es-CO")
+                        : "-"}
+                    </p>
+                  </div>
                 </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Modo de Solución *
-                  </label>
-                  <select
-                    value={gestion.modo_solucion || ""}
-                    onChange={(e) =>
-                      setGestion((prev) => ({
-                        ...prev,
-                        modo_solucion: e.target.value || null,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecciona un modo de solución...</option>
-                    <option value="cliente_actualiza">Cliente Actualiza</option>
-                    <option value="auxiliar_actualiza">Auxiliar Actualiza</option>
-                  </select>
-                </div>
-
-                {gestion.motivo_rechazo_id === 1 && documentos.length > 0 && (
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Documentos con Fecha de Emisión Incorrecta
-                    </label>
-                    <div className="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      {documentos.map((doc) => (
-                        <label
-                          key={doc.id}
-                          className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded cursor-pointer border border-gray-200"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={gestion.documentos_faltantes.includes(doc.id)}
-                            onChange={(e) =>
-                              setGestion((prev) => ({
-                                ...prev,
-                                documentos_faltantes: e.target.checked
-                                  ? [...prev.documentos_faltantes, doc.id]
-                                  : prev.documentos_faltantes.filter(
-                                      (id) => id !== doc.id
-                                    ),
-                              }))
-                            }
-                            className="rounded cursor-pointer"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {doc.nombre}
-                            </p>
-                            {doc.descripcion && (
-                              <p className="text-xs text-gray-500 mb-1">
-                                {doc.descripcion}
-                              </p>
-                            )}
-                            <div className="flex gap-4 text-xs text-gray-600">
-                              {doc.fecha_emision ? (
-                                <span className="bg-white px-2 py-1 rounded">
-                                  Emisión: {new Date(doc.fecha_emision).toLocaleDateString("es-CO")}
-                                </span>
-                              ) : (
-                                <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-medium">
-                                  ⚠️ Sin fecha de emisión
-                                </span>
-                              )}
-                              {doc.fecha_vencimiento && (
-                                <span className="bg-white px-2 py-1 rounded">
-                                  Vencimiento: {new Date(doc.fecha_vencimiento).toLocaleDateString("es-CO")}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {doc.obligatorio && (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded whitespace-nowrap">
-                              Obligatorio
-                            </span>
-                          )}
-                        </label>
-                      ))}
-                    </div>
+                {solicitud.observacionesComercial && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Observaciones Ejecutivo
+                    </p>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded">
+                      {solicitud.observacionesComercial}
+                    </p>
                   </div>
                 )}
-              </>
-            )}
+              </div>
 
-            {/* Fecha Estimada Respuesta (visualizador) */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha Estimada Respuesta
-              </label>
-              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-900">
-                {fechaEstimada
-                  ? new Date(fechaEstimada).toLocaleDateString(
-                      "es-CO"
-                    )
-                  : "-"}
+              {/* Formulario de decisión */}
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  Registrar Decisión
+                </h2>
+
+                {/* Botones Aprobar/Rechazar */}
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-gray-700 mb-3">
+                    Decisión *
+                  </p>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() =>
+                        setGestion((prev) => ({
+                          ...prev,
+                          aprobado: true,
+                          motivo_rechazo_id: null,
+                          modo_solucion: null,
+                          documentos_faltantes: [],
+                        }))
+                      }
+                      className={`px-6 py-3 rounded-lg font-medium border-2 transition-colors ${
+                        gestion.aprobado === true
+                          ? "bg-green-600 text-white border-green-600"
+                          : "border-green-300 text-green-700 hover:bg-green-50"
+                      }`}
+                    >
+                      ✓ Aprobar
+                    </button>
+                    <button
+                      onClick={() =>
+                        setGestion((prev) => ({
+                          ...prev,
+                          aprobado: false,
+                        }))
+                      }
+                      className={`px-6 py-3 rounded-lg font-medium border-2 transition-colors ${
+                        gestion.aprobado === false
+                          ? "bg-red-600 text-white border-red-600"
+                          : "border-red-300 text-red-700 hover:bg-red-50"
+                      }`}
+                    >
+                      ✗ Rechazar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Motivo de rechazo (si está rechazada) */}
+                {gestion.aprobado === false && (
+                  <>
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Motivo del Rechazo *
+                      </label>
+                      <select
+                        value={
+                          gestion.motivo_rechazo_id
+                            ? String(gestion.motivo_rechazo_id)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setGestion((prev) => ({
+                            ...prev,
+                            motivo_rechazo_id: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Selecciona un motivo...</option>
+                        {motivos.map((m, index) => (
+                          <option key={`motivo-${index}`} value={String(m.id)}>
+                            {m.descripcion}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Modo de Solución *
+                      </label>
+                      <select
+                        value={gestion.modo_solucion || ""}
+                        onChange={(e) =>
+                          setGestion((prev) => ({
+                            ...prev,
+                            modo_solucion: e.target.value || null,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">
+                          Selecciona un modo de solución...
+                        </option>
+                        <option value="cliente_actualiza">
+                          Cliente Actualiza
+                        </option>
+                        <option value="auxiliar_actualiza">
+                          Auxiliar Actualiza
+                        </option>
+                      </select>
+                    </div>
+
+                    {gestion.motivo_rechazo_id === 1 &&
+                      documentos.length > 0 && (
+                        <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-3">
+                            Documentos con Fecha de Emisión Incorrecta
+                          </label>
+                          <div className="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            {documentos.map((doc) => (
+                              <label
+                                key={doc.id}
+                                className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded cursor-pointer border border-gray-200"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={gestion.documentos_faltantes.includes(
+                                    doc.id,
+                                  )}
+                                  onChange={(e) =>
+                                    setGestion((prev) => ({
+                                      ...prev,
+                                      documentos_faltantes: e.target.checked
+                                        ? [...prev.documentos_faltantes, doc.id]
+                                        : prev.documentos_faltantes.filter(
+                                            (id) => id !== doc.id,
+                                          ),
+                                    }))
+                                  }
+                                  className="rounded cursor-pointer"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {doc.nombre}
+                                  </p>
+                                  {doc.descripcion && (
+                                    <p className="text-xs text-gray-500 mb-1">
+                                      {doc.descripcion}
+                                    </p>
+                                  )}
+                                  <div className="flex gap-4 text-xs text-gray-600">
+                                    {doc.fecha_emision ? (
+                                      <span className="bg-white px-2 py-1 rounded">
+                                        Emisión:{" "}
+                                        {new Date(
+                                          doc.fecha_emision,
+                                        ).toLocaleDateString("es-CO")}
+                                      </span>
+                                    ) : (
+                                      <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-medium">
+                                        ⚠️ Sin fecha de emisión
+                                      </span>
+                                    )}
+                                    {doc.fecha_vencimiento && (
+                                      <span className="bg-white px-2 py-1 rounded">
+                                        Vencimiento:{" "}
+                                        {new Date(
+                                          doc.fecha_vencimiento,
+                                        ).toLocaleDateString("es-CO")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {doc.obligatorio && (
+                                  <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded whitespace-nowrap">
+                                    Obligatorio
+                                  </span>
+                                )}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </>
+                )}
+
+                {/* Fecha Estimada Respuesta (visualizador) */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha Estimada Respuesta
+                  </label>
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-900">
+                    {fechaEstimada
+                      ? new Date(fechaEstimada).toLocaleDateString("es-CO")
+                      : "-"}
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleGuardarDecision}
+                    disabled={
+                      gestion.aprobado === undefined || gestion.guardando
+                    }
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {gestion.guardando ? "Guardando..." : "Guardar Decisión"}
+                  </button>
+                  <button
+                    onClick={() => router.back()}
+                    disabled={gestion.guardando}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Botones de acción */}
-            <div className="flex gap-4">
-              <button
-                onClick={handleGuardarDecision}
-                disabled={
-                  gestion.aprobado === undefined || gestion.guardando
-                }
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {gestion.guardando ? "Guardando..." : "Guardar Decisión"}
-              </button>
-              <button
-                onClick={() => router.back()}
-                disabled={gestion.guardando}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
           </div>
 
           {/* Historial - Columna Derecha (1/3) */}
           <div className="lg:col-span-1">
             {solicitud && historial && (
               <HistorialSolicitud
-                historial={(historial?.historial || []).map((item: any, index: number) => ({
-                  historialId: item.historialId || index,
-                  etapaNombre: item.etapaNombre || "Etapa desconocida",
-                  resultadoNombre: item.resultadoNombre,
-                  estadoNombre: item.estadoNombre,
-                  fecha: item.fecha,
-                  usuarioNombre: item.usuarioNombre || item.usuario_nombre,
-                }))}
+                historial={(historial?.historial || []).map(
+                  (item: any, index: number) => ({
+                    historialId: item.historialId || index,
+                    etapaNombre: item.etapaNombre || "Etapa desconocida",
+                    resultadoNombre: item.resultadoNombre,
+                    estadoNombre: item.estadoNombre,
+                    fecha: item.fecha,
+                    usuarioNombre: item.usuarioNombre || item.nombre,
+                  }),
+                )}
               />
             )}
           </div>
@@ -596,7 +619,9 @@ export default function GestionarSolicitudPage() {
         actionText="Aceptar"
         autoClose={true}
         autoCloseDelay={3000}
-        onAction={() => router.push("/solicitudes/gestion-auxiliar-servicio-al-cliente")}
+        onAction={() =>
+          router.push("/solicitudes/gestion-auxiliar-servicio-al-cliente")
+        }
       />
     </div>
   );

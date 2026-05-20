@@ -5,25 +5,15 @@ import { useSearchParams } from "next/navigation";
 import { Trash2, Edit2, Plus, MapPin, Power } from "lucide-react";
 import UsuarioModal from "./usuarioModal";
 import UsuarioCentrosModal from "./UsuarioCentrosModal";
-import { usuariosService } from "@/services/usuarios/usuarios.service";
+import {
+  usuariosService,
+  type Usuario,
+} from "@/services/usuarios/usuarios.service";
 import { rolesService } from "@/services/seguridad/roles.service";
 
 interface Rol {
   rol_id: number;
   rol_nombre: string;
-}
-
-interface Usuario {
-  usr_id: number;
-  usuario_nombre: string;
-  usuario_email: string;
-  usuario_activo: boolean;
-  usuario_created_at: string;
-  usuario_updated_at?: string;
-  rol: {
-    rol_id: number;
-    rol_nombre: string;
-  };
 }
 
 const UsuariosPage = () => {
@@ -131,7 +121,11 @@ const UsuariosPage = () => {
   };
 
   const handleEliminarUsuario = async (usuarioId: number) => {
-    if (!confirm("¿Estás seguro de que deseas ELIMINAR este usuario? Esta acción no se puede deshacer.")) {
+    if (
+      !confirm(
+        "¿Estás seguro de que deseas ELIMINAR este usuario? Esta acción no se puede deshacer.",
+      )
+    ) {
       return;
     }
 
@@ -160,7 +154,6 @@ const UsuariosPage = () => {
       return "-";
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -235,7 +228,7 @@ const UsuariosPage = () => {
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {usuario.usuario_nombre}
+                        {usuario.nombre}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {usuario.usuario_email}
@@ -332,7 +325,7 @@ const UsuariosPage = () => {
       {centrosModalOpen && currentUsuario && (
         <UsuarioCentrosModal
           usuarioId={currentUsuario.usr_id}
-          usuarioNombre={currentUsuario.usuario_nombre}
+          usuarioNombre={currentUsuario.nombre}
           onClose={() => setCentrosModalOpen(false)}
         />
       )}

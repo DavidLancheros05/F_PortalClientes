@@ -1,18 +1,18 @@
 import api from "@/services/core/api";
+import { CentroOperacionResponse } from "@/types/api.types";
 
-export interface CentroOperacion {
-  cop_id: number;
-  cop_nombre: string;
-  cop_estado?: string;
-}
+/**
+ * @deprecated Usar CentroOperacionResponse de @/types/api.types
+ */
+export type CentroOperacion = CentroOperacionResponse;
 
 export const centrosOperacionService = {
-  getAll: async (): Promise<CentroOperacion[]> => {
+  getAll: async (): Promise<CentroOperacionResponse[]> => {
     const res = await api.get("/centros-operacion");
     return res.data;
   },
 
-  getById: async (centroId: number): Promise<CentroOperacion> => {
+  getById: async (centroId: number): Promise<CentroOperacionResponse> => {
     const res = await api.get(`/centros-operacion/${centroId}`);
     return res.data;
   },

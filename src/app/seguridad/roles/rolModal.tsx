@@ -39,17 +39,19 @@ interface ModuloAsignado extends Modulo {
   subModulos?: ModuloAsignado[];
 }
 
-interface Rol {
-  rol_id?: number;
-  rol_nombre: string;
-  rol_descripcion: string;
+interface RolData {
+  rolId?: number;
+  rolNombre: string;
+  rolDescripcion?: string;
+  rolCodigo?: string;
+  rolActivo?: boolean;
   modulos: ModuloAsignado[];
 }
 
 interface Props {
-  rol?: Rol;
+  rol?: any;
   onClose: () => void;
-  onSave: (rol: Rol) => void;
+  onSave: (rol: RolData) => void;
 }
 
 // Configuración de permisos
@@ -105,8 +107,8 @@ const getPermisoColor = (color: string) => {
 };
 
 export default function RolModal({ rol, onClose, onSave }: Props) {
-  const [nombre, setNombre] = useState(rol?.rol_nombre || "");
-  const [descripcion, setDescripcion] = useState(rol?.rol_descripcion || "");
+  const [nombre, setNombre] = useState(rol?.rolNombre || "");
+  const [descripcion, setDescripcion] = useState(rol?.rolDescripcion || "");
   const [todosLosModulos, setTodosLosModulos] = useState<Modulo[]>([]);
   const [modulosAsignados, setModulosAsignados] = useState<
     Record<number, ModuloAsignado>
@@ -313,11 +315,11 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
   };
 
   const handleSave = () => {
-    const rolData: any = {
-      rol_id: rol?.rol_id,
-      rol_nombre: nombre,
-      rol_descripcion: descripcion,
-      rol_codigo: rol?.rol_id ? undefined : nombre.toUpperCase().replace(/\s+/g, '_'),
+    const rolData: RolData = {
+      rolId: rol?.rolId,
+      rolNombre: nombre,
+      rolDescripcion: descripcion,
+      rolCodigo: rol?.rolId ? undefined : nombre.toUpperCase().replace(/\s+/g, '_'),
       modulos: buildTree(todosLosModulos),
     };
     onSave(rolData);

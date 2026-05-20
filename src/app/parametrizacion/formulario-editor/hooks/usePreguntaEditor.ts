@@ -203,7 +203,7 @@ export function usePreguntaEditor({
   useEffect(() => {
     if (
       ![TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA].includes(
-        formPregunta.tipo,
+        formPregunta.tipo as any,
       ) ||
       (!nuevaPregunta && !editandoPregunta)
     ) {
@@ -309,7 +309,7 @@ export function usePreguntaEditor({
   const guardarPregunta = async () => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
     const requiereDescripcion =
-      formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
+      (formPregunta.tipo as any) !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
     if ((requiereDescripcion && !descripcionNormalizada) || !targetSeccionId) {
@@ -393,7 +393,7 @@ export function usePreguntaEditor({
         fp_requerida: [
           TIPOS_PREGUNTA.NOTA,
           TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-        ].includes(formPregunta.tipo)
+        ].includes(formPregunta.tipo as any)
           ? false
           : formPregunta.requerida,
         fp_orden: ordenFinal,
@@ -427,7 +427,7 @@ export function usePreguntaEditor({
         fp_tipo_documento_id: [
           TIPOS_PREGUNTA.ARCHIVO,
           TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-        ].includes(formPregunta.tipo)
+        ].includes(formPregunta.tipo as any)
           ? formPregunta.tipo_documento_id
           : null,
         fp_pregunta_padre_id: formPregunta.dependiente
@@ -472,7 +472,7 @@ export function usePreguntaEditor({
             fp_requerida: [
               TIPOS_PREGUNTA.NOTA,
               TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-            ].includes(formPregunta.tipo)
+            ].includes(formPregunta.tipo as any)
               ? false
               : formPregunta.requerida,
             fp_orden: nuevoOrden + 1,
@@ -491,7 +491,7 @@ export function usePreguntaEditor({
             TIPOS_PREGUNTA.SELECT,
             TIPOS_PREGUNTA.MULTISELECT,
             TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-          ].includes(formPregunta.tipo)
+          ].includes(formPregunta.tipo as any)
         ) {
           await formularioPreguntasService.syncOpciones(
             creada.fp_id,
@@ -545,6 +545,9 @@ export function usePreguntaEditor({
       dependencia_valor: pregunta.fp_valor_padre_disparador ?? "",
       precarga_fuente: pregunta.fp_precarga_fuente ?? "",
       precarga_campo_cliente: pregunta.fp_precarga_campo_cliente ?? "",
+      precarga_base_datos: "",
+      precarga_tabla: "",
+      precarga_columna: "",
     });
     setEditandoPregunta(pregunta.fp_id);
     setNuevaPregunta(false);
@@ -559,7 +562,7 @@ export function usePreguntaEditor({
         TIPOS_PREGUNTA.SELECT,
         TIPOS_PREGUNTA.MULTISELECT,
         TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-      ].includes(pregunta.fp_tipo) &&
+      ].includes(pregunta.fp_tipo as any) &&
       !readonly
     ) {
       try {
@@ -571,7 +574,7 @@ export function usePreguntaEditor({
         setOpcionesNuevas(
           data
             .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
-            .filter((item: string) => item?.trim()),
+            .filter((item: string | undefined): item is string => Boolean(item?.trim())),
         );
         console.log("✅ Opciones cargadas:", data);
       } catch (error) {

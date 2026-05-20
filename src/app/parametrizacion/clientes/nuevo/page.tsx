@@ -20,7 +20,7 @@ import {
 export default function NuevoClientePage() {
   const router = useRouter();
   const [tiposIdentificacion, setTiposIdentificacion] = useState<
-    Array<{ codigo: string; nombre: string }>
+    Array<{ id: number; codigo: string; nombre: string }>
   >([]);
   const [loadingTiposIdentificacion, setLoadingTiposIdentificacion] =
     useState(true);
@@ -30,7 +30,7 @@ export default function NuevoClientePage() {
   const [centroOperacionIds, setCentroOperacionIds] = useState<number[]>([]);
   const [loadingCentros, setLoadingCentros] = useState(true);
   const [razonSocial, setRazonSocial] = useState("");
-  const [tipoIdentificacion, setTipoIdentificacion] = useState("");
+  const [tipoIdentificacion, setTipoIdentificacion] = useState<number>(0);
   const [nit, setNit] = useState("");
   const [direccion, setDireccion] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -52,10 +52,14 @@ export default function NuevoClientePage() {
         ]);
 
         const tipos = Array.isArray(tiposData) ? tiposData : [];
-        setCentros(Array.isArray(centrosData) ? centrosData : []);
+        setCentros(
+          Array.isArray(centrosData)
+            ? centrosData.map((c: any) => ({ id: c.cop_id, nombre: c.cop_nombre }))
+            : [],
+        );
         setTiposIdentificacion(tipos);
         if (!tipoIdentificacion && tipos.length > 0) {
-          setTipoIdentificacion(String(tipos[0].codigo));
+          setTipoIdentificacion(tipos[0].id);
         }
       } catch (err: any) {
         setError(
@@ -86,15 +90,20 @@ export default function NuevoClientePage() {
     setLoading(true);
     setError(null);
 
+    if (!tipoIdentificacion || tipoIdentificacion <= 0) {
+      setError("Debe seleccionar un tipo de identificación válido");
+      setLoading(false);
+      return;
+    }
+
     try {
       await clientesService.create({
         razonSocial,
         tipoIdentificacion,
-        nit,
+        nitDocumento: nit,
         direccion,
-        telefono,
         correo,
-        habilita_acceso,
+        habilitaAcceso: habilita_acceso,
         centroOperacionIds,
       });
 
@@ -222,14 +231,14 @@ export default function NuevoClientePage() {
                   </label>
                   <select
                     value={tipoIdentificacion}
-                    onChange={(e) => setTipoIdentificacion(e.target.value)}
+                    onChange={(e) => setTipoIdentificacion(Number(e.target.value))}
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     disabled={loading || success || loadingTiposIdentificacion}
                   >
                     <option value="">Selecciona tipo</option>
                     {tiposIdentificacion.map((tipo) => (
-                      <option key={tipo.codigo} value={tipo.codigo}>
+                      <option key={tipo.id} value={tipo.id}>
                         {tipo.nombre}
                       </option>
                     ))}

@@ -190,7 +190,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
         const mappedClientes = Array.isArray(clientesData)
           ? clientesData.map((item: any) => ({
-              id: Number(item.cli_id ?? item.id ?? 0),
+              id: Number(item.cliId ?? item.id ?? 0),
               razonSocial: String(item.razonSocial ?? ""),
             }))
           : [];

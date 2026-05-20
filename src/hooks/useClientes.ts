@@ -60,9 +60,9 @@ export function useClientes(centroId?: number) {
     try {
       const data = await clientesService.getAll();
       const mapped: Cliente[] = data
-        .filter((c: any) => !cId || c.cli_id === cId)
+        .filter((c: any) => !cId || c.cliId === cId)
         .map((c: any) => ({
-          id: c.cli_id ?? c.id,
+          id: c.cliId ?? c.id,
           razonSocial: c.razonSocial,
           nitDocumento: c.nitDocumento ?? "",
           direccion: c.direccion ?? "",

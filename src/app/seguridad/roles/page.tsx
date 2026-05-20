@@ -45,24 +45,26 @@ const RolesPage = () => {
   // ✅ Crear/Actualizar rol
   const { mutate: saveRol, isLoading: isSaving } = useMutation(
     async (rolData: {
-      rol_id?: number;
-      rol_nombre: string;
-      rol_descripcion: string;
-      rol_codigo?: string;
-      modulos: any[];
+      rolId?: number;
+      rolNombre: string;
+      rolDescripcion?: string;
+      rolCodigo?: string;
+      rolActivo?: boolean;
+      modulos?: any[];
     }) => {
       if (isNew) {
         return rolesService.create({
-          rol_nombre: rolData.rol_nombre,
-          rol_descripcion: rolData.rol_descripcion,
-          rol_codigo: rolData.rol_codigo,
-          modulos: rolData.modulos,
+          rolNombre: rolData.rolNombre,
+          rolDescripcion: rolData.rolDescripcion,
+          rolCodigo: rolData.rolCodigo!,
+          rolActivo: rolData.rolActivo,
         });
       } else {
-        return rolesService.update(rolData.rol_id!, {
-          rol_nombre: rolData.rol_nombre,
-          rol_descripcion: rolData.rol_descripcion,
-          modulos: rolData.modulos,
+        return rolesService.update(rolData.rolId!, {
+          rolNombre: rolData.rolNombre,
+          rolDescripcion: rolData.rolDescripcion,
+          rolCodigo: rolData.rolCodigo,
+          rolActivo: rolData.rolActivo,
         });
       }
     },
@@ -104,7 +106,8 @@ const RolesPage = () => {
 
   // Expandir/colapsar todos los roles
   const expandAllRoles = () => {
-    const allRoleIds = new Set(roles.map((r) => r.rol_id));
+    if (!roles) return;
+    const allRoleIds = new Set<number>(roles.map((r: Rol) => r.rolId));
     setExpandedRoles(allRoleIds);
   };
 
@@ -215,11 +218,12 @@ const RolesPage = () => {
   };
 
   const handleModalSave = async (rolData: {
-    rol_id?: number;
-    rol_nombre: string;
-    rol_descripcion: string;
-    rol_codigo?: string;
-    modulos: any[];
+    rolId?: number;
+    rolNombre: string;
+    rolDescripcion?: string;
+    rolCodigo?: string;
+    rolActivo?: boolean;
+    modulos?: any[];
   }) => {
     try {
       await saveRol(rolData);
@@ -317,18 +321,18 @@ const RolesPage = () => {
         ) : (
           <div className="space-y-4">
             {roles?.map((rol) => {
-              const isExpanded = expandedRoles.has(rol.rol_id);
-              const resumenPermisos = renderPermisosResumen(rol.modulos);
+              const isExpanded = expandedRoles.has(rol.rolId);
+              const resumenPermisos = renderPermisosResumen(rol.modulos || []);
 
               return (
                 <div
-                  key={rol.rol_id}
+                  key={rol.rolId}
                   className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all hover:shadow-md"
                 >
                   {/* Rol Header */}
                   <div
                     className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-                    onClick={() => toggleRoleExpand(rol.rol_id)}
+                    onClick={() => toggleRoleExpand(rol.rolId)}
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <button className="p-0.5">
@@ -340,7 +344,7 @@ const RolesPage = () => {
                       </button>
 
                       <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-50">
-                        {rol.rol_activo ? (
+                        {rol.rolActivo ? (
                           <Lock className="w-4 h-4 text-indigo-600" />
                         ) : (
                           <Unlock className="w-4 h-4 text-slate-400" />
@@ -350,9 +354,9 @@ const RolesPage = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-slate-800">
-                            {rol.rol_nombre}
+                            {rol.rolNombre}
                           </h3>
-                          {rol.rol_activo ? (
+                          {rol.rolActivo ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                               <CheckCircle className="w-3 h-3" />
                               Activo
@@ -365,7 +369,7 @@ const RolesPage = () => {
                           )}
                         </div>
                         <p className="text-sm text-slate-500 mt-0.5">
-                          {rol.rol_descripcion || "Sin descripción"}
+                          {rol.rolDescripcion || "Sin descripción"}
                         </p>
                       </div>
                     </div>
@@ -403,13 +407,13 @@ const RolesPage = () => {
                         </span>
                       </div>
 
-                      {rol.modulos.length === 0 ? (
+                      {(rol.modulos || []).length === 0 ? (
                         <p className="text-sm text-slate-500 italic py-4 text-center">
                           No hay módulos asignados a este rol
                         </p>
                       ) : (
                         <div className="bg-white rounded-lg border border-slate-200 p-4">
-                          {renderModulosTree(rol.modulos, 0, rol.rol_id)}
+                          {renderModulosTree(rol.modulos || [], 0, rol.rolId)}
                         </div>
                       )}
                     </div>

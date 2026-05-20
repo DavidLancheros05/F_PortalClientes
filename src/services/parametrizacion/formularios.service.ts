@@ -38,6 +38,15 @@ export interface Pregunta {
 }
 
 export const formulariosService = {
+  // Crear formulario
+  async create(payload: {
+    formulario_nombre: string;
+    formulario_descripcion?: string | null;
+  }): Promise<Formulario> {
+    const res = await api.post("/parametrizacion/formularios", payload);
+    return res.data;
+  },
+
   // Listar formularios
   async listar(busqueda = "", estado = "TODOS"): Promise<Formulario[]> {
     try {

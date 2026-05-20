@@ -1,16 +1,7 @@
 import { useEffect, useState } from "react";
-import { modulosService } from "@/services/modulos.service";
+import { modulosService, Modulo } from "@/services/modulos.service";
 
-export interface Modulo {
-  mod_id: number;
-  mod_codigo: string;
-  mod_nombre: string;
-  mod_ruta: string;
-  mod_icono: string | null;
-  mod_posicion: number;
-  mod_padre_id: number | null;
-  mod_activo: boolean;
-}
+export type { Modulo };
 
 export function useModulos() {
   const [modulos, setModulos] = useState<Modulo[]>([]);

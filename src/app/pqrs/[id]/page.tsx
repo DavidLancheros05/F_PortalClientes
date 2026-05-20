@@ -25,7 +25,12 @@ interface PQRSDetalle {
   pqrs_fecha_cierre?: string;
   solicitante_nombre?: string;
   tipo?: { pt_nombre: string };
-  estado: { pe_id: number; pe_nombre: string; pe_codigo?: string; pe_color?: string };
+  estado: {
+    pe_id: number;
+    pe_nombre: string;
+    pe_codigo?: string;
+    pe_color?: string;
+  };
   prioridad?: string;
   sla_estado?: string;
   horas_para_vencimiento?: number;
@@ -60,7 +65,9 @@ export default function PQRSDetallePage() {
   const [historial, setHistorial] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"timeline" | "comentarios">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "comentarios">(
+    "timeline",
+  );
 
   useEffect(() => {
     loadPQRSDetails();
@@ -82,7 +89,11 @@ export default function PQRSDetallePage() {
       const comentariosConNombres = Array.isArray(comentariosData)
         ? comentariosData.map((c: any) => ({
             ...c,
-            pc_usuario: c.usuario?.usuario_nombre || c.cliente?.razonSocial || c.pc_usuario || "Usuario",
+            pc_usuario:
+              c.usuario?.nombre ||
+              c.cliente?.razonSocial ||
+              c.pc_usuario ||
+              "Usuario",
           }))
         : [];
 
@@ -153,8 +164,12 @@ export default function PQRSDetallePage() {
             </button>
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
               <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-red-900 mb-2">Error al cargar</h3>
-              <p className="text-red-700 mb-4">{error || "No se encontró la PQRS"}</p>
+              <h3 className="text-lg font-semibold text-red-900 mb-2">
+                Error al cargar
+              </h3>
+              <p className="text-red-700 mb-4">
+                {error || "No se encontró la PQRS"}
+              </p>
               <button
                 onClick={() => router.push("/pqrs/mis-pqrs")}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
@@ -221,7 +236,9 @@ export default function PQRSDetallePage() {
                   <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                     Prioridad
                   </p>
-                  <p className="text-sm text-gray-900 font-medium">{pqrs.prioridad}</p>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {pqrs.prioridad}
+                  </p>
                 </div>
               )}
 
@@ -230,7 +247,9 @@ export default function PQRSDetallePage() {
                   <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                     Horas para vencimiento
                   </p>
-                  <p className="text-sm text-gray-900 font-medium">{pqrs.horas_para_vencimiento}h</p>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {pqrs.horas_para_vencimiento}h
+                  </p>
                 </div>
               )}
             </div>

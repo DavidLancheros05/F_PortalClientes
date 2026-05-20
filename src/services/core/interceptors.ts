@@ -1,5 +1,6 @@
 import { AxiosInstance } from "axios";
 import { navigate } from "./navigation";
+import { transformSnakeToCamel } from "@/lib/case-transformers";
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -14,13 +15,17 @@ export const setupInterceptors = (api: AxiosInstance) => {
     const token = localStorage.getItem("token") || getCookie("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
     }
     return config;
   });
 
   api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      if (response.data) {
+        response.data = transformSnakeToCamel(response.data);
+      }
+      return response;
+    },
     (error) => {
       if (error.response?.status === 401) {
         navigate("/login");

@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
-import { usuarioRolesService, type UsuarioRol } from "@/services/usuario-roles/usuario-roles.service";
+import {
+  usuarioRolesService,
+  type UsuarioRol,
+} from "@/services/usuario-roles/usuario-roles.service";
 import { rolesService, type Rol } from "@/services/roles/roles.service";
 
 import {
@@ -26,7 +29,9 @@ export default function UsuarioRolesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(null);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(
+    null,
+  );
   const [usuarioRoles, setUsuarioRoles] = useState<UsuarioRol[]>([]);
   const [expandido, setExpandido] = useState<number | null>(null);
 
@@ -92,8 +97,12 @@ export default function UsuarioRolesPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestionar Rol de Usuarios</h1>
-              <p className="text-gray-600 mt-2">Asigna roles a usuarios del sistema</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gestionar Rol de Usuarios
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Asigna roles a usuarios del sistema
+              </p>
             </div>
           </div>
           <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-lg">
@@ -113,7 +122,9 @@ export default function UsuarioRolesPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestionar Rol de Usuarios</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gestionar Rol de Usuarios
+              </h1>
             </div>
           </div>
           <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-xl">
@@ -142,8 +153,12 @@ export default function UsuarioRolesPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestionar Rol de Usuarios</h1>
-            <p className="text-gray-600 mt-2">Asigna y administra roles para cada usuario</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Gestionar Rol de Usuarios
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Asigna y administra roles para cada usuario
+            </p>
           </div>
           <button
             onClick={() => fetchData()}
@@ -163,7 +178,9 @@ export default function UsuarioRolesPage() {
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">
                   No hay usuarios disponibles
                 </h3>
-                <p className="text-gray-500">Crea usuarios primero para asignar roles</p>
+                <p className="text-gray-500">
+                  Crea usuarios primero para asignar roles
+                </p>
               </div>
             ) : (
               usuarios.map((usuario) => (
@@ -178,7 +195,7 @@ export default function UsuarioRolesPage() {
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900">
-                          {usuario.usuario_nombre}
+                          {usuario.nombre}
                         </div>
                         <div className="text-sm text-gray-500">
                           {usuario.usuario_correo || `ID: ${usuario.usr_id}`}
@@ -187,7 +204,12 @@ export default function UsuarioRolesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                        {usuarioRoles.filter(ur => ur.usuarioId === usuario.usr_id).length} roles
+                        {
+                          usuarioRoles.filter(
+                            (ur) => ur.usuarioId === usuario.usr_id,
+                          ).length
+                        }{" "}
+                        roles
                       </span>
                       <ChevronDown
                         className={`w-5 h-5 text-gray-400 transition ${
@@ -204,7 +226,9 @@ export default function UsuarioRolesPage() {
                         Roles asignados:
                       </h4>
                       {usuarioRoles.length === 0 ? (
-                        <p className="text-sm text-gray-500 italic">Sin roles asignados</p>
+                        <p className="text-sm text-gray-500 italic">
+                          Sin roles asignados
+                        </p>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                           {usuarioRoles.map((rol) => (
@@ -224,7 +248,9 @@ export default function UsuarioRolesPage() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => handleRemoveRole(usuario.usr_id, rol.rolId)}
+                                onClick={() =>
+                                  handleRemoveRole(usuario.usr_id, rol.rolId)
+                                }
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                 title="Remover rol"
                               >
@@ -241,13 +267,17 @@ export default function UsuarioRolesPage() {
                           Roles disponibles para asignar:
                         </h4>
                         {roles.length === 0 ? (
-                          <p className="text-sm text-gray-500 italic">No hay roles disponibles</p>
+                          <p className="text-sm text-gray-500 italic">
+                            No hay roles disponibles
+                          </p>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {roles
                               .filter(
                                 (rol) =>
-                                  !usuarioRoles.some((ur) => ur.rolId === rol.rolId)
+                                  !usuarioRoles.some(
+                                    (ur) => ur.rolId === rol.rolId,
+                                  ),
                               )
                               .map((rol) => (
                                 <button

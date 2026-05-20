@@ -6,9 +6,10 @@ export const workflowSolicitudesService = {
   async guardarGestionEjecutivo(
     id: number,
     data: {
-      consumo_mensual_proyectado?: number;
+      consumo_mensual_proyectado?: number | null;
       observacionesComercial?: string;
       usuario_modifica?: number;
+      fecha_real_ejecutivo?: string;
     },
   ) {
     const response = await api.put(

@@ -1,58 +1,69 @@
 import api from "@/services/core/api";
+import {
+  ClienteListResponse,
+  ClienteDetailResponse,
+  ClienteCentroResponse,
+  CentroOperacionResponse,
+  TipoIdentificacionResponse,
+  RolResponse,
+  CorreoPorRolResponse,
+} from "@/types/api.types";
 
 export interface Usuario {
   usr_id: number;
-  usuario_nombre: string;
-}
-
-export interface Cliente {
-  cli_id: number;
-  razonSocial: string;
-  nitDocumento: string;
-  direccion?: string;
-}
-
-export interface CentroOperacion {
-  id: number;
   nombre: string;
 }
 
-export interface TipoIdentificacion {
-  codigo: string;
-  nombre: string;
-}
+/**
+ * @deprecated Usar ClienteListResponse o ClienteDetailResponse
+ */
+export type Cliente = ClienteDetailResponse;
+
+/**
+ * @deprecated Usar CentroOperacionResponse de @/types/api.types
+ */
+export type CentroOperacion = CentroOperacionResponse;
+
+/**
+ * @deprecated Usar TipoIdentificacionResponse de @/types/api.types
+ */
+export type TipoIdentificacion = TipoIdentificacionResponse;
 
 export const clientesService = {
-  getAll: async (): Promise<Cliente[]> => {
+  getAll: async (): Promise<ClienteListResponse[]> => {
     const res = await api.get("/clientes");
     return res.data;
   },
 
-  getClientesByCentro: async (centroId: number): Promise<Cliente[]> => {
+  getClientesByCentro: async (
+    centroId: number,
+  ): Promise<ClienteListResponse[]> => {
     const res = await api.get(`/clientes/centro/${centroId}`);
     return res.data;
   },
 
-  getById: async (clienteId: number): Promise<Cliente> => {
+  getById: async (clienteId: number): Promise<ClienteDetailResponse> => {
     const res = await api.get(`/clientes/${clienteId}`);
     return res.data;
   },
 
-  precargarSolicitud: async (clienteId: number): Promise<Cliente> => {
+  precargarSolicitud: async (
+    clienteId: number,
+  ): Promise<ClienteDetailResponse> => {
     const res = await api.get(`/clientes/${clienteId}/precarga-solicitud`);
     return res.data;
   },
 
   create: async (payload: {
     razonSocial: string;
-    tipoIdentificacion: string;
-    nit: string;
+    nitDocumento: string;
+    tipoIdentificacion: number;
     direccion: string;
-    telefono: string;
-    correo: string;
-    habilita_acceso: boolean;
+    correo?: string;
+    habilitaAcceso?: boolean;
+    ejecutivoId?: number;
     centroOperacionIds: number[];
-  }): Promise<Cliente> => {
+  }): Promise<ClienteDetailResponse> => {
     const res = await api.post("/clientes", payload);
     return res.data;
   },
@@ -61,31 +72,32 @@ export const clientesService = {
     clienteId: number,
     payload: Partial<{
       razonSocial: string;
-      tipoIdentificacion: string;
       nitDocumento: string;
+      tipoIdentificacion: number;
       direccion: string;
-      telefono: string;
       correo: string;
       habilitaAcceso: boolean;
       centroOperacionIds: number[];
       ejecutivoId: number | null;
     }>,
-  ): Promise<Cliente> => {
+  ): Promise<ClienteDetailResponse> => {
     const res = await api.put(`/clientes/${clienteId}`, payload);
     return res.data;
   },
 
-  getCentrosOperacion: async (clienteId: number): Promise<CentroOperacion[]> => {
+  getCentrosOperacion: async (
+    clienteId: number,
+  ): Promise<ClienteCentroResponse[]> => {
     const res = await api.get(`/clientes/${clienteId}/centros-operacion`);
     return res.data;
   },
 
-  getTiposIdentificacion: async (): Promise<TipoIdentificacion[]> => {
+  getTiposIdentificacion: async (): Promise<TipoIdentificacionResponse[]> => {
     const res = await api.get("/tipos-identificacion");
     return res.data;
   },
 
-  getAllCentrosOperacion: async (): Promise<CentroOperacion[]> => {
+  getAllCentrosOperacion: async (): Promise<CentroOperacionResponse[]> => {
     const res = await api.get("/centros-operacion");
     return res.data;
   },

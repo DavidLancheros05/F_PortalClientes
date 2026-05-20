@@ -43,6 +43,7 @@ export type Pregunta = {
   fp_tipo_documento_id?: number | null;
   fp_precarga_fuente?: string | null;
   fp_precarga_campo_cliente?: string | null;
+  opciones?: Opcion[];
 };
 
 export type DocumentoCatalogo = {
@@ -70,7 +71,8 @@ export type TipoPreguntaCatalogo = {
 
 export type Opcion = {
   fpo_id: number;
-  op_descripcion: string;
+  fpo_valor?: string;
+  op_descripcion?: string;
   fpo_estado: boolean;
 };
 

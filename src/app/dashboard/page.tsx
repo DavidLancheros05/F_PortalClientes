@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{
     usr_id: number;
-    usuario_nombre: string;
+    nombre: string;
     usuario_email: string;
     usuario_activo: boolean;
     rol_id?: number;
@@ -40,7 +40,7 @@ export default function DashboardPage() {
     // Si hay nombre en el objeto rol, usarlo como prioridad
     if (rolNombre) {
       const normalized = rolNombre.toUpperCase();
-      if (normalized === 'ADMINISTRADOR' || normalized === 'ADMINISTRACION') {
+      if (normalized === "ADMINISTRADOR" || normalized === "ADMINISTRACION") {
         return {
           name: "Administrador",
           icon: Shield,
@@ -48,7 +48,7 @@ export default function DashboardPage() {
           gradient: "from-purple-500 to-purple-600",
         };
       }
-      if (normalized === 'CLIENTE') {
+      if (normalized === "CLIENTE") {
         return {
           name: "Cliente",
           icon: User,
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           gradient: "from-blue-500 to-blue-600",
         };
       }
-      if (normalized === 'EJECUTIVO') {
+      if (normalized === "EJECUTIVO") {
         return {
           name: "Ejecutivo",
           icon: Briefcase,
@@ -64,7 +64,7 @@ export default function DashboardPage() {
           gradient: "from-green-500 to-green-600",
         };
       }
-      if (normalized === 'COMERCIAL') {
+      if (normalized === "COMERCIAL") {
         return {
           name: "Comercial",
           icon: TrendingUp,
@@ -168,16 +168,18 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
           <div className="flex items-center gap-4">
-            <div className={`p-3 ${roleConfig.color === 'amber' ? 'bg-amber-100' : `bg-${roleConfig.color}-100`} rounded-xl`}>
-              <RoleIcon className={`w-6 h-6 ${roleConfig.color === 'amber' ? 'text-amber-600' : `text-${roleConfig.color}-600`}`} />
+            <div
+              className={`p-3 ${roleConfig.color === "amber" ? "bg-amber-100" : `bg-${roleConfig.color}-100`} rounded-xl`}
+            >
+              <RoleIcon
+                className={`w-6 h-6 ${roleConfig.color === "amber" ? "text-amber-600" : `text-${roleConfig.color}-600`}`}
+              />
             </div>
             <div>
               <p className="font-medium text-gray-900">
-                Bienvenido, {user.usuario_nombre}
+                Bienvenido, {user.nombre}
               </p>
-              <p className="text-gray-600">
-                Rol: {roleConfig.name}
-              </p>
+              <p className="text-gray-600">Rol: {roleConfig.name}</p>
             </div>
           </div>
         </div>
@@ -185,7 +187,9 @@ export default function DashboardPage() {
         {/* ADMIN */}
         {user.rol_id === ROLES.ADMIN && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Administración</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              Administración
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/clientes/nuevo")}
@@ -220,7 +224,9 @@ export default function DashboardPage() {
         {/* CLIENTE */}
         {user.rol_id === ROLES.CLIENTE && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Solicitudes</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              Solicitudes
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/solicitudes")}
@@ -255,7 +261,9 @@ export default function DashboardPage() {
         {/* EJECUTIVO */}
         {user.rol_id === ROLES.EJECUTIVO && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Solicitudes Pendientes</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              Solicitudes Pendientes
+            </h2>
             <div className="flex">
               <button
                 onClick={() => router.push("/solicitudes/pendientes")}
@@ -277,7 +285,9 @@ export default function DashboardPage() {
         {/* COMERCIAL */}
         {user.rol_id === ROLES.COMERCIAL && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Área Comercial</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              Área Comercial
+            </h2>
             <div className="flex">
               <button
                 onClick={() => router.push("/solicitudes/revision")}

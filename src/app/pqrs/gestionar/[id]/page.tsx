@@ -26,7 +26,12 @@ interface PQRSDetalle {
   pqrs_fecha_cierre?: string;
   solicitante_nombre?: string;
   tipo?: { pt_nombre: string };
-  estado: { pe_id: number; pe_nombre: string; pe_codigo?: string; pe_color?: string };
+  estado: {
+    pe_id: number;
+    pe_nombre: string;
+    pe_codigo?: string;
+    pe_color?: string;
+  };
   prioridad?: string;
   sla_estado?: string;
   horas_para_vencimiento?: number;
@@ -69,8 +74,10 @@ export default function GestionarPQRSPage() {
   const [estados, setEstados] = useState<Estado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"timeline" | "comentarios">("timeline");
-  const [selectedEstadoId, setSelectedEstadoId] = useState<number | "">("");
+  const [activeTab, setActiveTab] = useState<"timeline" | "comentarios">(
+    "timeline",
+  );
+  const [selectedEstadoId, setSelectedEstadoId] = useState<number | null>(null);
   const [respuestaComentario, setRespuestaComentario] = useState("");
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
 
@@ -80,8 +87,8 @@ export default function GestionarPQRSPage() {
   }, [pqrsId, user]);
 
   useEffect(() => {
-    if (pqrs?.pqrs_pe_id) {
-      setSelectedEstadoId(pqrs.pqrs_pe_id);
+    if (pqrs?.estado?.pe_id) {
+      setSelectedEstadoId(pqrs.estado.pe_id);
     }
   }, [pqrs]);
 
@@ -100,7 +107,11 @@ export default function GestionarPQRSPage() {
       const comentariosConNombres = Array.isArray(comentariosData)
         ? comentariosData.map((c: any) => ({
             ...c,
-            pc_usuario: c.usuario?.usuario_nombre || c.cliente?.razonSocial || c.pc_usuario || "Usuario",
+            pc_usuario:
+              c.usuario?.nombre ||
+              c.cliente?.razonSocial ||
+              c.pc_usuario ||
+              "Usuario",
           }))
         : [];
 
@@ -124,7 +135,7 @@ export default function GestionarPQRSPage() {
   };
 
   const handleCambiarEstado = async () => {
-    if (!selectedEstadoId || selectedEstadoId === "" || !pqrs) return;
+    if (!selectedEstadoId || !pqrs) return;
 
     try {
       setCambiandoEstado(true);
@@ -204,8 +215,12 @@ export default function GestionarPQRSPage() {
             </button>
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
               <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-red-900 mb-2">Error al cargar</h3>
-              <p className="text-red-700 mb-4">{error || "No se encontró la PQRS"}</p>
+              <h3 className="text-lg font-semibold text-red-900 mb-2">
+                Error al cargar
+              </h3>
+              <p className="text-red-700 mb-4">
+                {error || "No se encontró la PQRS"}
+              </p>
               <button
                 onClick={() => router.push("/pqrs/bandeja")}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
@@ -245,7 +260,10 @@ export default function GestionarPQRSPage() {
                       {pqrs.pqrs_numero}
                     </p>
                   </div>
-                  <StateBadge estado={pqrs.estado} className="whitespace-nowrap" />
+                  <StateBadge
+                    estado={pqrs.estado}
+                    className="whitespace-nowrap"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -275,7 +293,9 @@ export default function GestionarPQRSPage() {
                       <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Prioridad
                       </p>
-                      <p className="text-sm text-gray-900 font-medium">{pqrs.prioridad}</p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {pqrs.prioridad}
+                      </p>
                     </div>
                   )}
 
@@ -284,7 +304,9 @@ export default function GestionarPQRSPage() {
                       <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                         Horas para vencimiento
                       </p>
-                      <p className="text-sm text-gray-900 font-medium">{pqrs.horas_para_vencimiento}h</p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        {pqrs.horas_para_vencimiento}h
+                      </p>
                     </div>
                   )}
                 </div>
@@ -359,7 +381,9 @@ export default function GestionarPQRSPage() {
             {/* Columna derecha - Panel de Gestión */}
             <div className="lg:col-span-1">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200 p-6 sticky top-8">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Cambiar Estado</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">
+                  Cambiar Estado
+                </h2>
 
                 <div className="space-y-4">
                   <div>
@@ -367,8 +391,12 @@ export default function GestionarPQRSPage() {
                       Nuevo estado
                     </label>
                     <select
-                      value={selectedEstadoId}
-                      onChange={(e) => setSelectedEstadoId(e.target.value ? Number(e.target.value) : "")}
+                      value={selectedEstadoId ?? ""}
+                      onChange={(e) =>
+                        setSelectedEstadoId(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Seleccionar estado...</option>
@@ -395,9 +423,13 @@ export default function GestionarPQRSPage() {
 
                   <button
                     onClick={handleCambiarEstado}
-                    disabled={!selectedEstadoId || selectedEstadoId === "" || cambiandoEstado}
+                    disabled={
+                      !selectedEstadoId ||
+                      cambiandoEstado
+                    }
                     className={`w-full py-2 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all ${
-                      !selectedEstadoId || selectedEstadoId === "" || cambiandoEstado
+                      !selectedEstadoId ||
+                      cambiandoEstado
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700 active:scale-95"
                     }`}

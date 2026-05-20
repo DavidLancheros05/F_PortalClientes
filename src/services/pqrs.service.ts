@@ -100,7 +100,11 @@ export const pqrsService = {
     }
   },
 
-  async addComentario(pqrsId: number, comentario: string, esInterno: boolean = false) {
+  async addComentario(
+    pqrsId: number,
+    comentario: string,
+    esInterno: boolean = false,
+  ) {
     try {
       const response = await api.post(`/pqrs/${pqrsId}/comentarios`, {
         pc_comentario: comentario,
@@ -159,8 +163,8 @@ export const pqrsService = {
       estadoId: number;
       comentario?: string;
       usr_id?: number;
-      usuario_nombre?: string;
-    }
+      nombre?: string;
+    },
   ) {
     try {
       const response = await api.put(`/pqrs/${id}`, {
@@ -179,8 +183,8 @@ export const pqrsService = {
       mensaje: string;
       cambiar_estado_a?: PqrsEstado;
       usr_id?: number;
-      usuario_nombre?: string;
-    }
+      nombre?: string;
+    },
   ) {
     try {
       const response = await api.post(`/pqrs/${id}/comentarios`, {
@@ -193,7 +197,7 @@ export const pqrsService = {
           estado: payload.cambiar_estado_a,
           comentario: `Respuesta registrada: ${payload.mensaje}`,
           usr_id: payload.usr_id,
-          usuario_nombre: payload.usuario_nombre,
+          nombre: payload.nombre,
         });
       }
 

@@ -18,36 +18,13 @@ import {
 } from "lucide-react";
 import { versionesService } from "@/services/versiones.service";
 
-interface Version {
-  fv_id: number;
-  fv_numero: number;
-  version_descripcion: string;
-  created_at: string;
-  creador_nombre: string;
-  total_preguntas: number;
-  // Backward compatibility
-  version_id?: number;
-  version_numero?: number;
-}
-
-interface Formulario {
-  frm_id: number;
-  frm_nombre: string;
-  formulario_version: number;
-  frm_activo: boolean;
-  // Backward compatibility
-  formulario_id?: number;
-  formulario_nombre?: string;
-  formulario_activo?: boolean;
-}
-
 export default function VersionesPage() {
   const router = useRouter();
   const params = useParams();
   const formularioId = params.formularioId as string;
 
-  const [formulario, setFormulario] = useState<Formulario | null>(null);
-  const [versiones, setVersiones] = useState<Version[]>([]);
+  const [formulario, setFormulario] = useState<any>(null);
+  const [versiones, setVersiones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activandoVersion, setActivandoVersion] = useState<number | null>(null);
 

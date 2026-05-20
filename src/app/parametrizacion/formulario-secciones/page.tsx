@@ -1,18 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formularioSeccionesService } from "@/services/parametrizacion/formulario-secciones.service";
-
-type Seccion = {
-  seccion_id: number;
-  seccion_nombre: string;
-  seccion_descripcion?: string;
-  seccion_orden: number;
-  seccion_activo: boolean;
-};
+import {
+  formularioSeccionesService,
+  type FormularioSeccion,
+} from "@/services/parametrizacion/formulario-secciones.service";
 
 export default function FormularioSeccionesPage() {
-  const [secciones, setSecciones] = useState<Seccion[]>([]);
+  const [secciones, setSecciones] = useState<FormularioSeccion[]>([]);
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [orden, setOrden] = useState<number>(1);
@@ -50,9 +45,10 @@ export default function FormularioSeccionesPage() {
     setSubmitting(true);
     try {
       await formularioSeccionesService.create({
-        seccion_nombre: nombre.trim(),
-        seccion_descripcion: descripcion.trim() || null,
-        seccion_orden: orden,
+        formulario_id: 0,
+        fse_nombre: nombre.trim(),
+        fse_descripcion: descripcion.trim() || undefined,
+        fse_orden: orden,
       });
 
       setNombre("");
@@ -66,11 +62,11 @@ export default function FormularioSeccionesPage() {
     }
   };
 
-  const iniciarEdicion = (seccion: Seccion) => {
-    setEditingId(seccion.seccion_id);
-    setEditingNombre(seccion.seccion_nombre);
-    setEditingDescripcion(seccion.seccion_descripcion || "");
-    setEditingOrden(seccion.seccion_orden);
+  const iniciarEdicion = (seccion: FormularioSeccion) => {
+    setEditingId(seccion.fse_id);
+    setEditingNombre(seccion.fse_nombre);
+    setEditingDescripcion(seccion.fse_descripcion || "");
+    setEditingOrden(seccion.fse_orden);
   };
 
   const guardarEdicion = async () => {
@@ -79,9 +75,9 @@ export default function FormularioSeccionesPage() {
 
     try {
       await formularioSeccionesService.update(editingId, {
-        seccion_nombre: editingNombre.trim(),
-        seccion_descripcion: editingDescripcion.trim() || null,
-        seccion_orden: editingOrden,
+        fse_nombre: editingNombre.trim(),
+        fse_descripcion: editingDescripcion.trim() || "",
+        fse_orden: editingOrden,
       });
 
       setEditingId(null);
@@ -91,15 +87,15 @@ export default function FormularioSeccionesPage() {
     }
   };
 
-  const toggleEstado = async (seccion: Seccion) => {
+  const toggleEstado = async (seccion: FormularioSeccion) => {
     const confirmar = confirm(
-      `¿Deseas ${seccion.seccion_activo ? "inactivar" : "activar"} esta sección?`,
+      `¿Deseas ${seccion.fse_estado ? "inactivar" : "activar"} esta sección?`,
     );
 
     if (!confirmar) return;
 
     try {
-      await formularioSeccionesService.toggleEstado(seccion.seccion_id);
+      await formularioSeccionesService.toggleEstado(seccion.fse_id, !seccion.fse_estado);
       await cargarDatos();
     } catch (error: any) {
       alert(error.message || "Error al actualizar estado");
@@ -164,9 +160,9 @@ export default function FormularioSeccionesPage() {
           </thead>
           <tbody>
             {secciones.map((seccion) => (
-              <tr key={seccion.seccion_id} className="border-t">
+              <tr key={seccion.fse_id} className="border-t">
                 <td className="p-2 text-center">
-                  {editingId === seccion.seccion_id ? (
+                  {editingId === seccion.fse_id ? (
                     <input
                       type="number"
                       min={1}
@@ -175,11 +171,11 @@ export default function FormularioSeccionesPage() {
                       className="border px-2 py-1 w-20"
                     />
                   ) : (
-                    seccion.seccion_orden
+                    seccion.fse_orden
                   )}
                 </td>
                 <td className="p-2">
-                  {editingId === seccion.seccion_id ? (
+                  {editingId === seccion.fse_id ? (
                     <input
                       type="text"
                       value={editingNombre}
@@ -187,11 +183,11 @@ export default function FormularioSeccionesPage() {
                       className="border px-2 py-1 w-full"
                     />
                   ) : (
-                    seccion.seccion_nombre
+                    seccion.fse_nombre
                   )}
                 </td>
                 <td className="p-2">
-                  {editingId === seccion.seccion_id ? (
+                  {editingId === seccion.fse_id ? (
                     <textarea
                       value={editingDescripcion}
                       onChange={(e) => setEditingDescripcion(e.target.value)}
@@ -199,14 +195,14 @@ export default function FormularioSeccionesPage() {
                       rows={2}
                     />
                   ) : (
-                    seccion.seccion_descripcion || "—"
+                    seccion.fse_descripcion || "—"
                   )}
                 </td>
                 <td className="p-2 text-center">
-                  {seccion.seccion_activo ? "Activo" : "Inactivo"}
+                  {seccion.fse_estado ? "Activo" : "Inactivo"}
                 </td>
                 <td className="p-2 text-center space-x-2">
-                  {editingId === seccion.seccion_id ? (
+                  {editingId === seccion.fse_id ? (
                     <button
                       onClick={guardarEdicion}
                       className="text-indigo-600"
@@ -225,7 +221,7 @@ export default function FormularioSeccionesPage() {
                         onClick={() => toggleEstado(seccion)}
                         className="text-amber-600"
                       >
-                        {seccion.seccion_activo ? "Inactivar" : "Activar"}
+                        {seccion.fse_estado ? "Inactivar" : "Activar"}
                       </button>
                     </>
                   )}

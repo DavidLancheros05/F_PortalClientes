@@ -29,7 +29,9 @@ export default function ClientesPage() {
     number | undefined
   >(undefined);
   const [clientes, setClientes] = useState<any[]>([]);
-  const [centros, setCentros] = useState<Array<{ cop_id: number; cop_nombre: string }>>([]);
+  const [centros, setCentros] = useState<
+    Array<{ cop_id: number; cop_nombre: string }>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchInputValue, setSearchInputValue] = useState("");
@@ -47,7 +49,10 @@ export default function ClientesPage() {
       const centrosData = await clientesService.getAllCentrosOperacion();
       setCentros(
         Array.isArray(centrosData)
-          ? centrosData.map((c: any) => ({ cop_id: c.cop_id, cop_nombre: c.cop_nombre }))
+          ? centrosData.map((c: any) => ({
+              cop_id: c.cop_id,
+              cop_nombre: c.cop_nombre,
+            }))
           : [],
       );
     } catch (err) {
@@ -92,7 +97,7 @@ export default function ClientesPage() {
     }
 
     const datos = filteredClientes.map((cliente) => ({
-      ID: cliente.cli_id,
+      ID: cliente.cliId,
       "Razón Social": cliente.razonSocial,
       "NIT/Documento": cliente.nitDocumento,
       Dirección: cliente.direccion || "-",
@@ -103,14 +108,12 @@ export default function ClientesPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
 
     // Ajustar ancho de columnas
-    worksheet["!cols"] = [
-      { wch: 8 },
-      { wch: 30 },
-      { wch: 18 },
-      { wch: 40 },
-    ];
+    worksheet["!cols"] = [{ wch: 8 }, { wch: 30 }, { wch: 18 }, { wch: 40 }];
 
-    XLSX.writeFile(workbook, `Clientes_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `Clientes_${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
   };
 
   // Filtrar clientes
@@ -226,10 +229,11 @@ export default function ClientesPage() {
           </div>
         </div>
 
-
         {/* Filtros */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros de búsqueda</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Filtros de búsqueda
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* Centro de Operación */}
@@ -352,14 +356,16 @@ export default function ClientesPage() {
               Ingresa los criterios de búsqueda
             </h3>
             <p className="text-gray-500">
-              Completa los filtros y haz clic en "Buscar" para ver los resultados
+              Completa los filtros y haz clic en "Buscar" para ver los
+              resultados
             </p>
           </div>
         ) : (
           <>
             {filteredClientes.length > 0 && (
               <div className="mb-4 text-sm text-gray-600">
-                <span className="font-semibold">Total Clientes:</span> {filteredClientes.length}
+                <span className="font-semibold">Total Clientes:</span>{" "}
+                {filteredClientes.length}
               </div>
             )}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -378,7 +384,9 @@ export default function ClientesPage() {
                   </p>
                   {clientes.length === 0 && (
                     <button
-                      onClick={() => router.push("/parametrizacion/clientes/nuevo")}
+                      onClick={() =>
+                        router.push("/parametrizacion/clientes/nuevo")
+                      }
                       className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                     >
                       Crear Primer Cliente
@@ -416,7 +424,7 @@ export default function ClientesPage() {
                           )
                           .map((cliente) => (
                             <tr
-                              key={cliente.cli_id}
+                              key={cliente.cliId}
                               className="hover:bg-gray-50 transition"
                             >
                               <td className="py-4 px-6">
@@ -442,7 +450,9 @@ export default function ClientesPage() {
                               <td className="py-4 px-6">
                                 <div className="flex items-center">
                                   <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                                  <span className="text-sm">{cliente.direccion}</span>
+                                  <span className="text-sm">
+                                    {cliente.direccion}
+                                  </span>
                                 </div>
                               </td>
                               <td className="py-4 px-6">
@@ -452,11 +462,13 @@ export default function ClientesPage() {
                                       <Users className="w-4 h-4 text-gray-700" />
                                     </div>
                                     <span className="text-sm font-medium text-gray-900">
-                                      {cliente.ejecutivo.usuario_nombre}
+                                      {cliente.ejecutivo.nombre}
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-sm text-gray-400 italic">Sin asignar</span>
+                                  <span className="text-sm text-gray-400 italic">
+                                    Sin asignar
+                                  </span>
                                 )}
                               </td>
                               <td className="py-4 px-6">
@@ -464,7 +476,7 @@ export default function ClientesPage() {
                                   <button
                                     onClick={() =>
                                       router.push(
-                                        `/parametrizacion/clientes/${cliente.cli_id}`,
+                                        `/parametrizacion/clientes/${cliente.cliId}`,
                                       )
                                     }
                                     className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
@@ -475,7 +487,7 @@ export default function ClientesPage() {
                                   <button
                                     onClick={() =>
                                       router.push(
-                                        `/parametrizacion/clientes/${cliente.cli_id}/editar`,
+                                        `/parametrizacion/clientes/${cliente.cliId}/editar`,
                                       )
                                     }
                                     className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
@@ -494,9 +506,17 @@ export default function ClientesPage() {
                   {/* Paginador */}
                   <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, filteredClientes.length)} a{" "}
-                      {Math.min(currentPage * itemsPerPage, filteredClientes.length)} de{" "}
-                      {filteredClientes.length} cliente
+                      Mostrando{" "}
+                      {Math.min(
+                        (currentPage - 1) * itemsPerPage + 1,
+                        filteredClientes.length,
+                      )}{" "}
+                      a{" "}
+                      {Math.min(
+                        currentPage * itemsPerPage,
+                        filteredClientes.length,
+                      )}{" "}
+                      de {filteredClientes.length} cliente
                       {filteredClientes.length !== 1 ? "s" : ""}
                     </div>
                     <div className="flex gap-2">
@@ -511,7 +531,11 @@ export default function ClientesPage() {
                       </button>
                       <div className="flex items-center gap-1">
                         {Array.from(
-                          { length: Math.ceil(filteredClientes.length / itemsPerPage) },
+                          {
+                            length: Math.ceil(
+                              filteredClientes.length / itemsPerPage,
+                            ),
+                          },
                           (_, i) => i + 1,
                         ).map((page) => (
                           <button
@@ -549,7 +573,6 @@ export default function ClientesPage() {
                 </>
               )}
             </div>
-
           </>
         )}
       </div>

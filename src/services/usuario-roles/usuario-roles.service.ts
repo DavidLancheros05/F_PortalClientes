@@ -2,7 +2,7 @@ import api from "@/services/core/api";
 
 export interface Usuario {
   usr_id: number;
-  usuario_nombre: string;
+  nombre: string;
   usuario_correo?: string;
 }
 

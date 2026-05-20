@@ -9,7 +9,7 @@ interface PreguntaLite {
 interface SeccionLite {
   seccion_id: number;
   seccion_nombre: string;
-  seccion_descripcion?: string;
+  seccion_descripcion?: string | null;
   preguntas: PreguntaLite[];
 }
 

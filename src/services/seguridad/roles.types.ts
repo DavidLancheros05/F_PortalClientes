@@ -2,6 +2,24 @@
  * Tipos e interfaces relacionados con Roles y Seguridad
  */
 
+export interface Permisos {
+  ver: boolean;
+  crear: boolean;
+  editar: boolean;
+  eliminar: boolean;
+  aprobar: boolean;
+}
+
+export interface Modulo {
+  mod_id: number;
+  mod_nombre: string;
+  mod_ruta?: string;
+  mod_icono?: string;
+  mod_padre_id?: number | null;
+  permisos: Permisos;
+  subModulos?: Modulo[];
+}
+
 export interface Rol {
   rolId: number;
   rolNombre: string;
@@ -10,7 +28,7 @@ export interface Rol {
   rolActivo: boolean;
   rolCreatedAt: string;
   rolUpdatedAt?: string;
-  modulos?: RolModulo[];
+  modulos?: Modulo[];
 }
 
 export interface RolModulo {

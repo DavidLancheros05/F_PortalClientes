@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { clientesService, type Cliente } from "@/services/clientes/clientes.service";
+import { clientesService } from "@/services/clientes/clientes.service";
+import type { ClienteListResponse, ClienteDetailResponse } from "@/types/api.types";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ampliacionCupoService } from "@/services/ampliacion-cupo/ampliacion-cupo.service";
 import { ArrowLeft, Search, X } from "lucide-react";
@@ -31,8 +32,8 @@ export default function AmpliacionCupoEJNPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [clientes, setClientes] = useState<ClienteListResponse[]>([]);
+  const [selectedCliente, setSelectedCliente] = useState<ClienteDetailResponse | null>(null);
   const [ultimaSolicitud, setUltimaSolicitud] = useState<UltimaSolicitud | null>(null);
   const [cupoActual, setCupoActual] = useState<number | null>(null);
 
@@ -73,7 +74,7 @@ export default function AmpliacionCupoEJNPage() {
   // Cargar última solicitud cuando se selecciona cliente
   useEffect(() => {
     async function cargarUltimaSolicitud() {
-      if (!selectedCliente?.cli_id) {
+      if (!selectedCliente?.cliId) {
         setUltimaSolicitud(null);
         setCupoActual(null);
         return;
@@ -81,7 +82,7 @@ export default function AmpliacionCupoEJNPage() {
 
       try {
         setLoading(true);
-        const solicitudes = await solicitudesService.getAllByCliente(selectedCliente.cli_id);
+        const solicitudes = await solicitudesService.getAllByCliente(selectedCliente.cliId);
 
         if (solicitudes && solicitudes.length > 0) {
           const ultima = solicitudes[0];
@@ -111,19 +112,25 @@ export default function AmpliacionCupoEJNPage() {
   }, [selectedCliente]);
 
   const clientesFiltrados = clientes.filter((cliente) =>
-    cliente.razonSocial?.toLowerCase().includes(searchInput.toLowerCase()) ||
-    cliente.nitDocumento?.includes(searchInput)
+    cliente.razonSocial?.toLowerCase().includes(searchInput.toLowerCase())
   );
 
-  const handleSeleccionarCliente = (cliente: Cliente) => {
-    setSelectedCliente(cliente);
-    setFormData({
-      ...formData,
-      clienteId: cliente.cli_id,
-      cupoActualManual: "",
-    });
-    setShowClientesList(false);
-    setSearchInput("");
+  const handleSeleccionarCliente = async (cliente: ClienteListResponse) => {
+    try {
+      // Obtener detalles completos del cliente
+      const detalles = await clientesService.getById(cliente.cliId);
+      setSelectedCliente(detalles);
+      setFormData({
+        ...formData,
+        clienteId: cliente.cliId,
+        cupoActualManual: "",
+      });
+      setShowClientesList(false);
+      setSearchInput("");
+    } catch (error) {
+      console.error("Error cargando detalles del cliente:", error);
+      setMensaje({ tipo: "error", texto: "Error al cargar datos del cliente" });
+    }
   };
 
   const handleCancelar = () => {
@@ -145,7 +152,7 @@ export default function AmpliacionCupoEJNPage() {
   };
 
   const handleGuardar = async () => {
-    if (!selectedCliente?.cli_id) {
+    if (!selectedCliente?.cliId) {
       setMensaje({ tipo: "error", texto: "Debes seleccionar un cliente" });
       return;
     }
@@ -169,7 +176,7 @@ export default function AmpliacionCupoEJNPage() {
       setGuardando(true);
 
       await ampliacionCupoService.create({
-        clienteId: selectedCliente.cli_id,
+        clienteId: selectedCliente.cliId,
         nuevoCupo: parseFloat(formData.nuevoCupoSolicitado),
         justificacion: formData.justificacion,
         solicitudAnteriorId: ultimaSolicitud?.sol_id,
@@ -263,7 +270,7 @@ export default function AmpliacionCupoEJNPage() {
                   {clientesFiltrados.length > 0 ? (
                     <ul className="divide-y divide-gray-100">
                       {clientesFiltrados.map((cliente) => (
-                        <li key={cliente.cli_id}>
+                        <li key={cliente.cliId}>
                           <button
                             onClick={() => handleSeleccionarCliente(cliente)}
                             className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors"

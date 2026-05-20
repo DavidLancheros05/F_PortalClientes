@@ -24,7 +24,7 @@ export default function NuevoFormularioPage() {
         formulario_descripcion: descripcion.trim() || null,
       });
 
-      const nuevoId = Number(data?.formulario_id || data?.id);
+      const nuevoId = Number(data?.frm_id);
       if (!Number.isFinite(nuevoId) || nuevoId <= 0) {
         alert("Se creó el formulario, pero no fue posible abrir el editor");
         router.push("/parametrizacion/formularios");

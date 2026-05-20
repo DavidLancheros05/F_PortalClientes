@@ -6,7 +6,7 @@ import styles from "./page.module.css";
 
 export default function InicioPage() {
   const { user, loading } = useContext(AuthContext);
-  const [usuario_nombre, setUserName] = useState<string>("");
+  const [nombre, setUserName] = useState<string>("");
 
   useEffect(() => {
     // Log para debug
@@ -14,13 +14,13 @@ export default function InicioPage() {
     // console.log('Loading:', loading);
 
     if (user?.nombre) {
-      setUserName(user.usuario_nombre);
+      setUserName(user.nombre);
     } else if (typeof window !== "undefined") {
       // Intenta obtener del localStorage si AuthContext aún no cargó
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        setUserName(parsedUser.usuario_nombre || "Bienvenido");
+        setUserName(parsedUser.nombre || "Bienvenido");
       }
     }
   }, [user]);
@@ -61,7 +61,7 @@ export default function InicioPage() {
         <div className={styles.logoBox}>CN</div>
         <div className={styles.subEmpresa}>Cartonera Nacional S.A.</div>
         <p className={styles.bienvenida}>Bienvenido</p>
-        <h1 className={styles.nombrePersonal}>{usuario_nombre || "Usuario"}</h1>
+        <h1 className={styles.nombrePersonal}>{nombre || "Usuario"}</h1>
         <div className={styles.divider}></div>
         <p className={styles.tagline}>EL ARTE DEL EMPAQUE PERFECTO</p>
       </div>

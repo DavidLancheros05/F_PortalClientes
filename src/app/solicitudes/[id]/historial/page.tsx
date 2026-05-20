@@ -31,9 +31,10 @@ export default function SolicitudHistorialPage() {
       if (!authLoading && solicitudId) {
         try {
           setLoading(true);
-          const data = await workflowSolicitudesService.obtenerHistorialWorkflow(
-            solicitudId,
-          );
+          const data =
+            await workflowSolicitudesService.obtenerHistorialWorkflow(
+              solicitudId,
+            );
 
           // Manejar diferentes estructuras de respuesta
           let historialRaw: any[] = [];
@@ -60,8 +61,7 @@ export default function SolicitudHistorialPage() {
               item.resultado_nombre || item.resultadoNombre || undefined,
             estadoNombre: item.estado_nombre || item.estadoNombre || undefined,
             fecha: item.fecha,
-            usuarioNombre:
-              item.usuario_nombre || item.usuarioNombre || undefined,
+            usuarioNombre: item.nombre || item.usuarioNombre || undefined,
           }));
 
           setHistorial(historialData);

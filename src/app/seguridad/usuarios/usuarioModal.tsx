@@ -11,7 +11,7 @@ interface Rol {
 
 interface Usuario {
   usr_id: number;
-  usuario_nombre: string;
+  nombre: string;
   usuario_email: string;
   usuario_activo: boolean;
   usuario_created_at: string;
@@ -34,7 +34,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
   roles,
   onClose,
 }) => {
-  const [nombre, setNombre] = useState(usuario?.usuario_nombre || "");
+  const [nombre, setNombre] = useState(usuario?.nombre || "");
   const [email, setEmail] = useState(usuario?.usuario_email || "");
   const [password, setPassword] = useState("");
   const [rolId, setRolId] = useState(usuario?.rol?.rol_id || "");
@@ -77,7 +77,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
 
       if (isNew) {
         await usuariosService.create({
-          usuario_nombre: nombre,
+          nombre: nombre,
           usuario_email: email,
           usuario_password: password,
           usuario_rol_id: Number(rolId),
@@ -85,7 +85,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
         });
       } else {
         await usuariosService.update(usuario?.usr_id!, {
-          usuario_nombre: nombre,
+          nombre: nombre,
           usuario_email: email,
           usuario_rol_id: Number(rolId),
           usuario_activo: usuario?.usuario_activo,

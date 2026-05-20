@@ -25,5 +25,5 @@ export default function EditarSolicitudPage() {
 
   console.log("[EditarSolicitudPage] Renderizando SolicitudFormContent con ID:", idStr);
   const id = Number(idStr);
-  return <SolicitudFormContent solicitudId={id} readOnly={false} returnTo={returnTo} />;
+  return <SolicitudFormContent solicitudId={id} readOnly={false} returnTo={returnTo || undefined} />;
 }

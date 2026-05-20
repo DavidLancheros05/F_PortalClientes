@@ -12,17 +12,10 @@ import {
   X,
   Trash2,
 } from "lucide-react";
-import { formulariosService } from "@/services/parametrizacion/formularios.service";
-
-interface Formulario {
-  frm_id: number;
-  frm_nombre: string;
-  frm_descripcion: string;
-  formulario_version: number;
-  frm_activo: boolean;
-  Formulario_versiones_totales: number;
-  created_at: string;
-}
+import {
+  formulariosService,
+  type Formulario,
+} from "@/services/parametrizacion/formularios.service";
 
 export default function FormulariosPage() {
   const router = useRouter();

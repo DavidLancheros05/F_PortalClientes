@@ -434,7 +434,7 @@ export default function FormularioEditorPage() {
                           !formularioEdicionAbierto
                         ) {
                           setSeccionSeleccionada(
-                            seccion.fs_id || seccion.seccion_id,
+                            (seccion.fs_id ?? seccion.seccion_id) || null,
                           );
                         }
                       }}
@@ -478,7 +478,7 @@ export default function FormularioEditorPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              eliminarSeccion(seccion.seccion_id);
+                              eliminarSeccion(seccion.fs_id ?? seccion.seccion_id);
                             }}
                             disabled={readonly || formularioEdicionAbierto}
                             className="p-1 text-red-600 hover:bg-red-100 hover:shadow-sm hover:scale-110 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
@@ -488,7 +488,7 @@ export default function FormularioEditorPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              cambiarOrdenSeccion(seccion.seccion_id, "arriba");
+                              cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "arriba");
                             }}
                             disabled={
                               readonly ||
@@ -502,7 +502,7 @@ export default function FormularioEditorPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              cambiarOrdenSeccion(seccion.seccion_id, "abajo");
+                              cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "abajo");
                             }}
                             disabled={
                               readonly ||
@@ -654,7 +654,7 @@ export default function FormularioEditorPage() {
                           [
                             TIPOS_PREGUNTA.NOTA,
                             TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-                          ].includes(tipo)
+                          ].includes(tipo as any)
                         ) {
                           return {
                             ...prev,
@@ -838,7 +838,7 @@ export default function FormularioEditorPage() {
 
                 {/* Obligatorio / Dependiente */}
                 {![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
-                  formPregunta.tipo,
+                  formPregunta.tipo as any,
                 ) ? (
                   <>
                     <label className="flex items-center gap-1 p-2 bg-white rounded-lg border-2 border-blue-200 cursor-pointer hover:bg-blue-50 transition-colors text-xs">
@@ -1027,7 +1027,7 @@ export default function FormularioEditorPage() {
 
                 {/* Precarga */}
                 {![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
-                  formPregunta.tipo,
+                  formPregunta.tipo as any,
                 ) && (
                   <div className="space-y-3 p-3 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 border-l-4 border-amber-400 rounded-md shadow-sm">
                     <div>
@@ -1718,7 +1718,7 @@ export default function FormularioEditorPage() {
                           {[
                             TIPOS_PREGUNTA.SELECT,
                             TIPOS_PREGUNTA.MULTISELECT,
-                          ].includes(pregunta.fp_tipo) && (
+                          ].includes(pregunta.fp_tipo as any) && (
                             <div className="mt-1 space-y-0.5">
                               <p className="text-xs font-semibold text-blue-700">
                                 Opciones:

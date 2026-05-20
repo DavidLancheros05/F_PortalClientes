@@ -97,10 +97,10 @@ export function usePrefillCliente({
         let cliente: Cliente | null = null;
 
         if (currentUser?.cliente_id) {
-          cliente = await clientesService.getById(Number(currentUser.cliente_id));
+          cliente = (await clientesService.getById(Number(currentUser.cliente_id))) as unknown as Cliente;
         } else {
           const clientes = await clientesService.getAll();
-          cliente = clientes.find((c: any) => c.cli_id === currentUser?.usr_id) || null;
+          cliente = clientes.find((c: any) => c.cliId === currentUser?.usr_id) || null;
         }
 
         if (!cliente) return;
@@ -179,7 +179,7 @@ export function usePrefillCliente({
         const direccion = cliente.direccion || cliente.cliente_direccion || "";
         const telefono = cliente.telefono || cliente.cliente_telefono || "";
         const correo =
-          cliente.correo || cliente.email || cliente.cliente_email || "";
+          cliente.correo || cliente.cliente_email || "";
         const tipoIdentificacion =
           cliente.tipoIdentificacion ||
           cliente.cliente_tipo_identificacion ||

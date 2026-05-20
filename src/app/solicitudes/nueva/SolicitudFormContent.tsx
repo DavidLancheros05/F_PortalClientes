@@ -33,7 +33,7 @@ import {
   type Departamento,
   type Ciudad,
 } from "@/services/maestros/maestros.service";
-import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
+import { TIPOS_PREGUNTA, type TipoPregunta } from "@/constants/tipos-pregunta";
 import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
 import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 
@@ -481,7 +481,7 @@ export default function SolicitudFormContent({
         TIPOS_PREGUNTA.SELECT_CONDICIONAL,
         TIPOS_PREGUNTA.SELECT_TABLA,
         TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-      ].includes(pregunta.fp_tipo);
+      ].includes(pregunta.fp_tipo as any);
 
     const findByDescripcion = (patrones: RegExp[]) =>
       preguntas.find(
@@ -531,7 +531,7 @@ export default function SolicitudFormContent({
       required: ![
         TIPOS_PREGUNTA.NOTA,
         TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-      ].includes(pregunta.fp_tipo)
+      ].includes(pregunta.fp_tipo as any)
         ? (pregunta.fp_requerida ?? false)
         : false,
     };
@@ -1009,7 +1009,7 @@ export default function SolicitudFormContent({
 
     if (!respuesta) {
       return [TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA].includes(
-        pregunta.fp_tipo,
+        pregunta.fp_tipo as any,
       )
         ? archivoRegistrado
         : false;
@@ -1218,7 +1218,7 @@ export default function SolicitudFormContent({
       const respondibles = visibles.filter(
         (p) =>
         ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
-          p.fp_tipo,
+          p.fp_tipo as any,
         ),
       );
       const requeridas = respondibles.filter((p) => p.fp_requerida);

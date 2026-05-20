@@ -40,7 +40,7 @@ export default function ClienteDetallePage() {
 
         setRazonSocial(clienteData.razonSocial || "");
         setNitDocumento(clienteData.nitDocumento || "");
-        setCorreo(clienteData.email || "");
+        setCorreo(clienteData.correo || "");
         setDireccion(clienteData.direccion || "");
         setEjecutivo(clienteData.ejecutivo || null);
       } catch (err: any) {
@@ -156,7 +156,7 @@ export default function ClienteDetallePage() {
                   Ejecutivo Asignado
                 </label>
                 <div className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-3 text-gray-900">
-                  {ejecutivo ? ejecutivo.usuario_nombre : "Sin asignar"}
+                  {ejecutivo ? ejecutivo.nombre : "Sin asignar"}
                 </div>
               </div>
             </div>
@@ -170,7 +170,9 @@ export default function ClienteDetallePage() {
                 Cerrar
               </button>
               <button
-                onClick={() => router.push(`/parametrizacion/clientes/${clienteId}/editar`)}
+                onClick={() =>
+                  router.push(`/parametrizacion/clientes/${clienteId}/editar`)
+                }
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition flex items-center font-medium"
               >
                 Editar

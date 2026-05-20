@@ -16,6 +16,7 @@ type Rol = {
 type Cliente = {
   id: number;
   razonSocial: string;
+  correo?: string;
   email?: string;
   usuarioId?: number | null;
 };
@@ -159,7 +160,7 @@ export default function CrearUsuarioPage() {
       setSuccess(null);
 
       const payload = {
-        usuario_nombre: isClienteRole
+        nombre: isClienteRole
           ? String(selectedCliente?.razonSocial || "").trim()
           : formData.usuario_email.trim().toLowerCase(),
         usuario_email: formData.usuario_email.trim().toLowerCase(),
@@ -241,7 +242,7 @@ export default function CrearUsuarioPage() {
                 setFormData((prev) => ({
                   ...prev,
                   cliente_id: clienteId,
-                  usuario_email: cliente?.email || "",
+                  usuario_email: cliente?.correo || "",
                 }));
               }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"

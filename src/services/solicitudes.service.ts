@@ -203,9 +203,10 @@ export const solicitudesService = {
   async guardarGestionEjecutivo(
     id: number,
     data: {
-      consumo_mensual_proyectado?: number;
+      consumo_mensual_proyectado?: number | null;
       observacionesComercial?: string;
       usuario_modifica?: number;
+      fecha_real_ejecutivo?: string;
     },
   ) {
     return workflowSolicitudesService.guardarGestionEjecutivo(id, data);
@@ -478,7 +479,7 @@ export const solicitudesService = {
 
   // Guardar borrador de solicitud (backward compatibility wrapper)
   async guardarBorrador(
-    solicitudId: number | null,
+    solicitudId: number | null | undefined,
     respuestas: any,
     preguntas: any[],
     clienteId: number,

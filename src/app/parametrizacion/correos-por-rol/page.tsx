@@ -152,7 +152,7 @@ export default function CorreosPorRolPage() {
       item,
       action: async () => {
         try {
-          await correosRolService.toggleEstado(item.correo_id);
+          await correosRolService.toggleEstado(item.correo_id, !item.activo);
           await cargarDatos();
           setModalState({
             isOpen: true,

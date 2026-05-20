@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { solicitudesService } from '@/services/solicitudes.service';
+import { useEffect, useState } from "react";
+import { solicitudesService } from "@/services/solicitudes.service";
 
 interface HistorialItem {
   historialId: number;
@@ -21,31 +21,46 @@ export function useHistorialWorkflow(solicitudId: number | null) {
     async function cargarHistorial() {
       try {
         setLoading(true);
-        const response = await solicitudesService.obtenerHistorialWorkflow(solicitudId);
-        console.log('[useHistorialWorkflow] Response completo:', response);
+        const response =
+          await solicitudesService.obtenerHistorialWorkflow(solicitudId as number);
+        console.log("[useHistorialWorkflow] Response completo:", response);
 
         if (response?.historial && Array.isArray(response.historial)) {
-          console.log('[useHistorialWorkflow] Primer item del historial:', response.historial[0]);
-          const historialFormateado = response.historial.map((h: any, index: number) => {
-            const item = {
-              historialId: h.historial_id ?? h.historialId ?? index,
-              etapaNombre: h.etapa_nombre ?? h.etapaNombre ?? 'Etapa desconocida',
-              resultadoNombre: h.resultado_nombre ?? h.resultadoNombre,
-              fecha: h.fecha,
-              usuarioNombre: h.usuario_nombre ?? h.usuarioNombre,
-            };
-            if (index === 0) console.log('[useHistorialWorkflow] Item mapeado:', item);
-            return item;
-          });
-          console.log('[useHistorialWorkflow] Historial formateado:', historialFormateado);
+          console.log(
+            "[useHistorialWorkflow] Primer item del historial:",
+            response.historial[0],
+          );
+          const historialFormateado = response.historial.map(
+            (h: any, index: number) => {
+              const item = {
+                historialId: h.historial_id ?? h.historialId ?? index,
+                etapaNombre:
+                  h.etapa_nombre ?? h.etapaNombre ?? "Etapa desconocida",
+                resultadoNombre: h.resultado_nombre ?? h.resultadoNombre,
+                fecha: h.fecha,
+                usuarioNombre: h.nombre ?? h.usuarioNombre,
+              };
+              if (index === 0)
+                console.log("[useHistorialWorkflow] Item mapeado:", item);
+              return item;
+            },
+          );
+          console.log(
+            "[useHistorialWorkflow] Historial formateado:",
+            historialFormateado,
+          );
           setHistorial(historialFormateado);
         } else {
-          console.log('[useHistorialWorkflow] No hay historial en la respuesta');
+          console.log(
+            "[useHistorialWorkflow] No hay historial en la respuesta",
+          );
           setHistorial([]);
         }
       } catch (err) {
-        console.error('Error cargando historial:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar historial');
+        console.error("Error cargando historial:", err);
+        setError(
+          err instanceof Error ? err.message : "Error al cargar historial",
+        );
         setHistorial([]);
       } finally {
         setLoading(false);

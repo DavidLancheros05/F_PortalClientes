@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, Shield, Search } from "lucide-react";
-import { rolesService } from "@/services/seguridad/roles.service";
+import {
+  rolesService,
+  type Rol,
+  type Modulo,
+} from "@/services/seguridad/roles.service";
 
 interface Permisos {
   ver: boolean;
@@ -13,31 +17,16 @@ interface Permisos {
   aprobar: boolean;
 }
 
-interface Modulo {
-  mod_id: number;
-  mod_nombre: string;
-  mod_ruta: string;
-  mod_padre_id?: number | null;
-  permisos: Permisos;
-  subModulos?: Modulo[];
-}
-
-interface Rol {
-  rol_id: number;
-  rol_nombre: string;
-  modulos: Modulo[];
-}
-
 interface RolConAcceso {
-  rol_id: number;
-  rol_nombre: string;
+  rolId: number;
+  rolNombre: string;
   permisos: Permisos;
 }
 
 interface PaginaAcceso {
   mod_id: number;
   mod_nombre: string;
-  mod_ruta: string;
+  mod_ruta?: string;
   jerarquia: string;
   nivel: number;
   roles: RolConAcceso[];
@@ -75,9 +64,10 @@ export default function PermisosPorPaginaPage() {
       {
         mod_id: number;
         mod_nombre: string;
-        mod_ruta: string;
+        mod_ruta?: string;
         jerarquia: string;
         nivel: number;
+        roles: RolConAcceso[];
       }
     >();
     const accessMap = new Map<number, RolConAcceso[]>();
@@ -94,20 +84,22 @@ export default function PermisosPorPaginaPage() {
           : m.mod_nombre;
 
         if (!meta.has(m.mod_id)) {
-          meta.set(m.mod_id, {
+          const pagina: PaginaAcceso = {
             mod_id: m.mod_id,
             mod_nombre: m.mod_nombre,
             mod_ruta: m.mod_ruta,
             jerarquia: path,
             nivel: level,
-          });
+            roles: [],
+          };
+          meta.set(m.mod_id, pagina);
         }
 
         if (hasAnyPermiso(m.permisos)) {
           const list = accessMap.get(m.mod_id) || [];
           list.push({
-            rol_id: rol.rol_id,
-            rol_nombre: rol.rol_nombre,
+            rolId: rol.rolId,
+            rolNombre: rol.rolNombre,
             permisos: m.permisos,
           });
           accessMap.set(m.mod_id, list);
@@ -127,7 +119,7 @@ export default function PermisosPorPaginaPage() {
       .map((m) => ({
         ...m,
         roles: (accessMap.get(m.mod_id) || []).sort((a, b) =>
-          a.rol_nombre.localeCompare(b.rol_nombre),
+          a.rolNombre.localeCompare(b.rolNombre),
         ),
       }))
       .sort((a, b) => {
@@ -143,10 +135,10 @@ export default function PermisosPorPaginaPage() {
     return paginas.filter((p) => {
       const enPagina =
         p.mod_nombre.toLowerCase().includes(q) ||
-        p.mod_ruta.toLowerCase().includes(q) ||
+        (p.mod_ruta?.toLowerCase().includes(q) ?? false) ||
         p.jerarquia.toLowerCase().includes(q);
       const enRoles = p.roles.some((r) =>
-        r.rol_nombre.toLowerCase().includes(q),
+        r.rolNombre.toLowerCase().includes(q),
       );
       return enPagina || enRoles;
     });
@@ -234,7 +226,7 @@ export default function PermisosPorPaginaPage() {
                   ) : (
                     pagina.roles.map((rol) => (
                       <div
-                        key={`${pagina.mod_id}-${rol.rol_id}`}
+                        key={`${pagina.mod_id}-${rol.rolId}`}
                         className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-100"
                         title={`Permisos: ${
                           Object.entries(rol.permisos)
@@ -245,7 +237,7 @@ export default function PermisosPorPaginaPage() {
                       >
                         <Shield className="w-3.5 h-3.5 text-slate-500" />
                         <span className="text-xs font-medium text-slate-700">
-                          {rol.rol_nombre}
+                          {rol.rolNombre}
                         </span>
                       </div>
                     ))
