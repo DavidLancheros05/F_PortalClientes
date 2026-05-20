@@ -238,17 +238,12 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
     ]);
   };
 
-  const resolveModuloRoute = (modulo: Modulo) => {
+  const resolveModuloRoute = (modulo: Modulo): string | undefined => {
     const nombre = modulo.mod_nombre?.trim().toLowerCase();
     if (nombre === "mis solicitudes") {
-      // console.log(`[Header RESOLVE] Caso especial "Mis solicitudes" → /solicitudes/cliente`);
       return "/solicitudes/cliente";
     }
-    const rutaFinal = modulo.mod_ruta;
-    // console.log(`[Header RESOLVE] Módulo: "${modulo.mod_nombre}" (ID: ${modulo.mod_id}, mod_padre_id: ${modulo.mod_padre_id})`);
-    // console.log(`[Header RESOLVE] → Ruta final: "${rutaFinal}"`);
-    // console.log(`[Header RESOLVE] Tipo de ruta (¿es estática o dinámica?):`, rutaFinal?.includes("[") ? "DINÁMICA" : "ESTÁTICA");
-    return rutaFinal;
+    return modulo.mod_ruta;
   };
 
   const sortModulosByOrden = (items: Modulo[]): Modulo[] => {
@@ -323,8 +318,8 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
               {rol || "Usuario"}
             </div>
           ) : (
-            topLevelModulos.map((m) => (
-            <div key={m.mod_id} className="relative group">
+            topLevelModulos.map((m, idx) => (
+            <div key={`${m.mod_id}-${idx}`} className="relative group">
               {getSubModulosConFallback(m).length > 0 ? (
                 <>
                   <button
@@ -342,8 +337,8 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                   >
                     {sortModulosByOrden(getSubModulosConFallback(m))
                       .filter((s) => s.mod_activo !== false && (s.permisos.ver || tieneHijosConPermiso(s)))
-                      .map((sub) => (
-                        <div key={sub.mod_id}>
+                      .map((sub, subIdx) => (
+                        <div key={`${sub.mod_id}-${subIdx}`}>
                           {Array.isArray(sub.subModulos) &&
                           sortModulosByOrden(sub.subModulos).filter(
                             (n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)),
@@ -366,27 +361,33 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                 <div className="mx-2 mb-2 rounded-lg border border-white/20 bg-white/10 p-1">
                                   {sortModulosByOrden(sub.subModulos || [])
                                     ?.filter((n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)))
-                                    .map((nested) => (
-                                      <Link
-                                        key={nested.mod_id}
-                                        href={resolveModuloRoute(nested)}
-                                        onClick={() => {
-                                          const rutaUsada = resolveModuloRoute(nested);
-                                          console.log(`[Header DESKTOP] Click en link: "${nested.mod_nombre}" → href="${rutaUsada}"`);
-                                          setActiveSubMenu(null);
-                                          setActiveNestedSubMenu(null);
-                                        }}
-                                        className="block rounded-md px-3 py-2 text-sm hover:bg-white/12 text-white transition"
-                                      >
-                                        {nested.mod_nombre}
-                                      </Link>
-                                    ))}
+                                    .map((nested, nIdx) => {
+                                      const rutaAnidada = resolveModuloRoute(nested);
+                                      return rutaAnidada ? (
+                                        <Link
+                                          key={`${nested.mod_id}-${nIdx}`}
+                                          href={rutaAnidada}
+                                          onClick={() => {
+                                            console.log(`[Header DESKTOP] Click en link: "${nested.mod_nombre}" → href="${rutaAnidada}"`);
+                                            setActiveSubMenu(null);
+                                            setActiveNestedSubMenu(null);
+                                          }}
+                                          className="block rounded-md px-3 py-2 text-sm hover:bg-white/12 text-white transition"
+                                        >
+                                          {nested.mod_nombre}
+                                        </Link>
+                                      ) : (
+                                        <span key={`${nested.mod_id}-${nIdx}`} className="block rounded-md px-3 py-2 text-sm text-white">
+                                          {nested.mod_nombre}
+                                        </span>
+                                      );
+                                    })}
                                 </div>
                               )}
                             </>
-                          ) : (
+                          ) : resolveModuloRoute(sub) ? (
                             <Link
-                              href={resolveModuloRoute(sub)}
+                              href={resolveModuloRoute(sub)!}
                               onClick={() => {
                                 const rutaUsada = resolveModuloRoute(sub);
                                 console.log(`[Header DESKTOP DIRECTO] Click en link: "${sub.mod_nombre}" → href="${rutaUsada}"`);
@@ -397,18 +398,26 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                             >
                               {sub.mod_nombre}
                             </Link>
+                          ) : (
+                            <span className="block px-4 py-2.5 text-sm text-white">
+                              {sub.mod_nombre}
+                            </span>
                           )}
                         </div>
                       ))}
                   </div>
                 </>
-              ) : (
+              ) : resolveModuloRoute(m) ? (
                 <Link
-                  href={resolveModuloRoute(m)}
+                  href={resolveModuloRoute(m)!}
                   className="px-2 py-1 rounded-lg hover:bg-gradient-to-r hover:from-[#0052cc] hover:to-[#0052cc] text-white transition text-sm"
                 >
                   {m.mod_nombre}
                 </Link>
+              ) : (
+                <span className="px-2 py-1 text-white text-sm">
+                  {m.mod_nombre}
+                </span>
               )}
             </div>
             ))
@@ -448,8 +457,8 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
           <div className="px-3 py-2 text-white text-sm font-medium border-b border-[#0052cc]">
             {nombreUsuario}
           </div>
-          {topLevelModulos.map((m) => (
-            <div key={m.mod_id}>
+          {topLevelModulos.map((m, idx) => (
+            <div key={`${m.mod_id}-${idx}`}>
               {getSubModulosConFallback(m).length > 0 ? (
                 <>
                   <button
@@ -468,8 +477,8 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                     <div className="ml-2 sm:ml-4 mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 rounded-lg border border-white/20 bg-white/10 p-1.5 sm:p-2">
                       {sortModulosByOrden(getSubModulosConFallback(m))
                         .filter((s) => s.permisos.ver || tieneHijosConPermiso(s))
-                        .map((sub) => (
-                          <div key={sub.mod_id}>
+                        .map((sub, subIdx) => (
+                          <div key={`${sub.mod_id}-${subIdx}`}>
                             {Array.isArray(sub.subModulos) &&
                             sortModulosByOrden(sub.subModulos || []).filter(
                               (n) => n.permisos.ver || tieneHijosConPermiso(n),
@@ -495,28 +504,34 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                   <div className="ml-3 mt-1 space-y-1 border-l border-white/30 pl-2">
                                     {sortModulosByOrden(sub.subModulos || [])
                                       ?.filter((n) => n.permisos.ver || tieneHijosConPermiso(n))
-                                      .map((nested) => (
-                                        <Link
-                                          key={nested.mod_id}
-                                          href={resolveModuloRoute(nested)}
-                                          onClick={() => {
-                                            const rutaUsada = resolveModuloRoute(nested);
-                                            console.log(`[Header MOBILE] Click en link: "${nested.mod_nombre}" → href="${rutaUsada}"`);
-                                            setMobileMenuOpen(false);
-                                            setActiveSubMenu(null);
-                                            setActiveNestedSubMenu(null);
-                                          }}
-                                          className="block px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
-                                        >
-                                          {nested.mod_nombre}
-                                        </Link>
-                                      ))}
+                                      .map((nested, nIdx) => {
+                                        const rutaMobil = resolveModuloRoute(nested);
+                                        return rutaMobil ? (
+                                          <Link
+                                            key={`${nested.mod_id}-${nIdx}`}
+                                            href={rutaMobil}
+                                            onClick={() => {
+                                              console.log(`[Header MOBILE] Click en link: "${nested.mod_nombre}" → href="${rutaMobil}"`);
+                                              setMobileMenuOpen(false);
+                                              setActiveSubMenu(null);
+                                              setActiveNestedSubMenu(null);
+                                            }}
+                                            className="block px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
+                                          >
+                                            {nested.mod_nombre}
+                                          </Link>
+                                        ) : (
+                                          <span key={`${nested.mod_id}-${nIdx}`} className="block px-3 py-2 rounded-lg text-white">
+                                            {nested.mod_nombre}
+                                          </span>
+                                        );
+                                      })}
                                   </div>
                                 )}
                               </>
-                            ) : (
+                            ) : resolveModuloRoute(sub) ? (
                               <Link
-                                href={resolveModuloRoute(sub)}
+                                href={resolveModuloRoute(sub)!}
                                 onClick={() => {
                                   const rutaUsada = resolveModuloRoute(sub);
                                   console.log(`[Header MOBILE DIRECTO] Click en link: "${sub.mod_nombre}" → href="${rutaUsada}"`);
@@ -528,6 +543,10 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                               >
                                 {sub.mod_nombre}
                               </Link>
+                            ) : (
+                              <span className="block px-3 py-2 rounded-lg text-white">
+                                {sub.mod_nombre}
+                              </span>
                             )}
                           </div>
                         ))}
