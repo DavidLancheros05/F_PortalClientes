@@ -1,6 +1,8 @@
 import axios from "axios";
 import { setupInterceptors } from "./interceptors";
 
+console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
