@@ -88,7 +88,9 @@ export default function LoginPage() {
 
       if (data.modulos && Array.isArray(data.modulos)) {
         localStorage.setItem("modulos", JSON.stringify(data.modulos));
-        // console.log("[LoginPage] Módulos guardados:", data.modulos);
+        console.log("[LoginPage] Módulos guardados:", data.modulos);
+      } else {
+        console.log("[LoginPage] Sin módulos en response:", data);
       }
 
       router.replace("/inicio");

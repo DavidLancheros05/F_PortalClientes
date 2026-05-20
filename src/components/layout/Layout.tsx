@@ -20,8 +20,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       if (!Array.isArray(parsed)) return [];
 
       const transformModulo = (m: any): Modulo => ({
-        ...m,
-        mod_posicion: m.mod_orden ?? m.mod_posicion,
+        mod_id: m.modId ?? m.mod_id,
+        mod_nombre: m.modNombre ?? m.mod_nombre,
+        mod_ruta: m.modRuta ?? m.mod_ruta,
+        mod_icono: m.modIcono ?? m.mod_icono,
+        mod_activo: m.modActivo ?? m.mod_activo ?? true,
+        mod_posicion: m.modOrden ?? m.mod_orden ?? m.mod_posicion,
+        mod_padre_id: m.modPadreId ?? m.mod_padre_id,
         permisos: m.permisos || {
           ver: true,
           crear: false,

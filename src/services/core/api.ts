@@ -1,10 +1,11 @@
 import axios from "axios";
 import { setupInterceptors } from "./interceptors";
 
-console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const baseURL = `${backendUrl}/api`;
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL,
   headers: {
     "Content-Type": "application/json",
   },
