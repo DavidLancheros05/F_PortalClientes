@@ -74,7 +74,7 @@ export default function AmpliacionCupoEJNPage() {
   // Cargar última solicitud cuando se selecciona cliente
   useEffect(() => {
     async function cargarUltimaSolicitud() {
-      if (!selectedCliente?.cliId) {
+      if (!selectedCliente?.cli_id) {
         setUltimaSolicitud(null);
         setCupoActual(null);
         return;
@@ -82,15 +82,15 @@ export default function AmpliacionCupoEJNPage() {
 
       try {
         setLoading(true);
-        const solicitudes = await solicitudesService.getAllByCliente(selectedCliente.cliId);
+        const solicitudes = await solicitudesService.getAllByCliente(selectedCliente.cli_id);
 
         if (solicitudes && solicitudes.length > 0) {
           const ultima = solicitudes[0];
           setUltimaSolicitud(ultima);
 
           // Cargar cupo actual desde la solicitud
-          if ((ultima as any).cupoAprobado || (ultima as any).sol_cupo_aprobado) {
-            setCupoActual(Number((ultima as any).cupoAprobado || (ultima as any).sol_cupo_aprobado));
+          if ((ultima as any).sol_cupo_aprobado) {
+            setCupoActual(Number((ultima as any).sol_cupo_aprobado));
           } else {
             setCupoActual(null);
           }
@@ -112,17 +112,17 @@ export default function AmpliacionCupoEJNPage() {
   }, [selectedCliente]);
 
   const clientesFiltrados = clientes.filter((cliente) =>
-    cliente.razonSocial?.toLowerCase().includes(searchInput.toLowerCase())
+    cliente.cli_razon_social?.toLowerCase().includes(searchInput.toLowerCase())
   );
 
   const handleSeleccionarCliente = async (cliente: ClienteListResponse) => {
     try {
       // Obtener detalles completos del cliente
-      const detalles = await clientesService.getById(cliente.cliId);
+      const detalles = await clientesService.getById(cliente.cli_id);
       setSelectedCliente(detalles);
       setFormData({
         ...formData,
-        clienteId: cliente.cliId,
+        clienteId: cliente.cli_id,
         cupoActualManual: "",
       });
       setShowClientesList(false);
@@ -152,7 +152,7 @@ export default function AmpliacionCupoEJNPage() {
   };
 
   const handleGuardar = async () => {
-    if (!selectedCliente?.cliId) {
+    if (!selectedCliente?.cli_id) {
       setMensaje({ tipo: "error", texto: "Debes seleccionar un cliente" });
       return;
     }
@@ -176,7 +176,7 @@ export default function AmpliacionCupoEJNPage() {
       setGuardando(true);
 
       await ampliacionCupoService.create({
-        clienteId: selectedCliente.cliId,
+        clienteId: selectedCliente.cli_id,
         nuevoCupo: parseFloat(formData.nuevoCupoSolicitado),
         justificacion: formData.justificacion,
         solicitudAnteriorId: ultimaSolicitud?.sol_id,
@@ -251,7 +251,7 @@ export default function AmpliacionCupoEJNPage() {
               >
                 <span className={selectedCliente ? "text-gray-900" : "text-gray-500"}>
                   {selectedCliente
-                    ? `${selectedCliente.razonSocial} (${selectedCliente.nitDocumento})`
+                    ? `${selectedCliente.cli_razon_social} (${selectedCliente.cli_nro_identificacion})`
                     : "Buscar cliente..."}
                 </span>
                 <Search className="h-4 w-4 text-gray-400" />
@@ -270,16 +270,16 @@ export default function AmpliacionCupoEJNPage() {
                   {clientesFiltrados.length > 0 ? (
                     <ul className="divide-y divide-gray-100">
                       {clientesFiltrados.map((cliente) => (
-                        <li key={cliente.cliId}>
+                        <li key={cliente.cli_id}>
                           <button
                             onClick={() => handleSeleccionarCliente(cliente)}
                             className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors"
                           >
                             <div className="font-medium text-gray-900">
-                              {cliente.razonSocial}
+                              {cliente.cli_razon_social}
                             </div>
                             <div className="text-sm text-gray-500">
-                              NIT: {cliente.nitDocumento}
+                              NIT: {cliente.cli_nro_identificacion}
                             </div>
                           </button>
                         </li>

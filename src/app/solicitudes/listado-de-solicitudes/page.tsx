@@ -31,8 +31,8 @@ import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 const PAGE_SIZE = 10;
 
 interface Cliente {
-  id: number;
-  razonSocial: string;
+  cli_id: number;
+  cli_razon_social: string;
 }
 
 interface Ejecutivo {
@@ -45,7 +45,7 @@ interface SolicitudListado {
   sol_numero_solicitud: string;
   sol_cliente_id: number | null;
   cliente_nombre: string | null;
-  ejecutivo_id: number | null;
+  sol_ejecutivo_id: number | null;
   ejecutivo_nombre: string | null;
   ejecutivo_area?: string | null;
   auxiliar_id?: number | null;
@@ -178,23 +178,23 @@ export default function SolicitudesListadoDeSolicitudesPage() {
             solicitudesService.getEtapas(),
             solicitudesService.getResultados(),
           ]);
-        // console.log("📋 Respuestas iniciales:", {
-        //   centrosData,
-        //   clientesData,
-        //   etapasData,
-        //   resultadosData,
-        // });
+        console.log("📋 Respuestas iniciales:", {
+          centrosData,
+          clientesData,
+          etapasData,
+          resultadosData,
+        });
         setCentros(centrosData);
         setEtapas(etapasData || []);
         setResultados(resultadosData || []);
 
         const mappedClientes = Array.isArray(clientesData)
           ? clientesData.map((item: any) => ({
-              id: Number(item.cliId ?? item.id ?? 0),
-              razonSocial: String(item.razonSocial ?? ""),
+              cli_id: Number(item.cli_id ?? item.id ?? 0),
+              cli_razon_social: String(item.cli_razon_social ?? ""),
             }))
           : [];
-        setClientes(mappedClientes.filter((item: Cliente) => item.id > 0));
+        setClientes(mappedClientes.filter((item: Cliente) => item.cli_id > 0));
       } catch (error) {
         console.error(
           "[SolicitudesListadoDeSolicitudesPage] Error cargando catálogos",
@@ -228,7 +228,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       if (urlParams.has("resultado_etapa_id"))
         params.resultado_etapa_id = urlParams.get("resultado_etapa_id");
 
+      console.log("🔵 [FRONTEND] Ejecutando búsqueda con URL params:", params);
       const data = await solicitudesService.getListado(params);
+      console.log("🔵 [FRONTEND] Resultado de búsqueda con URL params:", data);
       setRows(data);
       setCurrentPage(1);
     } catch (error) {
@@ -244,7 +246,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const clientesFiltrados = useMemo(() => {
     if (!clienteBusqueda) return clientes;
     return clientes.filter((cliente) =>
-      cliente.razonSocial
+      cliente.cli_razon_social
         .toLowerCase()
         .includes(clienteBusqueda.toLowerCase())
     );
@@ -280,13 +282,24 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const endRow = Math.min(currentPage * PAGE_SIZE, rows.length);
 
   async function buscar() {
+    console.log("🔴 [FRONTEND] Iniciando búsqueda con filtros:", {
+      fechaDesde,
+      fechaHasta,
+      centroOperacionId,
+      clienteId,
+      ejecutivoId,
+      estadoId,
+      etapaId,
+      resultadoId,
+    });
     try {
+      console.log("✅ BOTÓN BUSCAR PRESIONADO");
       startSearching();
       setLoading(true);
       setHasSearched(true);
       const params: any = {};
 
-      // console.log("🔴 [FRONTEND] 1️⃣ Iniciando buscar...");
+      console.log("🔴 [FRONTEND] 1️⃣ Iniciando buscar...");
       // console.log("🔴 [FRONTEND] Valores actuales:", {
       //   fechaDesde,
       //   fechaHasta,
@@ -310,7 +323,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       // console.log("🔴 [FRONTEND] 2️⃣ Parámetros construidos:", params);
 
       const data = await solicitudesService.getListado(params);
-      // console.log("🔴 [FRONTEND] 4️⃣ Respuesta recibida del servicio:", data);
+      console.log("📊 DATOS RECIBIDOS DEL BACKEND:", data);
+      console.log("📊 CANTIDAD DE REGISTROS:", Array.isArray(data) ? data.length : "NO ES ARRAY");
       setRows(data);
       setCurrentPage(1);
 
@@ -626,7 +640,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                 Volver a solicitudes
               </button>
               <p className="text-2xl md:text-3xl font-bold text-blue-800 mb-4 leading-tight">
-                Listado de solicitudes
+                Listado de solicitudes 1
               </p>
             </div>
 
@@ -681,14 +695,14 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       ) : (
                         clientesFiltrados.map((cliente) => (
                           <div
-                            key={cliente.id}
+                            key={cliente.cli_id}
                             onClick={() => {
-                              setClienteId(String(cliente.id));
-                              setClienteBusqueda(cliente.razonSocial);
+                              setClienteId(String(cliente.cli_id));
+                              setClienteBusqueda(cliente.cli_razon_social);
                             }}
                             className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
                           >
-                            {cliente.razonSocial}
+                            {cliente.cli_razon_social}
                           </div>
                         ))
                       )}

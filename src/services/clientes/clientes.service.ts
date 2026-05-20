@@ -62,7 +62,7 @@ export const clientesService = {
     correo?: string;
     habilitaAcceso?: boolean;
     ejecutivoId?: number;
-    centroOperacionIds: number[];
+    centro_operacion_ids: number[];
   }): Promise<ClienteDetailResponse> => {
     const res = await api.post("/clientes", payload);
     return res.data;
@@ -77,7 +77,7 @@ export const clientesService = {
       direccion: string;
       correo: string;
       habilitaAcceso: boolean;
-      centroOperacionIds: number[];
+      centro_operacion_ids: number[];
       ejecutivoId: number | null;
     }>,
   ): Promise<ClienteDetailResponse> => {

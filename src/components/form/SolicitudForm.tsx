@@ -3,7 +3,7 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { formulariosService } from "@/services/parametrizacion/formularios.service";
 
 interface CopiaInfo {
-  [fp_id: number]: { valor: string; copiado: boolean; solicitudId?: number; numeroSolicitud?: string };
+  [fp_id: number]: { valor: string; copiado: boolean; sol_id?: number; sol_numero_solicitud?: string };
 }
 
 interface Pregunta {
@@ -17,7 +17,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
   const [respuestas, setRespuestas] = useState<Record<number, string>>({});
   const [copias, setCopias] = useState<CopiaInfo>({});
   const [loading, setLoading] = useState(false);
-  const [infoCopia, setInfoCopia] = useState<{solicitudId?: number, numeroSolicitud?: string}|null>(null);
+  const [infoCopia, setInfoCopia] = useState<{sol_id?: number, sol_numero_solicitud?: string}|null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -34,15 +34,15 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
             copiasInfo[resp.fp_id] = {
               valor: respuestasCopia[resp.fp_id],
               copiado: true,
-              solicitudId: data.sol_id || data.solicitudId,
-              numeroSolicitud: data.sol_numero_solicitud || data.numeroSolicitud,
+              sol_id: data.sol_id,
+              sol_numero_solicitud: data.sol_numero_solicitud,
             };
           });
           setRespuestas(respuestasCopia);
           setCopias(copiasInfo);
           setInfoCopia({
-            solicitudId: data.sol_id || data.solicitudId,
-            numeroSolicitud: data.sol_numero_solicitud || data.numeroSolicitud,
+            sol_id: data.sol_id,
+            sol_numero_solicitud: data.sol_numero_solicitud,
           });
         }
       } catch (err) {
@@ -92,9 +92,9 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
     <form onSubmit={submit}>
       <h2>Formulario del Cliente</h2>
 
-      {infoCopia && infoCopia.numeroSolicitud && (
+      {infoCopia && infoCopia.sol_numero_solicitud && (
         <div style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>
-          <span>Algunos campos fueron copiados de la solicitud previa: <b>{infoCopia.numeroSolicitud}</b>. Puedes editarlos antes de enviar.</span>
+          <span>Algunos campos fueron copiados de la solicitud previa: <b>{infoCopia.sol_numero_solicitud}</b>. Puedes editarlos antes de enviar.</span>
         </div>
       )}
 
@@ -104,7 +104,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
             {p.fp_descripcion}
             {copias[p.fp_id]?.copiado && (
               <span style={{ color: 'blue', fontSize: 12, marginLeft: 8 }}>
-                (copiado de solicitud {copias[p.fp_id].numeroSolicitud})
+                (copiado de solicitud {copias[p.fp_id].sol_numero_solicitud})
               </span>
             )}
           </label>

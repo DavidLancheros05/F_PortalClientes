@@ -15,19 +15,13 @@ interface FormularioPregunta {
 }
 
 interface Cliente {
-  razonSocial?: string;
-  cliente_razon_social?: string;
-  nitDocumento?: string;
-  cliente_nit_documento?: string;
-  direccion?: string;
-  cliente_direccion?: string;
-  telefono?: string;
-  cliente_telefono?: string;
-  correo?: string;
-  email?: string;
-  cliente_email?: string;
-  tipoIdentificacion?: string;
-  cliente_tipo_identificacion?: string;
+  cli_id?: number;
+  cli_razon_social?: string;
+  cli_nro_identificacion?: string;
+  cli_correo?: string;
+  cli_tipo_identificacion?: string;
+  cli_direccion?: string;
+  cli_telefono?: string;
 }
 
 interface User {
@@ -100,7 +94,7 @@ export function usePrefillCliente({
           cliente = (await clientesService.getById(Number(currentUser.cliente_id))) as unknown as Cliente;
         } else {
           const clientes = await clientesService.getAll();
-          cliente = clientes.find((c: any) => c.cliId === currentUser?.usr_id) || null;
+          cliente = clientes.find((c: any) => c.cli_id === currentUser?.usr_id) || null;
         }
 
         if (!cliente) return;
@@ -172,18 +166,12 @@ export function usePrefillCliente({
             d.includes("email"),
         );
 
-        const razonSocial =
-          cliente.razonSocial || cliente.cliente_razon_social || "";
-        const nitDocumento =
-          cliente.nitDocumento || cliente.cliente_nit_documento || "";
-        const direccion = cliente.direccion || cliente.cliente_direccion || "";
-        const telefono = cliente.telefono || cliente.cliente_telefono || "";
-        const correo =
-          cliente.correo || cliente.cliente_email || "";
-        const tipoIdentificacion =
-          cliente.tipoIdentificacion ||
-          cliente.cliente_tipo_identificacion ||
-          "";
+        const razonSocial = cliente.cli_razon_social || "";
+        const nitDocumento = cliente.cli_nro_identificacion || "";
+        const direccion = cliente.cli_direccion || "";
+        const telefono = cliente.cli_telefono || "";
+        const correo = cliente.cli_correo || "";
+        const tipoIdentificacion = cliente.cli_tipo_identificacion || "";
 
         const tipoDocumentoPregunta = tipoDocumentoId
           ? currentPreguntas.find((p) => p.fp_id === tipoDocumentoId)

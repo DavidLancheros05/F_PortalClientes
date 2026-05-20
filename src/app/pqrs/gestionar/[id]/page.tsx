@@ -109,7 +109,7 @@ export default function GestionarPQRSPage() {
             ...c,
             pc_usuario:
               c.usuario?.nombre ||
-              c.cliente?.razonSocial ||
+              c.cliente?.cli_razon_social ||
               c.pc_usuario ||
               "Usuario",
           }))
@@ -140,7 +140,7 @@ export default function GestionarPQRSPage() {
     try {
       setCambiandoEstado(true);
       await pqrsService.cambiarEstado(pqrsId, {
-        estadoId: selectedEstadoId as number,
+        pqrs_pe_id: selectedEstadoId as number,
         comentario: respuestaComentario,
       });
 

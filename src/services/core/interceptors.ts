@@ -21,9 +21,10 @@ export const setupInterceptors = (api: AxiosInstance) => {
 
   api.interceptors.response.use(
     (response) => {
-      if (response.data) {
-        response.data = transformSnakeToCamel(response.data);
-      }
+      // Mantener snake_case consistente de la API
+      // if (response.data) {
+      //   response.data = transformSnakeToCamel(response.data);
+      // }
       return response;
     },
     (error) => {

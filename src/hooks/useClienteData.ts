@@ -55,13 +55,13 @@ export function useClienteData({
 
         // Mapear desde ClienteResponse al formato esperado por formularios
         const normalizado: ClienteData = {
-          cliente_id: data.cliId,
-          cliente_nombre: data.razonSocial,
-          cliente_razon_social: data.razonSocial,
-          cliente_direccion: data.direccion || "",
-          cliente_email: data.correo || "",
-          cliente_nit_documento: data.nitDocumento,
-          cliente_tipo_identificacion: data.tipoIdentificacion,
+          cliente_id: data.cli_id,
+          cliente_nombre: data.cli_razon_social,
+          cliente_razon_social: data.cli_razon_social,
+          cliente_direccion: data.cli_direccion || "",
+          cliente_email: data.cli_correo || "",
+          cliente_nit_documento: data.cli_nro_identificacion,
+          cliente_tipo_identificacion: data.cli_tipo_identificacion,
         };
 
         setClienteData(normalizado);

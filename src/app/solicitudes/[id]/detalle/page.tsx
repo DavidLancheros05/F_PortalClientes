@@ -12,19 +12,20 @@ interface SolicitudDetalle {
   sol_id: number;
   sol_numero_solicitud: string;
   cliente_nombre: string;
+  cliente_nit?: string;
   ejecutivo_nombre?: string;
+  usuario_registro?: string;
+  usuario_revision?: string;
   centro_operacion_nombre?: string;
-  sol_fecha_creacion: string;
-  sol_estado_id: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
-  razonSocial?: string;
-  nitDocumento?: string;
-  direccion?: string;
-  telefono?: string;
-  email?: string;
-  consumo_mensual_proyectado?: number;
-  observaciones?: string;
+  sol_fecha_creacion: string;
+  sol_estado_id: number;
+  sol_razon_social?: string;
+  sol_nit_documento?: string;
+  sol_direccion?: string;
+  sol_telefono?: string;
+  sol_consumo_mensual_proyectado?: number;
   sol_cupo_aprobado?: number;
   sol_plazo_pago?: number;
   sol_forma_pago?: string;
@@ -32,6 +33,10 @@ interface SolicitudDetalle {
   sol_formulario_version?: number;
   sol_fecha_estimada_respuesta_comercial?: string;
   sol_fecha_real_respuesta_comercial?: string;
+  sol_fecha_estimada_respuesta?: string;
+  sol_estado_llenado?: string;
+  sol_formulario_progreso_porcentaje?: number;
+  sol_cupo_solicitado?: number;
 }
 
 function formatDate(value?: string | null) {
@@ -394,31 +399,25 @@ export default function DetalleDetailPage() {
               <div>
                 <p className="text-xs text-gray-500 uppercase">Razón Social</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {solicitud.razonSocial || solicitud.cliente_nombre || "-"}
+                  {solicitud.sol_razon_social || solicitud.cliente_nombre || "-"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase">NIT/Documento</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {solicitud.nitDocumento || "-"}
+                  {solicitud.sol_nit_documento || solicitud.cliente_nit || "-"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase">Dirección</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {solicitud.direccion || "-"}
+                  {solicitud.sol_direccion || "-"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase">Teléfono</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {solicitud.telefono || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Email</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.email || "-"}
+                  {solicitud.sol_telefono || "-"}
                 </p>
               </div>
             </div>
@@ -454,13 +453,7 @@ export default function DetalleDetailPage() {
               <div>
                 <p className="text-xs text-gray-500 uppercase">Consumo Mensual Proyectado</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {formatCurrency(solicitud.consumo_mensual_proyectado)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Observaciones</p>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {solicitud.observaciones || "-"}
+                  {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
                 </p>
               </div>
             </div>

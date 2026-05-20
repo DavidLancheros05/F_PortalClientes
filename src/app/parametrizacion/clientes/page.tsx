@@ -97,10 +97,10 @@ export default function ClientesPage() {
     }
 
     const datos = filteredClientes.map((cliente) => ({
-      ID: cliente.cliId,
-      "Razón Social": cliente.razonSocial,
-      "NIT/Documento": cliente.nitDocumento,
-      Dirección: cliente.direccion || "-",
+      ID: cliente.cli_id,
+      "Razón Social": cliente.cli_razon_social,
+      "NIT/Documento": cliente.cli_nro_identificacion,
+      Dirección: cliente.cli_direccion || "-",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(datos);
@@ -121,22 +121,31 @@ export default function ClientesPage() {
     // Filtro por búsqueda (razón social)
     const matchesSearch =
       searchTerm === "" ||
-      cliente.razonSocial.toLowerCase().includes(searchTerm.toLowerCase());
+      (cliente.cli_razon_social ?? "").toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filtro por NIT
     const matchesNit =
       filterNit === "" ||
-      cliente.nitDocumento.toLowerCase().includes(filterNit.toLowerCase());
+      (cliente.cli_nro_identificacion ?? "").toLowerCase().includes(filterNit.toLowerCase());
 
     // Filtro por Dirección
     const matchesDireccion =
       filterDireccion === "" ||
-      (cliente.direccion ?? "")
+      (cliente.cli_direccion ?? "")
         .toLowerCase()
         .includes(filterDireccion.toLowerCase());
 
     return matchesSearch && matchesNit && matchesDireccion;
   });
+
+  // Calcular número total de páginas
+  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
+  const visiblePages = 5; // Máximo de botones de página a mostrar
+  let pageStart = Math.max(1, currentPage - Math.floor(visiblePages / 2));
+  let pageEnd = Math.min(totalPages, pageStart + visiblePages - 1);
+  if (pageEnd - pageStart + 1 < visiblePages) {
+    pageStart = Math.max(1, pageEnd - visiblePages + 1);
+  }
 
   // Estadísticas
   const totalClientes = clientes.length;
@@ -253,8 +262,8 @@ export default function ClientesPage() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Todos los centros</option>
-                {centros.map((centro) => (
-                  <option key={centro.cop_id} value={centro.cop_id}>
+                {centros.map((centro, index) => (
+                  <option key={centro.cop_id || `centro-${index}`} value={centro.cop_id}>
                     {centro.cop_nombre}
                   </option>
                 ))}
@@ -424,7 +433,7 @@ export default function ClientesPage() {
                           )
                           .map((cliente) => (
                             <tr
-                              key={cliente.cliId}
+                              key={cliente.cli_id}
                               className="hover:bg-gray-50 transition"
                             >
                               <td className="py-4 px-6">
@@ -434,7 +443,7 @@ export default function ClientesPage() {
                                   </div>
                                   <div>
                                     <div className="font-semibold text-gray-900">
-                                      {cliente.razonSocial}
+                                      {cliente.cli_razon_social}
                                     </div>
                                   </div>
                                 </div>
@@ -442,8 +451,8 @@ export default function ClientesPage() {
                               <td className="py-4 px-6">
                                 <div className="flex items-center">
                                   <FileText className="w-4 h-4 text-gray-400 mr-2" />
-                                  <span className="font-mono">
-                                    {cliente.nitDocumento}
+                                  <span className="font-mono text-sm">
+                                    {cliente.cli_nro_identificacion || "-"}
                                   </span>
                                 </div>
                               </td>
@@ -451,7 +460,7 @@ export default function ClientesPage() {
                                 <div className="flex items-center">
                                   <MapPin className="w-4 h-4 text-gray-400 mr-2" />
                                   <span className="text-sm">
-                                    {cliente.direccion}
+                                    {cliente.cli_direccion || "-"}
                                   </span>
                                 </div>
                               </td>
@@ -476,7 +485,7 @@ export default function ClientesPage() {
                                   <button
                                     onClick={() =>
                                       router.push(
-                                        `/parametrizacion/clientes/${cliente.cliId}`,
+                                        `/parametrizacion/clientes/${cliente.cli_id}`,
                                       )
                                     }
                                     className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
@@ -487,7 +496,7 @@ export default function ClientesPage() {
                                   <button
                                     onClick={() =>
                                       router.push(
-                                        `/parametrizacion/clientes/${cliente.cliId}/editar`,
+                                        `/parametrizacion/clientes/${cliente.cli_id}/editar`,
                                       )
                                     }
                                     className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
@@ -503,70 +512,102 @@ export default function ClientesPage() {
                     </table>
                   </div>
 
-                  {/* Paginador */}
-                  <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      Mostrando{" "}
-                      {Math.min(
-                        (currentPage - 1) * itemsPerPage + 1,
-                        filteredClientes.length,
-                      )}{" "}
-                      a{" "}
-                      {Math.min(
-                        currentPage * itemsPerPage,
-                        filteredClientes.length,
-                      )}{" "}
-                      de {filteredClientes.length} cliente
+                  {/* Paginador mejorado */}
+                  <div className="border-t border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-gray-600 whitespace-nowrap">
+                      <span className="font-semibold">
+                        {Math.min(
+                          (currentPage - 1) * itemsPerPage + 1,
+                          filteredClientes.length,
+                        )}
+                      </span>
+                      {" – "}
+                      <span className="font-semibold">
+                        {Math.min(
+                          currentPage * itemsPerPage,
+                          filteredClientes.length,
+                        )}
+                      </span>
+                      {" de "}
+                      <span className="font-semibold">{filteredClientes.length}</span>
+                      {" cliente"}
                       {filteredClientes.length !== 1 ? "s" : ""}
                     </div>
-                    <div className="flex gap-2">
+
+                    <div className="flex gap-2 items-center flex-wrap justify-center">
+                      {/* Botón Anterior */}
                       <button
                         onClick={() =>
                           setCurrentPage((prev) => Math.max(prev - 1, 1))
                         }
                         disabled={currentPage === 1}
-                        className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
+                        className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white transition text-sm font-medium text-gray-700"
                       >
-                        Anterior
+                        ← Anterior
                       </button>
+
+                      {/* Botones de página */}
                       <div className="flex items-center gap-1">
+                        {/* Primera página si no está visible */}
+                        {pageStart > 1 && (
+                          <>
+                            <button
+                              onClick={() => setCurrentPage(1)}
+                              className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                            >
+                              1
+                            </button>
+                            {pageStart > 2 && (
+                              <span className="px-2 text-gray-400">…</span>
+                            )}
+                          </>
+                        )}
+
+                        {/* Páginas visibles */}
                         {Array.from(
-                          {
-                            length: Math.ceil(
-                              filteredClientes.length / itemsPerPage,
-                            ),
-                          },
-                          (_, i) => i + 1,
+                          { length: pageEnd - pageStart + 1 },
+                          (_, i) => pageStart + i,
                         ).map((page) => (
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
                             className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                               page === currentPage
-                                ? "bg-blue-600 text-white"
-                                : "border border-gray-200 hover:bg-gray-50"
+                                ? "bg-blue-600 text-white shadow-md"
+                                : "border border-gray-200 text-gray-700 hover:bg-gray-50"
                             }`}
                           >
                             {page}
                           </button>
                         ))}
+
+                        {/* Última página si no está visible */}
+                        {pageEnd < totalPages && (
+                          <>
+                            {pageEnd < totalPages - 1 && (
+                              <span className="px-2 text-gray-400">…</span>
+                            )}
+                            <button
+                              onClick={() => setCurrentPage(totalPages)}
+                              className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
                       </div>
+
+                      {/* Botón Siguiente */}
                       <button
                         onClick={() =>
                           setCurrentPage((prev) =>
-                            Math.min(
-                              prev + 1,
-                              Math.ceil(filteredClientes.length / itemsPerPage),
-                            ),
+                            Math.min(prev + 1, totalPages),
                           )
                         }
-                        disabled={
-                          currentPage ===
-                          Math.ceil(filteredClientes.length / itemsPerPage)
-                        }
-                        className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white transition text-sm font-medium text-gray-700"
                       >
-                        Siguiente
+                        Siguiente →
                       </button>
                     </div>
                   </div>

@@ -177,7 +177,7 @@ export default function CorreosPorRolPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Correos por Rol</h1>
         <Link
-          href="/parametrizacion/notificaciones"
+          href="/parametrizacion/formatos-de-correos"
           className="px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
         >
           Ir a plantillas de notificaciones

@@ -14,8 +14,8 @@ type Rol = {
 };
 
 type Cliente = {
-  id: number;
-  razonSocial: string;
+  cli_id: number;
+  cli_razon_social: string;
   correo?: string;
   email?: string;
   usuarioId?: number | null;
@@ -80,7 +80,7 @@ export default function CrearUsuarioPage() {
   }, [selectedRol]);
 
   const selectedCliente = useMemo(
-    () => clientes.find((item) => item.id === Number(formData.cliente_id)),
+    () => clientes.find((item) => item.cli_id === Number(formData.cliente_id)),
     [clientes, formData.cliente_id],
   );
 
@@ -99,8 +99,8 @@ export default function CrearUsuarioPage() {
         setLoadingClientes(true);
         const data = await clientesService.getAll();
         const mapped = (Array.isArray(data) ? data : []).map((item: any) => ({
-          id: Number(item.id || item.cliente_id),
-          razonSocial: String(item.razonSocial || ""),
+          cli_id: Number(item.cli_id || item.id || item.cliente_id),
+          cli_razon_social: String(item.cli_razon_social || ""),
           email: String(item.email || "").trim(),
           usuarioId:
             item.usuarioId === null || item.usuarioId === undefined
@@ -161,7 +161,7 @@ export default function CrearUsuarioPage() {
 
       const payload = {
         nombre: isClienteRole
-          ? String(selectedCliente?.razonSocial || "").trim()
+          ? String(selectedCliente?.cli_razon_social || "").trim()
           : formData.usuario_email.trim().toLowerCase(),
         usuario_email: formData.usuario_email.trim().toLowerCase(),
         usuario_password: formData.usuario_password,
@@ -237,7 +237,7 @@ export default function CrearUsuarioPage() {
               onChange={(e) => {
                 const clienteId = e.target.value;
                 const cliente = clientes.find(
-                  (c) => c.id === Number(clienteId),
+                  (c) => c.cli_id === Number(clienteId),
                 );
                 setFormData((prev) => ({
                   ...prev,
@@ -251,8 +251,8 @@ export default function CrearUsuarioPage() {
             >
               <option value="">Seleccione un cliente sin usuario</option>
               {clientesSinUsuario.map((cliente) => (
-                <option key={cliente.id} value={cliente.id}>
-                  {cliente.razonSocial}
+                <option key={cliente.cli_id} value={cliente.cli_id}>
+                  {cliente.cli_razon_social}
                 </option>
               ))}
             </select>

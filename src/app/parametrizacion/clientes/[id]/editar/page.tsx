@@ -34,7 +34,7 @@ export default function EditarClientePage() {
   const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
     [],
   );
-  const [centroOperacionIds, setCentroOperacionIds] = useState<number[]>([]);
+  const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [ejecutivoId, setEjecutivoId] = useState<number | null>(null);
 
@@ -79,17 +79,17 @@ export default function EditarClientePage() {
           console.warn("Error cargando tipos de identificación:", err);
         }
 
-        setRazonSocial(clienteData.razonSocial || "");
+        setRazonSocial(clienteData.cli_razon_social || "");
         setTiposIdentificacion(tiposData || []);
         setTipoIdentificacion(
-          clienteData.tipoIdentificacion != null
-            ? Number(clienteData.tipoIdentificacion)
+          clienteData.cli_tipo_identificacion != null
+            ? Number(clienteData.cli_tipo_identificacion)
             : (tiposData?.[0]?.id ? Number(tiposData[0].id) : undefined),
         );
-        setNitDocumento(clienteData.nitDocumento || "");
-        setCorreo(clienteData.correo || "");
-        setDireccion(clienteData.direccion || "");
-        setHabilitaAcceso(Boolean(clienteData.habilitaAcceso));
+        setNitDocumento(clienteData.cli_nro_identificacion || "");
+        setCorreo(clienteData.cli_correo || "");
+        setDireccion(clienteData.cli_direccion || "");
+        setHabilitaAcceso(Boolean(clienteData.cli_acceso_portal_clientes));
         setCentroOperacionIds(
           Array.isArray(clienteCentrosData)
             ? clienteCentrosData.map((c: any) => c.cop_id || c.id)
@@ -105,7 +105,7 @@ export default function EditarClientePage() {
             ? ejecutivosData.map((e: any) => ({ id: e.id, nombre: e.nombre }))
             : [],
         );
-        setEjecutivoId(clienteData.ejecutivoId || null);
+        setEjecutivoId(clienteData.ejng_id || null);
       } catch (err: any) {
         setError(err?.message || "Error cargando cliente");
       } finally {
@@ -130,7 +130,7 @@ export default function EditarClientePage() {
         correo,
         direccion,
         habilitaAcceso,
-        centroOperacionIds,
+        centro_operacion_ids,
         ejecutivoId,
       });
 
@@ -363,7 +363,7 @@ export default function EditarClientePage() {
                     >
                       <input
                         type="checkbox"
-                        checked={centroOperacionIds.includes(centro.id)}
+                        checked={centro_operacion_ids.includes(centro.id)}
                         onChange={() => toggleCentro(centro.id)}
                         disabled={saving || success}
                         className="h-4 w-4 text-blue-600 border-gray-300 rounded"

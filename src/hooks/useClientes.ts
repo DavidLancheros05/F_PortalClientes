@@ -60,14 +60,14 @@ export function useClientes(centroId?: number) {
     try {
       const data = await clientesService.getAll();
       const mapped: Cliente[] = data
-        .filter((c: any) => !cId || c.cliId === cId)
+        .filter((c: any) => !cId || c.cli_id === cId)
         .map((c: any) => ({
-          id: c.cliId ?? c.id,
-          razonSocial: c.razonSocial,
-          nitDocumento: c.nitDocumento ?? "",
-          direccion: c.direccion ?? "",
+          id: c.cli_id ?? c.id,
+          razonSocial: c.cli_razon_social,
+          nitDocumento: c.cli_nro_identificacion ?? "",
+          direccion: c.cli_direccion ?? "",
           telefono: c.telefono ?? "",
-          habilitaAcceso: c.habilitaAcceso ?? false,
+          habilitaAcceso: c.cli_acceso_portal_clientes ?? false,
         }));
       console.log("[useClientes] Clientes mapeados:", mapped);
       setClientes(mapped);

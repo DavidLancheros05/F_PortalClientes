@@ -92,7 +92,7 @@ export default function CorregirFormularioASCPage() {
         setLoadingClientes(true);
         const data = await clientesService.getAll();
         const filtered = (Array.isArray(data) ? data : []).filter((c: any) => {
-          const centroIds = c.centroOperacionIds || [];
+          const centroIds = c.centro_operacion_ids || [];
           return centroIds.includes(centroSeleccionado);
         });
         setClientes(filtered);
@@ -210,10 +210,10 @@ export default function CorregirFormularioASCPage() {
                 <option value="">Todos los clientes</option>
                 {clientes.map((cliente, index) => (
                   <option
-                    key={`cliente-${cliente.cliId}-${index}`}
-                    value={cliente.cliId}
+                    key={`cliente-${cliente.cli_id}-${index}`}
+                    value={cliente.cli_id}
                   >
-                    {cliente.razonSocial}
+                    {cliente.cli_razon_social}
                   </option>
                 ))}
               </select>

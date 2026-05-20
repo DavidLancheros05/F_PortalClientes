@@ -8,27 +8,28 @@
 // ============================================
 
 export interface ClienteListResponse {
-  cliId: number;
-  razonSocial: string;
-  nitDocumento: string;
-  correo?: string;
-  estado: string;
-  ejecutivoId?: number;
+  cli_id: number;
+  cli_razon_social: string;
+  cli_nro_identificacion?: string;
+  cli_direccion?: string;
+  cli_correo?: string;
+  cli_estado: string;
+  ejng_id?: number;
   ejecutivo?: { nombre: string } | null;
 }
 
 export interface ClienteDetailResponse {
-  cliId: number;
-  razonSocial: string;
-  nitDocumento: string;
-  tipoIdentificacion: number;
-  direccion: string;
-  correo?: string;
-  habilitaAcceso: boolean;
-  estado: string;
-  ejecutivoId?: number;
+  cli_id: number;
+  cli_razon_social: string;
+  cli_nro_identificacion: string;
+  cli_tipo_identificacion: number;
+  cli_direccion: string;
+  cli_correo?: string;
+  cli_acceso_portal_clientes: boolean;
+  cli_estado: string;
+  ejng_id?: number;
   ejecutivo?: { nombre: string } | null;
-  centroOperacionIds?: number[];
+  centro_operacion_ids?: number[];
 }
 
 /**
@@ -39,11 +40,10 @@ export type ClienteResponse = ClienteDetailResponse;
 /**
  * Centro de operación del cliente
  * Endpoint: GET /clientes/:id/centros-operacion
- * Nota: Este endpoint mapea cop_id → id, cop_nombre → nombre
  */
 export interface ClienteCentroResponse {
-  id: number;
-  nombre: string;
+  cop_id: number;
+  cop_nombre: string;
 }
 
 // ============================================

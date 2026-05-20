@@ -211,7 +211,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       (s) =>
         String(s.mod_ruta || "")
           .trim()
-          .toLowerCase() === "/parametrizacion/notificaciones" ||
+          .toLowerCase() === "/parametrizacion/formatos-de-correos" ||
         String(s.mod_nombre || "")
           .trim()
           .toLowerCase() === "notificaciones",
@@ -226,7 +226,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       {
         mod_id: -1001,
         mod_nombre: "Notificaciones",
-        mod_ruta: "/parametrizacion/notificaciones",
+        mod_ruta: "/parametrizacion/formatos-de-correos",
         permisos: {
           ver: true,
           crear: false,

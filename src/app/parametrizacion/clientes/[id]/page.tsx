@@ -38,10 +38,10 @@ export default function ClienteDetallePage() {
         setLoading(true);
         const clienteData = await clientesService.getById(clienteId);
 
-        setRazonSocial(clienteData.razonSocial || "");
-        setNitDocumento(clienteData.nitDocumento || "");
-        setCorreo(clienteData.correo || "");
-        setDireccion(clienteData.direccion || "");
+        setRazonSocial(clienteData.cli_razon_social || "");
+        setNitDocumento(clienteData.cli_nro_identificacion || "");
+        setCorreo(clienteData.cli_correo || "");
+        setDireccion(clienteData.cli_direccion || "");
         setEjecutivo(clienteData.ejecutivo || null);
       } catch (err: any) {
         setError(err?.message || "Error cargando cliente");

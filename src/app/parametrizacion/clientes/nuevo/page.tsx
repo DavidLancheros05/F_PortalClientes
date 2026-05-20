@@ -27,7 +27,7 @@ export default function NuevoClientePage() {
   const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
     [],
   );
-  const [centroOperacionIds, setCentroOperacionIds] = useState<number[]>([]);
+  const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
   const [loadingCentros, setLoadingCentros] = useState(true);
   const [razonSocial, setRazonSocial] = useState("");
   const [tipoIdentificacion, setTipoIdentificacion] = useState<number>(0);
@@ -104,7 +104,7 @@ export default function NuevoClientePage() {
         direccion,
         correo,
         habilitaAcceso: habilita_acceso,
-        centroOperacionIds,
+        centro_operacion_ids,
       });
 
       setSuccess(true);
@@ -340,7 +340,7 @@ export default function NuevoClientePage() {
                       >
                         <input
                           type="checkbox"
-                          checked={centroOperacionIds.includes(centro.id)}
+                          checked={centro_operacion_ids.includes(centro.id)}
                           onChange={() => toggleCentro(centro.id)}
                           disabled={loading || success}
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded"

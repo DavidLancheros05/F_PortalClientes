@@ -160,7 +160,7 @@ export const pqrsService = {
   async cambiarEstado(
     id: number,
     payload: {
-      estadoId: number;
+      pqrs_pe_id: number;
       comentario?: string;
       usr_id?: number;
       nombre?: string;
@@ -168,7 +168,7 @@ export const pqrsService = {
   ) {
     try {
       const response = await api.put(`/pqrs/${id}`, {
-        pqrs_pe_id: payload.estadoId,
+        pqrs_pe_id: payload.pqrs_pe_id,
       });
       return response.data;
     } catch (error) {
@@ -194,7 +194,7 @@ export const pqrsService = {
 
       if (payload.cambiar_estado_a) {
         await this.cambiarEstado(id, {
-          estado: payload.cambiar_estado_a,
+          pqrs_pe_id: payload.cambiar_estado_a,
           comentario: `Respuesta registrada: ${payload.mensaje}`,
           usr_id: payload.usr_id,
           nombre: payload.nombre,

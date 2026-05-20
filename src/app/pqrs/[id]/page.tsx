@@ -91,7 +91,7 @@ export default function PQRSDetallePage() {
             ...c,
             pc_usuario:
               c.usuario?.nombre ||
-              c.cliente?.razonSocial ||
+              c.cliente?.cli_razon_social ||
               c.pc_usuario ||
               "Usuario",
           }))
