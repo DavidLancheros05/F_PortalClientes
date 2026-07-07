@@ -148,29 +148,40 @@ function normalizarValorCliente(
 
     case "SELECT":
     case "SELECT_CONDICIONAL":
-    case "DOCUMENTOS_TABLA":
-      // Si el valor es un número, usarlo directamente
-      if (typeof valor === "number") {
+    case "DOCUMENTOS_TABLA": {
+      // El id de la opción es específico de ESTA pregunta (Formulario_pregunta_opcion),
+      // no coincide con ids de otros catálogos (p.ej. tipos_identificacion). Por eso
+      // primero se intenta emparejar por texto (aceptando uno o varios candidatos);
+      // solo si eso falla y el valor no es texto, se asume que ya es el id correcto.
+      const candidatos = Array.isArray(valor) ? valor : [valor];
+      const normalizarComparacion = (texto: any) =>
+        String(texto ?? "")
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "")
+          .trim()
+          .toLowerCase();
+
+      let opcionCoincidencia: { op_id: number; op_descripcion: string } | undefined;
+      for (const candidato of candidatos) {
+        if (candidato === null || candidato === undefined || candidato === "") {
+          continue;
+        }
+        const candidatoNorm = normalizarComparacion(candidato);
+        opcionCoincidencia = pregunta.opciones?.find(
+          (op) => normalizarComparacion(op.op_descripcion) === candidatoNorm,
+        );
+        if (opcionCoincidencia) break;
+      }
+
+      if (opcionCoincidencia) {
+        respuesta.valor_opcion_id = opcionCoincidencia.op_id;
+      } else if (!Array.isArray(valor) && typeof valor === "number") {
         respuesta.valor_opcion_id = valor;
       } else {
-        // Si es un string, buscar la opción que coincida
-        const valorStr = String(valor).trim().toLowerCase();
-        const opcionCoincidencia = pregunta.opciones?.find(
-          (op) => op.op_descripcion?.trim().toLowerCase() === valorStr
-        );
-        if (opcionCoincidencia) {
-          respuesta.valor_opcion_id = opcionCoincidencia.op_id;
-        } else {
-          // Si no encuentra coincidencia exacta, intentar conversión a número
-          const numVal = Number(valor);
-          if (!Number.isNaN(numVal)) {
-            respuesta.valor_opcion_id = numVal;
-          } else {
-            return null;
-          }
-        }
+        return null;
       }
       break;
+    }
 
     case "SELECT_TABLA":
       // SELECT_TABLA usa valor_numero (IDs de tablas catálogo: país, departamento, ciudad)

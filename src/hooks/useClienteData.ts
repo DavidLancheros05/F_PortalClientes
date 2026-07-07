@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { clientesService } from "@/services/clientes/clientes.service";
-import type { ClienteResponse } from "@/types/api.types";
+import type { ClienteResponse, TipoIdentificacionResponse } from "@/types/api.types";
 
 /**
  * Normalización de datos del cliente para compatibilidad con formularios
@@ -12,7 +12,12 @@ interface ClienteData {
   cliente_direccion: string;
   cliente_email: string;
   cliente_nit_documento: string;
-  cliente_tipo_identificacion: number;
+  /** Código y nombre del tipo de identificación (p.ej. ["NIT", "NIT"] o
+   * ["CC", "Cédula de ciudadanía"]), para emparejar por texto contra las
+   * opciones de la pregunta "Tipo de documento" del formulario — el id
+   * numérico del catálogo tipos_identificacion no corresponde al id de
+   * esas opciones. */
+  cliente_tipo_identificacion: string[] | number;
   [key: string]: any;
 }
 
@@ -51,7 +56,20 @@ export function useClienteData({
       setError(null);
 
       try {
-        const data: ClienteResponse = await clientesService.getById(clienteId);
+        const [data, tiposIdentificacion]: [
+          ClienteResponse,
+          TipoIdentificacionResponse[],
+        ] = await Promise.all([
+          clientesService.getById(clienteId),
+          clientesService.getTiposIdentificacion().catch(() => []),
+        ]);
+
+        const tipoId = tiposIdentificacion.find(
+          (t) => t.id === Number(data.cli_tipo_identificacion),
+        );
+        const tipoIdentificacionTexto = tipoId
+          ? [tipoId.codigo, tipoId.nombre]
+          : data.cli_tipo_identificacion;
 
         // Mapear desde ClienteResponse al formato esperado por formularios
         const normalizado: ClienteData = {
@@ -61,7 +79,7 @@ export function useClienteData({
           cliente_direccion: data.cli_direccion || "",
           cliente_email: data.cli_correo || "",
           cliente_nit_documento: data.cli_nro_identificacion,
-          cliente_tipo_identificacion: data.cli_tipo_identificacion,
+          cliente_tipo_identificacion: tipoIdentificacionTexto,
           pai_id: (data as any).pai_id ?? undefined,
           dpto_id: (data as any).dpto_id ?? undefined,
           ciu_id: (data as any).ciu_id ?? undefined,
