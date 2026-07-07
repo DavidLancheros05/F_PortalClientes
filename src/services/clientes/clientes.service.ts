@@ -69,6 +69,9 @@ export const clientesService = {
     correo?: string;
     habilitaAcceso?: boolean;
     ejecutivoId?: number;
+    paisId: number;
+    departamentoId: number;
+    ciudadId: number;
     centro_operacion_ids: number[];
   }): Promise<ClienteDetailResponse> => {
     const res = await api.post("/clientes", {
@@ -79,6 +82,9 @@ export const clientesService = {
       cli_correo: payload.correo,
       cli_acceso_portal_clientes: payload.habilitaAcceso,
       ejng_id: payload.ejecutivoId,
+      pai_id: payload.paisId,
+      dpto_id: payload.departamentoId,
+      ciu_id: payload.ciudadId,
       centro_operacion_ids: payload.centro_operacion_ids,
     });
     return res.data;

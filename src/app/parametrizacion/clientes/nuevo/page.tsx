@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clientesService } from "@/services/clientes/clientes.service";
 import {
+  maestrosService,
+  type Pais,
+  type Departamento,
+  type Ciudad,
+} from "@/services/maestros/maestros.service";
+import {
   Building,
   FileText,
   MapPin,
@@ -33,6 +39,12 @@ export default function NuevoClientePage() {
     Array<{ ejng_id: number; ejng_nombre: string }>
   >([]);
   const [ejecutivoId, setEjecutivoId] = useState<number>(0);
+  const [paises, setPaises] = useState<Pais[]>([]);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [paisId, setPaisId] = useState<number>(0);
+  const [departamentoId, setDepartamentoId] = useState<number>(0);
+  const [ciudadId, setCiudadId] = useState<number>(0);
   const [razonSocial, setRazonSocial] = useState("");
   const [tipoIdentificacion, setTipoIdentificacion] = useState<number>(0);
   const [nit, setNit] = useState("");
@@ -50,11 +62,14 @@ export default function NuevoClientePage() {
         setLoadingCentros(true);
         setLoadingTiposIdentificacion(true);
 
-        const [tiposData, centrosData, ejecutivosData] = await Promise.all([
-          clientesService.getTiposIdentificacion(),
-          clientesService.getAllCentrosOperacion(),
-          clientesService.getEjecutivosNegocio(),
-        ]);
+        const [tiposData, centrosData, ejecutivosData, paisesData] =
+          await Promise.all([
+            clientesService.getTiposIdentificacion(),
+            clientesService.getAllCentrosOperacion(),
+            clientesService.getEjecutivosNegocio(),
+            maestrosService.getPaises(),
+          ]);
+        setPaises(Array.isArray(paisesData) ? paisesData : []);
 
         const tipos = Array.isArray(tiposData) ? tiposData : [];
         setCentros(
@@ -83,6 +98,34 @@ export default function NuevoClientePage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (!paisId) {
+      setDepartamentos([]);
+      setDepartamentoId(0);
+      return;
+    }
+    maestrosService
+      .getDepartamentos(paisId)
+      .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
+      .catch(() => setDepartamentos([]));
+    setDepartamentoId(0);
+    setCiudadId(0);
+    setCiudades([]);
+  }, [paisId]);
+
+  useEffect(() => {
+    if (!departamentoId) {
+      setCiudades([]);
+      setCiudadId(0);
+      return;
+    }
+    maestrosService
+      .getCiudades(departamentoId)
+      .then((data) => setCiudades(Array.isArray(data) ? data : []))
+      .catch(() => setCiudades([]));
+    setCiudadId(0);
+  }, [departamentoId]);
+
   const toggleCentro = (centroId: number) => {
     setCentroOperacionIds((prev) =>
       prev.includes(centroId)
@@ -108,6 +151,12 @@ export default function NuevoClientePage() {
       return;
     }
 
+    if (!paisId || !departamentoId || !ciudadId) {
+      setError("Debe seleccionar país, departamento y ciudad");
+      setLoading(false);
+      return;
+    }
+
     try {
       await clientesService.create({
         razonSocial,
@@ -117,6 +166,9 @@ export default function NuevoClientePage() {
         correo,
         habilitaAcceso: habilita_acceso,
         ejecutivoId,
+        paisId,
+        departamentoId,
+        ciudadId,
         centro_operacion_ids,
       });
 
@@ -352,6 +404,68 @@ export default function NuevoClientePage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    País *
+                  </label>
+                  <select
+                    value={paisId}
+                    onChange={(e) => setPaisId(Number(e.target.value))}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    disabled={loading || success}
+                  >
+                    <option value={0}>Selecciona un país</option>
+                    {paises.map((p) => (
+                      <option key={p.pais_id} value={p.pais_id}>
+                        {p.pais_nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Departamento *
+                  </label>
+                  <select
+                    value={departamentoId}
+                    onChange={(e) => setDepartamentoId(Number(e.target.value))}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:bg-gray-100"
+                    disabled={loading || success || !paisId}
+                  >
+                    <option value={0}>Selecciona un departamento</option>
+                    {departamentos.map((d) => (
+                      <option key={d.depto_id} value={d.depto_id}>
+                        {d.depto_nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ciudad *
+                  </label>
+                  <select
+                    value={ciudadId}
+                    onChange={(e) => setCiudadId(Number(e.target.value))}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:bg-gray-100"
+                    disabled={loading || success || !departamentoId}
+                  >
+                    <option value={0}>Selecciona una ciudad</option>
+                    {ciudades.map((c) => (
+                      <option key={c.ciudad_id} value={c.ciudad_id}>
+                        {c.ciudad_nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
