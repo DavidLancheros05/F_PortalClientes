@@ -9,6 +9,7 @@ import {
   type Departamento,
   type Ciudad,
 } from "@/services/maestros/maestros.service";
+import { SuccessModal, ErrorModal } from "@/components/modals";
 import {
   Building,
   FileText,
@@ -173,11 +174,12 @@ export default function NuevoClientePage() {
       });
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/clientes");
-      }, 1500);
     } catch (err: any) {
-      setError(err?.message || "Error creando cliente");
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Error creando cliente",
+      );
       console.error(err);
     } finally {
       setLoading(false);
@@ -230,36 +232,20 @@ export default function NuevoClientePage() {
             </div>
           </div>
 
-          {/* Success Message */}
-          {success && (
-            <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <div>
-                  <p className="font-medium text-green-800">
-                    ¡Cliente creado exitosamente!
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    Redirigiendo a la lista de clientes...
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <SuccessModal
+            isOpen={success}
+            title="¡Cliente creado exitosamente!"
+            message="Redirigiendo a la lista de clientes..."
+            autoClose
+            autoCloseDelay={1500}
+            onAction={() => router.push("/clientes")}
+          />
 
-          {/* Error Message */}
-          {error && (
-            <div className="mx-8 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Shield className="w-5 h-5 text-red-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          <ErrorModal
+            isOpen={!!error}
+            message={error || ""}
+            onAction={() => setError(null)}
+          />
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-8">
