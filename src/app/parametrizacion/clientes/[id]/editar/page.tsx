@@ -16,6 +16,7 @@ import {
   Shield,
   User,
 } from "lucide-react";
+import { LoadingModal } from "@/components/modals";
 
 export default function EditarClientePage() {
   const router = useRouter();
@@ -144,14 +145,7 @@ export default function EditarClientePage() {
   };
 
   if (loadingInitial) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-          <p className="mt-3 text-gray-600">Cargando cliente...</p>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando cliente..." />;
   }
 
   return (

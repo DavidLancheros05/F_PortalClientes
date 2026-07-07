@@ -42,6 +42,13 @@ export const clientesService = {
     return res.data;
   },
 
+  getEjecutivosNegocio: async (): Promise<
+    { ejng_id: number; ejng_nombre: string }[]
+  > => {
+    const res = await api.get("/clientes/ejecutivos-negocio");
+    return res.data;
+  },
+
   getById: async (clienteId: number): Promise<ClienteDetailResponse> => {
     const res = await api.get(`/clientes/${clienteId}`);
     return res.data;

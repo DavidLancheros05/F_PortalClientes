@@ -11,7 +11,7 @@ import {
   FileText,
   PlusCircle,
 } from "lucide-react";
-import ConfirmModal from "@/components/modals/ConfirmModal";
+import { ConfirmModal, LoadingModal } from "@/components/modals";
 
 // Roles reales
 const ROLES = {
@@ -146,14 +146,7 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando dashboard..." />;
   }
 
   if (!user) return null;

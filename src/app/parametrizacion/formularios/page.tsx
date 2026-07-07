@@ -16,6 +16,7 @@ import {
   formulariosService,
   type Formulario,
 } from "@/services/parametrizacion/formularios.service";
+import { LoadingModal } from "@/components/modals";
 
 export default function FormulariosPage() {
   const router = useRouter();
@@ -69,14 +70,7 @@ export default function FormulariosPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando formularios...</p>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando formularios..." />;
   }
 
   return (

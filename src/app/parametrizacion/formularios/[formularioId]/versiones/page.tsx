@@ -17,6 +17,7 @@ import {
   Clock,
 } from "lucide-react";
 import { versionesService } from "@/services/versiones.service";
+import { LoadingModal } from "@/components/modals";
 
 export default function VersionesPage() {
   const router = useRouter();
@@ -64,14 +65,7 @@ export default function VersionesPage() {
   }, [formularioId]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando versiones...</p>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando versiones..." />;
   }
 
   if (!formulario) {

@@ -159,11 +159,13 @@ export default function CrearUsuarioPage() {
       setError(null);
       setSuccess(null);
 
+      const email = formData.usuario_email.trim().toLowerCase();
       const payload = {
         nombre: isClienteRole
           ? String(selectedCliente?.cli_razon_social || "").trim()
-          : formData.usuario_email.trim().toLowerCase(),
-        usuario_email: formData.usuario_email.trim().toLowerCase(),
+          : email,
+        usuario_login: email,
+        usuario_email: email,
         usuario_password: formData.usuario_password,
         usuario_rol_id: Number(formData.usuario_rol_id),
         usuario_activo: true,

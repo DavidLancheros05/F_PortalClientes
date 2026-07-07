@@ -35,6 +35,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
   onClose,
 }) => {
   const [nombre, setNombre] = useState(usuario?.nombre || "");
+  const [usuarioLogin, setUsuarioLogin] = useState("");
   const [email, setEmail] = useState(usuario?.usuario_email || "");
   const [password, setPassword] = useState("");
   const [rolId, setRolId] = useState(usuario?.rol?.rol_id || "");
@@ -50,8 +51,8 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
       setError("El nombre es requerido");
       return;
     }
-    if (!email.trim()) {
-      setError("El email es requerido");
+    if (isNew && !usuarioLogin.trim()) {
+      setError("El usuario (login) es requerido");
       return;
     }
     if (!rolId) {
@@ -65,9 +66,9 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
       return;
     }
 
-    // Validar email
+    // Validar email (solo si se ingresó, ya que es opcional)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (email.trim() && !emailRegex.test(email)) {
       setError("Email inválido");
       return;
     }
@@ -78,6 +79,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
       if (isNew) {
         await usuariosService.create({
           nombre: nombre,
+          usuario_login: usuarioLogin.trim(),
           usuario_email: email,
           usuario_password: password,
           usuario_rol_id: Number(rolId),
@@ -103,7 +105,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -142,10 +144,30 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
             />
           </div>
 
+          {/* Usuario (login) */}
+          {isNew && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Usuario (login) *
+              </label>
+              <input
+                type="text"
+                value={usuarioLogin}
+                onChange={(e) => setUsuarioLogin(e.target.value)}
+                placeholder="p.ej. jperez"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Es lo que la persona va a escribir para iniciar sesión.
+              </p>
+            </div>
+          )}
+
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
+              Email
             </label>
             <input
               type="email"

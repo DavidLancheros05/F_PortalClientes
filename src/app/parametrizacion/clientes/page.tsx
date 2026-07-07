@@ -20,7 +20,7 @@ import {
   Users,
   Download,
 } from "lucide-react";
-import ConfirmModal from "@/components/modals/ConfirmModal";
+import { ConfirmModal } from "@/components/modals";
 
 export default function ClientesPage() {
   const router = useRouter();

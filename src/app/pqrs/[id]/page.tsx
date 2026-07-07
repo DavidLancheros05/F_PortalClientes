@@ -15,6 +15,7 @@ import { pqrsService } from "@/services/pqrs.service";
 import { StateBadge } from "@/components/pqrs/StateBadge";
 import { PQRSTimeline } from "@/components/pqrs/PQRSTimeline";
 import { PQRSComments } from "@/components/pqrs/PQRSComments";
+import { LoadingModal } from "@/components/modals";
 
 interface PQRSDetalle {
   pqrs_id: number;
@@ -134,20 +135,7 @@ export default function PQRSDetallePage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-            <div className="flex items-center justify-center h-96">
-              <div className="text-center">
-                <Loader className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-                <p className="text-gray-600">Cargando detalles...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando detalles..." />;
   }
 
   if (!pqrs || error) {

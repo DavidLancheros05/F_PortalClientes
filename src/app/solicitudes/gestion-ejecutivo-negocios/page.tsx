@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Eye, Search, X } from "lucide-react";
+import { LoadingModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
@@ -212,21 +213,10 @@ export default function ConceptoEjecutivoPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-[115rem] mx-auto">
-          <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-10 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600">Cargando solicitudes...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+      <LoadingModal isOpen={loading} message="Cargando solicitudes..." />
       <div className="max-w-[115rem] mx-auto">
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
           <div className="mb-8">
@@ -241,14 +231,7 @@ export default function ConceptoEjecutivoPage() {
               <p className="text-2xl md:text-3xl font-bold text-blue-800 mb-3 leading-tight">
                 Listado Solicitudes Pendientes - Concepto Ejecutivo de Negocios
               </p>
-              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-4" />
-              <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-                Registro de concepto comercial
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Registra consumo mensual proyectado y observaciones para cada
-                solicitud.
-              </p>
+              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent" />
             </div>
           </div>
 
@@ -350,7 +333,7 @@ export default function ConceptoEjecutivoPage() {
                 <span className="text-2xl text-gray-400">📭</span>
               </div>
               <p className="text-gray-600">
-                No hay solicitudes pendientes para los filtros seleccionados.
+                No se encontraron solicitudes.
               </p>
             </div>
           ) : (

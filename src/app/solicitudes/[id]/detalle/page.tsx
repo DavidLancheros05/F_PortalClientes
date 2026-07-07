@@ -7,6 +7,7 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { cartaPdfVinculacionService } from "@/services/admin/parametrizacion/carta-pdf-vinculacion.service";
 import { ESTADOS } from "@/lib/workflow-labels";
 import html2pdf from "html2pdf.js";
+import { LoadingModal } from "@/components/modals";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -256,16 +257,7 @@ export default function DetalleDetailPage() {
   }, [solicitudId]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-            <p className="text-gray-600">Cargando detalles de la solicitud...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando detalles de la solicitud..." />;
   }
 
   if (error || !solicitud) {

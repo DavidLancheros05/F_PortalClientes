@@ -7,7 +7,7 @@ import {
   TipoDocumentoPayload,
 } from "@/services/admin/parametrizacion/documentos.types";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
-import ConfirmModal from "@/components/modals/ConfirmModal";
+import { ConfirmModal } from "@/components/modals";
 
 interface Props {
   editItem?: TipoDocumento;

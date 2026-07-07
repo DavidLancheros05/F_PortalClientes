@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { rolesService, Rol, Modulo, Permisos } from "@/services/seguridad/roles.service";
 import { useFetch, useMutation } from "@/hooks/useFetch";
-import ConfirmModal from "@/components/modals/ConfirmModal";
-import SuccessModal from "@/components/modals/SuccessModal";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 import Link from "next/link";
 import {
   Shield,

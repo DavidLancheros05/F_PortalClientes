@@ -25,7 +25,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { ESTADOS as ESTADOS_MAP } from "@/lib/workflow-labels";
-import ConfirmModal from "@/components/modals/ConfirmModal";
+import { ConfirmModal, LoadingModal } from "@/components/modals";
 
 const formatearFecha = (fecha?: string | null, conHora = false): string => {
   if (!fecha) return "—";
@@ -273,19 +273,9 @@ export default function SolicitudesContent() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedSolicitudes = solicitudes.slice(startIndex, endIndex);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Cargando solicitudes...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+      <LoadingModal isOpen={loading} message="Cargando solicitudes..." />
       <div className="max-w-7xl mx-auto">
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
           <div className="mb-8">

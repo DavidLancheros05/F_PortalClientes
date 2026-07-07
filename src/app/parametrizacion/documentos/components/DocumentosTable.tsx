@@ -4,7 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { TipoDocumento } from "@/services/admin/parametrizacion/documentos.types";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
-import ConfirmModal from "@/components/modals/ConfirmModal";
+import { ConfirmModal } from "@/components/modals";
 
 interface Props {
   items: TipoDocumento[];

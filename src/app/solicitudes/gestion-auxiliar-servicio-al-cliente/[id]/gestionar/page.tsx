@@ -3,7 +3,7 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { motivosRechazoService } from "@/services/admin/parametrizacion/motivos-rechazo.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal, LoadingModal } from "@/components/modals";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -216,14 +216,7 @@ export default function GestionarSolicitudPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando solicitud...</p>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando solicitud..." />;
   }
 
   if (!solicitud) {

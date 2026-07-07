@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Edit2, Plus, MapPin, Power } from "lucide-react";
+import { Trash2, Edit2, Plus, MapPin, Power, Search, X } from "lucide-react";
 import UsuarioModal from "./usuarioModal";
 import UsuarioCentrosModal from "./UsuarioCentrosModal";
 import {
@@ -28,6 +28,14 @@ const UsuariosPage = () => {
   const [centrosModalOpen, setCentrosModalOpen] = useState(false);
   const [currentUsuario, setCurrentUsuario] = useState<Usuario | null>(null);
   const [isNew, setIsNew] = useState(false);
+
+  // Filtros
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [rolFiltro, setRolFiltro] = useState<number | "">("");
+  const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "activo" | "inactivo">(
+    "todos",
+  );
 
   // Cargar usuarios y roles al inicio
   useEffect(() => {
@@ -155,6 +163,36 @@ const UsuariosPage = () => {
     }
   };
 
+  const handleBuscar = () => {
+    setSearchTerm(searchInput.trim());
+  };
+
+  const handleLimpiarFiltros = () => {
+    setSearchInput("");
+    setSearchTerm("");
+    setRolFiltro("");
+    setEstadoFiltro("todos");
+  };
+
+  const usuariosFiltrados = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return usuarios.filter((usuario) => {
+      const matchSearch =
+        !term ||
+        usuario.nombre?.toLowerCase().includes(term) ||
+        usuario.usuario_email?.toLowerCase().includes(term);
+
+      const matchRol = !rolFiltro || usuario.rol?.rol_id === rolFiltro;
+
+      const matchEstado =
+        estadoFiltro === "todos" ||
+        (estadoFiltro === "activo" && usuario.usuario_activo) ||
+        (estadoFiltro === "inactivo" && !usuario.usuario_activo);
+
+      return matchSearch && matchRol && matchEstado;
+    });
+  }, [usuarios, searchTerm, rolFiltro, estadoFiltro]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -184,15 +222,94 @@ const UsuariosPage = () => {
           </button>
         </div>
 
+        {/* Filtros */}
+        <div className="mb-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Buscar
+              </label>
+              <input
+                type="text"
+                placeholder="Nombre o email"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Rol
+              </label>
+              <select
+                value={rolFiltro}
+                onChange={(e) =>
+                  setRolFiltro(e.target.value ? Number(e.target.value) : "")
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos</option>
+                {roles.map((rol) => (
+                  <option key={rol.rol_id} value={rol.rol_id}>
+                    {rol.rol_nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Estado
+              </label>
+              <select
+                value={estadoFiltro}
+                onChange={(e) =>
+                  setEstadoFiltro(
+                    e.target.value as "todos" | "activo" | "inactivo",
+                  )
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="todos">Todos</option>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 mt-4">
+            <button
+              onClick={handleLimpiarFiltros}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+            >
+              <X size={16} />
+              Limpiar
+            </button>
+            <button
+              onClick={handleBuscar}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Search size={16} />
+              Buscar
+            </button>
+          </div>
+        </div>
+
         {/* Loading State */}
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Cargando usuarios...</p>
           </div>
-        ) : usuarios.length === 0 ? (
+        ) : usuariosFiltrados.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">No hay usuarios registrados</p>
+            <p className="text-gray-600">
+              {usuarios.length === 0
+                ? "No hay usuarios registrados"
+                : "Ningún usuario coincide con los filtros"}
+            </p>
           </div>
         ) : (
           /* Tabla de Usuarios */
@@ -222,7 +339,7 @@ const UsuariosPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {usuarios.map((usuario) => (
+                  {usuariosFiltrados.map((usuario) => (
                     <tr
                       key={usuario.usr_id}
                       className="hover:bg-gray-50 transition-colors"

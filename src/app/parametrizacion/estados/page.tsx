@@ -5,8 +5,7 @@ import {
   estadosService,
   Estado,
 } from "@/services/admin/parametrizacion/estados.service";
-import ConfirmModal from "@/components/modals/ConfirmModal";
-import SuccessModal from "@/components/modals/SuccessModal";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 export default function EstadosPage() {
   const [estados, setEstados] = useState<Estado[]>([]);

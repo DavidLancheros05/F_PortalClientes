@@ -15,8 +15,7 @@ import {
   DiaRespuesta,
   Area,
 } from "@/services/admin/parametrizacion/dias-respuesta.service";
-import ConfirmModal from "@/components/modals/ConfirmModal";
-import SuccessModal from "@/components/modals/SuccessModal";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 export default function DiasRespuestaPage() {
   const [items, setItems] = useState<DiaRespuesta[]>([]);

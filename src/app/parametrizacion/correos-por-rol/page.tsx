@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { correosRolService } from "@/services/parametrizacion/correos-rol.service";
-import ConfirmModal from "@/components/modals/ConfirmModal";
-import SuccessModal from "@/components/modals/SuccessModal";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 type RolBasico = {
   rol_id: number;

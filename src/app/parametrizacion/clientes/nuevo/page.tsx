@@ -29,6 +29,10 @@ export default function NuevoClientePage() {
   );
   const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
   const [loadingCentros, setLoadingCentros] = useState(true);
+  const [ejecutivos, setEjecutivos] = useState<
+    Array<{ ejng_id: number; ejng_nombre: string }>
+  >([]);
+  const [ejecutivoId, setEjecutivoId] = useState<number>(0);
   const [razonSocial, setRazonSocial] = useState("");
   const [tipoIdentificacion, setTipoIdentificacion] = useState<number>(0);
   const [nit, setNit] = useState("");
@@ -46,9 +50,10 @@ export default function NuevoClientePage() {
         setLoadingCentros(true);
         setLoadingTiposIdentificacion(true);
 
-        const [tiposData, centrosData] = await Promise.all([
+        const [tiposData, centrosData, ejecutivosData] = await Promise.all([
           clientesService.getTiposIdentificacion(),
           clientesService.getAllCentrosOperacion(),
+          clientesService.getEjecutivosNegocio(),
         ]);
 
         const tipos = Array.isArray(tiposData) ? tiposData : [];
@@ -57,6 +62,7 @@ export default function NuevoClientePage() {
             ? centrosData.map((c: any) => ({ id: c.cop_id, nombre: c.cop_nombre }))
             : [],
         );
+        setEjecutivos(Array.isArray(ejecutivosData) ? ejecutivosData : []);
         setTiposIdentificacion(tipos);
         if (!tipoIdentificacion && tipos.length > 0) {
           setTipoIdentificacion(tipos[0].id);
@@ -96,6 +102,12 @@ export default function NuevoClientePage() {
       return;
     }
 
+    if (!ejecutivoId || ejecutivoId <= 0) {
+      setError("Debe seleccionar un ejecutivo asignado");
+      setLoading(false);
+      return;
+    }
+
     try {
       await clientesService.create({
         razonSocial,
@@ -104,6 +116,7 @@ export default function NuevoClientePage() {
         direccion,
         correo,
         habilitaAcceso: habilita_acceso,
+        ejecutivoId,
         centro_operacion_ids,
       });
 
@@ -319,6 +332,26 @@ export default function NuevoClientePage() {
                   placeholder="Dirección completa de la empresa"
                   disabled={loading || success}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ejecutivo asignado *
+                </label>
+                <select
+                  value={ejecutivoId}
+                  onChange={(e) => setEjecutivoId(Number(e.target.value))}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  disabled={loading || success}
+                >
+                  <option value={0}>Selecciona un ejecutivo</option>
+                  {ejecutivos.map((ej) => (
+                    <option key={ej.ejng_id} value={ej.ejng_id}>
+                      {ej.ejng_nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

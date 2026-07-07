@@ -32,10 +32,12 @@ export const usuariosService = {
 
   create: async (payload: {
     nombre: string;
+    usuario_login: string;
     usuario_email: string;
     usuario_password: string;
     usuario_rol_id: number;
     usuario_activo?: boolean;
+    ejng_id?: number;
   }): Promise<Usuario> => {
     const res = await api.post("/usuarios", payload);
     return res.data;

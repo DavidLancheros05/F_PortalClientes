@@ -16,8 +16,7 @@ import {
   cartaPdfVinculacionService,
   CartaPdfVinculacion,
 } from "@/services/admin/parametrizacion/carta-pdf-vinculacion.service";
-import ConfirmModal from "@/components/modals/ConfirmModal";
-import SuccessModal from "@/components/modals/SuccessModal";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 const PLACEHOLDERS = [
   { variable: "{{cliente_nombre}}", descripcion: "Nombre del cliente" },

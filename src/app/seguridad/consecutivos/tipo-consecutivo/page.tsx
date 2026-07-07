@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { tipoConsecutivosService } from '@/services/tipo-consecutivos.service';
-import ConfirmModal from '@/components/modals/ConfirmModal';
-import SuccessModal from '@/components/modals/SuccessModal';
+import { ConfirmModal, SuccessModal } from '@/components/modals';
 import { Plus, Edit2, Trash2, Layers } from 'lucide-react';
 
 export default function TipoConsecutivoPage() {

@@ -4,8 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { consecutivosService } from '@/services/consecutivos.service';
-import ConfirmModal from '@/components/modals/ConfirmModal';
-import SuccessModal from '@/components/modals/SuccessModal';
+import { ConfirmModal, SuccessModal } from '@/components/modals';
 import { Plus, Edit2, Trash2, Hash } from 'lucide-react';
 
 export default function ConsecutivosPage() {

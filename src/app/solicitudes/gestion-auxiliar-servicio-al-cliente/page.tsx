@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft } from "lucide-react";
+import { LoadingModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
@@ -133,14 +134,7 @@ export default function AprobacionDesaprobacionPage() {
   const solicitudesActuales = solicitudes.slice(indiceInicio, indiceFin);
 
   if (loadingCentros) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando centros...</p>
-        </div>
-      </div>
-    );
+    return <LoadingModal isOpen message="Cargando centros..." />;
   }
 
   return (

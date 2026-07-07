@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRoles } from '@/hooks/useRoles';
 import { CreateRolDto, UpdateRolDto } from '@/services/seguridad/roles.service';
-import ConfirmModal from '@/components/modals/ConfirmModal';
+import { ConfirmModal } from '@/components/modals';
 
 export const RolesManager = () => {
   const {
