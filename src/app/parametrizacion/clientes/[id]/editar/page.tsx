@@ -1,0 +1,412 @@
+"use client";
+import { clientesService } from "@/services/clientes/clientes.service";
+import { centrosOperacionService } from "@/services/centros-operacion/centros-operacion.service";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Building,
+  CheckCircle,
+  FileText,
+  Loader2,
+  MapPin,
+  Mail,
+  Save,
+  Shield,
+  User,
+} from "lucide-react";
+
+export default function EditarClientePage() {
+  const router = useRouter();
+  const params = useParams();
+  const clienteId = useMemo(() => Number(params?.id), [params]);
+
+  const [razonSocial, setRazonSocial] = useState("");
+  const [tipoIdentificacion, setTipoIdentificacion] = useState<number | undefined>(undefined);
+  const [tiposIdentificacion, setTiposIdentificacion] = useState<
+    Array<{ id: number; nombre: string }>
+  >([]);
+  const [nitDocumento, setNitDocumento] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [habilitaAcceso, setHabilitaAcceso] = useState(false);
+  const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
+    [],
+  );
+  const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
+  const [ejecutivos, setEjecutivos] = useState<Array<{ id: number; nombre: string }>>([]);
+  const [ejecutivoId, setEjecutivoId] = useState<number | null>(null);
+
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [loadingTiposIdentificacion, setLoadingTiposIdentificacion] =
+    useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const toggleCentro = (centroId: number) => {
+    setCentroOperacionIds((prev) =>
+      prev.includes(centroId)
+        ? prev.filter((id) => id !== centroId)
+        : [...prev, centroId],
+    );
+  };
+
+  useEffect(() => {
+    const cargarCliente = async () => {
+      if (!Number.isInteger(clienteId) || clienteId <= 0) {
+        setError("ID de cliente inválido");
+        setLoadingInitial(false);
+        return;
+      }
+
+      try {
+        setLoadingInitial(true);
+        setLoadingTiposIdentificacion(true);
+        const [clienteData, centrosData, ejecutivosData, clienteCentrosData] =
+          await Promise.all([
+            clientesService.getById(clienteId),
+            centrosOperacionService.getAll(),
+            clientesService.getEjecutivos(),
+            clientesService.getCentrosOperacion(clienteId),
+          ]);
+
+        let tiposData: any[] = [];
+        try {
+          tiposData = await clientesService.getTiposIdentificacion();
+        } catch (err) {
+          console.warn("Error cargando tipos de identificación:", err);
+        }
+
+        setRazonSocial(clienteData.cli_razon_social || "");
+        setTiposIdentificacion(tiposData || []);
+        setTipoIdentificacion(
+          clienteData.cli_tipo_identificacion != null
+            ? Number(clienteData.cli_tipo_identificacion)
+            : (tiposData?.[0]?.id ? Number(tiposData[0].id) : undefined),
+        );
+        setNitDocumento(clienteData.cli_nro_identificacion || "");
+        setCorreo(clienteData.cli_correo || "");
+        setDireccion(clienteData.cli_direccion || "");
+        setHabilitaAcceso(Boolean(clienteData.cli_acceso_portal_clientes));
+        setCentroOperacionIds(
+          Array.isArray(clienteCentrosData)
+            ? clienteCentrosData.map((c: any) => c.cop_id || c.id)
+            : [],
+        );
+        setCentros(
+          Array.isArray(centrosData)
+            ? centrosData.map((c: any) => ({ id: c.cop_id, nombre: c.cop_nombre }))
+            : [],
+        );
+        setEjecutivos(
+          Array.isArray(ejecutivosData)
+            ? ejecutivosData.map((e: any) => ({ id: e.id, nombre: e.nombre }))
+            : [],
+        );
+        setEjecutivoId(clienteData.ejng_id || null);
+      } catch (err: any) {
+        setError(err?.message || "Error cargando cliente");
+      } finally {
+        setLoadingInitial(false);
+        setLoadingTiposIdentificacion(false);
+      }
+    };
+
+    cargarCliente();
+  }, [clienteId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    try {
+      await clientesService.update(clienteId, {
+        razonSocial,
+        tipoIdentificacion,
+        nitDocumento,
+        correo,
+        direccion,
+        habilitaAcceso,
+        centro_operacion_ids,
+        ejecutivoId,
+      });
+
+      setSuccess(true);
+      setTimeout(() => router.push("/parametrizacion/clientes"), 1200);
+    } catch (err: any) {
+      setError(err?.message || "Error actualizando cliente");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loadingInitial) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+          <p className="mt-3 text-gray-600">Cargando cliente...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <button
+            onClick={() => router.push("/parametrizacion/clientes")}
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Volver a clientes
+          </button>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Editar Cliente
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Actualiza la información del cliente
+              </p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <Building className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+            <h2 className="text-xl font-semibold text-white">
+              Información del Cliente
+            </h2>
+            <p className="text-blue-100 text-sm mt-1">
+              Ajusta los campos requeridos y guarda los cambios
+            </p>
+          </div>
+
+          {success && (
+            <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+              <div className="flex items-center">
+                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+                <p className="font-medium text-green-800">
+                  Cliente actualizado correctamente
+                </p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mx-8 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-red-600 mr-3" />
+                <p className="text-sm font-medium text-red-800">{error}</p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <span className="flex items-center">
+                  <Building className="w-4 h-4 mr-2" /> Razón Social *
+                </span>
+              </label>
+              <input
+                type="text"
+                value={razonSocial}
+                onChange={(e) => setRazonSocial(e.target.value)}
+                required
+                disabled={saving || success}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center">
+                    <FileText className="w-4 h-4 mr-2" /> Tipo de identificación
+                    *
+                  </span>
+                </label>
+                <select
+                  value={tipoIdentificacion ?? ""}
+                  onChange={(e) =>
+                    setTipoIdentificacion(e.target.value ? Number(e.target.value) : undefined)
+                  }
+                  required
+                  disabled={saving || success || loadingTiposIdentificacion}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selecciona tipo</option>
+                  {tiposIdentificacion.map((tipo, idx) => (
+                    <option key={tipo.id || idx} value={tipo.id}>
+                      {tipo.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center">
+                    <FileText className="w-4 h-4 mr-2" /> NIT / Identificación *
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={nitDocumento}
+                  onChange={(e) => setNitDocumento(e.target.value)}
+                  required
+                  disabled={saving || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center">
+                    <Mail className="w-4 h-4 mr-2" /> Correo *
+                  </span>
+                </label>
+                <input
+                  type="email"
+                  value={correo}
+                  onChange={(e) => setCorreo(e.target.value)}
+                  required
+                  disabled={saving || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <span className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-2" /> Dirección *
+                </span>
+              </label>
+              <textarea
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                required
+                rows={3}
+                disabled={saving || success}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <span className="flex items-center">
+                  <User className="w-4 h-4 mr-2" /> Ejecutivo asignado
+                </span>
+              </label>
+              <select
+                value={ejecutivoId ?? ""}
+                onChange={(e) =>
+                  setEjecutivoId(e.target.value ? Number(e.target.value) : null)
+                }
+                disabled={saving || success}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Sin ejecutivo asignado</option>
+                {ejecutivos.map((ej, idx) => (
+                  <option key={ej.id || idx} value={ej.id}>
+                    {ej.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="habilitaAcceso"
+                  checked={habilitaAcceso}
+                  onChange={(e) => setHabilitaAcceso(e.target.checked)}
+                  disabled={saving || success}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="habilitaAcceso"
+                  className="ml-3 text-sm font-medium text-gray-700"
+                >
+                  Habilitar acceso al portal cliente
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Centros de Operación
+              </label>
+              <div className="border border-gray-300 rounded-xl p-4 bg-gray-50 max-h-56 overflow-y-auto space-y-2">
+                {centros.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No hay centros de operación disponibles
+                  </p>
+                ) : (
+                  centros.map((centro, idx) => (
+                    <label
+                      key={centro.id || idx}
+                      className="flex items-center gap-3 text-sm text-gray-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={centro_operacion_ids.includes(centro.id)}
+                        onChange={() => toggleCentro(centro.id)}
+                        disabled={saving || success}
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                      />
+                      <span>{centro.nombre}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                Puedes asociar el cliente a uno o varios centros.
+              </p>
+            </div>
+
+            <div className="pt-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/parametrizacion/clientes")}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
+                disabled={saving || success}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving || success}
+                className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />{" "}
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5 mr-2" /> Guardar cambios
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

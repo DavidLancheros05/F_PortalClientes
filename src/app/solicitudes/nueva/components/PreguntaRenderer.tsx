@@ -1,0 +1,449 @@
+"use client";
+
+import { AlertTriangle } from "lucide-react";
+import { ArchivoField } from "./ArchivoField";
+import { DocumentoTablaField } from "./DocumentoTablaField";
+import { TablaField } from "./TablaField";
+import type { Dispatch, SetStateAction } from "react";
+import type { FormularioPregunta, RespuestasState } from "../types";
+
+interface PreguntaRendererProps {
+  pregunta: FormularioPregunta;
+  seccionPreguntas: FormularioPregunta[];
+  preguntas: FormularioPregunta[];
+  respuestas: RespuestasState;
+  errors: Record<number, string>;
+  readOnly: boolean;
+  solicitudId?: number;
+  lockedPrefillFieldIds?: Record<number, true>;
+  prefilledFieldIds?: Record<number, true>;
+  prefillSourceByFieldId?: Record<number, "cliente" | "ultimoFormulario">;
+  documentosCatalogoMap: Record<number, any>;
+  archivosExistentes: Record<number, any>;
+  maestroPreguntaIds: {
+    paisId?: number;
+    departamentoId?: number;
+    ciudadId?: number;
+  };
+  paises: any[];
+  departamentos: any[];
+  ciudades: any[];
+  fechaHoraActualFormateada: string;
+  setRespuestas: Dispatch<SetStateAction<RespuestasState>>;
+  setArchivosExistentes: Dispatch<SetStateAction<Record<number, any>>>;
+  setSuccessMessage: (value: string) => void;
+  setErrorMessage: (value: string) => void;
+  shouldShowQuestionForCurrentUser: (pregunta: FormularioPregunta) => boolean;
+  shouldShowConditionalField: (pregunta: FormularioPregunta) => boolean;
+  getValidationRules: (pregunta: FormularioPregunta) => any;
+  validateField: (fp_id: number, rules: any) => void;
+  handleInputChange: (fp_id: number, value: any, tipo: string) => void;
+  getNotaDisplay: (pregunta: FormularioPregunta) => {
+    titulo: string;
+    subtitulo: string;
+    cuerpo: string;
+  };
+  getArchivoPreviewUrl: (archivo: any) => string | null;
+  getOpcionDocumentoFija: (pregunta: FormularioPregunta) => any;
+  getPreguntaFechaAsociada: (pregunta: FormularioPregunta) => FormularioPregunta | null;
+  calcularVigenciaDocumento: (
+    fechaEmision?: string,
+    vigenciaDias?: number | null,
+  ) => { diasRestantes: number; fechaVencimiento: Date } | null;
+}
+
+export function PreguntaRenderer(props: PreguntaRendererProps) {
+  const {
+    pregunta,
+    seccionPreguntas,
+    preguntas,
+    documentosCatalogoMap,
+    respuestas,
+    errors,
+    readOnly,
+    solicitudId,
+    lockedPrefillFieldIds = {},
+    prefilledFieldIds = {},
+    prefillSourceByFieldId = {},
+    archivosExistentes,
+    maestroPreguntaIds,
+    paises,
+    departamentos,
+    ciudades,
+    fechaHoraActualFormateada,
+    setRespuestas,
+    setArchivosExistentes,
+    setSuccessMessage,
+    setErrorMessage,
+    shouldShowQuestionForCurrentUser,
+    shouldShowConditionalField,
+    getValidationRules,
+    validateField,
+    handleInputChange,
+    getNotaDisplay,
+    getArchivoPreviewUrl,
+    getOpcionDocumentoFija,
+    getPreguntaFechaAsociada,
+    calcularVigenciaDocumento,
+  } = props;
+
+  const preguntaPadre = pregunta.fp_pregunta_padre_id
+    ? preguntas.find((p) => p.fp_id === pregunta.fp_pregunta_padre_id)
+    : null;
+  const esFechaHijaDeArchivo =
+    pregunta.fp_tipo === "FECHA" && preguntaPadre?.fp_tipo === "ARCHIVO";
+  if (esFechaHijaDeArchivo) return null;
+
+  const preguntaFechaAsociada = getPreguntaFechaAsociada(pregunta);
+
+  const documentoVinculado = pregunta.fp_tipo_documento_id
+    ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
+    : null;
+  const requiereFechaAsociada =
+    !documentoVinculado || documentoVinculado.tdo_vigencia_dias !== null;
+  const shouldShowFechaAsociada = preguntaFechaAsociada
+    ? shouldShowQuestionForCurrentUser(preguntaFechaAsociada) &&
+      requiereFechaAsociada
+    : false;
+
+  const rules = getValidationRules(pregunta);
+  const hasError = errors[pregunta.fp_id];
+  const isLockedPrefillField = lockedPrefillFieldIds[pregunta.fp_id] === true;
+  const isPrefilledField = prefilledFieldIds[pregunta.fp_id] === true;
+
+  if (pregunta.fp_tipo === "TABLA") {
+    console.log("🟣 [PreguntaRenderer] Pregunta TABLA:", {
+      fp_id: pregunta.fp_id,
+      fp_descripcion: pregunta.fp_descripcion,
+      fp_tipo: pregunta.fp_tipo,
+      fp_tabla_columnas: pregunta.fp_tabla_columnas,
+      respuestaGuardada: respuestas[pregunta.fp_id],
+    });
+  }
+
+  return (
+    <div
+      key={pregunta.fp_id}
+      className={
+        ["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo) ||
+        pregunta.fp_ancho_completo
+          ? "md:col-span-3"
+          : undefined
+      }
+    >
+      {!["NOTA", "FECHA_HORA_ACTUAL"].includes(
+        pregunta.fp_tipo,
+      ) && (
+        <>
+          <label className="block text-xs font-medium mb-1">
+            {pregunta.fp_descripcion}
+            {pregunta.fp_requerida && (
+              <span className="text-red-500 ml-1">*</span>
+            )}
+          </label>
+          {pregunta.fp_descripcion_adicional?.trim() &&
+            !["SELECT_CONDICIONAL", "DOCUMENTOS_TABLA"].includes(pregunta.fp_tipo) && (
+              <p className="mb-1 text-xs text-slate-600 leading-relaxed">
+                {pregunta.fp_descripcion_adicional.trim()}
+              </p>
+            )}
+        </>
+      )}
+
+      {pregunta.fp_tipo === "NOTA" && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-2 py-2">
+          {(() => {
+            const nota = getNotaDisplay(pregunta);
+            return (
+              <>
+                <p className="text-xs font-semibold text-blue-950 leading-tight">
+                  {nota.titulo}
+                </p>
+                {nota.subtitulo && (
+                  <p className="mt-0.5 text-xs font-medium text-blue-900">
+                    {nota.subtitulo}
+                  </p>
+                )}
+                {nota.cuerpo && (
+                  <p className="mt-1 text-xs text-blue-900 whitespace-pre-wrap break-words leading-relaxed">
+                    {nota.cuerpo}
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {pregunta.fp_tipo === "FECHA_HORA_ACTUAL" && (
+        <div className="flex justify-end">
+          <div className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-gradient-to-r from-indigo-50 to-sky-50 px-2 py-1 shadow-sm text-xs">
+            <span className="font-semibold uppercase tracking-tight text-indigo-700">
+              Fecha y hora
+            </span>
+            <span className="h-3 w-px bg-indigo-200" />
+            <span className="font-semibold text-indigo-900 tabular-nums">
+              {fechaHoraActualFormateada}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {pregunta.fp_tipo === "TEXTO" && (
+        <input
+          type="text"
+          disabled={readOnly || isLockedPrefillField}
+          value={respuestas[pregunta.fp_id]?.valor_texto || ""}
+          onChange={(e) =>
+            handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")
+          }
+          onBlur={() => validateField(pregunta.fp_id, rules)}
+          className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            hasError ? "border-red-500" : "border-gray-300"
+          } ${isLockedPrefillField ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
+        />
+      )}
+
+      {pregunta.fp_tipo === "NUMERO" && (
+        <input
+          type="number"
+          value={respuestas[pregunta.fp_id]?.valor_numero || ""}
+          onChange={(e) =>
+            handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")
+          }
+          onBlur={() => validateField(pregunta.fp_id, rules)}
+          className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            hasError ? "border-red-500" : "border-gray-300"
+          }`}
+        />
+      )}
+
+      {pregunta.fp_tipo === "FECHA" && (
+        <input
+          type="date"
+          value={respuestas[pregunta.fp_id]?.valor_fecha || ""}
+          onChange={(e) =>
+            handleInputChange(pregunta.fp_id, e.target.value, "FECHA")
+          }
+          onBlur={() => validateField(pregunta.fp_id, rules)}
+          className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            hasError ? "border-red-500" : "border-gray-300"
+          }`}
+        />
+      )}
+
+      {pregunta.fp_tipo === "DOCUMENTOS_TABLA" && (() => {
+        const preguntaFechaAsociada =
+          seccionPreguntas.find(
+            (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
+          ) || null;
+        return (
+          <DocumentoTablaField
+            pregunta={pregunta}
+            respuestas={respuestas}
+            archivosExistentes={archivosExistentes}
+            documentosCatalogoMap={documentosCatalogoMap}
+            readOnly={readOnly}
+            solicitudId={solicitudId}
+            hasError={hasError}
+            rules={rules}
+            preguntaFechaAsociada={preguntaFechaAsociada}
+            handleInputChange={handleInputChange}
+            setRespuestas={setRespuestas}
+            setArchivosExistentes={setArchivosExistentes}
+            setSuccessMessage={setSuccessMessage}
+            setErrorMessage={setErrorMessage}
+            validateField={validateField}
+            getArchivoPreviewUrl={getArchivoPreviewUrl}
+            getOpcionDocumentoFija={getOpcionDocumentoFija}
+            calcularVigenciaDocumento={calcularVigenciaDocumento}
+          />
+        );
+      })()}
+
+      {((pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo !== "CHECK") ||
+        ["SELECT_CONDICIONAL", "SELECT_TABLA"].includes(pregunta.fp_tipo)) && (
+        <>
+          <select
+            value={String(
+              pregunta.fp_tipo === "SELECT_TABLA"
+                ? respuestas[pregunta.fp_id]?.valor_numero || ""
+                : respuestas[pregunta.fp_id]?.valor_opcion_id || ""
+            )}
+            onChange={(e) =>
+              handleInputChange(
+                pregunta.fp_id,
+                Number(e.target.value) || e.target.value,
+                pregunta.fp_tipo,
+              )
+            }
+            onBlur={() => validateField(pregunta.fp_id, rules)}
+            disabled={readOnly || isLockedPrefillField}
+            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? "border-red-500" : "border-gray-300"
+            } ${readOnly && pregunta.fp_id === 1171 ? "bg-blue-50 text-blue-600 border-blue-300 font-semibold" : ""}`}
+          >
+            <option value="">Selecciona una opción</option>
+            {pregunta.fp_id === maestroPreguntaIds.paisId &&
+              Array.isArray(paises) &&
+              paises.map((pais: any) => (
+                <option key={pais.pais_id} value={String(pais.pais_id)}>
+                  {pais.pais_nombre}
+                </option>
+              ))}
+          {pregunta.fp_id === maestroPreguntaIds.departamentoId &&
+            Array.isArray(departamentos) &&
+            departamentos.map((depto: any) => (
+              <option key={depto.depto_id} value={String(depto.depto_id)}>
+                {depto.depto_nombre}
+              </option>
+            ))}
+          {pregunta.fp_id === maestroPreguntaIds.ciudadId &&
+            Array.isArray(ciudades) &&
+            ciudades.map((ciudad: any) => (
+              <option key={ciudad.ciudad_id} value={String(ciudad.ciudad_id)}>
+                {ciudad.ciudad_nombre}
+              </option>
+            ))}
+          {![
+            maestroPreguntaIds.paisId,
+            maestroPreguntaIds.departamentoId,
+            maestroPreguntaIds.ciudadId,
+          ].includes(pregunta.fp_id) &&
+            pregunta.opciones?.map((opcion: any) => {
+              const id = opcion.op_id ?? opcion.fpo_id;
+              const label = opcion.op_descripcion ?? opcion.fpo_valor;
+              return (
+                <option key={id} value={String(id)}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+          {readOnly && pregunta.fp_id === 1171 && (
+            <p className="mt-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+              El tipo de solicitud se define automáticamente según tu historial de solicitudes.
+            </p>
+          )}
+        </>
+      )}
+
+      {(pregunta.fp_tipo === "MULTISELECT" ||
+        (pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo === "CHECK")) && (
+        <div className="space-y-1 border border-gray-300 rounded p-2 text-sm">
+          {(() => {
+            const esSeleccionUnica = pregunta.fp_tipo === "SELECT";
+            return pregunta.opciones?.map((opcion: any) => {
+              const id = Number(opcion.op_id ?? opcion.fpo_id);
+              const label = opcion.op_descripcion ?? opcion.fpo_valor;
+              const valorOpcionId = respuestas[pregunta.fp_id]?.valor_opcion_id;
+              const opcionesSeleccionadas: number[] = Array.isArray(valorOpcionId)
+                ? valorOpcionId.map((v) => Number(v))
+                : (valorOpcionId ? [Number(valorOpcionId)] : []);
+
+              return (
+                <label key={id} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={opcionesSeleccionadas.includes(id)}
+                    onChange={(e) => {
+                      const nuevoValor = esSeleccionUnica
+                        ? e.target.checked
+                          ? id
+                          : undefined
+                        : e.target.checked
+                          ? [...opcionesSeleccionadas, id]
+                          : opcionesSeleccionadas.filter((sid) => sid !== id);
+
+                      setRespuestas((prev: any) => ({
+                        ...prev,
+                        [pregunta.fp_id]: {
+                          ...prev[pregunta.fp_id],
+                          valor_opcion_id: nuevoValor,
+                        },
+                      }));
+                    }}
+                    disabled={readOnly || isLockedPrefillField}
+                    className={readOnly && pregunta.fp_id === 1171 ? "accent-blue-600" : ""}
+                  />
+                  <span className="text-xs">{label}</span>
+                </label>
+              );
+            });
+          })()}
+        </div>
+      )}
+
+      {pregunta.fp_tipo === "TABLA" && (
+        <TablaField
+          pregunta={pregunta}
+          respuestas={respuestas}
+          readOnly={readOnly || isLockedPrefillField}
+          handleInputChange={handleInputChange}
+        />
+      )}
+
+      {pregunta.fp_tipo === "ARCHIVO" && (
+        <ArchivoField
+          pregunta={pregunta}
+          respuestas={respuestas}
+          archivosExistentes={archivosExistentes}
+          errors={errors}
+          readOnly={readOnly}
+          solicitudId={solicitudId}
+          hasError={hasError}
+          preguntaFechaAsociada={preguntaFechaAsociada}
+          shouldShowFechaAsociada={shouldShowFechaAsociada}
+          handleInputChange={handleInputChange}
+          validateField={validateField}
+          getValidationRules={getValidationRules}
+          getArchivoPreviewUrl={getArchivoPreviewUrl}
+          setArchivosExistentes={setArchivosExistentes}
+          setSuccessMessage={setSuccessMessage}
+          setErrorMessage={setErrorMessage}
+        />
+      )}
+
+      {isPrefilledField &&
+        ["TEXTO", "SELECT", "SELECT_CONDICIONAL", "SELECT_TABLA"].includes(
+          pregunta.fp_tipo,
+        ) && (
+          <p className="mt-1 text-xs text-sky-700 font-medium">
+            {prefillSourceByFieldId[pregunta.fp_id] === "ultimoFormulario"
+              ? "Precargado desde el ultimo formulario diligenciado"
+              : "Precargado desde datos del cliente"}
+          </p>
+        )}
+
+      {pregunta.fp_tipo === "SELECT_CONDICIONAL" &&
+        shouldShowConditionalField(pregunta) && (
+          <div className="mt-1 p-2 bg-blue-50 rounded border border-blue-200">
+            <label className="block text-xs font-medium mb-1">
+              {pregunta.fp_descripcion_adicional}
+            </label>
+            <input
+              type="text"
+              value={respuestas[pregunta.fp_id]?.valor_texto || ""}
+              onChange={(e) =>
+                setRespuestas((prev: any) => ({
+                  ...prev,
+                  [pregunta.fp_id]: {
+                    ...prev[pregunta.fp_id],
+                    valor_texto: e.target.value,
+                  },
+                }))
+              }
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+      {!readOnly && hasError && (
+        <div className="flex items-center gap-1 text-red-500 text-sm mt-1">
+          <AlertTriangle className="h-4 w-4" />
+          {hasError}
+        </div>
+      )}
+    </div>
+  );
+}
