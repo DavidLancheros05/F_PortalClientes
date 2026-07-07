@@ -62,6 +62,9 @@ export function useClienteData({
           cliente_email: data.cli_correo || "",
           cliente_nit_documento: data.cli_nro_identificacion,
           cliente_tipo_identificacion: data.cli_tipo_identificacion,
+          pai_id: (data as any).pai_id ?? undefined,
+          dpto_id: (data as any).dpto_id ?? undefined,
+          ciu_id: (data as any).ciu_id ?? undefined,
         };
 
         setClienteData(normalizado);
