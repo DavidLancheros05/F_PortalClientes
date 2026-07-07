@@ -4,6 +4,7 @@ const backend =
   process.env.BACKEND_URL?.replace(/\/$/, "") || "http://127.0.0.1:3001";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
