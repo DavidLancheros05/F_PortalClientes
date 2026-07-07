@@ -53,6 +53,11 @@ export function DocumentoTablaField({
   const documento = pregunta.fp_tipo_documento_id
     ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
     : null;
+  // El tipo de documento ya queda determinado por fp_tipo_documento_id
+  // (el vínculo al catálogo), sin importar si además existe una fila en
+  // Formulario_pregunta_opcion. El selector manual solo debe aparecer
+  // para preguntas de documento genéricas, sin catálogo vinculado.
+  const tipoDocumentoFijo = opcionFija?.op_descripcion || documento?.tdo_nombre;
   const vigenciaDias = documento?.tdo_vigencia_dias ?? null;
 
   // Obtener fecha desde el archivo existente, o desde la pregunta hija, o desde la respuesta
@@ -107,7 +112,7 @@ export function DocumentoTablaField({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-900 leading-tight">
-            {opcionFija?.op_descripcion || pregunta.fp_descripcion}
+            {tipoDocumentoFijo || pregunta.fp_descripcion}
             {pregunta.fp_requerida && (
               <span className="text-red-500 ml-1">*</span>
             )}
@@ -131,7 +136,7 @@ export function DocumentoTablaField({
         </div>
       </div>
 
-      {!opcionFija && !readOnly && (
+      {!tipoDocumentoFijo && !readOnly && (
         <div className="space-y-0.5">
           <label className="text-xs font-semibold uppercase tracking-tight text-slate-600">
             Tipo de documento
