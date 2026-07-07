@@ -29,6 +29,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
+import { LoadingModal } from "@/components/modals";
 import { useFormulario } from "./hooks/useFormulario";
 import { useSeccionEditor } from "./hooks/useSeccionEditor";
 import { usePreguntaEditor } from "./hooks/usePreguntaEditor";
@@ -204,7 +205,7 @@ export default function FormularioEditorPage() {
   );
 
   if (loading) {
-    return <div className="p-6">Cargando...</div>;
+    return <LoadingModal isOpen message="Cargando formulario..." />;
   }
 
   const seccionActual = secciones.find(
