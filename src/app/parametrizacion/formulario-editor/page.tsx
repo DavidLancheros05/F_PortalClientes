@@ -1066,10 +1066,10 @@ export default function FormularioEditorPage() {
                 {![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
                   formPregunta.tipo as any,
                 ) && (
-                  <div className="space-y-3 p-3 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 border-l-4 border-amber-400 rounded-md shadow-sm">
+                  <div className="space-y-2 p-2 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 border-l-4 border-amber-400 rounded-md shadow-sm">
                     <div>
-                      <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2">
-                        <span className="text-lg">📦</span>
+                      <h4 className="text-xs font-bold text-amber-900 flex items-center gap-2">
+                        <span className="text-sm">📦</span>
                         Precarga de datos
                       </h4>
                       <p className="text-xs text-amber-700 mt-1 leading-relaxed">
@@ -1078,8 +1078,8 @@ export default function FormularioEditorPage() {
                       </p>
                     </div>
 
-                    <div className="pt-1 space-y-2">
-                      <label className="block text-sm font-semibold text-amber-900 flex items-center gap-1">
+                    <div className="pt-1 space-y-1">
+                      <label className="block text-xs font-semibold text-amber-900 flex items-center gap-1">
                         <span className="text-amber-600">↓</span>
                         Fuente de precarga
                       </label>
@@ -1095,7 +1095,7 @@ export default function FormularioEditorPage() {
                                 : formPregunta.precarga_campo_cliente,
                           })
                         }
-                        className="w-full border-2 border-amber-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:shadow-md bg-white text-sm font-medium text-gray-800 transition-all hover:border-amber-300"
+                        className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
                       >
                         <option value="">Sin precarga</option>
                         <option value="cliente">Datos del cliente</option>
@@ -1114,9 +1114,9 @@ export default function FormularioEditorPage() {
                     {(formPregunta.precarga_fuente === "cliente" ||
                       formPregunta.precarga_fuente === "cliente_primero" ||
                       formPregunta.precarga_fuente === "ultima_primero") && (
-                      <div className="pt-2 space-y-3 bg-white/60 p-3 rounded-md border border-amber-100">
-                        <div className="space-y-2">
-                          <label className="block text-sm font-semibold text-amber-900 flex items-center gap-1">
+                      <div className="pt-1 space-y-2 bg-white/60 p-2 rounded-md border border-amber-100">
+                        <div className="space-y-0.5">
+                          <label className="block text-xs font-semibold text-amber-900 flex items-center gap-1">
                             <span className="text-amber-600">🔍</span>
                             Base de datos
                           </label>
@@ -1125,7 +1125,7 @@ export default function FormularioEditorPage() {
                             placeholder="Filtrar bases de datos..."
                             value={filtroBaseDatos}
                             onChange={(e) => setFiltroBaseDatos(e.target.value)}
-                            className="w-full border-2 border-amber-150 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white/80 transition-all hover:border-amber-200"
+                            className="w-full border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white transition-all"
                           />
                           <select
                             value={formPregunta.precarga_base_datos || ""}
@@ -1137,7 +1137,7 @@ export default function FormularioEditorPage() {
                                 precarga_columna: "",
                               })
                             }
-                            className="w-full border-2 border-amber-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:shadow-md bg-white text-sm font-medium text-gray-800 transition-all hover:border-amber-300"
+                            className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
                           >
                             <option value="">
                               Selecciona una base de datos
