@@ -7,16 +7,14 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building,
-  CheckCircle,
   FileText,
   Loader2,
   MapPin,
   Mail,
   Save,
-  Shield,
   User,
 } from "lucide-react";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 
 export default function EditarClientePage() {
   const router = useRouter();
@@ -45,6 +43,7 @@ export default function EditarClientePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const toggleCentro = (centroId: number) => {
     setCentroOperacionIds((prev) =>
@@ -69,7 +68,7 @@ export default function EditarClientePage() {
           await Promise.all([
             clientesService.getById(clienteId),
             centrosOperacionService.getAll(),
-            clientesService.getEjecutivos(),
+            clientesService.getEjecutivosNegocio(),
             clientesService.getCentrosOperacion(clienteId),
           ]);
 
@@ -103,7 +102,10 @@ export default function EditarClientePage() {
         );
         setEjecutivos(
           Array.isArray(ejecutivosData)
-            ? ejecutivosData.map((e: any) => ({ id: e.id, nombre: e.nombre }))
+            ? ejecutivosData.map((e: any) => ({
+                id: e.ejng_id,
+                nombre: e.ejng_nombre,
+              }))
             : [],
         );
         setEjecutivoId(clienteData.ejng_id || null);
@@ -118,8 +120,12 @@ export default function EditarClientePage() {
     cargarCliente();
   }, [clienteId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSave = async () => {
     setSaving(true);
     setError(null);
 
@@ -135,10 +141,16 @@ export default function EditarClientePage() {
         ejecutivoId,
       });
 
+      setShowConfirmModal(false);
       setSuccess(true);
       setTimeout(() => router.push("/parametrizacion/clientes"), 1200);
     } catch (err: any) {
-      setError(err?.message || "Error actualizando cliente");
+      setShowConfirmModal(false);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Error actualizando cliente",
+      );
     } finally {
       setSaving(false);
     }
@@ -185,25 +197,31 @@ export default function EditarClientePage() {
             </p>
           </div>
 
-          {success && (
-            <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <p className="font-medium text-green-800">
-                  Cliente actualizado correctamente
-                </p>
-              </div>
-            </div>
-          )}
+          <SuccessModal
+            isOpen={success}
+            title="¡Cliente actualizado!"
+            message="Los cambios se guardaron correctamente."
+            autoClose
+            autoCloseDelay={1200}
+            onAction={() => router.push("/parametrizacion/clientes")}
+          />
 
-          {error && (
-            <div className="mx-8 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 text-red-600 mr-3" />
-                <p className="text-sm font-medium text-red-800">{error}</p>
-              </div>
-            </div>
-          )}
+          <ErrorModal
+            isOpen={!!error}
+            message={error || ""}
+            onAction={() => setError(null)}
+          />
+
+          <ConfirmModal
+            isOpen={showConfirmModal}
+            title="Confirmar cambios"
+            message="¿Estás seguro de que deseas guardar los cambios de este cliente?"
+            confirmText="Sí, guardar"
+            cancelText="Cancelar"
+            isLoading={saving}
+            onConfirm={handleConfirmSave}
+            onCancel={() => setShowConfirmModal(false)}
+          />
 
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div>
