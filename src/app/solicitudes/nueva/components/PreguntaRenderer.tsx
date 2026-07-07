@@ -111,16 +111,6 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
   const isLockedPrefillField = lockedPrefillFieldIds[pregunta.fp_id] === true;
   const isPrefilledField = prefilledFieldIds[pregunta.fp_id] === true;
 
-  if (pregunta.fp_tipo === "TABLA") {
-    console.log("🟣 [PreguntaRenderer] Pregunta TABLA:", {
-      fp_id: pregunta.fp_id,
-      fp_descripcion: pregunta.fp_descripcion,
-      fp_tipo: pregunta.fp_tipo,
-      fp_tabla_columnas: pregunta.fp_tabla_columnas,
-      respuestaGuardada: respuestas[pregunta.fp_id],
-    });
-  }
-
   return (
     <div
       key={pregunta.fp_id}

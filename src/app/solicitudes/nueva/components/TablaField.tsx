@@ -47,15 +47,6 @@ export function TablaField({
   const filas = parseFilas(respuestas[pregunta.fp_id]?.valor_texto);
   const filasVisibles = filas.length > 0 ? filas : [{}];
 
-  console.log("🟢 [TablaField] render:", {
-    fp_id: pregunta.fp_id,
-    fp_tabla_columnas_raw: pregunta.fp_tabla_columnas,
-    columnas,
-    valor_texto_guardado: respuestas[pregunta.fp_id]?.valor_texto,
-    filas,
-    filasVisibles,
-  });
-
   const actualizarFilas = (nuevasFilas: FilaTabla[]) => {
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
   };
