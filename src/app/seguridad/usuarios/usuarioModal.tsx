@@ -55,6 +55,10 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
       setError("El usuario (login) es requerido");
       return;
     }
+    if (isNew && /\s/.test(usuarioLogin.trim())) {
+      setError("El usuario (login) no puede contener espacios");
+      return;
+    }
     if (!rolId) {
       setError("El rol es requerido");
       return;
@@ -159,7 +163,8 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
                 disabled={loading}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Es lo que la persona va a escribir para iniciar sesión.
+                Es lo que la persona va a escribir para iniciar sesión. No
+                puede contener espacios.
               </p>
             </div>
           )}
