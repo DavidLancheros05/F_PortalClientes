@@ -101,6 +101,9 @@ export const clientesService = {
       habilitaAcceso: boolean;
       centro_operacion_ids: number[];
       ejecutivoId: number | null;
+      paisId: number;
+      departamentoId: number;
+      ciudadId: number;
     }>,
   ): Promise<ClienteDetailResponse> => {
     const body: Record<string, unknown> = {};
@@ -115,6 +118,10 @@ export const clientesService = {
     if (payload.habilitaAcceso !== undefined)
       body.cli_acceso_portal_clientes = payload.habilitaAcceso;
     if (payload.ejecutivoId !== undefined) body.ejng_id = payload.ejecutivoId;
+    if (payload.paisId !== undefined) body.pai_id = payload.paisId;
+    if (payload.departamentoId !== undefined)
+      body.dpto_id = payload.departamentoId;
+    if (payload.ciudadId !== undefined) body.ciu_id = payload.ciudadId;
     if (payload.centro_operacion_ids !== undefined)
       body.centro_operacion_ids = payload.centro_operacion_ids;
 

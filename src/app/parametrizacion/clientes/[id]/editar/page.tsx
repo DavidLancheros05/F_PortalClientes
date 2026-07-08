@@ -1,6 +1,12 @@
 "use client";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { centrosOperacionService } from "@/services/centros-operacion/centros-operacion.service";
+import {
+  maestrosService,
+  type Pais,
+  type Departamento,
+  type Ciudad,
+} from "@/services/maestros/maestros.service";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -36,6 +42,12 @@ export default function EditarClientePage() {
   const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [ejecutivoId, setEjecutivoId] = useState<number | null>(null);
+  const [paises, setPaises] = useState<Pais[]>([]);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [paisId, setPaisId] = useState<number>(0);
+  const [departamentoId, setDepartamentoId] = useState<number>(0);
+  const [ciudadId, setCiudadId] = useState<number>(0);
 
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingTiposIdentificacion, setLoadingTiposIdentificacion] =
@@ -64,12 +76,13 @@ export default function EditarClientePage() {
       try {
         setLoadingInitial(true);
         setLoadingTiposIdentificacion(true);
-        const [clienteData, centrosData, ejecutivosData, clienteCentrosData] =
+        const [clienteData, centrosData, ejecutivosData, clienteCentrosData, paisesData] =
           await Promise.all([
             clientesService.getById(clienteId),
             centrosOperacionService.getAll(),
             clientesService.getEjecutivosNegocio(),
             clientesService.getCentrosOperacion(clienteId),
+            maestrosService.getPaises(),
           ]);
 
         let tiposData: any[] = [];
@@ -109,6 +122,10 @@ export default function EditarClientePage() {
             : [],
         );
         setEjecutivoId(clienteData.ejng_id || null);
+        setPaises(Array.isArray(paisesData) ? paisesData : []);
+        setPaisId(clienteData.pai_id || 0);
+        setDepartamentoId(clienteData.dpto_id || 0);
+        setCiudadId(clienteData.ciu_id || 0);
       } catch (err: any) {
         setError(err?.message || "Error cargando cliente");
       } finally {
@@ -120,8 +137,39 @@ export default function EditarClientePage() {
     cargarCliente();
   }, [clienteId]);
 
+  // Solo carga las opciones; el reseteo de departamento/ciudad ocurre en el
+  // onChange del select (interacción real del usuario), no aquí. Si se
+  // reseteara aquí, la hidratación inicial desde los datos del cliente
+  // (paisId 0 -> valor cargado) también dispararía el reset y perdería la
+  // selección guardada de departamento/ciudad.
+  useEffect(() => {
+    if (!paisId) {
+      setDepartamentos([]);
+      return;
+    }
+    maestrosService
+      .getDepartamentos(paisId)
+      .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
+      .catch(() => setDepartamentos([]));
+  }, [paisId]);
+
+  useEffect(() => {
+    if (!departamentoId) {
+      setCiudades([]);
+      return;
+    }
+    maestrosService
+      .getCiudades(departamentoId)
+      .then((data) => setCiudades(Array.isArray(data) ? data : []))
+      .catch(() => setCiudades([]));
+  }, [departamentoId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!paisId || !departamentoId || !ciudadId) {
+      setError("Debe seleccionar país, departamento y ciudad");
+      return;
+    }
     setShowConfirmModal(true);
   };
 
@@ -139,6 +187,9 @@ export default function EditarClientePage() {
         habilitaAcceso,
         centro_operacion_ids,
         ejecutivoId,
+        paisId,
+        departamentoId,
+        ciudadId,
       });
 
       setShowConfirmModal(false);
@@ -337,6 +388,75 @@ export default function EditarClientePage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  País *
+                </label>
+                <select
+                  value={paisId}
+                  onChange={(e) => {
+                    setPaisId(Number(e.target.value));
+                    setDepartamentoId(0);
+                    setCiudadId(0);
+                  }}
+                  required
+                  disabled={saving || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={0}>Selecciona un país</option>
+                  {paises.map((p) => (
+                    <option key={p.pais_id} value={p.pais_id}>
+                      {p.pais_nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Departamento *
+                </label>
+                <select
+                  value={departamentoId}
+                  onChange={(e) => {
+                    setDepartamentoId(Number(e.target.value));
+                    setCiudadId(0);
+                  }}
+                  required
+                  disabled={saving || success || !paisId}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                >
+                  <option value={0}>Selecciona un departamento</option>
+                  {departamentos.map((d) => (
+                    <option key={d.depto_id} value={d.depto_id}>
+                      {d.depto_nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ciudad *
+                </label>
+                <select
+                  value={ciudadId}
+                  onChange={(e) => setCiudadId(Number(e.target.value))}
+                  required
+                  disabled={saving || success || !departamentoId}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                >
+                  <option value={0}>Selecciona una ciudad</option>
+                  {ciudades.map((c) => (
+                    <option key={c.ciudad_id} value={c.ciudad_id}>
+                      {c.ciudad_nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">

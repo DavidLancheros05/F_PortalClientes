@@ -28,6 +28,9 @@ export interface ClienteDetailResponse {
   cli_acceso_portal_clientes: boolean;
   cli_estado: string;
   ejng_id?: number;
+  pai_id?: number;
+  dpto_id?: number;
+  ciu_id?: number;
   ejecutivo?: { nombre: string } | null;
   centro_operacion_ids?: number[];
 }
