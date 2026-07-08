@@ -15,110 +15,98 @@ export const formularioRespuestasService = {
     soloConValor?: boolean;
     hasValorEnRespuesta?: (r: any) => boolean;
   }) {
-    let respuestasGuardadas = 0;
-
-    for (const [fp_id, respuesta] of Object.entries(respuestas)) {
-      // Si es borrador, solo procesar respuestas con valor
-      if (soloConValor && hasValorEnRespuesta) {
-        const tieneValor = hasValorEnRespuesta(respuesta as any);
-        if (!tieneValor) continue;
-      }
-
-      const fpId = parseInt(fp_id);
-      const preguntaInfo = preguntas.find((p) => p.fp_id === fpId);
-      const esMultiselect = preguntaInfo?.fp_tipo === "MULTISELECT";
-      const esArchivo = ["ARCHIVO", "DOCUMENTOS_TABLA", "IMAGEN"].includes(
-        preguntaInfo?.fp_tipo || "",
-      );
-      const esDocumentoTabla = preguntaInfo?.fp_tipo === "DOCUMENTOS_TABLA";
-
-      // Manejar archivos
-      if (esArchivo && (respuesta as any).archivo) {
-        let fechaEmision: string | undefined;
-
-        if (esDocumentoTabla) {
-          // Buscar pregunta FECHA hija de este documento
-          const preguntaFechaHija = preguntas.find(
-            (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === fpId,
-          );
-          if (preguntaFechaHija) {
-            fechaEmision = respuestas[preguntaFechaHija.fp_id]?.valor_fecha;
-            console.log(
-              `📅 [guardarRespuestasYArchivos] Documento ${fpId} - Buscando fecha hija (${preguntaFechaHija.fp_id}):`,
-              fechaEmision,
-            );
-          }
-          // Si no hay hija, buscar en la misma respuesta
-          if (!fechaEmision) {
-            fechaEmision = (respuesta as any).valor_fecha;
-            console.log(
-              `📅 [guardarRespuestasYArchivos] Documento ${fpId} - Buscando fecha en la misma respuesta:`,
-              fechaEmision,
-            );
-          }
+    // Cada campo se guarda de forma independiente (su propio archivo y/o
+    // valor), así que se lanzan todos en paralelo en vez de uno por uno:
+    // con varias decenas de preguntas, guardar secuencialmente sumaba varios
+    // segundos de ida y vuelta al servidor por cada campo.
+    const tareas = Object.entries(respuestas)
+      .filter(([, respuesta]) => {
+        if (soloConValor && hasValorEnRespuesta) {
+          return hasValorEnRespuesta(respuesta as any);
         }
+        return true;
+      })
+      .map(([fp_id, respuesta]) => async (): Promise<number> => {
+        const fpId = parseInt(fp_id);
+        const preguntaInfo = preguntas.find((p) => p.fp_id === fpId);
+        const esMultiselect = preguntaInfo?.fp_tipo === "MULTISELECT";
+        const esArchivo = ["ARCHIVO", "DOCUMENTOS_TABLA", "IMAGEN"].includes(
+          preguntaInfo?.fp_tipo || "",
+        );
+        const esDocumentoTabla = preguntaInfo?.fp_tipo === "DOCUMENTOS_TABLA";
 
-        console.log(
-          `📤 [guardarRespuestasYArchivos] Enviando archivo documento ${fpId}:`,
-          {
-            nombreArchivo: (respuesta as any).nombre_archivo,
-            tieneArchivo: !!(respuesta as any).archivo,
+        let guardadas = 0;
+
+        // Manejar archivos
+        if (esArchivo && (respuesta as any).archivo) {
+          let fechaEmision: string | undefined;
+
+          if (esDocumentoTabla) {
+            // Buscar pregunta FECHA hija de este documento
+            const preguntaFechaHija = preguntas.find(
+              (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === fpId,
+            );
+            if (preguntaFechaHija) {
+              fechaEmision = respuestas[preguntaFechaHija.fp_id]?.valor_fecha;
+            }
+            // Si no hay hija, buscar en la misma respuesta
+            if (!fechaEmision) {
+              fechaEmision = (respuesta as any).valor_fecha;
+            }
+          }
+
+          await this.guardarArchivoRespuesta(
+            solicitudId,
+            fpId,
+            (respuesta as any).archivo,
             fechaEmision,
-            esDocumentoTabla,
-          },
-        );
-
-        await this.guardarArchivoRespuesta(
-          solicitudId,
-          fpId,
-          (respuesta as any).archivo,
-          fechaEmision,
-        );
-        respuestasGuardadas++;
-      }
-
-      if (!esArchivo || esDocumentoTabla) {
-        const respuestaFormateada: any = {
-          es_multiselect: esMultiselect,
-        };
-
-        if ((respuesta as any).valor_texto !== undefined)
-          respuestaFormateada.valor_texto = (respuesta as any).valor_texto;
-        if ((respuesta as any).valor_numero !== undefined)
-          respuestaFormateada.valor_numero = (respuesta as any).valor_numero;
-        if ((respuesta as any).valor_fecha !== undefined)
-          respuestaFormateada.valor_fecha = (respuesta as any).valor_fecha;
-
-        if (
-          esMultiselect &&
-          Array.isArray((respuesta as any).valor_opcion_id)
-        ) {
-          respuestaFormateada.valor_opcion_id = (
-            respuesta as any
-          ).valor_opcion_id;
-        } else if ((respuesta as any).valor_opcion_id) {
-          respuestaFormateada.valor_opcion_id = Number(
-            (respuesta as any).valor_opcion_id,
           );
-        } else {
-          respuestaFormateada.valor_opcion_id = null;
+          guardadas++;
         }
 
-        await this.guardarRespuesta(
-          solicitudId,
-          fpId,
-          respuestaFormateada,
-        );
-        respuestasGuardadas++;
-      }
-    }
+        if (!esArchivo || esDocumentoTabla) {
+          const respuestaFormateada: any = {
+            es_multiselect: esMultiselect,
+          };
+
+          if ((respuesta as any).valor_texto !== undefined)
+            respuestaFormateada.valor_texto = (respuesta as any).valor_texto;
+          if ((respuesta as any).valor_numero !== undefined)
+            respuestaFormateada.valor_numero = (respuesta as any).valor_numero;
+          if ((respuesta as any).valor_fecha !== undefined)
+            respuestaFormateada.valor_fecha = (respuesta as any).valor_fecha;
+
+          if (
+            esMultiselect &&
+            Array.isArray((respuesta as any).valor_opcion_id)
+          ) {
+            respuestaFormateada.valor_opcion_id = (
+              respuesta as any
+            ).valor_opcion_id;
+          } else if ((respuesta as any).valor_opcion_id) {
+            respuestaFormateada.valor_opcion_id = Number(
+              (respuesta as any).valor_opcion_id,
+            );
+          } else {
+            respuestaFormateada.valor_opcion_id = null;
+          }
+
+          await this.guardarRespuesta(solicitudId, fpId, respuestaFormateada);
+          guardadas++;
+        }
+
+        return guardadas;
+      });
+
+    const resultados = await Promise.all(tareas.map((tarea) => tarea()));
+    let respuestasGuardadas = resultados.reduce((sum, n) => sum + n, 0);
 
     // Procesar documentos existentes que tengan fechas nuevas
     // (cuando el archivo ya existe pero se seleccionó una fecha nueva)
     const documentosConFecha = preguntas.filter(
       (p) => p.fp_tipo === "DOCUMENTOS_TABLA",
     );
-    for (const doc of documentosConFecha) {
+    const tareasFecha = documentosConFecha.map((doc) => async () => {
       const docFpId = doc.fp_id;
 
       // Buscar la fecha hija
@@ -136,18 +124,16 @@ export const formularioRespuestasService = {
 
       // Si hay fecha, actualizar la fecha del documento (sea existente o nuevo)
       if (fechaEmision && !respuestas[docFpId]?.archivo) {
-        console.log(
-          `📅 [guardarRespuestasYArchivos] Actualizando fecha para documento existente ${docFpId}:`,
-          fechaEmision,
-        );
-        await this.actualizarFechaDocumento(
-          solicitudId,
-          docFpId,
-          fechaEmision,
-        );
-        respuestasGuardadas++;
+        await this.actualizarFechaDocumento(solicitudId, docFpId, fechaEmision);
+        return 1;
       }
-    }
+      return 0;
+    });
+
+    const resultadosFecha = await Promise.all(
+      tareasFecha.map((tarea) => tarea()),
+    );
+    respuestasGuardadas += resultadosFecha.reduce((sum, n) => sum + n, 0);
 
     return respuestasGuardadas;
   },
