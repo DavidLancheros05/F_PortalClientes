@@ -235,9 +235,7 @@ export default function NuevoClientePage() {
           <SuccessModal
             isOpen={success}
             title="¡Cliente creado exitosamente!"
-            message="Redirigiendo a la lista de clientes..."
-            autoClose
-            autoCloseDelay={1500}
+            message="El cliente fue registrado correctamente."
             onAction={() => router.push("/parametrizacion/clientes")}
           />
 

@@ -194,7 +194,6 @@ export default function EditarClientePage() {
 
       setShowConfirmModal(false);
       setSuccess(true);
-      setTimeout(() => router.push("/parametrizacion/clientes"), 1200);
     } catch (err: any) {
       setShowConfirmModal(false);
       setError(
@@ -252,8 +251,6 @@ export default function EditarClientePage() {
             isOpen={success}
             title="¡Cliente actualizado!"
             message="Los cambios se guardaron correctamente."
-            autoClose
-            autoCloseDelay={1200}
             onAction={() => router.push("/parametrizacion/clientes")}
           />
 
