@@ -27,7 +27,8 @@ export type Pregunta = {
     | "DOCUMENTOS_TABLA"
     | "MULTISELECT"
     | "ARCHIVO"
-    | "TABLA";
+    | "TABLA"
+    | "IMAGEN";
   fp_orden: number;
   fp_estado: boolean;
   fp_requerida?: boolean;

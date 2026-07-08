@@ -85,6 +85,7 @@ const fallbackTipoLabels: Record<Pregunta["fp_tipo"], string> = {
   MULTISELECT: "Selección múltiple (checkbox, varias opciones)",
   ARCHIVO: "Archivo / Documento",
   TABLA: "Tabla",
+  IMAGEN: "Imagen (firma, logo, etc.)",
 };
 
 const getTipoLabel = (tipo: TipoPreguntaCatalogo) => {
@@ -744,6 +745,7 @@ export default function FormularioEditorPage() {
                         TIPOS_PREGUNTA.MULTISELECT,
                         TIPOS_PREGUNTA.ARCHIVO,
                         TIPOS_PREGUNTA.TABLA,
+                        TIPOS_PREGUNTA.IMAGEN,
                       ];
                       const faltantes = codigosFallback.filter(
                         (codigo) => !codigosBase.has(codigo),

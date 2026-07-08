@@ -2,6 +2,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import { ArchivoField } from "./ArchivoField";
+import { ImagenField } from "./ImagenField";
 import { DocumentoTablaField } from "./DocumentoTablaField";
 import { TablaField } from "./TablaField";
 import type { Dispatch, SetStateAction } from "react";
@@ -387,6 +388,22 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           handleInputChange={handleInputChange}
           validateField={validateField}
           getValidationRules={getValidationRules}
+          getArchivoPreviewUrl={getArchivoPreviewUrl}
+          setArchivosExistentes={setArchivosExistentes}
+          setSuccessMessage={setSuccessMessage}
+          setErrorMessage={setErrorMessage}
+        />
+      )}
+
+      {pregunta.fp_tipo === "IMAGEN" && (
+        <ImagenField
+          pregunta={pregunta}
+          respuestas={respuestas}
+          archivosExistentes={archivosExistentes}
+          hasError={hasError}
+          readOnly={readOnly}
+          solicitudId={solicitudId}
+          handleInputChange={handleInputChange}
           getArchivoPreviewUrl={getArchivoPreviewUrl}
           setArchivosExistentes={setArchivosExistentes}
           setSuccessMessage={setSuccessMessage}

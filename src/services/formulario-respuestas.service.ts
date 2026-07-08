@@ -27,7 +27,7 @@ export const formularioRespuestasService = {
       const fpId = parseInt(fp_id);
       const preguntaInfo = preguntas.find((p) => p.fp_id === fpId);
       const esMultiselect = preguntaInfo?.fp_tipo === "MULTISELECT";
-      const esArchivo = ["ARCHIVO", "DOCUMENTOS_TABLA"].includes(
+      const esArchivo = ["ARCHIVO", "DOCUMENTOS_TABLA", "IMAGEN"].includes(
         preguntaInfo?.fp_tipo || "",
       );
       const esDocumentoTabla = preguntaInfo?.fp_tipo === "DOCUMENTOS_TABLA";

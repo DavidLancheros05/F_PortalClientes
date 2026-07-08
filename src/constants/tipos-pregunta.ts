@@ -16,6 +16,7 @@ export const TIPOS_PREGUNTA = {
   SELECT_CONDICIONAL: 'SELECT_CONDICIONAL',
   ARCHIVO: 'ARCHIVO',
   TABLA: 'TABLA',
+  IMAGEN: 'IMAGEN',
 } as const;
 
 export type TipoPregunta = typeof TIPOS_PREGUNTA[keyof typeof TIPOS_PREGUNTA];

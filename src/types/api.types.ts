@@ -138,7 +138,8 @@ export interface FormularioPreguntaResponse {
     | "MULTISELECT"
     | "SELECT_CONDICIONAL"
     | "ARCHIVO"
-    | "TABLA";
+    | "TABLA"
+    | "IMAGEN";
   fp_estado: boolean;
   fp_orden: number;
   fp_version: number;

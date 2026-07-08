@@ -695,6 +695,7 @@ export default function SolicitudFormContent({
         rules.required &&
         pregunta.fp_tipo !== TIPOS_PREGUNTA.DOCUMENTOS_TABLA &&
         pregunta.fp_tipo !== TIPOS_PREGUNTA.ARCHIVO &&
+        pregunta.fp_tipo !== TIPOS_PREGUNTA.IMAGEN &&
         (currentValue === undefined ||
           currentValue === null ||
           currentValue === "" ||
@@ -704,7 +705,11 @@ export default function SolicitudFormContent({
         isValid = false;
       }
 
-      if (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO && pregunta.fp_requerida) {
+      if (
+        (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO ||
+          pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN) &&
+        pregunta.fp_requerida
+      ) {
         const tieneArchivoNuevo =
           respuestas[pregunta.fp_id]?.archivo instanceof File ||
           Boolean(respuestas[pregunta.fp_id]?.nombre_archivo?.trim());
@@ -1005,9 +1010,11 @@ export default function SolicitudFormContent({
     const archivoRegistrado = Boolean(archivosExistentes[pregunta.fp_id]);
 
     if (!respuesta) {
-      return [TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA].includes(
-        pregunta.fp_tipo as any,
-      )
+      return [
+        TIPOS_PREGUNTA.ARCHIVO,
+        TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
+        TIPOS_PREGUNTA.IMAGEN,
+      ].includes(pregunta.fp_tipo as any)
         ? archivoRegistrado
         : false;
     }
@@ -1032,7 +1039,10 @@ export default function SolicitudFormContent({
         : false;
     }
 
-    if (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO) {
+    if (
+      pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO ||
+      pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN
+    ) {
       return (
         respuesta.archivo instanceof File ||
         Boolean(respuesta.nombre_archivo?.trim()) ||
