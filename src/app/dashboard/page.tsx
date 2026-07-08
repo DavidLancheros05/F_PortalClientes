@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 </div>
               </button>
               <button
-                onClick={() => router.push("/clientes")}
+                onClick={() => router.push("/parametrizacion/clientes")}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
               >
                 <div className="flex items-center">

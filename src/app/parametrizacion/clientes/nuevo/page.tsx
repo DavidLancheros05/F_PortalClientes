@@ -238,7 +238,7 @@ export default function NuevoClientePage() {
             message="Redirigiendo a la lista de clientes..."
             autoClose
             autoCloseDelay={1500}
-            onAction={() => router.push("/clientes")}
+            onAction={() => router.push("/parametrizacion/clientes")}
           />
 
           <ErrorModal
