@@ -47,6 +47,10 @@ export function TablaField({
   const filas = parseFilas(respuestas[pregunta.fp_id]?.valor_texto);
   const filasVisibles = filas.length > 0 ? filas : [{}];
 
+  const todasLasFilasCompletas = filasVisibles.every((fila) =>
+    columnas.every((columna) => (fila[columna] || "").trim() !== ""),
+  );
+
   const actualizarFilas = (nuevasFilas: FilaTabla[]) => {
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
   };
@@ -135,11 +139,22 @@ export function TablaField({
           <button
             type="button"
             onClick={agregarFila}
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95"
+            disabled={!todasLasFilasCompletas}
+            title={
+              todasLasFilasCompletas
+                ? undefined
+                : "Completa todas las columnas de todas las filas antes de agregar otra"
+            }
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm"
           >
             <Plus className="h-3 w-3" />
             Agregar fila
           </button>
+          {!todasLasFilasCompletas && (
+            <p className="mt-1 text-xs text-amber-700">
+              Completa todas las columnas de todas las filas para poder agregar una nueva.
+            </p>
+          )}
         </div>
       )}
     </div>

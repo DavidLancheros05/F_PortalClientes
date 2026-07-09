@@ -195,19 +195,76 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         />
       )}
 
-      {pregunta.fp_tipo === "NUMERO" && (
-        <input
-          type="number"
+      {pregunta.fp_tipo === "NUMERO" && pregunta.fp_subtipo === "MONEDA" && (
+        <div className="relative">
+          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-sm text-gray-500">
+            $
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={
+              respuestas[pregunta.fp_id]?.valor_numero
+                ? Number(
+                    respuestas[pregunta.fp_id]?.valor_numero,
+                  ).toLocaleString("es-CO")
+                : ""
+            }
+            onChange={(e) => {
+              const soloDigitos = e.target.value.replace(/\D/g, "");
+              handleInputChange(
+                pregunta.fp_id,
+                soloDigitos ? Number(soloDigitos) : "",
+                "NUMERO",
+              );
+            }}
+            onBlur={() => validateField(pregunta.fp_id, rules)}
+            className={`w-full border rounded pl-5 pr-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? "border-red-500" : "border-gray-300"
+            }`}
+          />
+        </div>
+      )}
+
+      {pregunta.fp_tipo === "NUMERO" && pregunta.fp_subtipo === "DIA_MES" && (
+        <select
           value={respuestas[pregunta.fp_id]?.valor_numero || ""}
           onChange={(e) =>
-            handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")
+            handleInputChange(
+              pregunta.fp_id,
+              e.target.value ? Number(e.target.value) : "",
+              "NUMERO",
+            )
           }
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
-        />
+        >
+          <option value="">Selecciona un día</option>
+          {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
+            <option key={dia} value={dia}>
+              {dia}
+            </option>
+          ))}
+        </select>
       )}
+
+      {pregunta.fp_tipo === "NUMERO" &&
+        pregunta.fp_subtipo !== "MONEDA" &&
+        pregunta.fp_subtipo !== "DIA_MES" && (
+          <input
+            type="number"
+            value={respuestas[pregunta.fp_id]?.valor_numero || ""}
+            onChange={(e) =>
+              handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")
+            }
+            onBlur={() => validateField(pregunta.fp_id, rules)}
+            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? "border-red-500" : "border-gray-300"
+            }`}
+          />
+        )}
 
       {pregunta.fp_tipo === "FECHA" && (
         <input
@@ -217,7 +274,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             handleInputChange(pregunta.fp_id, e.target.value, "FECHA")
           }
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />

@@ -463,7 +463,12 @@ export function usePreguntaEditor({
       if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT) {
         payload.fp_subtipo =
           formPregunta.subtipo === "CHECK" ? "CHECK" : "LISTA";
-      } else if (preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.SELECT) {
+      } else if (formPregunta.tipo === TIPOS_PREGUNTA.NUMERO) {
+        payload.fp_subtipo = formPregunta.subtipo || null;
+      } else if (
+        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.SELECT ||
+        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.NUMERO
+      ) {
         payload.fp_subtipo = null;
       }
 
@@ -549,7 +554,9 @@ export function usePreguntaEditor({
       subtipo:
         pregunta.fp_tipo === TIPOS_PREGUNTA.SELECT
           ? (pregunta.fp_subtipo ?? "LISTA")
-          : "",
+          : pregunta.fp_tipo === TIPOS_PREGUNTA.NUMERO
+            ? (pregunta.fp_subtipo ?? "")
+            : "",
       seccion_id: pregunta.seccion_id ?? null,
       requerida: Boolean(pregunta.fp_requerida),
       tipo_documento_id: pregunta.fp_tipo_documento_id ?? null,

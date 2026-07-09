@@ -699,7 +699,13 @@ export default function FormularioEditorPage() {
                             subtipo:
                               tipo === TIPOS_PREGUNTA.SELECT
                                 ? prev.subtipo || "LISTA"
-                                : "",
+                                : tipo === TIPOS_PREGUNTA.NUMERO
+                                  ? ["MONEDA", "DIA_MES"].includes(
+                                      prev.subtipo,
+                                    )
+                                    ? prev.subtipo
+                                    : ""
+                                  : "",
                             tipo_documento_id: null,
                             catalogo_base_datos: "",
                             catalogo_tabla: "",
@@ -968,6 +974,69 @@ export default function FormularioEditorPage() {
                       />
                       <span className="text-xs font-medium text-gray-800">
                         Checks visibles (una sola opción)
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Subtipo NUMERO */}
+                {formPregunta.tipo === TIPOS_PREGUNTA.NUMERO && (
+                  <div className="space-y-1.5 rounded-lg border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-2">
+                    <p className="text-xs font-semibold text-sky-900">
+                      🔢 Forma de respuesta numérica
+                    </p>
+                    <label className="flex items-center gap-1 p-2 bg-white rounded-lg border border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors text-xs">
+                      <input
+                        type="radio"
+                        name="numero-visual-mode"
+                        checked={
+                          formPregunta.subtipo !== "MONEDA" &&
+                          formPregunta.subtipo !== "DIA_MES"
+                        }
+                        onChange={() =>
+                          setFormPregunta((prev) => ({
+                            ...prev,
+                            subtipo: "",
+                          }))
+                        }
+                        className="w-4 h-4 accent-sky-600"
+                      />
+                      <span className="text-xs font-medium text-gray-800">
+                        Número simple
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-1 p-2 bg-white rounded-lg border border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors text-xs">
+                      <input
+                        type="radio"
+                        name="numero-visual-mode"
+                        checked={formPregunta.subtipo === "MONEDA"}
+                        onChange={() =>
+                          setFormPregunta((prev) => ({
+                            ...prev,
+                            subtipo: "MONEDA",
+                          }))
+                        }
+                        className="w-4 h-4 accent-sky-600"
+                      />
+                      <span className="text-xs font-medium text-gray-800">
+                        Moneda ($) — formatea con separador de miles
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-1 p-2 bg-white rounded-lg border border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors text-xs">
+                      <input
+                        type="radio"
+                        name="numero-visual-mode"
+                        checked={formPregunta.subtipo === "DIA_MES"}
+                        onChange={() =>
+                          setFormPregunta((prev) => ({
+                            ...prev,
+                            subtipo: "DIA_MES",
+                          }))
+                        }
+                        className="w-4 h-4 accent-sky-600"
+                      />
+                      <span className="text-xs font-medium text-gray-800">
+                        Día del mes (1-31) — lista desplegable
                       </span>
                     </label>
                   </div>

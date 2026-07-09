@@ -1097,16 +1097,27 @@ export default function SolicitudFormContent({
       if (!respuesta.valor_texto) return false;
       try {
         const filas = JSON.parse(respuesta.valor_texto);
-        return (
-          Array.isArray(filas) &&
-          filas.some(
-            (fila) =>
-              fila &&
-              typeof fila === "object" &&
-              Object.values(fila).some(
-                (valor) => typeof valor === "string" && valor.trim() !== "",
-              ),
-          )
+        if (!Array.isArray(filas)) return false;
+
+        let columnasTabla: string[] = [];
+        try {
+          const parsedColumnas = JSON.parse(pregunta.fp_tabla_columnas || "[]");
+          columnasTabla = Array.isArray(parsedColumnas) ? parsedColumnas : [];
+        } catch {
+          columnasTabla = [];
+        }
+        if (columnasTabla.length === 0 || filas.length === 0) return false;
+
+        // Se considera respondida solo si TODAS las filas están completas
+        // (todas sus columnas tienen valor); una fila a medias invalida la pregunta.
+        return filas.every(
+          (fila) =>
+            fila &&
+            typeof fila === "object" &&
+            columnasTabla.every(
+              (columna) =>
+                typeof fila[columna] === "string" && fila[columna].trim() !== "",
+            ),
         );
       } catch {
         return false;
