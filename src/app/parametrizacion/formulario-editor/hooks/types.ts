@@ -46,6 +46,10 @@ export type Pregunta = {
   fp_precarga_campo_cliente?: string | null;
   fp_tabla_columnas?: string | null;
   fp_ancho_completo?: boolean;
+  fp_maximo?: number | null;
+  fp_tabla_limite_modo?: string | null;
+  fp_tabla_limite_pregunta_id?: number | null;
+  fp_tabla_limite_reglas?: string | null;
   opciones?: Opcion[];
 };
 
@@ -79,6 +83,20 @@ export type Opcion = {
   fpo_estado: boolean;
 };
 
+export type ColumnaTabla = {
+  nombre: string;
+  tipo: "TEXTO" | "SI_NO" | "CATALOGO";
+  catalogo_base_datos?: string;
+  catalogo_tabla?: string;
+  catalogo_columna?: string;
+  catalogo_pk_column?: string;
+};
+
+export type ReglaLimiteTabla = {
+  valor: string;
+  limite: string; // vacío = sin límite; en el form siempre es texto, se parsea al guardar
+};
+
 export type FormPreguntaState = {
   descripcion: string;
   codigo?: string | null;
@@ -100,6 +118,11 @@ export type FormPreguntaState = {
   precarga_base_datos: string;
   precarga_tabla: string;
   precarga_columna: string;
-  tabla_columnas: string[];
+  tabla_columnas: ColumnaTabla[];
   ancho_completo: boolean;
+  tabla_limite_modo: "SIN_LIMITE" | "FIJO" | "CONDICIONAL";
+  tabla_limite_fijo: string;
+  tabla_limite_seccion_id: number | null;
+  tabla_limite_pregunta_id: number | null;
+  tabla_limite_reglas: ReglaLimiteTabla[];
 };

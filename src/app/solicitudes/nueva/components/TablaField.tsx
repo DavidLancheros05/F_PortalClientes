@@ -1,23 +1,96 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { maestrosService } from "@/services/parametrizacion/maestros.service";
 import type { FormularioPregunta, RespuestasState } from "../types";
 
 interface TablaFieldProps {
   pregunta: FormularioPregunta;
+  preguntas: FormularioPregunta[];
   respuestas: RespuestasState;
   readOnly: boolean;
   handleInputChange: (fp_id: number, value: any, tipo: string) => void;
 }
 
+type ReglaLimiteTabla = {
+  valor: string;
+  limite: number | null;
+};
+
+function parseReglasLimite(json?: string | null): ReglaLimiteTabla[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function resolverValorPreguntaDisparadora(
+  preguntaDisparadora: FormularioPregunta | undefined,
+  respuestas: RespuestasState,
+): string {
+  if (!preguntaDisparadora) return "";
+  const respuesta = respuestas[preguntaDisparadora.fp_id];
+  if (!respuesta) return "";
+
+  if (
+    ["SELECT", "SELECT_TABLA", "MULTISELECT"].includes(preguntaDisparadora.fp_tipo)
+  ) {
+    const valorOpcionId = respuesta.valor_opcion_id;
+    const id = Array.isArray(valorOpcionId) ? valorOpcionId[0] : valorOpcionId;
+    const opcion = preguntaDisparadora.opciones?.find(
+      (o: any) => Number(o.op_id ?? o.fpo_id) === Number(id),
+    );
+    return String((opcion as any)?.op_descripcion ?? (opcion as any)?.fpo_valor ?? "");
+  }
+
+  if (preguntaDisparadora.fp_tipo === "NUMERO") {
+    return respuesta.valor_numero != null ? String(respuesta.valor_numero) : "";
+  }
+  if (preguntaDisparadora.fp_tipo === "FECHA") {
+    return respuesta.valor_fecha || "";
+  }
+  return respuesta.valor_texto || "";
+}
+
 type FilaTabla = Record<string, string>;
 
-function parseColumnas(fp_tabla_columnas?: string | null): string[] {
+type ColumnaTabla = {
+  nombre: string;
+  tipo: "TEXTO" | "SI_NO" | "CATALOGO";
+  catalogo_base_datos?: string;
+  catalogo_tabla?: string;
+  catalogo_columna?: string;
+  catalogo_pk_column?: string;
+};
+
+function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
   if (!fp_tabla_columnas) return [];
   try {
     const parsed = JSON.parse(fp_tabla_columnas);
-    return Array.isArray(parsed) ? parsed.filter((c) => typeof c === "string") : [];
+    if (!Array.isArray(parsed)) return [];
+    // Compatibilidad con columnas antiguas guardadas como string plano
+    return parsed
+      .map((c: unknown): ColumnaTabla | null => {
+        if (typeof c === "string") return { nombre: c, tipo: "TEXTO" };
+        if (c && typeof c === "object" && typeof (c as ColumnaTabla).nombre === "string") {
+          const col = c as ColumnaTabla;
+          return {
+            nombre: col.nombre,
+            tipo:
+              col.tipo === "SI_NO" || col.tipo === "CATALOGO" ? col.tipo : "TEXTO",
+            catalogo_base_datos: col.catalogo_base_datos,
+            catalogo_tabla: col.catalogo_tabla,
+            catalogo_columna: col.catalogo_columna,
+            catalogo_pk_column: col.catalogo_pk_column,
+          };
+        }
+        return null;
+      })
+      .filter((c): c is ColumnaTabla => c !== null);
   } catch {
     return [];
   }
@@ -35,6 +108,7 @@ function parseFilas(valorTexto: string | undefined): FilaTabla[] {
 
 export function TablaField({
   pregunta,
+  preguntas,
   respuestas,
   readOnly,
   handleInputChange,
@@ -44,12 +118,73 @@ export function TablaField({
     [pregunta.fp_tabla_columnas],
   );
 
+  const [valoresCatalogo, setValoresCatalogo] = useState<
+    Record<string, string[]>
+  >({});
+
+  useEffect(() => {
+    const columnasCatalogo = columnas.filter(
+      (c) => c.tipo === "CATALOGO" && c.catalogo_tabla,
+    );
+    columnasCatalogo.forEach((c) => {
+      maestrosService
+        .getCatalogoValores(
+          c.catalogo_tabla!,
+          c.catalogo_base_datos,
+          c.catalogo_columna,
+          c.catalogo_pk_column,
+        )
+        .then((valores) => {
+          setValoresCatalogo((prev) => ({
+            ...prev,
+            [c.nombre]: valores.map((v) => v.op_descripcion),
+          }));
+        })
+        .catch(() => {
+          setValoresCatalogo((prev) => ({ ...prev, [c.nombre]: [] }));
+        });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pregunta.fp_tabla_columnas]);
+
   const filas = parseFilas(respuestas[pregunta.fp_id]?.valor_texto);
   const filasVisibles = filas.length > 0 ? filas : [{}];
 
   const todasLasFilasCompletas = filasVisibles.every((fila) =>
-    columnas.every((columna) => (fila[columna] || "").trim() !== ""),
+    columnas.every((columna) => (fila[columna.nombre] || "").trim() !== ""),
   );
+
+  const limiteFilas = useMemo((): number | null => {
+    const modo = pregunta.fp_tabla_limite_modo;
+    if (modo === "FIJO") {
+      return pregunta.fp_maximo ?? null;
+    }
+    if (modo === "CONDICIONAL" && pregunta.fp_tabla_limite_pregunta_id) {
+      const preguntaDisparadora = preguntas.find(
+        (p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id,
+      );
+      const valorActual = resolverValorPreguntaDisparadora(
+        preguntaDisparadora,
+        respuestas,
+      ).trim().toLowerCase();
+      const reglas = parseReglasLimite(pregunta.fp_tabla_limite_reglas);
+      const regla = reglas.find(
+        (r) => r.valor.trim().toLowerCase() === valorActual,
+      );
+      return regla ? regla.limite : null;
+    }
+    return null;
+  }, [
+    pregunta.fp_tabla_limite_modo,
+    pregunta.fp_maximo,
+    pregunta.fp_tabla_limite_pregunta_id,
+    pregunta.fp_tabla_limite_reglas,
+    preguntas,
+    respuestas,
+  ]);
+
+  const limiteAlcanzado =
+    limiteFilas !== null && filasVisibles.length >= limiteFilas;
 
   const actualizarFilas = (nuevasFilas: FilaTabla[]) => {
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
@@ -87,10 +222,10 @@ export function TablaField({
             <tr className="bg-gradient-to-r from-blue-600 to-blue-700">
               {columnas.map((columna) => (
                 <th
-                  key={columna}
+                  key={columna.nombre}
                   className="px-3 py-2.5 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl"
                 >
-                  {columna}
+                  {columna.nombre}
                 </th>
               ))}
               {!readOnly && (
@@ -104,19 +239,65 @@ export function TablaField({
                 key={filaIndex}
                 className="transition-colors hover:bg-blue-50/40"
               >
-                {columnas.map((columna) => (
-                  <td key={columna} className="p-1">
-                    <input
-                      type="text"
-                      disabled={readOnly}
-                      value={fila[columna] || ""}
-                      onChange={(e) =>
-                        actualizarCelda(filaIndex, columna, e.target.value)
-                      }
-                      className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
-                    />
-                  </td>
-                ))}
+                {columnas.map((columna) => {
+                  if (columna.tipo === "SI_NO") {
+                    return (
+                      <td key={columna.nombre} className="p-1">
+                        <select
+                          disabled={readOnly}
+                          value={fila[columna.nombre] || ""}
+                          onChange={(e) =>
+                            actualizarCelda(filaIndex, columna.nombre, e.target.value)
+                          }
+                          className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                        >
+                          <option value="">Selecciona...</option>
+                          <option value="Sí">Sí</option>
+                          <option value="No">No</option>
+                        </select>
+                      </td>
+                    );
+                  }
+
+                  if (columna.tipo === "CATALOGO") {
+                    const opciones = valoresCatalogo[columna.nombre] || [];
+                    return (
+                      <td key={columna.nombre} className="p-1">
+                        <select
+                          disabled={readOnly}
+                          value={fila[columna.nombre] || ""}
+                          onChange={(e) =>
+                            actualizarCelda(filaIndex, columna.nombre, e.target.value)
+                          }
+                          className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                        >
+                          <option value="">
+                            {opciones.length === 0 ? "Sin opciones" : "Selecciona..."}
+                          </option>
+                          {opciones.map((valor) => (
+                            <option key={valor} value={valor}>
+                              {valor}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    );
+                  }
+
+                  return (
+                    <td key={columna.nombre} className="p-1">
+                      <input
+                        type="text"
+                        disabled={readOnly}
+                        value={fila[columna.nombre] || ""}
+                        onChange={(e) =>
+                          actualizarCelda(filaIndex, columna.nombre, e.target.value)
+                        }
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                      />
+                    </td>
+                  );
+                })}
                 {!readOnly && (
                   <td className="text-center">
                     <button
@@ -139,21 +320,30 @@ export function TablaField({
           <button
             type="button"
             onClick={agregarFila}
-            disabled={!todasLasFilasCompletas}
+            disabled={!todasLasFilasCompletas || limiteAlcanzado}
             title={
-              todasLasFilasCompletas
-                ? undefined
-                : "Completa todas las columnas de todas las filas antes de agregar otra"
+              limiteAlcanzado
+                ? `Alcanzaste el límite de ${limiteFilas} fila${limiteFilas === 1 ? "" : "s"}`
+                : todasLasFilasCompletas
+                  ? undefined
+                  : "Completa todas las columnas de todas las filas antes de agregar otra"
             }
             className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm"
           >
             <Plus className="h-3 w-3" />
             Agregar fila
           </button>
-          {!todasLasFilasCompletas && (
+          {limiteAlcanzado ? (
             <p className="mt-1 text-xs text-amber-700">
-              Completa todas las columnas de todas las filas para poder agregar una nueva.
+              Alcanzaste el límite de {limiteFilas} fila{limiteFilas === 1 ? "" : "s"} para
+              esta pregunta.
             </p>
+          ) : (
+            !todasLasFilasCompletas && (
+              <p className="mt-1 text-xs text-amber-700">
+                Completa todas las columnas de todas las filas para poder agregar una nueva.
+              </p>
+            )
           )}
         </div>
       )}

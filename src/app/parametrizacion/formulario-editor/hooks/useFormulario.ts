@@ -48,22 +48,9 @@ export function useFormulario(formularioId: string | null, version: string | nul
       // console.log("📋 [EDITOR] Preguntas cargadas:", preguntasFiltradas);
       // console.log("📊 [EDITOR] Total preguntas:", preguntasFiltradas.length);
 
-      // Cargar opciones para preguntas SELECT/MULTISELECT
-      const { formularioPreguntasService } = await import("@/services/parametrizacion/formulario-preguntas.service");
-      const preguntasConOpciones = await Promise.all(
-        preguntasFiltradas.map(async (p) => {
-          if (["SELECT", "MULTISELECT"].includes(p.fp_tipo)) {
-            try {
-              const opciones = await formularioPreguntasService.getOpciones(p.fp_id);
-              return { ...p, opciones };
-            } catch (err) {
-              console.warn(`⚠️ Error cargando opciones para pregunta ${p.fp_id}:`, err);
-              return { ...p, opciones: [] };
-            }
-          }
-          return p;
-        })
-      );
+      // El endpoint "completo" ya trae las opciones de cada pregunta SELECT/MULTISELECT
+      // incluidas (una sola consulta batched en el backend), evitando N llamadas extra.
+      const preguntasConOpciones = preguntasFiltradas;
 
       const porSeccion = preguntasConOpciones.reduce((acc: any, p: Pregunta) => {
         const sid = p.seccion_id || "sin_seccion";

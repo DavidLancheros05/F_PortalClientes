@@ -165,6 +165,9 @@ export interface FormularioPreguntaResponse {
   fp_valor_padre_disparador: string | null;
   fp_tabla_columnas?: string | null;
   fp_ancho_completo?: boolean;
+  fp_tabla_limite_modo?: string | null;
+  fp_tabla_limite_pregunta_id?: number | null;
+  fp_tabla_limite_reglas?: string | null;
 
   // Campos agregados en respuesta DTO (pueden no venir en la respuesta)
   seccion_nombre?: string;

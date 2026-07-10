@@ -156,7 +156,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   </p>
                 )}
                 {nota.cuerpo && (
-                  <p className="mt-1 text-xs text-blue-900 whitespace-pre-wrap break-words leading-relaxed">
+                  <p className="mt-1 text-xs text-blue-900 whitespace-pre-wrap break-words leading-relaxed text-justify">
                     {nota.cuerpo}
                   </p>
                 )}
@@ -425,6 +425,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       {pregunta.fp_tipo === "TABLA" && (
         <TablaField
           pregunta={pregunta}
+          preguntas={preguntas}
           respuestas={respuestas}
           readOnly={readOnly || isLockedPrefillField}
           handleInputChange={handleInputChange}

@@ -10,7 +10,13 @@ import {
   type DocumentoCatalogo,
 } from "@/services/parametrizacion/maestros.service";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
-import type { FormPreguntaState, Pregunta, Seccion } from "./types";
+import type {
+  ColumnaTabla,
+  FormPreguntaState,
+  Pregunta,
+  ReglaLimiteTabla,
+  Seccion,
+} from "./types";
 
 const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   descripcion: "",
@@ -35,6 +41,11 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   precarga_columna: "",
   tabla_columnas: [],
   ancho_completo: false,
+  tabla_limite_modo: "SIN_LIMITE",
+  tabla_limite_fijo: "",
+  tabla_limite_seccion_id: null,
+  tabla_limite_pregunta_id: null,
+  tabla_limite_reglas: [],
 };
 
 type PreguntaEditorDeps = {
@@ -86,6 +97,7 @@ export function usePreguntaEditor({
   const [filtroBaseDatos, setFiltroBaseDatos] = useState("");
   const [filtroTabla, setFiltroTabla] = useState("");
   const [filtroColumna, setFiltroColumna] = useState("");
+  const [filtroLlave, setFiltroLlave] = useState("");
 
   const normalizarFiltro = (value: string) =>
     String(value || "")
@@ -115,6 +127,14 @@ export function usePreguntaEditor({
         !filtro || normalizarFiltro(String(columna)).includes(filtro),
     );
   }, [catalogoColumnas, filtroColumna]);
+
+  const llaveFiltrada = useMemo(() => {
+    const filtro = normalizarFiltro(filtroLlave);
+    return catalogoColumnas.filter(
+      (columna) =>
+        !filtro || normalizarFiltro(String(columna)).includes(filtro),
+    );
+  }, [catalogoColumnas, filtroLlave]);
 
   const cargarBasesCatalogo = async () => {
     try {
@@ -367,7 +387,7 @@ export function usePreguntaEditor({
     }
     if (
       formPregunta.tipo === TIPOS_PREGUNTA.TABLA &&
-      formPregunta.tabla_columnas.filter((c) => c.trim()).length === 0
+      formPregunta.tabla_columnas.filter((c) => c.nombre.trim()).length === 0
     ) {
       setError("Para 'Pregunta tipo tabla' debes agregar al menos una columna");
       return;
@@ -453,11 +473,49 @@ export function usePreguntaEditor({
           formPregunta.tipo === TIPOS_PREGUNTA.TABLA
             ? JSON.stringify(
                 formPregunta.tabla_columnas
-                  .map((c) => c.trim())
-                  .filter(Boolean),
+                  .map((c) => ({
+                    nombre: c.nombre.trim(),
+                    tipo: c.tipo,
+                    ...(c.tipo === "CATALOGO"
+                      ? {
+                          catalogo_base_datos: c.catalogo_base_datos || undefined,
+                          catalogo_tabla: c.catalogo_tabla || undefined,
+                          catalogo_columna: c.catalogo_columna || undefined,
+                          catalogo_pk_column: c.catalogo_pk_column || undefined,
+                        }
+                      : {}),
+                  }))
+                  .filter((c) => Boolean(c.nombre)),
               )
             : null,
         fp_ancho_completo: formPregunta.ancho_completo,
+        ...(formPregunta.tipo === TIPOS_PREGUNTA.TABLA
+          ? {
+              fp_maximo:
+                formPregunta.tabla_limite_modo === "FIJO" &&
+                formPregunta.tabla_limite_fijo.trim()
+                  ? parseInt(formPregunta.tabla_limite_fijo, 10)
+                  : null,
+              fp_tabla_limite_modo: formPregunta.tabla_limite_modo,
+              fp_tabla_limite_pregunta_id:
+                formPregunta.tabla_limite_modo === "CONDICIONAL"
+                  ? formPregunta.tabla_limite_pregunta_id
+                  : null,
+              fp_tabla_limite_reglas:
+                formPregunta.tabla_limite_modo === "CONDICIONAL"
+                  ? JSON.stringify(
+                      formPregunta.tabla_limite_reglas
+                        .map((r) => ({
+                          valor: r.valor.trim(),
+                          limite: r.limite.trim()
+                            ? parseInt(r.limite, 10)
+                            : null,
+                        }))
+                        .filter((r) => Boolean(r.valor)),
+                    )
+                  : null,
+            }
+          : {}),
       };
 
       if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT) {
@@ -577,12 +635,51 @@ export function usePreguntaEditor({
         if (!pregunta.fp_tabla_columnas) return [];
         try {
           const parsed = JSON.parse(pregunta.fp_tabla_columnas);
-          return Array.isArray(parsed) ? parsed : [];
+          if (!Array.isArray(parsed)) return [];
+          // Compatibilidad con columnas antiguas guardadas como string plano
+          return parsed.map((c: unknown): ColumnaTabla => {
+            if (typeof c === "string") return { nombre: c, tipo: "TEXTO" };
+            const col = c as ColumnaTabla;
+            return {
+              nombre: col.nombre,
+              tipo: col.tipo || "TEXTO",
+              catalogo_base_datos: col.catalogo_base_datos,
+              catalogo_tabla: col.catalogo_tabla,
+              catalogo_columna: col.catalogo_columna,
+              catalogo_pk_column: col.catalogo_pk_column,
+            };
+          });
         } catch {
           return [];
         }
       })(),
       ancho_completo: Boolean(pregunta.fp_ancho_completo),
+      tabla_limite_modo:
+        (pregunta.fp_tabla_limite_modo as "SIN_LIMITE" | "FIJO" | "CONDICIONAL") ||
+        "SIN_LIMITE",
+      tabla_limite_fijo:
+        pregunta.fp_tabla_limite_modo === "FIJO" && pregunta.fp_maximo != null
+          ? String(pregunta.fp_maximo)
+          : "",
+      tabla_limite_seccion_id:
+        preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id)
+          ?.seccion_id ?? null,
+      tabla_limite_pregunta_id: pregunta.fp_tabla_limite_pregunta_id ?? null,
+      tabla_limite_reglas: (() => {
+        if (!pregunta.fp_tabla_limite_reglas) return [];
+        try {
+          const parsed = JSON.parse(pregunta.fp_tabla_limite_reglas);
+          if (!Array.isArray(parsed)) return [];
+          return parsed.map(
+            (r: { valor?: string; limite?: number | null }): ReglaLimiteTabla => ({
+              valor: String(r.valor ?? ""),
+              limite: r.limite != null ? String(r.limite) : "",
+            }),
+          );
+        } catch {
+          return [];
+        }
+      })(),
     });
     setEditandoPregunta(pregunta.fp_id);
     setNuevaPregunta(false);
@@ -591,8 +688,23 @@ export function usePreguntaEditor({
     setFiltroBaseDatos(pregunta.fp_catalogo_base_datos ?? "");
     setFiltroTabla(pregunta.fp_catalogo_tabla ?? "");
     setFiltroColumna(pregunta.fp_catalogo_columna ?? "");
+    setFiltroLlave(pregunta.fp_catalogo_pk_column ?? "");
 
     if (
+      [TIPOS_PREGUNTA.SELECT, TIPOS_PREGUNTA.MULTISELECT].includes(
+        pregunta.fp_tipo as any,
+      ) &&
+      Array.isArray(pregunta.opciones)
+    ) {
+      // El listado de preguntas ya trae las opciones precargadas (endpoint
+      // "completo" batched), asi que no hace falta otra llamada de red aqui.
+      setOpciones(pregunta.opciones);
+      setOpcionesNuevas(
+        pregunta.opciones
+          .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
+          .filter((item: string | undefined): item is string => Boolean(item?.trim())),
+      );
+    } else if (
       [
         TIPOS_PREGUNTA.SELECT,
         TIPOS_PREGUNTA.MULTISELECT,
@@ -802,6 +914,9 @@ export function usePreguntaEditor({
     loadingCatalogoBases,
     loadingCatalogoTablas,
     loadingCatalogoColumnas,
+    cargarBasesCatalogo,
+    cargarTablasCatalogo,
+    cargarColumnasCatalogo,
     documentosCatalogo,
     loadingDocumentosCatalogo,
     filtroBaseDatos,
@@ -810,9 +925,12 @@ export function usePreguntaEditor({
     setFiltroTabla,
     filtroColumna,
     setFiltroColumna,
+    filtroLlave,
+    setFiltroLlave,
     basesFiltradas,
     tablasFiltradas,
     columnasFiltradas,
+    llaveFiltrada,
     // Error handling
     error,
     setError,

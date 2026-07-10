@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   DndContext,
@@ -33,6 +33,7 @@ import { LoadingModal } from "@/components/modals";
 import { useFormulario } from "./hooks/useFormulario";
 import { useSeccionEditor } from "./hooks/useSeccionEditor";
 import { usePreguntaEditor } from "./hooks/usePreguntaEditor";
+import { ColumnaCatalogoPicker } from "./components/ColumnaCatalogoPicker";
 import type { Pregunta, TipoPreguntaCatalogo } from "./hooks/types";
 
 type SortableItemProps = {
@@ -175,9 +176,15 @@ export default function FormularioEditorPage() {
     setFiltroTabla,
     filtroColumna,
     setFiltroColumna,
+    filtroLlave,
+    setFiltroLlave,
     basesFiltradas,
     tablasFiltradas,
     columnasFiltradas,
+    llaveFiltrada,
+    cargarBasesCatalogo,
+    cargarTablasCatalogo,
+    cargarColumnasCatalogo,
     guardarPregunta,
     iniciarEdicionPregunta,
     eliminarPregunta,
@@ -204,6 +211,10 @@ export default function FormularioEditorPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
+
+  const [columnaCatalogoAbierta, setColumnaCatalogoAbierta] = useState<
+    number | null
+  >(null);
 
   if (loading) {
     return <LoadingModal isOpen message="Cargando formulario..." />;
@@ -1356,43 +1367,62 @@ export default function FormularioEditorPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Filtrar bases de datos..."
+                        placeholder="Escribe para filtrar (ej: cli)..."
                         value={filtroBaseDatos}
                         onChange={(e) => setFiltroBaseDatos(e.target.value)}
                         className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent focus:shadow-lg bg-white transition-all"
                       />
-                      <select
-                        value={formPregunta.catalogo_base_datos}
-                        onChange={(e) =>
-                          setFormPregunta({
-                            ...formPregunta,
-                            catalogo_base_datos: e.target.value,
-                            catalogo_tabla: "",
-                            catalogo_columna: "",
-                          })
-                        }
-                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white transition-all"
-                      >
-                        <option value="">
-                          Base principal (
-                          {loadingCatalogoBases ? "cargando..." : "seleccionar"}
-                          )
-                        </option>
-                        {basesFiltradas.map((base) => (
-                          <option key={base} value={base}>
-                            {base}
-                          </option>
-                        ))}
-                        {!loadingCatalogoBases &&
-                          catalogoBases.length > 0 &&
-                          basesFiltradas.length === 0 && (
-                            <option value="" disabled>
-                              Sin coincidencias para el filtro
-                            </option>
+                      {(!formPregunta.catalogo_base_datos ||
+                        filtroBaseDatos !== formPregunta.catalogo_base_datos) && (
+                        <div className="max-h-32 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+                          {loadingCatalogoBases && (
+                            <p className="px-2 py-1 text-xs text-gray-500">Cargando bases...</p>
                           )}
-                      </select>
+                          {!loadingCatalogoBases && basesFiltradas.length === 0 && (
+                            <p className="px-2 py-1 text-xs text-gray-500">
+                              {catalogoBases.length === 0
+                                ? "No hay bases disponibles"
+                                : "Sin coincidencias para el filtro"}
+                            </p>
+                          )}
+                          {!loadingCatalogoBases &&
+                            basesFiltradas.map((base) => (
+                              <button
+                                type="button"
+                                key={base}
+                                onClick={() => {
+                                  setFormPregunta({
+                                    ...formPregunta,
+                                    catalogo_base_datos: base,
+                                    catalogo_tabla: "",
+                                    catalogo_columna: "",
+                                  });
+                                  setFiltroBaseDatos(base);
+                                  setFiltroTabla("");
+                                  setFiltroColumna("");
+                                }}
+                                className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                              >
+                                {base}
+                              </button>
+                            ))}
+                        </div>
+                      )}
                       <p className="text-xs text-gray-500">
-                        Si lo dejas vacío, se usa la base de datos principal.
+                        {formPregunta.catalogo_base_datos ? (
+                          <>
+                            Seleccionada: <strong>{formPregunta.catalogo_base_datos}</strong>{" "}
+                            <button
+                              type="button"
+                              onClick={() => setFiltroBaseDatos("")}
+                              className="text-sky-700 underline hover:text-sky-900"
+                            >
+                              cambiar
+                            </button>
+                          </>
+                        ) : (
+                          "Si lo dejas vacío, se usa la base de datos principal."
+                        )}
                       </p>
                     </div>
 
@@ -1402,40 +1432,57 @@ export default function FormularioEditorPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Filtrar tablas..."
+                        placeholder="Escribe para filtrar (ej: cli)..."
                         value={filtroTabla}
                         onChange={(e) => setFiltroTabla(e.target.value)}
                         className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent focus:shadow-lg bg-white transition-all"
                       />
-                      <select
-                        value={formPregunta.catalogo_tabla}
-                        onChange={(e) =>
-                          setFormPregunta({
-                            ...formPregunta,
-                            catalogo_tabla: e.target.value,
-                            catalogo_columna: "",
-                          })
-                        }
-                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white transition-all"
-                      >
-                        <option value="">
-                          {loadingCatalogoTablas
-                            ? "Cargando tablas..."
-                            : "Selecciona una tabla"}
-                        </option>
-                        {tablasFiltradas.map((tabla) => (
-                          <option key={tabla} value={tabla}>
-                            {tabla}
-                          </option>
-                        ))}
-                        {!loadingCatalogoTablas &&
-                          catalogoTablas.length > 0 &&
-                          tablasFiltradas.length === 0 && (
-                            <option value="" disabled>
-                              Sin coincidencias para el filtro
-                            </option>
+                      {(!formPregunta.catalogo_tabla ||
+                        filtroTabla !== formPregunta.catalogo_tabla) && (
+                        <div className="max-h-32 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+                          {loadingCatalogoTablas && (
+                            <p className="px-2 py-1 text-xs text-gray-500">Cargando tablas...</p>
                           )}
-                      </select>
+                          {!loadingCatalogoTablas && tablasFiltradas.length === 0 && (
+                            <p className="px-2 py-1 text-xs text-gray-500">
+                              {catalogoTablas.length === 0
+                                ? "No hay tablas disponibles"
+                                : "Sin coincidencias para el filtro"}
+                            </p>
+                          )}
+                          {!loadingCatalogoTablas &&
+                            tablasFiltradas.map((tabla) => (
+                              <button
+                                type="button"
+                                key={tabla}
+                                onClick={() => {
+                                  setFormPregunta({
+                                    ...formPregunta,
+                                    catalogo_tabla: tabla,
+                                    catalogo_columna: "",
+                                  });
+                                  setFiltroTabla(tabla);
+                                  setFiltroColumna("");
+                                }}
+                                className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                              >
+                                {tabla}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                      {formPregunta.catalogo_tabla && (
+                        <p className="text-xs text-sky-700">
+                          Seleccionada: <strong>{formPregunta.catalogo_tabla}</strong>{" "}
+                          <button
+                            type="button"
+                            onClick={() => setFiltroTabla("")}
+                            className="text-sky-700 underline hover:text-sky-900"
+                          >
+                            cambiar
+                          </button>
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-0.5">
@@ -1444,40 +1491,56 @@ export default function FormularioEditorPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Filtrar columnas..."
+                        placeholder="Escribe para filtrar..."
                         value={filtroColumna}
                         onChange={(e) => setFiltroColumna(e.target.value)}
-                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent focus:shadow-lg bg-white transition-all"
-                      />
-                      <select
-                        value={formPregunta.catalogo_columna}
-                        onChange={(e) =>
-                          setFormPregunta({
-                            ...formPregunta,
-                            catalogo_columna: e.target.value,
-                          })
-                        }
-                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white disabled:bg-gray-100 transition-all"
                         disabled={!formPregunta.catalogo_tabla}
-                      >
-                        <option value="">
-                          {loadingCatalogoColumnas
-                            ? "Cargando columnas..."
-                            : "Selecciona una columna"}
-                        </option>
-                        {columnasFiltradas.map((columna) => (
-                          <option key={columna} value={columna}>
-                            {columna}
-                          </option>
-                        ))}
-                        {!loadingCatalogoColumnas &&
-                          catalogoColumnas.length > 0 &&
-                          columnasFiltradas.length === 0 && (
-                            <option value="" disabled>
-                              Sin coincidencias para el filtro
-                            </option>
+                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent focus:shadow-lg bg-white disabled:bg-gray-100 transition-all"
+                      />
+                      {(!formPregunta.catalogo_columna ||
+                        filtroColumna !== formPregunta.catalogo_columna) && (
+                        <div className="max-h-32 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+                          {loadingCatalogoColumnas && (
+                            <p className="px-2 py-1 text-xs text-gray-500">Cargando columnas...</p>
                           )}
-                      </select>
+                          {!loadingCatalogoColumnas && columnasFiltradas.length === 0 && (
+                            <p className="px-2 py-1 text-xs text-gray-500">
+                              {catalogoColumnas.length === 0
+                                ? "No hay columnas disponibles"
+                                : "Sin coincidencias para el filtro"}
+                            </p>
+                          )}
+                          {!loadingCatalogoColumnas &&
+                            columnasFiltradas.map((columna) => (
+                              <button
+                                type="button"
+                                key={columna}
+                                onClick={() => {
+                                  setFormPregunta({
+                                    ...formPregunta,
+                                    catalogo_columna: columna,
+                                  });
+                                  setFiltroColumna(columna);
+                                }}
+                                className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                              >
+                                {columna}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                      {formPregunta.catalogo_columna && (
+                        <p className="text-xs text-sky-700">
+                          Seleccionada: <strong>{formPregunta.catalogo_columna}</strong>{" "}
+                          <button
+                            type="button"
+                            onClick={() => setFiltroColumna("")}
+                            className="text-sky-700 underline hover:text-sky-900"
+                          >
+                            cambiar
+                          </button>
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-0.5">
@@ -1486,40 +1549,56 @@ export default function FormularioEditorPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="Filtrar columnas..."
-                        value={filtroColumna}
-                        onChange={(e) => setFiltroColumna(e.target.value)}
-                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent focus:shadow-lg bg-white transition-all"
-                      />
-                      <select
-                        value={formPregunta.catalogo_pk_column}
-                        onChange={(e) =>
-                          setFormPregunta({
-                            ...formPregunta,
-                            catalogo_pk_column: e.target.value,
-                          })
-                        }
-                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white disabled:bg-gray-100 transition-all"
+                        placeholder="Escribe para filtrar..."
+                        value={filtroLlave}
+                        onChange={(e) => setFiltroLlave(e.target.value)}
                         disabled={!formPregunta.catalogo_tabla}
-                      >
-                        <option value="">
-                          {loadingCatalogoColumnas
-                            ? "Cargando columnas..."
-                            : "Selecciona la primary key"}
-                        </option>
-                        {columnasFiltradas.map((columna) => (
-                          <option key={columna} value={columna}>
-                            {columna}
-                          </option>
-                        ))}
-                        {!loadingCatalogoColumnas &&
-                          catalogoColumnas.length > 0 &&
-                          columnasFiltradas.length === 0 && (
-                            <option value="" disabled>
-                              Sin coincidencias para el filtro
-                            </option>
+                        className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent focus:shadow-lg bg-white disabled:bg-gray-100 transition-all"
+                      />
+                      {(!formPregunta.catalogo_pk_column ||
+                        filtroLlave !== formPregunta.catalogo_pk_column) && (
+                        <div className="max-h-32 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+                          {loadingCatalogoColumnas && (
+                            <p className="px-2 py-1 text-xs text-gray-500">Cargando columnas...</p>
                           )}
-                      </select>
+                          {!loadingCatalogoColumnas && llaveFiltrada.length === 0 && (
+                            <p className="px-2 py-1 text-xs text-gray-500">
+                              {catalogoColumnas.length === 0
+                                ? "No hay columnas disponibles"
+                                : "Sin coincidencias para el filtro"}
+                            </p>
+                          )}
+                          {!loadingCatalogoColumnas &&
+                            llaveFiltrada.map((columna) => (
+                              <button
+                                type="button"
+                                key={columna}
+                                onClick={() => {
+                                  setFormPregunta({
+                                    ...formPregunta,
+                                    catalogo_pk_column: columna,
+                                  });
+                                  setFiltroLlave(columna);
+                                }}
+                                className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                              >
+                                {columna}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                      {formPregunta.catalogo_pk_column && (
+                        <p className="text-xs text-sky-700">
+                          Seleccionada: <strong>{formPregunta.catalogo_pk_column}</strong>{" "}
+                          <button
+                            type="button"
+                            onClick={() => setFiltroLlave("")}
+                            className="text-sky-700 underline hover:text-sky-900"
+                          >
+                            cambiar
+                          </button>
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1761,39 +1840,231 @@ export default function FormularioEditorPage() {
                             (columna, index) => (
                               <div
                                 key={index}
-                                className="flex items-center gap-1 bg-white p-1 rounded border border-gray-200 text-xs"
+                                className="bg-white p-1 rounded border border-gray-200 text-xs space-y-1"
                               >
-                                <input
-                                  type="text"
-                                  placeholder={`Columna ${index + 1}`}
-                                  value={columna}
-                                  onChange={(e) => {
-                                    const nuevas = [
-                                      ...formPregunta.tabla_columnas,
-                                    ];
-                                    nuevas[index] = e.target.value;
-                                    setFormPregunta({
-                                      ...formPregunta,
-                                      tabla_columnas: nuevas,
-                                    });
-                                  }}
-                                  className="flex-1 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const nuevas =
-                                      formPregunta.tabla_columnas.filter(
-                                        (_, i) => i !== index,
-                                      );
-                                    setFormPregunta({
-                                      ...formPregunta,
-                                      tabla_columnas: nuevas,
-                                    });
-                                  }}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder={`Columna ${index + 1}`}
+                                    value={columna.nombre}
+                                    onChange={(e) => {
+                                      const nuevas = [
+                                        ...formPregunta.tabla_columnas,
+                                      ];
+                                      nuevas[index] = {
+                                        ...nuevas[index],
+                                        nombre: e.target.value,
+                                      };
+                                      setFormPregunta({
+                                        ...formPregunta,
+                                        tabla_columnas: nuevas,
+                                      });
+                                    }}
+                                    className="flex-1 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                  />
+                                  <select
+                                    value={columna.tipo}
+                                    onChange={(e) => {
+                                      const nuevoTipo = e.target.value as
+                                        | "TEXTO"
+                                        | "SI_NO"
+                                        | "CATALOGO";
+                                      const nuevas = [
+                                        ...formPregunta.tabla_columnas,
+                                      ];
+                                      nuevas[index] = {
+                                        ...nuevas[index],
+                                        tipo: nuevoTipo,
+                                      };
+                                      setFormPregunta({
+                                        ...formPregunta,
+                                        tabla_columnas: nuevas,
+                                      });
+                                      if (nuevoTipo === "CATALOGO") {
+                                        setColumnaCatalogoAbierta(index);
+                                        setFiltroBaseDatos(
+                                          nuevas[index].catalogo_base_datos || "",
+                                        );
+                                        setFiltroTabla(
+                                          nuevas[index].catalogo_tabla || "",
+                                        );
+                                        setFiltroColumna(
+                                          nuevas[index].catalogo_columna || "",
+                                        );
+                                        setFiltroLlave(
+                                          nuevas[index].catalogo_pk_column || "",
+                                        );
+                                        cargarBasesCatalogo();
+                                        if (nuevas[index].catalogo_tabla) {
+                                          cargarTablasCatalogo(
+                                            nuevas[index].catalogo_base_datos || "",
+                                          );
+                                        }
+                                        if (
+                                          nuevas[index].catalogo_tabla &&
+                                          nuevas[index].catalogo_columna
+                                        ) {
+                                          cargarColumnasCatalogo(
+                                            nuevas[index].catalogo_base_datos || "",
+                                            nuevas[index].catalogo_tabla || "",
+                                          );
+                                        }
+                                      } else {
+                                        setColumnaCatalogoAbierta(null);
+                                      }
+                                    }}
+                                    className="border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
+                                  >
+                                    <option value="TEXTO">Texto libre</option>
+                                    <option value="SI_NO">Sí / No</option>
+                                    <option value="CATALOGO">Depende de una tabla</option>
+                                  </select>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (index === 0) return;
+                                      const nuevas = [
+                                        ...formPregunta.tabla_columnas,
+                                      ];
+                                      [nuevas[index - 1], nuevas[index]] = [
+                                        nuevas[index],
+                                        nuevas[index - 1],
+                                      ];
+                                      setFormPregunta({
+                                        ...formPregunta,
+                                        tabla_columnas: nuevas,
+                                      });
+                                      setColumnaCatalogoAbierta(null);
+                                    }}
+                                    disabled={index === 0}
+                                    className="p-1 text-purple-700 hover:bg-purple-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                                  >
+                                    <ChevronUp className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (
+                                        index ===
+                                        formPregunta.tabla_columnas.length - 1
+                                      )
+                                        return;
+                                      const nuevas = [
+                                        ...formPregunta.tabla_columnas,
+                                      ];
+                                      [nuevas[index], nuevas[index + 1]] = [
+                                        nuevas[index + 1],
+                                        nuevas[index],
+                                      ];
+                                      setFormPregunta({
+                                        ...formPregunta,
+                                        tabla_columnas: nuevas,
+                                      });
+                                      setColumnaCatalogoAbierta(null);
+                                    }}
+                                    disabled={
+                                      index ===
+                                      formPregunta.tabla_columnas.length - 1
+                                    }
+                                    className="p-1 text-purple-700 hover:bg-purple-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                                  >
+                                    <ChevronDown className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const nuevas =
+                                        formPregunta.tabla_columnas.filter(
+                                          (_, i) => i !== index,
+                                        );
+                                      setFormPregunta({
+                                        ...formPregunta,
+                                        tabla_columnas: nuevas,
+                                      });
+                                      if (columnaCatalogoAbierta === index) {
+                                        setColumnaCatalogoAbierta(null);
+                                      }
+                                    }}
+                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+
+                                {columna.tipo === "CATALOGO" && (
+                                  <div className="rounded border border-sky-200 bg-sky-50 p-1.5">
+                                    {columnaCatalogoAbierta !== index ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColumnaCatalogoAbierta(index);
+                                          setFiltroBaseDatos(
+                                            columna.catalogo_base_datos || "",
+                                          );
+                                          setFiltroTabla(columna.catalogo_tabla || "");
+                                          setFiltroColumna(
+                                            columna.catalogo_columna || "",
+                                          );
+                                          setFiltroLlave(
+                                            columna.catalogo_pk_column || "",
+                                          );
+                                          cargarBasesCatalogo();
+                                          cargarTablasCatalogo(
+                                            columna.catalogo_base_datos || "",
+                                          );
+                                          if (columna.catalogo_tabla) {
+                                            cargarColumnasCatalogo(
+                                              columna.catalogo_base_datos || "",
+                                              columna.catalogo_tabla,
+                                            );
+                                          }
+                                        }}
+                                        className="text-xs text-sky-700 underline hover:text-sky-900"
+                                      >
+                                        {columna.catalogo_tabla
+                                          ? `Tabla: ${columna.catalogo_tabla} · Columna: ${columna.catalogo_columna || "(sin elegir)"} — cambiar`
+                                          : "Configurar de qué tabla depende esta columna"}
+                                      </button>
+                                    ) : (
+                                      <ColumnaCatalogoPicker
+                                        columna={columna}
+                                        onChange={(cambios) => {
+                                          const nuevas = [
+                                            ...formPregunta.tabla_columnas,
+                                          ];
+                                          nuevas[index] = {
+                                            ...nuevas[index],
+                                            ...cambios,
+                                          };
+                                          setFormPregunta({
+                                            ...formPregunta,
+                                            tabla_columnas: nuevas,
+                                          });
+                                        }}
+                                        onCerrar={() => setColumnaCatalogoAbierta(null)}
+                                        catalogoBases={catalogoBases}
+                                        catalogoTablas={catalogoTablas}
+                                        catalogoColumnas={catalogoColumnas}
+                                        basesFiltradas={basesFiltradas}
+                                        tablasFiltradas={tablasFiltradas}
+                                        columnasFiltradas={columnasFiltradas}
+                                        loadingCatalogoBases={loadingCatalogoBases}
+                                        loadingCatalogoTablas={loadingCatalogoTablas}
+                                        loadingCatalogoColumnas={loadingCatalogoColumnas}
+                                        filtroBaseDatos={filtroBaseDatos}
+                                        setFiltroBaseDatos={setFiltroBaseDatos}
+                                        filtroTabla={filtroTabla}
+                                        setFiltroTabla={setFiltroTabla}
+                                        filtroColumna={filtroColumna}
+                                        setFiltroColumna={setFiltroColumna}
+                                        llaveFiltrada={llaveFiltrada}
+                                        filtroLlave={filtroLlave}
+                                        setFiltroLlave={setFiltroLlave}
+                                        cargarTablasCatalogo={cargarTablasCatalogo}
+                                        cargarColumnasCatalogo={cargarColumnasCatalogo}
+                                      />
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ),
                           )}
@@ -1805,7 +2076,7 @@ export default function FormularioEditorPage() {
                             ...formPregunta,
                             tabla_columnas: [
                               ...formPregunta.tabla_columnas,
-                              "",
+                              { nombre: "", tipo: "TEXTO" },
                             ],
                           })
                         }
@@ -1814,6 +2085,246 @@ export default function FormularioEditorPage() {
                         <Plus className="h-3 w-3" />
                         Agregar columna
                       </button>
+                    </div>
+                  )}
+
+                {/* Límite de filas TABLA */}
+                {(editandoPregunta || nuevaPregunta) &&
+                  formPregunta.tipo === TIPOS_PREGUNTA.TABLA && (
+                    <div className="border border-indigo-300 bg-indigo-50 rounded p-2 space-y-1.5">
+                      <h4 className="font-semibold text-xs mb-0.5">
+                        Límite de filas
+                      </h4>
+
+                      <label className="flex items-center gap-1 p-1.5 bg-white rounded border border-indigo-200 cursor-pointer hover:bg-indigo-100 text-xs">
+                        <input
+                          type="radio"
+                          name="tabla-limite-modo"
+                          checked={formPregunta.tabla_limite_modo === "SIN_LIMITE"}
+                          onChange={() =>
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_limite_modo: "SIN_LIMITE",
+                            })
+                          }
+                          className="w-4 h-4 accent-indigo-600"
+                        />
+                        <span className="font-medium text-gray-800">
+                          Sin límite
+                        </span>
+                      </label>
+
+                      <label className="flex items-center gap-1 p-1.5 bg-white rounded border border-indigo-200 cursor-pointer hover:bg-indigo-100 text-xs">
+                        <input
+                          type="radio"
+                          name="tabla-limite-modo"
+                          checked={formPregunta.tabla_limite_modo === "FIJO"}
+                          onChange={() =>
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_limite_modo: "FIJO",
+                            })
+                          }
+                          className="w-4 h-4 accent-indigo-600"
+                        />
+                        <span className="font-medium text-gray-800">
+                          Número fijo de filas
+                        </span>
+                      </label>
+                      {formPregunta.tabla_limite_modo === "FIJO" && (
+                        <input
+                          type="number"
+                          min={1}
+                          placeholder="Máximo de filas"
+                          value={formPregunta.tabla_limite_fijo}
+                          onChange={(e) =>
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_limite_fijo: e.target.value,
+                            })
+                          }
+                          className="ml-5 border border-indigo-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
+                      )}
+
+                      <label className="flex items-center gap-1 p-1.5 bg-white rounded border border-indigo-200 cursor-pointer hover:bg-indigo-100 text-xs">
+                        <input
+                          type="radio"
+                          name="tabla-limite-modo"
+                          checked={formPregunta.tabla_limite_modo === "CONDICIONAL"}
+                          onChange={() =>
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_limite_modo: "CONDICIONAL",
+                            })
+                          }
+                          className="w-4 h-4 accent-indigo-600"
+                        />
+                        <span className="font-medium text-gray-800">
+                          Depende de otra pregunta
+                        </span>
+                      </label>
+
+                      {formPregunta.tabla_limite_modo === "CONDICIONAL" && (
+                        <div className="ml-5 space-y-1.5 p-1.5 bg-white rounded border border-indigo-200">
+                          <div className="space-y-0.5">
+                            <label className="block text-xs font-semibold text-indigo-900 leading-tight">
+                              Sección de la pregunta{" "}
+                              <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={formPregunta.tabla_limite_seccion_id ?? ""}
+                              onChange={(e) =>
+                                setFormPregunta({
+                                  ...formPregunta,
+                                  tabla_limite_seccion_id: e.target.value
+                                    ? parseInt(e.target.value)
+                                    : null,
+                                  tabla_limite_pregunta_id: null,
+                                })
+                              }
+                              className="w-full border border-indigo-200 rounded px-2 py-1 text-xs bg-white"
+                            >
+                              <option value="">Seleccione sección</option>
+                              {secciones.map((seccion) => (
+                                <option
+                                  key={seccion.fs_id || seccion.seccion_id}
+                                  value={seccion.fs_id || seccion.seccion_id}
+                                >
+                                  {seccion.fs_orden || seccion.seccion_orden}.{" "}
+                                  {seccion.fs_nombre || seccion.seccion_nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-0.5">
+                            <label className="block text-xs font-semibold text-indigo-900 leading-tight">
+                              Pregunta que determina el límite{" "}
+                              <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={formPregunta.tabla_limite_pregunta_id ?? ""}
+                              onChange={(e) =>
+                                setFormPregunta({
+                                  ...formPregunta,
+                                  tabla_limite_pregunta_id: e.target.value
+                                    ? parseInt(e.target.value)
+                                    : null,
+                                })
+                              }
+                              className="w-full border border-indigo-200 rounded px-2 py-1 text-xs bg-white disabled:bg-gray-100"
+                              disabled={!formPregunta.tabla_limite_seccion_id}
+                            >
+                              <option value="">Seleccione pregunta</option>
+                              {preguntas
+                                .filter(
+                                  (p) =>
+                                    p.seccion_id ===
+                                      formPregunta.tabla_limite_seccion_id &&
+                                    p.fp_id !== editandoPregunta,
+                                )
+                                .map((p) => (
+                                  <option key={p.fp_id} value={p.fp_id}>
+                                    {p.fp_descripcion}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-indigo-900">
+                              Reglas (valor de la respuesta → límite):
+                            </p>
+                            {formPregunta.tabla_limite_reglas.length === 0 && (
+                              <p className="text-xs text-gray-600">
+                                Sin reglas todavía — mientras tanto actúa como sin
+                                límite.
+                              </p>
+                            )}
+                            {formPregunta.tabla_limite_reglas.map((regla, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-1 bg-indigo-50 p-1 rounded border border-indigo-100"
+                              >
+                                <input
+                                  type="text"
+                                  placeholder="Ej: No"
+                                  value={regla.valor}
+                                  onChange={(e) => {
+                                    const nuevas = [
+                                      ...formPregunta.tabla_limite_reglas,
+                                    ];
+                                    nuevas[index] = {
+                                      ...nuevas[index],
+                                      valor: e.target.value,
+                                    };
+                                    setFormPregunta({
+                                      ...formPregunta,
+                                      tabla_limite_reglas: nuevas,
+                                    });
+                                  }}
+                                  className="flex-1 border border-indigo-200 rounded px-1 py-0.5 text-xs"
+                                />
+                                <input
+                                  type="number"
+                                  min={0}
+                                  placeholder="Vacío = sin límite"
+                                  value={regla.limite}
+                                  onChange={(e) => {
+                                    const nuevas = [
+                                      ...formPregunta.tabla_limite_reglas,
+                                    ];
+                                    nuevas[index] = {
+                                      ...nuevas[index],
+                                      limite: e.target.value,
+                                    };
+                                    setFormPregunta({
+                                      ...formPregunta,
+                                      tabla_limite_reglas: nuevas,
+                                    });
+                                  }}
+                                  className="w-32 border border-indigo-200 rounded px-1 py-0.5 text-xs"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const nuevas =
+                                      formPregunta.tabla_limite_reglas.filter(
+                                        (_, i) => i !== index,
+                                      );
+                                    setFormPregunta({
+                                      ...formPregunta,
+                                      tabla_limite_reglas: nuevas,
+                                    });
+                                  }}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() =>
+                                setFormPregunta({
+                                  ...formPregunta,
+                                  tabla_limite_reglas: [
+                                    ...formPregunta.tabla_limite_reglas,
+                                    { valor: "", limite: "" },
+                                  ],
+                                })
+                              }
+                              className="px-2 py-1 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded hover:shadow-lg hover:from-indigo-600 hover:to-indigo-700 text-xs flex items-center gap-0.5 font-semibold transition-all duration-200"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Agregar regla
+                            </button>
+                            <p className="text-xs text-gray-500">
+                              Si la respuesta de esa pregunta no coincide con
+                              ninguna regla, la tabla queda sin límite.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1909,13 +2420,17 @@ export default function FormularioEditorPage() {
                               </p>
                               <div className="flex flex-wrap gap-1">
                                 {(() => {
-                                  let columnas: string[] = [];
+                                  let columnas: { nombre: string; tipo: string }[] = [];
                                   try {
                                     const parsed = pregunta.fp_tabla_columnas
                                       ? JSON.parse(pregunta.fp_tabla_columnas)
                                       : [];
                                     columnas = Array.isArray(parsed)
-                                      ? parsed
+                                      ? parsed.map((c: unknown) =>
+                                          typeof c === "string"
+                                            ? { nombre: c, tipo: "TEXTO" }
+                                            : (c as { nombre: string; tipo: string }),
+                                        )
                                       : [];
                                   } catch {
                                     columnas = [];
@@ -1926,7 +2441,8 @@ export default function FormularioEditorPage() {
                                         key={idx}
                                         className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs border border-purple-200"
                                       >
-                                        {columna}
+                                        {columna.nombre}
+                                        {columna.tipo === "SI_NO" && " (Sí/No)"}
                                       </span>
                                     ))
                                   ) : (

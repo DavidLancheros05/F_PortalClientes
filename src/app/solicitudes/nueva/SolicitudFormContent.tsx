@@ -1099,14 +1099,18 @@ export default function SolicitudFormContent({
         const filas = JSON.parse(respuesta.valor_texto);
         if (!Array.isArray(filas)) return false;
 
-        let columnasTabla: string[] = [];
+        let nombresColumnas: string[] = [];
         try {
           const parsedColumnas = JSON.parse(pregunta.fp_tabla_columnas || "[]");
-          columnasTabla = Array.isArray(parsedColumnas) ? parsedColumnas : [];
+          nombresColumnas = Array.isArray(parsedColumnas)
+            ? parsedColumnas.map((c: unknown) =>
+                typeof c === "string" ? c : (c as { nombre?: string })?.nombre,
+              ).filter((n): n is string => typeof n === "string")
+            : [];
         } catch {
-          columnasTabla = [];
+          nombresColumnas = [];
         }
-        if (columnasTabla.length === 0 || filas.length === 0) return false;
+        if (nombresColumnas.length === 0 || filas.length === 0) return false;
 
         // Se considera respondida solo si TODAS las filas están completas
         // (todas sus columnas tienen valor); una fila a medias invalida la pregunta.
@@ -1114,7 +1118,7 @@ export default function SolicitudFormContent({
           (fila) =>
             fila &&
             typeof fila === "object" &&
-            columnasTabla.every(
+            nombresColumnas.every(
               (columna) =>
                 typeof fila[columna] === "string" && fila[columna].trim() !== "",
             ),
@@ -1585,9 +1589,19 @@ export default function SolicitudFormContent({
 
     setIsSaving(true);
     try {
+      // Solo se reenvían las respuestas que cambiaron desde el último guardado
+      // (no todo el formulario), para no reprocesar campos que no se tocaron.
+      const respuestasCambiadas = Object.fromEntries(
+        Object.entries(respuestas).filter(
+          ([fp_id, respuesta]) =>
+            JSON.stringify(respuesta) !==
+            JSON.stringify(lastSavedResponses.current[fp_id]),
+        ),
+      );
+
       const result = await solicitudesService.guardarBorrador(
         solicitudId,
-        respuestas,
+        respuestasCambiadas,
         preguntas,
         getClienteIdForSolicitud(),
         user.usr_id,

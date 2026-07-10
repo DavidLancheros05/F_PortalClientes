@@ -49,7 +49,23 @@ export function usePreguntasFormulario({
   const cargarOpcionesCatalogoTabla = async (
     pregunta: FormularioPregunta,
   ): Promise<Opcion[]> => {
-    return Array.isArray(pregunta.opciones) ? pregunta.opciones : [];
+    if (!pregunta.fp_catalogo_tabla) {
+      return Array.isArray(pregunta.opciones) ? pregunta.opciones : [];
+    }
+    try {
+      return await maestrosService.getCatalogo(
+        pregunta.fp_catalogo_tabla,
+        pregunta.fp_catalogo_base_datos,
+        pregunta.fp_catalogo_columna,
+        pregunta.fp_catalogo_pk_column,
+      );
+    } catch (error) {
+      console.error(
+        `Error cargando catálogo externo para pregunta ${pregunta.fp_id}:`,
+        error,
+      );
+      return [];
+    }
   };
 
   const cargarOpcionesDocumentosTabla = async (

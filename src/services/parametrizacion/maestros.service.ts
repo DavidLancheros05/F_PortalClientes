@@ -27,6 +27,21 @@ export const maestrosService = {
     return Array.isArray(res.data) ? res.data : [];
   },
 
+  async getCatalogoValores(
+    tabla: string,
+    baseDatos?: string,
+    columnaDescripcion?: string,
+    columnaId?: string,
+  ): Promise<{ op_id: number; op_descripcion: string }[]> {
+    if (!tabla?.trim()) return [];
+    const params: Record<string, string> = { tabla: tabla.trim() };
+    if (baseDatos?.trim()) params.base_datos = baseDatos.trim();
+    if (columnaDescripcion?.trim()) params.columna_descripcion = columnaDescripcion.trim();
+    if (columnaId?.trim()) params.columna_id = columnaId.trim();
+    const res = await api.get("/maestros/catalogo", { params });
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
   async getCatalogoDocumentos(): Promise<DocumentoCatalogo[]> {
     try {
       const fullRes = await api.get("/maestros/catalogo-documentos", { params: { mode: "full" } });

@@ -105,7 +105,7 @@ export function DocumentoTablaField({
     });
   }, [pregunta.fp_id, archivoExistente?.sd_fecha_emision, preguntaFechaAsociada?.fp_id, respuestas, fechaFormato]);
 
-  const resumenVigencia = calcularVigenciaDocumento(fechaFormato, vigenciaDias);
+  const resumenVigencia = calcularVigenciaDocumento(fechaInputValue, vigenciaDias);
 
   return (
     <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2">

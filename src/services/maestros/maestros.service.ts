@@ -35,4 +35,19 @@ export const maestrosService = {
     const res = await api.get("/maestros/ciudades", { params: { depto_id } });
     return Array.isArray(res.data) ? res.data : [];
   },
+
+  getCatalogo: async (
+    tabla: string,
+    baseDatos?: string | null,
+    columnaDescripcion?: string | null,
+    columnaId?: string | null,
+  ): Promise<{ op_id: number; op_descripcion: string }[]> => {
+    if (!tabla?.trim()) return [];
+    const params: Record<string, string> = { tabla: tabla.trim() };
+    if (baseDatos?.trim()) params.base_datos = baseDatos.trim();
+    if (columnaDescripcion?.trim()) params.columna_descripcion = columnaDescripcion.trim();
+    if (columnaId?.trim()) params.columna_id = columnaId.trim();
+    const res = await api.get("/maestros/catalogo", { params });
+    return Array.isArray(res.data) ? res.data : [];
+  },
 };
