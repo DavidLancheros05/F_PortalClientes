@@ -2,7 +2,7 @@ import api from "@/services/core/api";
 
 export interface CondicionFinanciera {
   condicion_id: number;
-  solicitud_id: number;
+  sa_sol_id: number;
   cupo: number;
   plazo_pago: number;
   forma_pago: string;
@@ -10,8 +10,12 @@ export interface CondicionFinanciera {
 }
 
 export const condicionesFinancierasService = {
-  getBySolicitud: async (solicitudId: number): Promise<CondicionFinanciera[]> => {
-    const res = await api.get(`/condiciones-financieras/solicitud/${solicitudId}`);
+  getBySolicitud: async (
+    solicitudId: number,
+  ): Promise<CondicionFinanciera[]> => {
+    const res = await api.get(
+      `/condiciones-financieras/solicitud/${solicitudId}`,
+    );
     return res.data;
   },
 

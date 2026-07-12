@@ -9,10 +9,12 @@ export const ESTADO_SOLICITUD = {
 } as const;
 
 // Tipo para el ID del estado
-export type EstadoSolicitudId = typeof ESTADO_SOLICITUD[keyof typeof ESTADO_SOLICITUD]["id"];
+export type EstadoSolicitudId =
+  (typeof ESTADO_SOLICITUD)[keyof typeof ESTADO_SOLICITUD]["id"];
 
 // Tipo para el código del estado
-export type EstadoSolicitudCodigo = typeof ESTADO_SOLICITUD[keyof typeof ESTADO_SOLICITUD]["codigo"];
+export type EstadoSolicitudCodigo =
+  (typeof ESTADO_SOLICITUD)[keyof typeof ESTADO_SOLICITUD]["codigo"];
 
 // Mapa inverso de código a objeto de estado
 export const ESTADO_SOLICITUD_POR_CODIGO: Record<

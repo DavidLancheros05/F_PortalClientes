@@ -125,9 +125,7 @@ const ModuloPadreTreeSelect: React.FC<ModuloPadreTreeSelectProps> = ({
           </div>
 
           {hasChildren && isExpanded && !isExcluded && (
-            <div>
-              {renderTree(node.subModulos || [], depth + 1)}
-            </div>
+            <div>{renderTree(node.subModulos || [], depth + 1)}</div>
           )}
         </div>
       );
@@ -141,9 +139,7 @@ const ModuloPadreTreeSelect: React.FC<ModuloPadreTreeSelectProps> = ({
         onClick={() => setTreeOpen(!treeOpen)}
         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white text-left text-sm text-slate-700 flex items-center justify-between"
       >
-        <span>
-          {selectedLabel || "-- Ninguno (módulo principal) --"}
-        </span>
+        <span>{selectedLabel || "-- Ninguno (módulo principal) --"}</span>
         <ChevronDown
           className={`w-4 h-4 text-slate-400 transition-transform ${
             treeOpen ? "rotate-180" : ""
@@ -292,7 +288,6 @@ const ModulosPage = () => {
     () => getDescendantIds(editingModulo),
     [editingModulo],
   );
-
 
   // Función para obtener todos los IDs de una rama (para colapso)
   const getBranchIds = (node: Modulo): number[] => {
@@ -460,7 +455,10 @@ const ModulosPage = () => {
       };
 
       if (editingModulo) {
-        await modulosManagementService.updateModulo(editingModulo.mod_id, basePayload);
+        await modulosManagementService.updateModulo(
+          editingModulo.mod_id,
+          basePayload,
+        );
       } else {
         await modulosManagementService.createModulo(basePayload);
       }

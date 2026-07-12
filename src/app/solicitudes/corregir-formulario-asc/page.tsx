@@ -30,7 +30,7 @@ interface Solicitud {
   fecha_real_respuesta_comercial: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
@@ -359,7 +359,7 @@ export default function CorregirFormularioASCPage() {
                     {solicitudesActuales.map((solicitud) => {
                       return (
                         <tr
-                          key={solicitud.sol_id ?? solicitud.solicitud_id}
+                          key={solicitud.sol_id ?? solicitud.sa_sol_id}
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
@@ -426,7 +426,7 @@ export default function CorregirFormularioASCPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.solicitud_id}?mode=view`,
+                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}?mode=view`,
                                 )
                               }
                               className="text-gray-600 hover:text-blue-600 transition-colors"
@@ -439,7 +439,7 @@ export default function CorregirFormularioASCPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.solicitud_id}/editar?returnTo=/solicitudes/corregir-formulario-asc`,
+                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}/editar?returnTo=/solicitudes/corregir-formulario-asc`,
                                 )
                               }
                               className="text-blue-600 hover:text-blue-800 transition-colors"

@@ -411,13 +411,9 @@ export default function GestionarPQRSPage() {
 
                   <button
                     onClick={handleCambiarEstado}
-                    disabled={
-                      !selectedEstadoId ||
-                      cambiandoEstado
-                    }
+                    disabled={!selectedEstadoId || cambiandoEstado}
                     className={`w-full py-2 px-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 transition-all ${
-                      !selectedEstadoId ||
-                      cambiandoEstado
+                      !selectedEstadoId || cambiandoEstado
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700 active:scale-95"
                     }`}

@@ -31,8 +31,7 @@ function DiferenciaBadge({ diferencia }: { diferencia: number }) {
   }
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-      <XCircle className="w-3 h-3" />
-      +{diferencia} d vencida
+      <XCircle className="w-3 h-3" />+{diferencia} d vencida
     </span>
   );
 }
@@ -49,12 +48,17 @@ export default function IndicadoresAreaPage() {
   const [loading, setLoading] = useState(false);
   const [loadingAreas, setLoadingAreas] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState<"todas" | "a_tiempo" | "vencida">("todas");
+  const [filtro, setFiltro] = useState<"todas" | "a_tiempo" | "vencida">(
+    "todas",
+  );
 
   useEffect(() => {
     if (authLoading) return;
     cargarAreas();
-    centrosOperacionService.getAll().then(setCentros).catch(() => {});
+    centrosOperacionService
+      .getAll()
+      .then(setCentros)
+      .catch(() => {});
   }, [authLoading]);
 
   async function cargarAreas() {
@@ -124,7 +128,9 @@ export default function IndicadoresAreaPage() {
         {/* Header + Filtros Card */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">Tiempos por Área</h1>
+            <h1 className="text-4xl font-bold text-gray-900">
+              Tiempos por Área
+            </h1>
             <p className="text-gray-600 text-base mt-1">
               Consulta cuántos días tomó cada área en diferentes solicitudes
             </p>
@@ -149,7 +155,9 @@ export default function IndicadoresAreaPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha desde</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha desde
+              </label>
               <input
                 type="date"
                 value={fechaDesde}
@@ -158,7 +166,9 @@ export default function IndicadoresAreaPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha hasta</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha hasta
+              </label>
               <input
                 type="date"
                 value={fechaHasta}
@@ -167,7 +177,9 @@ export default function IndicadoresAreaPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Centro de operación</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Centro de operación
+              </label>
               <select
                 value={coId}
                 onChange={(e) => setCoId(e.target.value)}
@@ -213,20 +225,30 @@ export default function IndicadoresAreaPage() {
         {areaInfo && solicitudes.length > 0 && (
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-sm mb-2">Solicitudes procesadas</p>
-              <p className="text-4xl font-bold text-gray-900">{areaInfo.total}</p>
+              <p className="text-gray-600 text-sm mb-2">
+                Solicitudes procesadas
+              </p>
+              <p className="text-4xl font-bold text-gray-900">
+                {areaInfo.total}
+              </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <p className="text-gray-600 text-sm mb-2">A tiempo</p>
-              <p className="text-4xl font-bold text-green-600">{areaInfo.a_tiempo}</p>
+              <p className="text-4xl font-bold text-green-600">
+                {areaInfo.a_tiempo}
+              </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <p className="text-gray-600 text-sm mb-2">Vencidas</p>
-              <p className="text-4xl font-bold text-red-600">{areaInfo.vencidas}</p>
+              <p className="text-4xl font-bold text-red-600">
+                {areaInfo.vencidas}
+              </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <p className="text-gray-600 text-sm mb-2">Cumplimiento</p>
-              <p className="text-4xl font-bold text-blue-600">{areaInfo.pct_cumplimiento}%</p>
+              <p className="text-4xl font-bold text-blue-600">
+                {areaInfo.pct_cumplimiento}%
+              </p>
             </div>
           </div>
         )}
@@ -257,16 +279,16 @@ export default function IndicadoresAreaPage() {
                         ? f === "vencida"
                           ? "bg-red-100 text-red-700"
                           : f === "a_tiempo"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-blue-100 text-blue-700"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-blue-100 text-blue-700"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
                     {f === "todas"
                       ? `Todas (${solicitudes.length})`
                       : f === "a_tiempo"
-                      ? `A tiempo (${solicitudes.filter((s) => s.estado === "a_tiempo").length})`
-                      : `Vencidas (${solicitudes.filter((s) => s.estado === "vencida").length})`}
+                        ? `A tiempo (${solicitudes.filter((s) => s.estado === "a_tiempo").length})`
+                        : `Vencidas (${solicitudes.filter((s) => s.estado === "vencida").length})`}
                   </button>
                 ))}
               </div>
@@ -337,7 +359,8 @@ export default function IndicadoresAreaPage() {
 
             {/* Footer */}
             <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-              {filtradas.length} solicitud{filtradas.length !== 1 ? "es" : ""} mostrada{filtradas.length !== 1 ? "s" : ""}
+              {filtradas.length} solicitud{filtradas.length !== 1 ? "es" : ""}{" "}
+              mostrada{filtradas.length !== 1 ? "s" : ""}
             </div>
           </div>
         )}
@@ -345,7 +368,9 @@ export default function IndicadoresAreaPage() {
         {/* Estado inicial */}
         {!loading && solicitudes.length === 0 && areaSeleccionada && (
           <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <p className="text-gray-600 text-base">Presiona "Buscar" para ver los datos de esta área</p>
+            <p className="text-gray-600 text-base">
+              Presiona "Buscar" para ver los datos de esta área
+            </p>
           </div>
         )}
       </div>

@@ -79,7 +79,9 @@ export function PQRSTimeline({ eventos }: PQRSTimelineProps) {
                 <p className="text-sm text-gray-600 mb-2">{evento.mensaje}</p>
               )}
               {evento.description && (
-                <p className="text-sm text-gray-600 mb-2">{evento.description}</p>
+                <p className="text-sm text-gray-600 mb-2">
+                  {evento.description}
+                </p>
               )}
 
               {evento.estado_anterior && evento.estado_nuevo && (

@@ -7,8 +7,12 @@ export interface TipoDocumento {
   obligatorio: boolean;
   aplicaFechaEmision: boolean;
   vigenciaDias: number | null;
+  reglaVigencia: "DIAS" | "ANIO" | null;
+  aniosAtrasPermitidos: number | null;
   aplicaZonaFranca: boolean;
   estado: boolean;
+  tienePlantilla: boolean;
+  plantillaContenido: string | null;
 }
 
 export interface TipoDocumentoPayload {
@@ -17,6 +21,10 @@ export interface TipoDocumentoPayload {
   obligatorio: boolean;
   aplicaFechaEmision: boolean;
   vigenciaDias?: number;
+  reglaVigencia?: "DIAS" | "ANIO" | "";
+  aniosAtrasPermitidos?: number;
   aplicaZonaFranca: boolean;
   estado: boolean;
+  tienePlantilla?: boolean;
+  plantillaContenido?: string;
 }

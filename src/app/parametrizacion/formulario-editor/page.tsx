@@ -29,7 +29,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, ConfirmModal } from "@/components/modals";
 import { useFormulario } from "./hooks/useFormulario";
 import { useSeccionEditor } from "./hooks/useSeccionEditor";
 import { usePreguntaEditor } from "./hooks/usePreguntaEditor";
@@ -137,6 +137,9 @@ export default function FormularioEditorPage() {
     guardarSeccion,
     iniciarEdicionSeccion,
     eliminarSeccion,
+    confirmarEliminarSeccion,
+    seccionAEliminar,
+    setSeccionAEliminar,
     cambiarOrdenSeccion,
     handleSeccionDragEnd,
   } = useSeccionEditor({
@@ -169,6 +172,8 @@ export default function FormularioEditorPage() {
     catalogoColumnas,
     loadingCatalogoColumnas,
     documentosCatalogo,
+    opcionesPreguntaPadre,
+    loadingOpcionesPreguntaPadre,
     loadingDocumentosCatalogo,
     filtroBaseDatos,
     setFiltroBaseDatos,
@@ -186,10 +191,24 @@ export default function FormularioEditorPage() {
     cargarTablasCatalogo,
     cargarColumnasCatalogo,
     guardarPregunta,
+    puedeGuardarPregunta,
     iniciarEdicionPregunta,
     eliminarPregunta,
+    confirmarEliminarPregunta,
+    preguntaAEliminar,
+    setPreguntaAEliminar,
     agregarOpcion,
     eliminarOpcion,
+    confirmarEliminarOpcion,
+    opcionAEliminar,
+    setOpcionAEliminar,
+    opcionEditandoId,
+    opcionEditandoValor,
+    setOpcionEditandoValor,
+    iniciarEdicionOpcion,
+    cancelarEdicionOpcion,
+    guardarEdicionOpcion,
+    obtenerPreguntasDependientesDeOpcion,
     eliminarOpcionNueva,
     cambiarOrdenPregunta,
     handlePreguntaDragEnd,
@@ -716,7 +735,11 @@ export default function FormularioEditorPage() {
                                     )
                                     ? prev.subtipo
                                     : ""
-                                  : "",
+                                  : tipo === TIPOS_PREGUNTA.FECHA
+                                    ? ["ACTUAL"].includes(prev.subtipo)
+                                      ? prev.subtipo
+                                      : ""
+                                    : "",
                             tipo_documento_id: null,
                             catalogo_base_datos: "",
                             catalogo_tabla: "",
@@ -828,49 +851,43 @@ export default function FormularioEditorPage() {
                   <label className="block text-xs font-semibold text-blue-900">
                     Sección <span className="text-red-500">*</span>
                   </label>
-                  {editandoPregunta ? (
-                    <div className="w-full border border-blue-200 rounded px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium">
-                      {secciones.find(
-                        (s) =>
-                          (s.fs_id || s.seccion_id) === formPregunta.seccion_id,
-                      )?.fs_nombre ||
-                        secciones.find(
-                          (s) =>
-                            (s.fs_id || s.seccion_id) ===
-                            formPregunta.seccion_id,
-                        )?.seccion_nombre ||
-                        "No asignada"}
-                    </div>
-                  ) : (
-                    <select
-                      value={formPregunta.seccion_id ?? ""}
-                      onChange={(e) => {
-                        setFormPregunta({
-                          ...formPregunta,
-                          seccion_id: e.target.value
-                            ? parseInt(e.target.value)
-                            : null,
-                        });
-                      }}
-                      className="w-full border border-blue-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
-                    >
-                      <option value="">Selecciona una sección</option>
-                      {secciones.map((seccion) => (
-                        <option
-                          key={seccion.fs_id || seccion.seccion_id}
-                          value={seccion.fs_id || seccion.seccion_id}
-                        >
-                          {seccion.fs_orden || seccion.seccion_orden}.{" "}
-                          {seccion.fs_nombre || seccion.seccion_nombre}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {!editandoPregunta && (
+                  <select
+                    value={formPregunta.seccion_id ?? ""}
+                    onChange={(e) => {
+                      setFormPregunta({
+                        ...formPregunta,
+                        seccion_id: e.target.value
+                          ? parseInt(e.target.value)
+                          : null,
+                      });
+                    }}
+                    className="w-full border border-blue-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
+                  >
+                    <option value="">Selecciona una sección</option>
+                    {secciones.map((seccion) => (
+                      <option
+                        key={seccion.fs_id || seccion.seccion_id}
+                        value={seccion.fs_id || seccion.seccion_id}
+                      >
+                        {seccion.fs_orden || seccion.seccion_orden}.{" "}
+                        {seccion.fs_nombre || seccion.seccion_nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {!editandoPregunta ? (
                     <p className="text-xs text-blue-600 font-medium">
                       La sección se define por la pestaña activa al crear una
-                      pregunta.
+                      pregunta, pero puedes cambiarla aquí si quieres.
                     </p>
+                  ) : (
+                    formPregunta.seccion_id !==
+                      preguntas.find((p) => p.fp_id === editandoPregunta)
+                        ?.seccion_id && (
+                      <p className="text-xs text-amber-700 font-medium">
+                        ⚠️ Al guardar, esta pregunta se moverá a la sección
+                        seleccionada (quedará al final de esa sección).
+                      </p>
+                    )
                   )}
                 </div>
 
@@ -1053,6 +1070,50 @@ export default function FormularioEditorPage() {
                   </div>
                 )}
 
+                {/* Subtipo FECHA */}
+                {formPregunta.tipo === TIPOS_PREGUNTA.FECHA && (
+                  <div className="space-y-1.5 rounded-lg border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-2">
+                    <p className="text-xs font-semibold text-sky-900">
+                      📅 Forma de respuesta de fecha
+                    </p>
+                    <label className="flex items-center gap-1 p-2 bg-white rounded-lg border border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors text-xs">
+                      <input
+                        type="radio"
+                        name="fecha-visual-mode"
+                        checked={formPregunta.subtipo !== "ACTUAL"}
+                        onChange={() =>
+                          setFormPregunta((prev) => ({
+                            ...prev,
+                            subtipo: "",
+                          }))
+                        }
+                        className="w-4 h-4 accent-sky-600"
+                      />
+                      <span className="text-xs font-medium text-gray-800">
+                        Normal — el usuario elige la fecha
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-1 p-2 bg-white rounded-lg border border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors text-xs">
+                      <input
+                        type="radio"
+                        name="fecha-visual-mode"
+                        checked={formPregunta.subtipo === "ACTUAL"}
+                        onChange={() =>
+                          setFormPregunta((prev) => ({
+                            ...prev,
+                            subtipo: "ACTUAL",
+                          }))
+                        }
+                        className="w-4 h-4 accent-sky-600"
+                      />
+                      <span className="text-xs font-medium text-gray-800">
+                        Autocompletar con la fecha actual — el usuario puede
+                        corregirla si hace falta
+                      </span>
+                    </label>
+                  </div>
+                )}
+
                 {/* Dependencia */}
                 {formPregunta.dependiente && (
                   <div className="space-y-1.5 p-2 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg">
@@ -1098,6 +1159,7 @@ export default function FormularioEditorPage() {
                             dependencia_pregunta_id: e.target.value
                               ? parseInt(e.target.value)
                               : null,
+                            dependencia_valor: "",
                           })
                         }
                         className="w-full border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white disabled:bg-gray-100 transition-all"
@@ -1124,18 +1186,58 @@ export default function FormularioEditorPage() {
                         Respuesta que dispara{" "}
                         <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Ej: Si, Sí, 1"
-                        value={formPregunta.dependencia_valor}
-                        onChange={(e) =>
-                          setFormPregunta({
-                            ...formPregunta,
-                            dependencia_valor: e.target.value,
-                          })
-                        }
-                        className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
-                      />
+                      {opcionesPreguntaPadre.length > 0 ? (
+                        <select
+                          value={formPregunta.dependencia_valor}
+                          onChange={(e) =>
+                            setFormPregunta({
+                              ...formPregunta,
+                              dependencia_valor: e.target.value,
+                            })
+                          }
+                          className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white text-xs transition-all"
+                        >
+                          <option value="">Selecciona una respuesta</option>
+                          {opcionesPreguntaPadre
+                            .filter((o) => o.fpo_estado)
+                            .map((o) => (
+                              <option
+                                key={o.fpo_id}
+                                value={o.fpo_valor || o.op_descripcion}
+                              >
+                                {o.fpo_valor || o.op_descripcion}
+                              </option>
+                            ))}
+                        </select>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            placeholder={
+                              loadingOpcionesPreguntaPadre
+                                ? "Cargando opciones..."
+                                : "Ej: Si, Sí, 1"
+                            }
+                            disabled={loadingOpcionesPreguntaPadre}
+                            value={formPregunta.dependencia_valor}
+                            onChange={(e) =>
+                              setFormPregunta({
+                                ...formPregunta,
+                                dependencia_valor: e.target.value,
+                              })
+                            }
+                            className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all disabled:bg-gray-100"
+                          />
+                          {formPregunta.dependencia_pregunta_id &&
+                            !loadingOpcionesPreguntaPadre && (
+                              <p className="text-xs text-gray-500">
+                                Esta pregunta padre no tiene opciones fijas —
+                                escribe el valor exacto que debe tener su
+                                respuesta.
+                              </p>
+                            )}
+                        </>
+                      )}
                       <p className="text-xs text-amber-700 font-medium mt-2">
                         ℹ️ Esta pregunta se mostrará cuando la pregunta padre
                         tenga este valor
@@ -1739,29 +1841,103 @@ export default function FormularioEditorPage() {
                           )}
                           {editandoPregunta && opciones.length > 0 && (
                             <div className="space-y-1 mb-2">
-                              {opciones.map((opcion) => (
-                                <div
-                                  key={opcion.fpo_id}
-                                  className="flex items-center gap-1 bg-white p-1 rounded border border-gray-200 text-xs"
-                                >
-                                  <span className="font-medium text-xs flex-1">
-                                    {opcion.fpo_valor || opcion.op_descripcion}
-                                  </span>
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded ${opcion.fpo_estado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                              {opciones.map((opcion) => {
+                                const dependientes =
+                                  obtenerPreguntasDependientesDeOpcion(
+                                    opcion.fpo_id,
+                                  );
+                                const enEdicion =
+                                  opcionEditandoId === opcion.fpo_id;
+                                return (
+                                  <div
+                                    key={opcion.fpo_id}
+                                    className="bg-white p-1 rounded border border-gray-200 text-xs"
                                   >
-                                    {opcion.fpo_estado ? "Activa" : "Inactiva"}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      eliminarOpcion(opcion.fpo_id)
-                                    }
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
+                                    <div className="flex items-center gap-1">
+                                      {enEdicion ? (
+                                        <input
+                                          type="text"
+                                          autoFocus
+                                          value={opcionEditandoValor}
+                                          onChange={(e) =>
+                                            setOpcionEditandoValor(
+                                              e.target.value,
+                                            )
+                                          }
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter")
+                                              guardarEdicionOpcion();
+                                            if (e.key === "Escape")
+                                              cancelarEdicionOpcion();
+                                          }}
+                                          className="flex-1 border border-amber-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                        />
+                                      ) : (
+                                        <span className="font-medium text-xs flex-1">
+                                          {opcion.fpo_valor ||
+                                            opcion.op_descripcion}
+                                        </span>
+                                      )}
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded ${opcion.fpo_estado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                                      >
+                                        {opcion.fpo_estado
+                                          ? "Activa"
+                                          : "Inactiva"}
+                                      </span>
+                                      {enEdicion ? (
+                                        <>
+                                          <button
+                                            onClick={guardarEdicionOpcion}
+                                            className="p-1 text-green-700 hover:bg-green-50 rounded"
+                                            title="Guardar"
+                                          >
+                                            <Save className="h-3 w-3" />
+                                          </button>
+                                          <button
+                                            onClick={cancelarEdicionOpcion}
+                                            className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                                            title="Cancelar"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={() =>
+                                              iniciarEdicionOpcion(opcion)
+                                            }
+                                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                            title="Editar"
+                                          >
+                                            <Edit2 className="h-3 w-3" />
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              eliminarOpcion(opcion.fpo_id)
+                                            }
+                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                            title="Eliminar"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                    {dependientes.length > 0 && (
+                                      <p className="mt-0.5 text-xs text-amber-700">
+                                        ⚠️ De esta respuesta depende:{" "}
+                                        {dependientes
+                                          .map((p) => p.fp_descripcion)
+                                          .join(", ")}
+                                        {enEdicion &&
+                                          " — al guardar, se actualiza automáticamente para que la dependencia no se rompa."}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                           {!editandoPregunta && opcionesNuevas.length > 0 && (
@@ -2061,6 +2237,14 @@ export default function FormularioEditorPage() {
                                         setFiltroLlave={setFiltroLlave}
                                         cargarTablasCatalogo={cargarTablasCatalogo}
                                         cargarColumnasCatalogo={cargarColumnasCatalogo}
+                                        columnasCatalogoDisponibles={formPregunta.tabla_columnas
+                                          .filter(
+                                            (c, i) =>
+                                              c.tipo === "CATALOGO" &&
+                                              i !== index &&
+                                              c.nombre.trim(),
+                                          )
+                                          .map((c) => c.nombre)}
                                       />
                                     )}
                                   </div>
@@ -2332,7 +2516,13 @@ export default function FormularioEditorPage() {
                 <div className="sticky bottom-0 z-10 flex gap-1 pt-1 border-t border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                   <button
                     onClick={guardarPregunta}
-                    className="flex-1 px-2 py-1 bg-gradient-to-br from-blue-600 to-blue-700 text-white font-semibold rounded hover:shadow-lg hover:from-blue-700 hover:to-blue-800 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-0.5 text-xs"
+                    disabled={!puedeGuardarPregunta}
+                    title={
+                      puedeGuardarPregunta
+                        ? undefined
+                        : "Completa los campos requeridos para poder guardar"
+                    }
+                    className="flex-1 px-2 py-1 bg-gradient-to-br from-blue-600 to-blue-700 text-white font-semibold rounded hover:shadow-lg hover:from-blue-700 hover:to-blue-800 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-0.5 text-xs disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm"
                   >
                     <Save className="h-3 w-3" />
                     Guardar
@@ -2538,6 +2728,36 @@ export default function FormularioEditorPage() {
           </DndContext>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={seccionAEliminar !== null}
+        title="Eliminar sección"
+        message="¿Estás seguro de que deseas eliminar esta sección? Se eliminarán sus preguntas y respuestas asociadas."
+        confirmText="Eliminar"
+        isDangerous
+        onConfirm={confirmarEliminarSeccion}
+        onCancel={() => setSeccionAEliminar(null)}
+      />
+
+      <ConfirmModal
+        isOpen={preguntaAEliminar !== null}
+        title="Eliminar pregunta"
+        message="¿Estás seguro de que deseas eliminar esta pregunta? Se eliminarán sus respuestas y opciones asociadas."
+        confirmText="Eliminar"
+        isDangerous
+        onConfirm={confirmarEliminarPregunta}
+        onCancel={() => setPreguntaAEliminar(null)}
+      />
+
+      <ConfirmModal
+        isOpen={opcionAEliminar !== null}
+        title="Eliminar opción"
+        message="¿Estás seguro de que deseas eliminar esta opción? Las respuestas asociadas quedarán sin opción."
+        confirmText="Eliminar"
+        isDangerous
+        onConfirm={confirmarEliminarOpcion}
+        onCancel={() => setOpcionAEliminar(null)}
+      />
     </div>
   );
 }

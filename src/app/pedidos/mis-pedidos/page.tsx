@@ -80,8 +80,12 @@ export default function MisPedidosPage() {
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
                       {pedido.pedido_id}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.producto}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.cantidad.toLocaleString("es-CO")}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {pedido.producto}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {pedido.cantidad.toLocaleString("es-CO")}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -95,7 +99,9 @@ export default function MisPedidosPage() {
                         {pedido.estado}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.fecha_creacion}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {pedido.fecha_creacion}
+                    </td>
                   </tr>
                 ))}
               </tbody>

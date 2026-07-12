@@ -1,6 +1,7 @@
 # Implementación de Módulo PQRS - Modernización UX/UI
 
 ## Descripción
+
 Se creó una solución completa y moderna para la gestión de PQRS (Peticiones, Quejas, Reclamos y Sugerencias) con diseño tipo dashboard empresarial.
 
 ---
@@ -8,9 +9,11 @@ Se creó una solución completa y moderna para la gestión de PQRS (Peticiones, 
 ## Componentes Creados
 
 ### 1. **StateBadge** (`src/components/pqrs/StateBadge.tsx`)
+
 Badge elegante para mostrar estados con colores dinámicos.
 
 **Estados soportados:**
+
 - PENDIENTE (Amarillo)
 - RECIBIDO (Azul)
 - EN_CLASIFICACION (Púrpura)
@@ -25,28 +28,35 @@ Badge elegante para mostrar estados con colores dinámicos.
 - ESCALADO (Rojo)
 
 Propiedades:
+
 - `estado`: string - Estado de la PQRS
 - `className`: string (opcional) - Clases adicionales
 
 ### 2. **TableSkeleton** (`src/components/pqrs/TableSkeleton.tsx`)
+
 Loading skeleton elegante para tabla de PQRS.
+
 - Simula estructura de tabla con 5 filas
 - Animación de pulseo en placeholders
 - Responsive design
 
 ### 3. **EmptyState** (`src/components/pqrs/EmptyState.tsx`)
+
 Estado vacío elegante con ícono y CTA.
 
 **Propiedades:**
+
 - `title`: string - Título del estado
 - `description`: string - Descripción
 - `onCreateClick`: función callback para botón crear
 - `showCreateButton`: boolean - Mostrar/ocultar botón
 
 ### 4. **PQRSTimeline** (`src/components/pqrs/PQRSTimeline.tsx`)
+
 Timeline visual de eventos de la PQRS.
 
 **Features:**
+
 - Icono dinámico según tipo de evento
 - Transiciones de estado con flechas
 - Fechas formateadas en español (date-fns)
@@ -54,9 +64,11 @@ Timeline visual de eventos de la PQRS.
 - Fallback elegante cuando no hay eventos
 
 ### 5. **PQRSComments** (`src/components/pqrs/PQRSComments.tsx`)
+
 Sistema de comentarios tipo chat.
 
 **Features:**
+
 - Listado de comentarios con avatares
 - Badge de "Interno" para comentarios administrativos
 - Textarea para nuevas respuestas
@@ -74,38 +86,45 @@ Sistema de comentarios tipo chat.
 **Features Implementadas:**
 
 #### Búsqueda
+
 - Input de búsqueda en tiempo real
 - Busca por número, título o descripción
 - Ícono de búsqueda en el input
 
 #### Filtros por Estado
+
 - Botones dinámicos con estados disponibles
 - Filtrado múltiple
 - Botón "Limpiar" cuando hay filtros activos
 
 #### Paginación
+
 - 10 items por página (configurable)
 - Botones anterior/siguiente
 - Números de página con elipsis
 - Información de página actual
 
 #### Tabla Principal
+
 - 6 columnas: No. PQRS, Asunto, Tipo, Estado, Fecha creación, Acción
 - Hover effects
 - StateBadges para estados
 - Botón "Ver detalle" con ícono
 
 #### Estados de Carga
+
 - Loading skeleton elegante
 - Empty state cuando no hay PQRS
 - Empty state cuando búsqueda no retorna resultados
 
 #### Diseño Responsive
+
 - Funciona en móvil, tablet y desktop
 - Grid adaptativo
 - Tabla scrollable en móviles
 
 #### Estadísticas
+
 - Total de PQRS
 - Resultados mostrados vs. filtrados
 - Información en footer elegante
@@ -115,30 +134,36 @@ Sistema de comentarios tipo chat.
 **Secciones:**
 
 #### Encabezado
+
 - Título de la PQRS
 - Número único (PQRS-2026-05-000001)
 - Badge de estado
 - Botón volver
 
 #### Información General
+
 Grid de 2 columnas con:
+
 - Fecha de creación
 - Tipo de PQRS
 - Prioridad
 - Horas para vencimiento
 
 #### Descripción
+
 Sección expandible con texto completo de la PQRS
 
 #### Tabs de Contenido
 
 **Tab 1: Timeline**
+
 - Visualización cronológica de cambios de estado
 - Iconos dinámicos para tipos de eventos
 - Transiciones visibles con flechas
 - Información de quién y cuándo cambió
 
 **Tab 2: Comentarios**
+
 - Chat bidireccional
 - Avatar circular con letra del usuario
 - Marca de "Interno" si aplica
@@ -147,6 +172,7 @@ Sección expandible con texto completo de la PQRS
 - Botón "Enviar respuesta" con animación
 
 #### Diseño
+
 - Gradiente de fondo moderno
 - Cards con sombras sutiles
 - Border radius redondeados
@@ -158,30 +184,35 @@ Sección expandible con texto completo de la PQRS
 ## Características UX/UI
 
 ### Diseño Moderno
+
 ✅ Gradientes elegantes
 ✅ Colores corporativos (azul predominante)
 ✅ Tipografía clara y legible
 ✅ Espaciado generoso
 
 ### Responsive
+
 ✅ Mobile first approach
 ✅ Breakpoints SM, MD, LG, XL
 ✅ Tabla scrollable en móvil
 ✅ Botones táctiles en móvil
 
 ### Accesibilidad
+
 ✅ Alt text en íconos
 ✅ Colores accesibles (WCAG AA)
 ✅ Labels asociados a inputs
 ✅ Keyboard navigation ready
 
 ### Performance
+
 ✅ Componentes ligeros
 ✅ Carga lazy de imágenes
 ✅ Animaciones optimizadas
 ✅ CSS-in-JS sin duplicados
 
 ### Estados de Interacción
+
 ✅ Loading skeletons
 ✅ Empty states elegantes
 ✅ Error messages claros
@@ -193,6 +224,7 @@ Sección expandible con texto completo de la PQRS
 ## Flujos de Usuario
 
 ### Flujo 1: Listar y Filtrar
+
 1. Usuario abre "Mis PQRS"
 2. Se muestra skeleton mientras carga
 3. Lista de PQRS con tabla responsive
@@ -203,6 +235,7 @@ Sección expandible con texto completo de la PQRS
    - Ver detalle de cualquier PQRS
 
 ### Flujo 2: Ver Detalle
+
 1. Usuario clica en "Ver detalle"
 2. Se carga información de la PQRS
 3. Muestra:
@@ -215,6 +248,7 @@ Sección expandible con texto completo de la PQRS
    - Respuesta se envía y aparece en chat
 
 ### Flujo 3: Responder (condicional)
+
 1. PQRS con estado PENDIENTE_CLIENTE
 2. Tab de comentarios muestra formulario
 3. Usuario escribe respuesta
@@ -228,6 +262,7 @@ Sección expandible con texto completo de la PQRS
 ## Estructura de Datos
 
 ### PQRS Listado
+
 ```typescript
 interface PQRS {
   pqrs_id: number;
@@ -244,6 +279,7 @@ interface PQRS {
 ```
 
 ### PQRS Detalle
+
 ```typescript
 interface PQRSDetalle {
   pqrs_id: number;
@@ -262,6 +298,7 @@ interface PQRSDetalle {
 ```
 
 ### Comentario
+
 ```typescript
 interface Comentario {
   pc_id?: number;
@@ -277,6 +314,7 @@ interface Comentario {
 ## APIs Utilizadas
 
 Del servicio `pqrsService`:
+
 - `getListado(params?)` - Lista de PQRS del usuario
 - `getById(id)` - Detalle completo de PQRS
 - `getComentarios(pqrsId)` - Comentarios de una PQRS
@@ -290,13 +328,17 @@ Del servicio `pqrsService`:
 ## Configuración y Personalización
 
 ### Cambiar items por página
+
 En `src/app/pqrs/mis-pqrs/page.tsx`:
+
 ```typescript
 const ITEMS_PER_PAGE = 10; // Cambiar este valor
 ```
 
 ### Cambiar colores de estados
+
 En `src/components/pqrs/StateBadge.tsx`:
+
 ```typescript
 const ESTADO_CONFIG: Record<string, ...> = {
   // Agregar o modificar estados aquí
@@ -304,7 +346,9 @@ const ESTADO_CONFIG: Record<string, ...> = {
 ```
 
 ### Formato de fechas
+
 Se usa `date-fns` con locale es-CO. Está configurado automáticamente en:
+
 - Timeline: `format(date, "PPp", { locale: es })`
 - Listado: `toLocaleDateString("es-CO")`
 

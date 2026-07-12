@@ -1,6 +1,9 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { centrosOperacionService, type CentroOperacion } from "@/services/centros-operacion/centros-operacion.service";
+import {
+  centrosOperacionService,
+  type CentroOperacion,
+} from "@/services/centros-operacion/centros-operacion.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 
 import { useEffect, useMemo, useState } from "react";
@@ -27,7 +30,7 @@ interface Solicitud {
   ejecutivo_nombre: string;
   sol_fecha_real_ejecutivo?: string | null;
   // Fallback fields for compatibility
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   estado_id?: number;
 }
@@ -125,12 +128,15 @@ export default function ConceptoEjecutivoPage() {
     () =>
       solicitudes.filter((solicitud) => {
         // Solo mostrar solicitudes con estado "Pendiente" (estado_id = 2)
-        if ((solicitud.sol_estado_id ?? solicitud.estado_id) !== 2) return false;
+        if ((solicitud.sol_estado_id ?? solicitud.estado_id) !== 2)
+          return false;
 
         const matchCentro = !centroFiltro || solicitud.co_id === centroFiltro;
         const term = searchTerm.toLowerCase();
         const matchSearch =
-          (solicitud.sol_numero_solicitud || solicitud.numero_solicitud)?.toLowerCase().includes(term) ||
+          (solicitud.sol_numero_solicitud || solicitud.numero_solicitud)
+            ?.toLowerCase()
+            .includes(term) ||
           solicitud.cliente_nombre?.toLowerCase().includes(term) ||
           solicitud.centro_operacion_nombre?.toLowerCase().includes(term);
 
@@ -213,7 +219,6 @@ export default function ConceptoEjecutivoPage() {
     }
   }
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
       <LoadingModal isOpen={loading} message="Cargando solicitudes..." />
@@ -253,7 +258,10 @@ export default function ConceptoEjecutivoPage() {
                   >
                     <option value="">Todos</option>
                     {centros.map((item, index) => (
-                      <option key={item.cop_id || index} value={String(item.cop_id)}>
+                      <option
+                        key={item.cop_id || index}
+                        value={String(item.cop_id)}
+                      >
                         {item.cop_nombre}
                       </option>
                     ))}
@@ -324,7 +332,8 @@ export default function ConceptoEjecutivoPage() {
                 Presiona Buscar para cargar tus solicitudes pendientes.
               </p>
               <p className="text-sm text-gray-500">
-                Opcionalmente puedes filtrar por centro, fecha o número de solicitud.
+                Opcionalmente puedes filtrar por centro, fecha o número de
+                solicitud.
               </p>
             </div>
           ) : solicitudesFiltradas.length === 0 ? (
@@ -332,9 +341,7 @@ export default function ConceptoEjecutivoPage() {
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl text-gray-400">📭</span>
               </div>
-              <p className="text-gray-600">
-                No se encontraron solicitudes.
-              </p>
+              <p className="text-gray-600">No se encontraron solicitudes.</p>
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
@@ -395,11 +402,12 @@ export default function ConceptoEjecutivoPage() {
 
                         return (
                           <tr
-                            key={solicitud.sol_id ?? solicitud.solicitud_id}
+                            key={solicitud.sol_id ?? solicitud.sa_sol_id}
                             className="hover:bg-gray-50 transition-colors"
                           >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-700">
-                              {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                              {solicitud.sol_numero_solicitud ||
+                                solicitud.numero_solicitud}
                             </td>
 
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -413,10 +421,13 @@ export default function ConceptoEjecutivoPage() {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
-                                  solicitud.sol_estado_id ?? solicitud.estado_id,
+                                  solicitud.sol_estado_id ??
+                                    solicitud.estado_id,
                                 )}`}
                               >
-                                {ESTADOS[(solicitud.sol_estado_id ?? solicitud.estado_id)] || "Desconocido"}
+                                {ESTADOS[
+                                  solicitud.sol_estado_id ?? solicitud.estado_id
+                                ] || "Desconocido"}
                               </span>
                             </td>
 
@@ -424,12 +435,11 @@ export default function ConceptoEjecutivoPage() {
                               {formatDateTime(solicitud.fecha_creacion)}
                             </td>
 
-
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <button
                                 onClick={() =>
                                   router.push(
-                                    `/solicitudes/${solicitud.sol_id ?? solicitud.solicitud_id}`,
+                                    `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
                                   )
                                 }
                                 className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-medium"
@@ -455,7 +465,7 @@ export default function ConceptoEjecutivoPage() {
                               <button
                                 onClick={() =>
                                   router.push(
-                                    `/solicitudes/gestion-ejecutivo-negocios/${solicitud.sol_id ?? solicitud.solicitud_id}/registrar`,
+                                    `/solicitudes/gestion-ejecutivo-negocios/${solicitud.sol_id ?? solicitud.sa_sol_id}/registrar`,
                                   )
                                 }
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

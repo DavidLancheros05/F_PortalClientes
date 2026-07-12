@@ -26,6 +26,7 @@ interface ColumnaCatalogoPickerProps {
   setFiltroLlave: (value: string) => void;
   cargarTablasCatalogo: (baseDatos: string) => void;
   cargarColumnasCatalogo: (baseDatos: string, tabla: string) => void;
+  columnasCatalogoDisponibles: string[];
 }
 
 export function ColumnaCatalogoPicker({
@@ -52,6 +53,7 @@ export function ColumnaCatalogoPicker({
   setFiltroLlave,
   cargarTablasCatalogo,
   cargarColumnasCatalogo,
+  columnasCatalogoDisponibles,
 }: ColumnaCatalogoPickerProps) {
   return (
     <div className="space-y-1.5">
@@ -265,6 +267,64 @@ export function ColumnaCatalogoPicker({
           </p>
         )}
       </div>
+
+      {columnasCatalogoDisponibles.length > 0 && (
+        <div className="space-y-0.5 border-t border-sky-200 pt-1.5">
+          <label className="block text-xs font-semibold text-sky-900 leading-tight">
+            ¿Depende de otra columna de esta tabla? (opcional)
+          </label>
+          <select
+            value={columna.catalogo_columna_padre || ""}
+            onChange={(e) =>
+              onChange({
+                catalogo_columna_padre: e.target.value || undefined,
+                catalogo_columna_filtro: e.target.value
+                  ? columna.catalogo_columna_filtro
+                  : undefined,
+              })
+            }
+            className="w-full border border-sky-200 rounded px-2 py-1 text-xs bg-white"
+          >
+            <option value="">No depende de otra columna</option>
+            {columnasCatalogoDisponibles.map((nombre) => (
+              <option key={nombre} value={nombre}>
+                {nombre}
+              </option>
+            ))}
+          </select>
+
+          {columna.catalogo_columna_padre && (
+            <>
+              <label className="block text-xs font-semibold text-sky-900 leading-tight mt-1">
+                Columna que relaciona con "{columna.catalogo_columna_padre}"{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={columna.catalogo_columna_filtro || ""}
+                onChange={(e) =>
+                  onChange({ catalogo_columna_filtro: e.target.value || undefined })
+                }
+                disabled={!columna.catalogo_tabla}
+                className="w-full border border-sky-200 rounded px-2 py-1 text-xs bg-white disabled:bg-gray-100"
+              >
+                <option value="">
+                  Selecciona la columna FK en "{columna.catalogo_tabla || "..."}"
+                </option>
+                {catalogoColumnas.map((col) => (
+                  <option key={col} value={col}>
+                    {col}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500">
+                Ej: si esta columna es "Departamento" y depende de "Pais", aquí
+                eliges la columna de {columna.catalogo_tabla || "la tabla"} que
+                guarda el país (ej: pai_id).
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

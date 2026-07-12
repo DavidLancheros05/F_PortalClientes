@@ -7,7 +7,13 @@ import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
-import { ArrowLeft, FileText, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  MessageSquare,
+} from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
@@ -32,7 +38,7 @@ interface Solicitud {
   fecha_creacion?: string;
   fecha_estimada_respuesta_comercial?: string | null;
   consumo_mensual_proyectado?: number | null;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
@@ -78,11 +84,13 @@ export default function GestionOCPage() {
           parametrosService.getDiasRespuesta(),
         ]);
 
-        console.log("[Gestión OC] Datos de solicitud recibidos:", solicitudData);
+        console.log(
+          "[Gestión OC] Datos de solicitud recibidos:",
+          solicitudData,
+        );
         console.log("[Gestión OC] Días de respuesta:", dias);
         setSolicitud(solicitudData);
         setDiasRespuesta(dias);
-
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -121,7 +129,7 @@ export default function GestionOCPage() {
     try {
       setRegistro((prev) => ({ ...prev, guardando: true }));
 
-      const solicitudId = solicitud.sol_id ?? solicitud.solicitud_id;
+      const solicitudId = solicitud.sol_id ?? solicitud.sa_sol_id;
       await solicitudesService.guardarRevisionCumplimiento(solicitudId, {
         comentario: registro.observacionesCumplimiento,
         aprobado: registro.resultado === "aprobado",
@@ -225,7 +233,8 @@ export default function GestionOCPage() {
                 <p className="text-xs md:text-sm text-purple-100 truncate">
                   Solicitud:{" "}
                   <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                    {solicitud.sol_numero_solicitud ||
+                      solicitud.numero_solicitud}
                   </span>
                 </p>
               </div>
@@ -269,9 +278,8 @@ export default function GestionOCPage() {
                           : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {ESTADOS[
-                    solicitud.sol_estado_id ?? solicitud.estado_id
-                  ] || "Desconocido"}
+                  {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] ||
+                    "Desconocido"}
                 </span>
               </div>
               <div>
@@ -279,14 +287,15 @@ export default function GestionOCPage() {
                   Consumo Proyectado
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                    ? `$${(solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado)?.toLocaleString(
-                        "es-CO",
-                        {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        },
-                      )}`
+                  {solicitud.sol_consumo_mensual_proyectado ||
+                  solicitud.consumo_mensual_proyectado
+                    ? `$${(
+                        solicitud.sol_consumo_mensual_proyectado ||
+                        solicitud.consumo_mensual_proyectado
+                      )?.toLocaleString("es-CO", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
                     : "-"}
                 </p>
               </div>
@@ -306,18 +315,22 @@ export default function GestionOCPage() {
                 {/* Ver Formulario */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={20} />
+                    <AlertCircle
+                      className="text-blue-600 flex-shrink-0 mt-1"
+                      size={20}
+                    />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-blue-900 mb-2">
                         Revisar Formulario Completo
                       </p>
                       <p className="text-sm text-blue-700 mb-3">
-                        Accede al formulario de la solicitud para revisar todas las respuestas y documentos.
+                        Accede al formulario de la solicitud para revisar todas
+                        las respuestas y documentos.
                       </p>
                       <button
                         onClick={() =>
                           router.push(
-                            `/solicitudes/${solicitud.sol_id ?? solicitud.solicitud_id}`,
+                            `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
                           )
                         }
                         className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
@@ -357,7 +370,19 @@ export default function GestionOCPage() {
                     Resultado de Cumplimiento *
                   </label>
                   <div className="space-y-3">
-                    <label className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-green-50 transition-colors" style={{ borderColor: registro.resultado === "aprobado" ? "#22c55e" : "inherit", backgroundColor: registro.resultado === "aprobado" ? "rgba(34, 197, 94, 0.05)" : "inherit" }}>
+                    <label
+                      className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-green-50 transition-colors"
+                      style={{
+                        borderColor:
+                          registro.resultado === "aprobado"
+                            ? "#22c55e"
+                            : "inherit",
+                        backgroundColor:
+                          registro.resultado === "aprobado"
+                            ? "rgba(34, 197, 94, 0.05)"
+                            : "inherit",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="resultado"
@@ -376,7 +401,19 @@ export default function GestionOCPage() {
                         ✓ Aprobado - Cumple con todos los requisitos
                       </span>
                     </label>
-                    <label className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors" style={{ borderColor: registro.resultado === "rechazado" ? "#ef4444" : "inherit", backgroundColor: registro.resultado === "rechazado" ? "rgba(239, 68, 68, 0.05)" : "inherit" }}>
+                    <label
+                      className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors"
+                      style={{
+                        borderColor:
+                          registro.resultado === "rechazado"
+                            ? "#ef4444"
+                            : "inherit",
+                        backgroundColor:
+                          registro.resultado === "rechazado"
+                            ? "rgba(239, 68, 68, 0.05)"
+                            : "inherit",
+                      }}
+                    >
                       <input
                         type="radio"
                         name="resultado"
@@ -429,7 +466,9 @@ export default function GestionOCPage() {
                       !registro.observacionesCumplimiento.trim() ||
                       registro.observacionesCumplimiento.length < 10 ||
                       !registro.resultado ||
-                      (registro.resultado === "rechazado" && (!registro.motivoRechazo.trim() || registro.motivoRechazo.length < 10)) ||
+                      (registro.resultado === "rechazado" &&
+                        (!registro.motivoRechazo.trim() ||
+                          registro.motivoRechazo.length < 10)) ||
                       registro.guardando
                     }
                     className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -474,7 +513,9 @@ export default function GestionOCPage() {
         actionText="Aceptar"
         autoClose={true}
         autoCloseDelay={3000}
-        onAction={() => router.push("/solicitudes/gestion-oficial-de-cumplimiento")}
+        onAction={() =>
+          router.push("/solicitudes/gestion-oficial-de-cumplimiento")
+        }
       />
     </div>
   );

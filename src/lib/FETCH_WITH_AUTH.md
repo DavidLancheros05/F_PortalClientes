@@ -9,6 +9,7 @@ Evitar tener que repetir el código de obtener el token y agregarlo a los header
 ## Cómo usar
 
 En lugar de:
+
 ```typescript
 const token = localStorage.getItem("token");
 const res = await fetch("/api/endpoint", {
@@ -21,6 +22,7 @@ const res = await fetch("/api/endpoint", {
 ```
 
 Simplemente usa:
+
 ```typescript
 import { fetchWithAuth } from "@/lib/fetch-with-auth";
 
@@ -40,12 +42,14 @@ const res = await fetchWithAuth("/api/endpoint", {
 ## Ejemplos
 
 ### GET
+
 ```typescript
 const roles = await fetchWithAuth("/api/seguridad/roles");
 const json = await roles.json();
 ```
 
 ### POST
+
 ```typescript
 const res = await fetchWithAuth("/api/clientes", {
   method: "POST",
@@ -54,6 +58,7 @@ const res = await fetchWithAuth("/api/clientes", {
 ```
 
 ### PUT
+
 ```typescript
 const res = await fetchWithAuth(`/api/roles/${id}`, {
   method: "PUT",
@@ -62,6 +67,7 @@ const res = await fetchWithAuth(`/api/roles/${id}`, {
 ```
 
 ### PATCH
+
 ```typescript
 const res = await fetchWithAuth(`/api/tipos/${id}`, {
   method: "PATCH",

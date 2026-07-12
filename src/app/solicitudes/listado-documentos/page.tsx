@@ -16,17 +16,17 @@ const PAGE_SIZE = 10;
 
 interface DocumentoRow {
   sa_id: number;
-  solicitud_id: number;
+  sa_sol_id: number;
   sol_numero_solicitud: string;
   sol_estado_id: number;
   estado_solicitud: string;
   documento_nombre: string | null;
-  nombre_original: string;
-  tipo_mime: string | null;
-  tamaño_bytes: number | null;
-  ruta_almacenamiento: string;
+  sa_nombre_original: string;
+  sa_tipo_mime: string | null;
+  sa_tamaño_bytes: number | null;
+  sa_ruta_almacenamiento: string;
   fecha_carga: string;
-  fecha_vencimiento: string | null;
+  sa_fecha_vencimiento: string | null;
   estado_vencimiento: "VIGENTE" | "VENCIDO" | "SIN_VIGENCIA";
   cliente_nombre: string | null;
   centro_operacion_nombre: string | null;
@@ -239,7 +239,7 @@ export default function ListadoDocumentosPage() {
 
       const searchable = [
         row.sol_numero_solicitud,
-        row.documento_nombre || row.nombre_original,
+        row.documento_nombre || row.sa_nombre_original,
         row.cliente_nombre || "",
         row.centro_operacion_nombre || "",
         row.estado_solicitud || "",
@@ -306,19 +306,19 @@ export default function ListadoDocumentosPage() {
     const lines = [
       header.map((item) => csvEscape(item)).join(","),
       ...filteredRows.map((row) => {
-        const diasBadge = getDiasVencimientoBadge(row.fecha_vencimiento);
+        const diasBadge = getDiasVencimientoBadge(row.sa_fecha_vencimiento);
         return [
           row.sol_numero_solicitud,
           row.estado_solicitud || "-",
-          row.documento_nombre || row.nombre_original,
+          row.documento_nombre || row.sa_nombre_original,
           row.cliente_nombre || "-",
           row.centro_operacion_nombre || "-",
           formatDate(row.fecha_carga),
-          formatDate(row.fecha_vencimiento),
+          formatDate(row.sa_fecha_vencimiento),
           diasBadge.label,
           getEstadoVencimientoLabel(row.estado_vencimiento),
-          formatBytes(row.tamaño_bytes),
-          row.ruta_almacenamiento,
+          formatBytes(row.sa_tamaño_bytes),
+          row.sa_ruta_almacenamiento,
         ]
           .map((item) => csvEscape(item))
           .join(",");
@@ -614,7 +614,7 @@ export default function ListadoDocumentosPage() {
                   <tbody className="divide-y divide-gray-100">
                     {paginatedRows.map((row) => {
                       const diasBadge = getDiasVencimientoBadge(
-                        row.fecha_vencimiento,
+                        row.sa_fecha_vencimiento,
                       );
 
                       return (
@@ -626,7 +626,7 @@ export default function ListadoDocumentosPage() {
                             {row.estado_solicitud || "-"}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            {row.documento_nombre || row.nombre_original}
+                            {row.documento_nombre || row.sa_nombre_original}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {row.cliente_nombre || "-"}
@@ -638,7 +638,7 @@ export default function ListadoDocumentosPage() {
                             {formatDate(row.fecha_carga)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            {formatDate(row.fecha_vencimiento)}
+                            {formatDate(row.sa_fecha_vencimiento)}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <span
@@ -657,11 +657,11 @@ export default function ListadoDocumentosPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            {formatBytes(row.tamaño_bytes)}
+                            {formatBytes(row.sa_tamaño_bytes)}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <a
-                              href={row.ruta_almacenamiento}
+                              href={row.sa_ruta_almacenamiento}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 font-medium"

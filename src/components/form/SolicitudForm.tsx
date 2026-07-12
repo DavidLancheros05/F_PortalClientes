@@ -3,7 +3,12 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { formulariosService } from "@/services/parametrizacion/formularios.service";
 
 interface CopiaInfo {
-  [fp_id: number]: { valor: string; copiado: boolean; sol_id?: number; sol_numero_solicitud?: string };
+  [fp_id: number]: {
+    valor: string;
+    copiado: boolean;
+    sol_id?: number;
+    sol_numero_solicitud?: string;
+  };
 }
 
 interface Pregunta {
@@ -17,7 +22,10 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
   const [respuestas, setRespuestas] = useState<Record<number, string>>({});
   const [copias, setCopias] = useState<CopiaInfo>({});
   const [loading, setLoading] = useState(false);
-  const [infoCopia, setInfoCopia] = useState<{sol_id?: number, sol_numero_solicitud?: string}|null>(null);
+  const [infoCopia, setInfoCopia] = useState<{
+    sol_id?: number;
+    sol_numero_solicitud?: string;
+  } | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -25,12 +33,14 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
         const preguntas = await formulariosService.getPreguntasActivas();
         setPreguntas(preguntas);
 
-        const data = await solicitudesService.getUltimaSolicitudRespuestas(clienteId);
+        const data =
+          await solicitudesService.getUltimaSolicitudRespuestas(clienteId);
         if (data && data.respuestas && data.respuestas.length > 0) {
           const respuestasCopia: Record<number, string> = {};
           const copiasInfo: CopiaInfo = {};
           data.respuestas.forEach((resp: any) => {
-            respuestasCopia[resp.fp_id] = resp.valor_texto || resp.valor_numero || "";
+            respuestasCopia[resp.fp_id] =
+              resp.valor_texto || resp.valor_numero || "";
             copiasInfo[resp.fp_id] = {
               valor: respuestasCopia[resp.fp_id],
               copiado: true,
@@ -67,15 +77,17 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
     setLoading(true);
 
     try {
-      const solicitud = await solicitudesService.create({ cliente_id: clienteId });
-      const solicitudId = solicitud.sol_id || solicitud.solicitud_id;
+      const solicitud = await solicitudesService.create({
+        cliente_id: clienteId,
+      });
+      const solicitudId = solicitud.sol_id || solicitud.sa_sol_id;
 
       await solicitudesService.guardarRespuestasFormulario(
         solicitudId,
         Object.entries(respuestas).map(([fp_id, valor]) => ({
           fp_id: Number(fp_id),
           valor,
-        }))
+        })),
       );
 
       alert("Solicitud creada correctamente");
@@ -93,8 +105,12 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
       <h2>Formulario del Cliente</h2>
 
       {infoCopia && infoCopia.sol_numero_solicitud && (
-        <div style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>
-          <span>Algunos campos fueron copiados de la solicitud previa: <b>{infoCopia.sol_numero_solicitud}</b>. Puedes editarlos antes de enviar.</span>
+        <div style={{ marginBottom: 16, color: "#888", fontSize: 13 }}>
+          <span>
+            Algunos campos fueron copiados de la solicitud previa:{" "}
+            <b>{infoCopia.sol_numero_solicitud}</b>. Puedes editarlos antes de
+            enviar.
+          </span>
         </div>
       )}
 
@@ -103,7 +119,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
           <label>
             {p.fp_descripcion}
             {copias[p.fp_id]?.copiado && (
-              <span style={{ color: 'blue', fontSize: 12, marginLeft: 8 }}>
+              <span style={{ color: "blue", fontSize: 12, marginLeft: 8 }}>
                 (copiado de solicitud {copias[p.fp_id].sol_numero_solicitud})
               </span>
             )}
@@ -114,7 +130,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
             value={respuestas[p.fp_id] || ""}
             onChange={(e) => handleChange(p.fp_id, e.target.value)}
             required
-            style={copias[p.fp_id]?.copiado ? { background: '#e6f0ff' } : {}}
+            style={copias[p.fp_id]?.copiado ? { background: "#e6f0ff" } : {}}
           />
         </div>
       ))}

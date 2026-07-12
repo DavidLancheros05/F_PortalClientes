@@ -40,7 +40,7 @@ interface Solicitud {
   fecha_creacion?: string;
   fecha_estimada_respuesta_comercial?: string | null;
   consumo_mensual_proyectado?: number | null;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
@@ -357,7 +357,7 @@ export default function GestionComiteCredito1Page() {
                       <button
                         onClick={() =>
                           router.push(
-                            `/solicitudes/${solicitud.sol_id ?? solicitud.solicitud_id}`,
+                            `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
                           )
                         }
                         className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"

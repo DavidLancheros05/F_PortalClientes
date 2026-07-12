@@ -1,6 +1,6 @@
 "use client";
 
-import { formularioRespuestasService } from '@/services/formulario-respuestas.service';
+import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import { AlertTriangle, Calendar, CheckCircle, FileText } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 
@@ -44,9 +44,7 @@ export function ArchivoField({
   return (
     <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
       <div className="flex items-center justify-between gap-1 rounded-lg border border-blue-100 bg-white/80 px-2 py-1">
-        <p className="text-xs font-semibold text-blue-900">
-          Documento y fecha
-        </p>
+        <p className="text-xs font-semibold text-blue-900">Documento y fecha</p>
         <span className="text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-1.5 py-0.5">
           Mismo
         </span>
@@ -62,13 +60,13 @@ export function ArchivoField({
               <div className="flex items-start gap-1">
                 <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
                 <p className="text-xs font-medium text-blue-900 break-words">
-                  {archivosExistentes[pregunta.fp_id].nombre_original}
+                  {archivosExistentes[pregunta.fp_id].sa_nombre_original}
                 </p>
               </div>
               <p className="text-xs text-blue-700 mt-0.5">
-                {(archivosExistentes[pregunta.fp_id].tamaño_bytes / 1024).toFixed(
-                  2,
-                )}{" "}
+                {(
+                  archivosExistentes[pregunta.fp_id].sa_tamaño_bytes / 1024
+                ).toFixed(2)}{" "}
                 KB
               </p>
             </div>
@@ -207,7 +205,11 @@ export function ArchivoField({
             type="date"
             value={respuestas[preguntaFechaAsociada.fp_id]?.valor_fecha || ""}
             onChange={(e) =>
-              handleInputChange(preguntaFechaAsociada.fp_id, e.target.value, "FECHA")
+              handleInputChange(
+                preguntaFechaAsociada.fp_id,
+                e.target.value,
+                "FECHA",
+              )
             }
             onBlur={() =>
               validateField(

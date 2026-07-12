@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Plus,
-  RefreshCw,
-  Search,
-  Pencil,
-  Power,
-  Save,
-  X,
-} from "lucide-react";
+import { Plus, RefreshCw, Search, Pencil, Power, Save, X } from "lucide-react";
 import {
   diasRespuestaService,
   DiaRespuesta,
@@ -25,7 +17,9 @@ export default function DiasRespuestaPage() {
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
 
   const [filtroArea, setFiltroArea] = useState<"TODAS" | Area>("TODAS");
-  const [filtroEstado, setFiltroEstado] = useState<"TODOS" | "ACTIVO" | "INACTIVO">("TODOS");
+  const [filtroEstado, setFiltroEstado] = useState<
+    "TODOS" | "ACTIVO" | "INACTIVO"
+  >("TODOS");
   const [filtroDias, setFiltroDias] = useState<string>("");
 
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -39,7 +33,7 @@ export default function DiasRespuestaPage() {
   // Modal states
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'error' | 'success' | 'confirm';
+    type: "error" | "success" | "confirm";
     title: string;
     message: string;
     action?: () => void;
@@ -47,9 +41,9 @@ export default function DiasRespuestaPage() {
     isDangerous?: boolean;
   }>({
     isOpen: false,
-    type: 'error',
-    title: '',
-    message: '',
+    type: "error",
+    title: "",
+    message: "",
   });
 
   const cargarDatos = async () => {
@@ -74,7 +68,7 @@ export default function DiasRespuestaPage() {
         const areasData = await diasRespuestaService.getAreas();
         setAreas(areasData);
       } catch (error) {
-        console.error('Error loading areas:', error);
+        console.error("Error loading areas:", error);
       }
     };
     loadAreas();
@@ -84,9 +78,9 @@ export default function DiasRespuestaPage() {
     if (dias <= 0) {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Datos inválidos',
-        message: 'Los días deben ser mayores a 0',
+        type: "error",
+        title: "Datos inválidos",
+        message: "Los días deben ser mayores a 0",
       });
       return;
     }
@@ -105,17 +99,17 @@ export default function DiasRespuestaPage() {
       await cargarDatos();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Creado exitosamente',
-        message: 'El parámetro de días de respuesta ha sido creado',
+        type: "success",
+        title: "Creado exitosamente",
+        message: "El parámetro de días de respuesta ha sido creado",
       });
     } catch (e) {
       console.error(e);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al crear el parámetro',
+        type: "error",
+        title: "Error",
+        message: "Error al crear el parámetro",
       });
     } finally {
       setSubmitting(false);
@@ -138,17 +132,17 @@ export default function DiasRespuestaPage() {
       await cargarDatos();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Actualizado exitosamente',
-        message: 'El parámetro ha sido actualizado',
+        type: "success",
+        title: "Actualizado exitosamente",
+        message: "El parámetro ha sido actualizado",
       });
     } catch (e) {
       console.error(e);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al actualizar el parámetro',
+        type: "error",
+        title: "Error",
+        message: "Error al actualizar el parámetro",
       });
     }
   };
@@ -156,31 +150,31 @@ export default function DiasRespuestaPage() {
   const toggleEstado = (item: DiaRespuesta) => {
     setModalState({
       isOpen: true,
-      type: 'confirm',
-      title: item.pdr_estado ? 'Inactivar parámetro' : 'Activar parámetro',
+      type: "confirm",
+      title: item.pdr_estado ? "Inactivar parámetro" : "Activar parámetro",
       message: `¿Deseas ${item.pdr_estado ? "inactivar" : "activar"} este parámetro?`,
       isDangerous: item.pdr_estado,
-      confirmText: item.pdr_estado ? 'Inactivar' : 'Activar',
+      confirmText: item.pdr_estado ? "Inactivar" : "Activar",
       action: async () => {
         try {
           await diasRespuestaService.toggleEstado(
             item.pdr_id,
-            !item.pdr_estado
+            !item.pdr_estado,
           );
           await cargarDatos();
           setModalState({
             isOpen: true,
-            type: 'success',
-            title: 'Operación exitosa',
-            message: `El parámetro ha sido ${item.pdr_estado ? 'inactivado' : 'activado'}`,
+            type: "success",
+            title: "Operación exitosa",
+            message: `El parámetro ha sido ${item.pdr_estado ? "inactivado" : "activado"}`,
           });
         } catch (e) {
           console.error(e);
           setModalState({
             isOpen: true,
-            type: 'error',
-            title: 'Error',
-            message: 'Error al cambiar el estado del parámetro',
+            type: "error",
+            title: "Error",
+            message: "Error al cambiar el estado del parámetro",
           });
         }
       },
@@ -214,9 +208,9 @@ export default function DiasRespuestaPage() {
       console.error(e);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al buscar parámetros',
+        type: "error",
+        title: "Error",
+        message: "Error al buscar parámetros",
       });
       setItemsFiltrados([]);
     } finally {
@@ -271,7 +265,9 @@ export default function DiasRespuestaPage() {
                   </label>
                   <select
                     value={filtroArea}
-                    onChange={(e) => setFiltroArea(e.target.value as "TODAS" | Area)}
+                    onChange={(e) =>
+                      setFiltroArea(e.target.value as "TODAS" | Area)
+                    }
                     className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="TODAS">Todas</option>
@@ -291,7 +287,7 @@ export default function DiasRespuestaPage() {
                     value={filtroEstado}
                     onChange={(e) =>
                       setFiltroEstado(
-                        e.target.value as "TODOS" | "ACTIVO" | "INACTIVO"
+                        e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
                       )
                     }
                     className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -335,241 +331,251 @@ export default function DiasRespuestaPage() {
             </div>
           </div>
 
-        {mostrarNuevo && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Agregar parámetro
-            </h2>
-            <p className="text-sm text-gray-600">
-              Define el área y la cantidad de días de respuesta
-            </p>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <select
-                value={area}
-                onChange={(e) => setArea(e.target.value as Area)}
-                className="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Seleccionar área</option>
-                {areas.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="number"
-                min={1}
-                value={dias}
-                onChange={(e) => setDias(Number(e.target.value))}
-                className="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Días"
-              />
-
-              <div className="md:col-span-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    onClick={crear}
-                    disabled={submitting}
-                    className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                      submitting
-                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700 text-white"
-                    }`}
+          {mostrarNuevo && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Agregar parámetro
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Define el área y la cantidad de días de respuesta
+                </p>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <select
+                    value={area}
+                    onChange={(e) => setArea(e.target.value as Area)}
+                    className="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <Plus className="h-4 w-4" />
-                    {submitting ? "Guardando..." : "Agregar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      limpiarFormulario();
-                      setMostrarNuevo(false);
-                    }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-                  >
-                    <X className="h-4 w-4" />
-                    Cerrar
-                  </button>
+                    <option value="">Seleccionar área</option>
+                    {areas.map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="number"
+                    min={1}
+                    value={dias}
+                    onChange={(e) => setDias(Number(e.target.value))}
+                    className="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Días"
+                  />
+
+                  <div className="md:col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        onClick={crear}
+                        disabled={submitting}
+                        className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                          submitting
+                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                        }`}
+                      >
+                        <Plus className="h-4 w-4" />
+                        {submitting ? "Guardando..." : "Agregar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          limpiarFormulario();
+                          setMostrarNuevo(false);
+                        }}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                      >
+                        <X className="h-4 w-4" />
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        )}
+          )}
 
-        {!hasSearched ? (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl text-gray-400">🔍</span>
-            </div>
-            <p className="text-gray-600">
-              Selecciona los filtros y haz clic en "Buscar" para ver los resultados.
-            </p>
-          </div>
-        ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base md:text-lg font-semibold text-slate-800">
-                  Parámetros registrados
-                </h2>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  {itemsFiltrados.length} resultado{itemsFiltrados.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={cargarDatos}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Actualizar
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-              <p className="text-gray-600">Cargando...</p>
-            </div>
-          ) : itemsFiltrados.length === 0 ? (
-            <div className="text-center py-12">
+          {!hasSearched ? (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl text-gray-400">📭</span>
+                <span className="text-2xl text-gray-400">🔍</span>
               </div>
-              <p className="text-gray-600">No hay resultados para los filtros aplicados</p>
+              <p className="text-gray-600">
+                Selecciona los filtros y haz clic en "Buscar" para ver los
+                resultados.
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-blue-100">
-                <thead className="bg-gradient-to-r from-indigo-100 via-blue-100 to-cyan-100">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                      Área
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                      Días
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {itemsFiltrados.map((item) => (
-                    <tr key={item.pdr_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                          {item.pdr_area}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {editandoId === item.pdr_id ? (
-                          <input
-                            type="number"
-                            min={1}
-                            value={editandoDias}
-                            onChange={(e) =>
-                              setEditandoDias(Number(e.target.value))
-                            }
-                            className="border border-gray-300 px-2 py-1 rounded w-24 text-sm"
-                          />
-                        ) : (
-                          item.pdr_dias
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            item.pdr_estado
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {item.pdr_estado ? "Activo" : "Inactivo"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm">
-                        {editandoId === item.pdr_id ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={guardarEdicion}
-                              className="inline-flex min-w-[92px] items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base md:text-lg font-semibold text-slate-800">
+                      Parámetros registrados
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      {itemsFiltrados.length} resultado
+                      {itemsFiltrados.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={cargarDatos}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Actualizar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                  <p className="text-gray-600">Cargando...</p>
+                </div>
+              ) : itemsFiltrados.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl text-gray-400">📭</span>
+                  </div>
+                  <p className="text-gray-600">
+                    No hay resultados para los filtros aplicados
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-blue-100">
+                    <thead className="bg-gradient-to-r from-indigo-100 via-blue-100 to-cyan-100">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
+                          Área
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
+                          Días
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
+                          Estado
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {itemsFiltrados.map((item) => (
+                        <tr key={item.pdr_id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                              {item.pdr_area}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {editandoId === item.pdr_id ? (
+                              <input
+                                type="number"
+                                min={1}
+                                value={editandoDias}
+                                onChange={(e) =>
+                                  setEditandoDias(Number(e.target.value))
+                                }
+                                className="border border-gray-300 px-2 py-1 rounded w-24 text-sm"
+                              />
+                            ) : (
+                              item.pdr_dias
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                                item.pdr_estado
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
                             >
-                              <Save className="mr-1 h-3.5 w-3.5" />
-                              Guardar
-                            </button>
-                            <button
-                              onClick={() => setEditandoId(null)}
-                              className="inline-flex min-w-[92px] items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-                            >
-                              <X className="mr-1 h-3.5 w-3.5" />
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => iniciarEdicion(item)}
-                              className="inline-flex min-w-[92px] items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
-                            >
-                              <Pencil className="mr-1 h-3.5 w-3.5" />
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => toggleEstado(item)}
-                              className="inline-flex min-w-[92px] items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-                            >
-                              <Power className="mr-1 h-3.5 w-3.5" />
-                              {item.pdr_estado ? "Inactivar" : "Activar"}
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                              {item.pdr_estado ? "Activo" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm">
+                            {editandoId === item.pdr_id ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={guardarEdicion}
+                                  className="inline-flex min-w-[92px] items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                                >
+                                  <Save className="mr-1 h-3.5 w-3.5" />
+                                  Guardar
+                                </button>
+                                <button
+                                  onClick={() => setEditandoId(null)}
+                                  className="inline-flex min-w-[92px] items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                                >
+                                  <X className="mr-1 h-3.5 w-3.5" />
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => iniciarEdicion(item)}
+                                  className="inline-flex min-w-[92px] items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                                >
+                                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() => toggleEstado(item)}
+                                  className="inline-flex min-w-[92px] items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                                >
+                                  <Power className="mr-1 h-3.5 w-3.5" />
+                                  {item.pdr_estado ? "Inactivar" : "Activar"}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
-        </div>
-        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-              Total
-            </p>
-            <p className="text-2xl font-semibold text-slate-800 mt-1">{total}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
+                Total
+              </p>
+              <p className="text-2xl font-semibold text-slate-800 mt-1">
+                {total}
+              </p>
+            </div>
+            <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-wider text-emerald-600 font-semibold">
+                Activos
+              </p>
+              <p className="text-2xl font-semibold text-emerald-700 mt-1">
+                {activos}
+              </p>
+            </div>
+            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
+                Inactivos
+              </p>
+              <p className="text-2xl font-semibold text-slate-700 mt-1">
+                {inactivos}
+              </p>
+            </div>
           </div>
-          <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 shadow-sm">
-            <p className="text-[11px] uppercase tracking-wider text-emerald-600 font-semibold">
-              Activos
-            </p>
-            <p className="text-2xl font-semibold text-emerald-700 mt-1">{activos}</p>
-          </div>
-          <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-              Inactivos
-            </p>
-            <p className="text-2xl font-semibold text-slate-700 mt-1">{inactivos}</p>
-          </div>
-        </div>
         </div>
       </div>
 
       {/* Modals */}
-      {modalState.type === 'error' && (
+      {modalState.type === "error" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -581,7 +587,7 @@ export default function DiasRespuestaPage() {
         />
       )}
 
-      {modalState.type === 'success' && (
+      {modalState.type === "success" && (
         <SuccessModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -591,12 +597,12 @@ export default function DiasRespuestaPage() {
         />
       )}
 
-      {modalState.type === 'confirm' && (
+      {modalState.type === "confirm" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
           message={modalState.message}
-          confirmText={modalState.confirmText || 'Confirmar'}
+          confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();

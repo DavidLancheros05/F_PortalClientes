@@ -1,7 +1,8 @@
 "use client";
 
-import { formularioRespuestasService } from '@/services/formulario-respuestas.service';
-import { Calendar, CheckCircle, FileText } from "lucide-react";
+import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
+import { generarCartaPdf } from "@/lib/carta-pdf.util";
+import { Calendar, CheckCircle, Download, FileText } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 
@@ -27,6 +28,18 @@ interface DocumentoTablaFieldProps {
     fechaEmision?: string,
     vigenciaDias?: number | null,
   ) => { diasRestantes: number; fechaVencimiento: Date } | null;
+  calcularEstadoAnioDocumento: (
+    fechaEmision?: string,
+    aniosAtrasPermitidos?: number | null,
+  ) => {
+    valido: boolean;
+    anioDocumento: number;
+    anioMinimo: number;
+    anioMaximo: number;
+  } | null;
+  representanteLegal: { nombre: string; identificacion: string } | null;
+  clienteInfo: { nombre: string; nit: string };
+  numeroSolicitud: string | null;
 }
 
 export function DocumentoTablaField({
@@ -48,6 +61,10 @@ export function DocumentoTablaField({
   getArchivoPreviewUrl,
   getOpcionDocumentoFija,
   calcularVigenciaDocumento,
+  calcularEstadoAnioDocumento,
+  representanteLegal,
+  clienteInfo,
+  numeroSolicitud,
 }: DocumentoTablaFieldProps) {
   const opcionFija = getOpcionDocumentoFija(pregunta);
   const documento = pregunta.fp_tipo_documento_id
@@ -63,17 +80,24 @@ export function DocumentoTablaField({
   // Obtener fecha desde el archivo existente, o desde la pregunta hija, o desde la respuesta
   const archivoExistente = archivosExistentes[pregunta.fp_id];
 
-  // Calcular fecha en formato YYYY-MM-dd
+  // Calcular fecha en formato YYYY-MM-dd. El valor editado localmente
+  // (respuestas) tiene prioridad sobre archivoExistente.sd_fecha_emision:
+  // ese último es lo que ya quedó guardado en el servidor, así que si se
+  // usara primero, cada cambio del usuario se revertía de inmediato al
+  // valor viejo apenas se recalculaba este efecto (el usuario no podía
+  // editar la fecha, siempre volvía a la anterior).
   const calcularFechaFormato = () => {
     let fecha =
-      archivoExistente?.sd_fecha_emision ||
-      (preguntaFechaAsociada ? respuestas[preguntaFechaAsociada.fp_id]?.valor_fecha : null) ||
+      (preguntaFechaAsociada
+        ? respuestas[preguntaFechaAsociada.fp_id]?.valor_fecha
+        : null) ||
       respuestas[pregunta.fp_id]?.valor_fecha ||
+      archivoExistente?.sd_fecha_emision ||
       "";
 
     // Convertir fecha ISO a formato YYYY-MM-dd si es necesario
-    if (fecha && typeof fecha === "string" && fecha.includes('T')) {
-      fecha = fecha.split('T')[0];
+    if (fecha && typeof fecha === "string" && fecha.includes("T")) {
+      fecha = fecha.split("T")[0];
     }
     return fecha;
   };
@@ -92,20 +116,68 @@ export function DocumentoTablaField({
   ]);
 
   // Obtener fecha de hoy en formato YYYY-MM-DD
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    console.log('🔍 [DocumentoTablaField] Cálculo de fechaEmision:', {
+    console.log("🔍 [DocumentoTablaField] Cálculo de fechaEmision:", {
       fp_id: pregunta.fp_id,
       archivoExistente_sd_fecha_emision: archivoExistente?.sd_fecha_emision,
       preguntaFechaAsociada: preguntaFechaAsociada?.fp_id,
-      respuestaFechaAsociada: respuestas[preguntaFechaAsociada?.fp_id]?.valor_fecha,
+      respuestaFechaAsociada:
+        respuestas[preguntaFechaAsociada?.fp_id]?.valor_fecha,
       respuestaDirecta: respuestas[pregunta.fp_id]?.valor_fecha,
-      fechaEmision_final: fechaFormato
+      fechaEmision_final: fechaFormato,
     });
-  }, [pregunta.fp_id, archivoExistente?.sd_fecha_emision, preguntaFechaAsociada?.fp_id, respuestas, fechaFormato]);
+  }, [
+    pregunta.fp_id,
+    archivoExistente?.sd_fecha_emision,
+    preguntaFechaAsociada?.fp_id,
+    respuestas,
+    fechaFormato,
+  ]);
 
-  const resumenVigencia = calcularVigenciaDocumento(fechaInputValue, vigenciaDias);
+  const resumenVigencia = calcularVigenciaDocumento(
+    fechaInputValue,
+    vigenciaDias,
+  );
+  const esReglaAnio = documento?.tdo_regla_vigencia === "ANIO";
+  const resumenAnio = calcularEstadoAnioDocumento(
+    fechaInputValue,
+    documento?.tdo_anios_atras_permitidos,
+  );
+
+  const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
+
+  const handleDescargarPlantilla = async () => {
+    if (!documento?.tdo_plantilla_contenido) return;
+    setDescargandoPlantilla(true);
+    try {
+      const reemplazos: Record<string, string> = {
+        "{{cliente_nombre}}": clienteInfo?.nombre || "",
+        "{{cliente_nit}}": clienteInfo?.nit || "",
+        "{{numero_solicitud}}": numeroSolicitud || "",
+        "{{representante_legal_nombre}}": representanteLegal?.nombre || "",
+        "{{representante_legal_cedula}}":
+          representanteLegal?.identificacion || "",
+      };
+      const contenido = Object.entries(reemplazos).reduce(
+        (texto, [placeholder, valor]) => texto.split(placeholder).join(valor),
+        documento.tdo_plantilla_contenido,
+      );
+      await generarCartaPdf({
+        contenido,
+        asunto: tipoDocumentoFijo || documento.tdo_nombre,
+        destinatarioNombre: clienteInfo?.nombre || "-",
+        nombreArchivo: `plantilla-${documento.tdo_nombre}.pdf`,
+      });
+    } catch (err) {
+      console.error("Error generando plantilla:", err);
+      setErrorMessage("Error generando la plantilla descargable");
+      setTimeout(() => setErrorMessage(""), 3000);
+    } finally {
+      setDescargandoPlantilla(false);
+    }
+  };
 
   return (
     <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2">
@@ -135,6 +207,18 @@ export function DocumentoTablaField({
           )}
         </div>
       </div>
+
+      {documento?.tdo_tiene_plantilla && documento?.tdo_plantilla_contenido && (
+        <button
+          type="button"
+          onClick={handleDescargarPlantilla}
+          disabled={descargandoPlantilla}
+          className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
+        >
+          <Download className="h-3 w-3" />
+          {descargandoPlantilla ? "Generando..." : "Descargar plantilla"}
+        </button>
+      )}
 
       {!tipoDocumentoFijo && !readOnly && (
         <div className="space-y-0.5">
@@ -171,7 +255,7 @@ export function DocumentoTablaField({
             <div className="flex items-start gap-1 min-w-0">
               <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
               <p className="text-xs font-medium text-blue-900 break-words">
-                {archivosExistentes[pregunta.fp_id].nombre_original}
+                {archivosExistentes[pregunta.fp_id].sa_nombre_original}
               </p>
             </div>
             <div className="flex gap-1 flex-shrink-0">
@@ -279,76 +363,113 @@ export function DocumentoTablaField({
         </div>
       )}
 
-      {(preguntaFechaAsociada || documento?.tdo_permite_vencimiento) && vigenciaDias !== null && (
-        <div className="space-y-1 border-t border-slate-200 pt-1">
-          <label className="flex items-center gap-1 text-xs font-medium text-slate-800">
-            <Calendar className="h-3 w-3" />
-            {preguntaFechaAsociada?.fp_descripcion || "Fecha de emisión"}
-            {(preguntaFechaAsociada?.fp_requerida) && (
-              <span className="text-red-500 ml-0.5">*</span>
-            )}
-          </label>
-          <input
-            type="date"
-            value={fechaInputValue}
-            max={hoy}
-            onChange={(e) => {
-              const fechaSeleccionada = e.target.value;
-              // console.log('📅 [FRONTEND] Fecha seleccionada:', {
-              //   fp_id: pregunta.fp_id,
-              //   fecha: fechaSeleccionada,
-              //   preguntaFecha: preguntaFechaAsociada?.fp_id,
-              //   tienePreguntaHija: !!preguntaFechaAsociada
-              // });
-              setFechaInputValue(fechaSeleccionada);
+      {(preguntaFechaAsociada || documento?.tdo_permite_vencimiento) &&
+        (vigenciaDias !== null || esReglaAnio) && (
+          <div className="space-y-1 border-t border-slate-200 pt-1">
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-800">
+              <Calendar className="h-3 w-3" />
+              {preguntaFechaAsociada?.fp_descripcion || "Fecha de emisión"}
+              {preguntaFechaAsociada?.fp_requerida && (
+                <span className="text-red-500 ml-0.5">*</span>
+              )}
+            </label>
+            <input
+              type="date"
+              value={fechaInputValue}
+              min="1900-01-01"
+              max={hoy}
+              onChange={(e) => {
+                const fechaSeleccionada = e.target.value;
+                // console.log('📅 [FRONTEND] Fecha seleccionada:', {
+                //   fp_id: pregunta.fp_id,
+                //   fecha: fechaSeleccionada,
+                //   preguntaFecha: preguntaFechaAsociada?.fp_id,
+                //   tienePreguntaHija: !!preguntaFechaAsociada
+                // });
+                setFechaInputValue(fechaSeleccionada);
 
-              if (preguntaFechaAsociada) {
-                console.log('💾 Guardando en pregunta hija:', preguntaFechaAsociada.fp_id);
-                setRespuestas((prev) => ({
-                  ...prev,
-                  [preguntaFechaAsociada.fp_id]: {
-                    ...prev[preguntaFechaAsociada.fp_id],
-                    valor_fecha: fechaSeleccionada,
-                  },
-                }));
-              } else {
-                // Si no hay pregunta hija, guardar en la respuesta del documento mismo
-                console.log('💾 Guardando en documento (sin pregunta hija):', pregunta.fp_id);
-                setRespuestas((prev) => ({
-                  ...prev,
-                  [pregunta.fp_id]: {
-                    ...prev[pregunta.fp_id],
-                    valor_fecha: fechaSeleccionada,
-                  },
-                }));
-              }
-            }}
-            className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? "border-red-500" : "border-gray-300"
-            } ${readOnly ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
-          />
-          <p className="text-xs text-slate-600">
-            Vigencia: {vigenciaDias} día{vigenciaDias === 1 ? "" : "s"}
-          </p>
-          {resumenVigencia && (
-            <p
-              className={`text-xs mt-1 font-medium ${
-                resumenVigencia.diasRestantes >= 0
-                  ? "text-emerald-700"
-                  : "text-red-700"
-              }`}
-            >
-              {resumenVigencia.diasRestantes >= 0
-                ? `Faltan ${resumenVigencia.diasRestantes} día${
-                    resumenVigencia.diasRestantes === 1 ? "" : "s"
-                  } para que venza.`
-                : `Vencido hace ${Math.abs(resumenVigencia.diasRestantes)} día${
-                    Math.abs(resumenVigencia.diasRestantes) === 1 ? "" : "s"
-                  }.`}
-            </p>
-          )}
-        </div>
-      )}
+                if (preguntaFechaAsociada) {
+                  console.log(
+                    "💾 Guardando en pregunta hija:",
+                    preguntaFechaAsociada.fp_id,
+                  );
+                  setRespuestas((prev) => ({
+                    ...prev,
+                    [preguntaFechaAsociada.fp_id]: {
+                      ...prev[preguntaFechaAsociada.fp_id],
+                      valor_fecha: fechaSeleccionada,
+                    },
+                  }));
+                } else {
+                  // Si no hay pregunta hija, guardar en la respuesta del documento mismo
+                  console.log(
+                    "💾 Guardando en documento (sin pregunta hija):",
+                    pregunta.fp_id,
+                  );
+                  setRespuestas((prev) => ({
+                    ...prev,
+                    [pregunta.fp_id]: {
+                      ...prev[pregunta.fp_id],
+                      valor_fecha: fechaSeleccionada,
+                    },
+                  }));
+                }
+              }}
+              className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                hasError ? "border-red-500" : "border-gray-300"
+              } ${readOnly ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
+            />
+            {esReglaAnio ? (
+              <>
+                <p className="text-xs text-slate-600">
+                  {documento?.tdo_anios_atras_permitidos === 0
+                    ? `Debe ser del año ${new Date().getFullYear()}.`
+                    : `Debe ser de ${new Date().getFullYear() - (documento?.tdo_anios_atras_permitidos ?? 0)} a ${new Date().getFullYear()}.`}
+                </p>
+                {resumenAnio && (
+                  <p
+                    className={`text-xs mt-1 font-medium ${
+                      resumenAnio.valido ? "text-emerald-700" : "text-red-700"
+                    }`}
+                  >
+                    {resumenAnio.valido
+                      ? `Vigente — es del año ${resumenAnio.anioDocumento}.`
+                      : `Documento vencido — no es ${
+                          resumenAnio.anioMinimo === resumenAnio.anioMaximo
+                            ? `del año ${resumenAnio.anioMaximo}`
+                            : `de ${resumenAnio.anioMinimo} o ${resumenAnio.anioMaximo}`
+                        }.`}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-slate-600">
+                  Vigencia: {vigenciaDias} día{vigenciaDias === 1 ? "" : "s"}
+                </p>
+                {resumenVigencia && (
+                  <p
+                    className={`text-xs mt-1 font-medium ${
+                      resumenVigencia.diasRestantes >= 0
+                        ? "text-emerald-700"
+                        : "text-red-700"
+                    }`}
+                  >
+                    {resumenVigencia.diasRestantes >= 0
+                      ? `Faltan ${resumenVigencia.diasRestantes} día${
+                          resumenVigencia.diasRestantes === 1 ? "" : "s"
+                        } para que venza.`
+                      : `Vencido hace ${Math.abs(resumenVigencia.diasRestantes)} día${
+                          Math.abs(resumenVigencia.diasRestantes) === 1
+                            ? ""
+                            : "s"
+                        }.`}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
     </div>
   );
 }

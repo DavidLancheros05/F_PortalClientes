@@ -9,20 +9,20 @@
  */
 
 /**
- * Extrae solicitud_id de una respuesta de creación de solicitud
+ * Extrae sa_sol_id de una respuesta de creación de solicitud
  * Maneja múltiples formatos de respuesta inconsistentes
  */
 export function extractSolicitudId(response: any): number {
   const id =
-    response?.data?.data?.solicitud_id ||
-    response?.data?.solicitud_id ||
+    response?.data?.data?.sa_sol_id ||
+    response?.data?.sa_sol_id ||
     response?.data?.sol_id ||
-    response?.solicitud_id ||
+    response?.sa_sol_id ||
     response?.sol_id;
 
   if (!id || isNaN(id)) {
     throw new Error(
-      `No se pudo extraer solicitud_id de la respuesta. Respuesta completa: ${JSON.stringify(response)}`
+      `No se pudo extraer sa_sol_id de la respuesta. Respuesta completa: ${JSON.stringify(response)}`,
     );
   }
 
@@ -39,14 +39,14 @@ export function extractResponseData(response: any): any {
 
 /**
  * Normaliza una respuesta de creación a formato estándar
- * @returns { solicitud_id: number, [otros_campos]: any }
+ * @returns { sa_sol_id: number, [otros_campos]: any }
  */
 export function normalizeSolicitudResponse(response: any) {
   const solicitudId = extractSolicitudId(response);
   const data = extractResponseData(response);
 
   return {
-    solicitud_id: solicitudId,
+    sa_sol_id: solicitudId,
     ...data,
   };
 }

@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Plus,
-  RefreshCw,
-  Search,
-  Pencil,
-  Power,
-  Save,
-  X,
-} from "lucide-react";
+import { Plus, RefreshCw, Search, Pencil, Power, Save, X } from "lucide-react";
 import {
   motivosRechazoService,
   MotivoRechazo,
@@ -162,7 +154,10 @@ export default function MotivosRechazoPage() {
                 </p>
                 <button
                   onClick={() => {
-                    console.log("Botón Nuevo clickeado, mostrarNuevo actual:", mostrarNuevo);
+                    console.log(
+                      "Botón Nuevo clickeado, mostrarNuevo actual:",
+                      mostrarNuevo,
+                    );
                     setMostrarNuevo(true);
                     limpiarFormulario();
                     console.log("Estado actualizado a mostrarNuevo = true");
@@ -184,7 +179,10 @@ export default function MotivosRechazoPage() {
           </div>
 
           {mostrarNuevo && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8" style={{border: "3px solid red"}}>
+            <div
+              className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8"
+              style={{ border: "3px solid red" }}
+            >
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Agregar motivo

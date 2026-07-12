@@ -38,7 +38,10 @@ export const ampliacionCupoService = {
     return res.data;
   },
 
-  update: async (id: number, payload: Partial<AmpliacionCupoPayload>): Promise<AmpliacionCupo> => {
+  update: async (
+    id: number,
+    payload: Partial<AmpliacionCupoPayload>,
+  ): Promise<AmpliacionCupo> => {
     const res = await api.put(`/ampliacion-cupo/${id}`, payload);
     return res.data;
   },

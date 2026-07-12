@@ -38,7 +38,7 @@ interface Solicitud {
   fecha_creacion?: string;
   fecha_estimada_respuesta_comercial?: string | null;
   consumo_mensual_proyectado?: number | null;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
@@ -177,7 +177,7 @@ export default function RegistrarConceptoPage() {
       const ahora = new Date().toISOString();
 
       await solicitudesService.guardarGestionEjecutivo(
-        solicitud.sol_id ?? solicitud.solicitud_id!,
+        solicitud.sol_id ?? solicitud.sa_sol_id!,
         {
           consumo_mensual_proyectado: registro.consumoMensual,
           observacionesComercial: registro.observaciones,

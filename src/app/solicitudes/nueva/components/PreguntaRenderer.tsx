@@ -51,6 +51,18 @@ interface PreguntaRendererProps {
     fechaEmision?: string,
     vigenciaDias?: number | null,
   ) => { diasRestantes: number; fechaVencimiento: Date } | null;
+  calcularEstadoAnioDocumento: (
+    fechaEmision?: string,
+    aniosAtrasPermitidos?: number | null,
+  ) => {
+    valido: boolean;
+    anioDocumento: number;
+    anioMinimo: number;
+    anioMaximo: number;
+  } | null;
+  representanteLegal: { nombre: string; identificacion: string } | null;
+  clienteInfo: { nombre: string; nit: string };
+  numeroSolicitud: string | null;
 }
 
 export function PreguntaRenderer(props: PreguntaRendererProps) {
@@ -86,6 +98,10 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     getOpcionDocumentoFija,
     getPreguntaFechaAsociada,
     calcularVigenciaDocumento,
+    calcularEstadoAnioDocumento,
+    representanteLegal,
+    clienteInfo,
+    numeroSolicitud,
   } = props;
 
   const preguntaPadre = pregunta.fp_pregunta_padre_id
@@ -147,9 +163,11 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             const nota = getNotaDisplay(pregunta);
             return (
               <>
-                <p className="text-xs font-semibold text-blue-950 leading-tight">
-                  {nota.titulo}
-                </p>
+                {nota.titulo && (
+                  <p className="text-xs font-semibold text-blue-950 leading-tight">
+                    {nota.titulo}
+                  </p>
+                )}
                 {nota.subtitulo && (
                   <p className="mt-0.5 text-xs font-medium text-blue-900">
                     {nota.subtitulo}
@@ -305,6 +323,10 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             getArchivoPreviewUrl={getArchivoPreviewUrl}
             getOpcionDocumentoFija={getOpcionDocumentoFija}
             calcularVigenciaDocumento={calcularVigenciaDocumento}
+            calcularEstadoAnioDocumento={calcularEstadoAnioDocumento}
+            representanteLegal={representanteLegal}
+            clienteInfo={clienteInfo}
+            numeroSolicitud={numeroSolicitud}
           />
         );
       })()}

@@ -29,6 +29,7 @@ export const workflowSolicitudesService = {
       fecha_estimada_respuesta_comercial?: string | null;
       fecha_real_respuesta_comercial?: string | null;
       usuario_modifica?: number;
+      documentos_faltantes?: number[];
     },
   ) {
     const response = await api.put(`/solicitudes/${id}/aprobacion`, data);
@@ -88,7 +89,10 @@ export const workflowSolicitudesService = {
       formaPago?: string;
     },
   ) {
-    const response = await api.put(`/solicitudes/${id}/concepto-comite-credito-2`, data);
+    const response = await api.put(
+      `/solicitudes/${id}/concepto-comite-credito-2`,
+      data,
+    );
     return response.data;
   },
 
@@ -114,7 +118,10 @@ export const workflowSolicitudesService = {
       const response = await api.get("/solicitudes/workflow/etapas");
       return response.data;
     } catch (error) {
-      console.error("[workflowSolicitudesService] Error obteniendo etapas:", error);
+      console.error(
+        "[workflowSolicitudesService] Error obteniendo etapas:",
+        error,
+      );
       return [];
     }
   },
@@ -125,7 +132,10 @@ export const workflowSolicitudesService = {
       const response = await api.get("/solicitudes/workflow/resultados");
       return response.data;
     } catch (error) {
-      console.error("[workflowSolicitudesService] Error obteniendo resultados:", error);
+      console.error(
+        "[workflowSolicitudesService] Error obteniendo resultados:",
+        error,
+      );
       return [];
     }
   },
@@ -163,7 +173,10 @@ export const workflowSolicitudesService = {
     },
   ) {
     try {
-      const response = await api.put(`/solicitudes/${id}/estado-flujo-automatico`, data);
+      const response = await api.put(
+        `/solicitudes/${id}/estado-flujo-automatico`,
+        data,
+      );
       return response.data;
     } catch (error) {
       console.error(

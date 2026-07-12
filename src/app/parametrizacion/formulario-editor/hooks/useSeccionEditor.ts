@@ -24,6 +24,7 @@ export function useSeccionEditor({
   const [editandoSeccion, setEditandoSeccion] = useState<number | null>(null);
   const [nuevaSeccion, setNuevaSeccion] = useState(false);
   const [formSeccion, setFormSeccion] = useState({ nombre: "", descripcion: "" });
+  const [seccionAEliminar, setSeccionAEliminar] = useState<number | null>(null);
 
   const guardarSeccion = async () => {
     if (!formSeccion.nombre.trim()) {
@@ -64,14 +65,14 @@ export function useSeccionEditor({
     setNuevaSeccion(false);
   };
 
-  const eliminarSeccion = async (seccionId: number) => {
-    if (
-      !confirm(
-        "¿Estás seguro de que deseas eliminar esta sección? Se eliminarán sus preguntas y respuestas asociadas.",
-      )
-    ) {
-      return;
-    }
+  const eliminarSeccion = (seccionId: number) => {
+    setSeccionAEliminar(seccionId);
+  };
+
+  const confirmarEliminarSeccion = async () => {
+    if (seccionAEliminar === null) return;
+    const seccionId = seccionAEliminar;
+    setSeccionAEliminar(null);
     try {
       await api.delete(`/parametrizacion/formulario-secciones/${seccionId}`);
       if (seccionSeleccionada === seccionId) {
@@ -163,6 +164,9 @@ export function useSeccionEditor({
     guardarSeccion,
     iniciarEdicionSeccion,
     eliminarSeccion,
+    confirmarEliminarSeccion,
+    seccionAEliminar,
+    setSeccionAEliminar,
     cambiarOrdenSeccion,
     guardarOrdenSecciones,
     handleSeccionDragEnd,

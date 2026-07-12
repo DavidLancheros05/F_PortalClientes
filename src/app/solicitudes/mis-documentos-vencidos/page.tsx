@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 
 interface DocumentoVencidoRow {
   sa_id: number;
-  solicitud_id: number;
+  sa_sol_id: number;
   sol_numero_solicitud: string;
   documento_nombre: string | null;
-  nombre_original: string;
-  ruta_almacenamiento: string;
+  sa_nombre_original: string;
+  sa_ruta_almacenamiento: string;
   fecha_carga: string;
-  fecha_vencimiento: string | null;
+  sa_fecha_vencimiento: string | null;
   dias_vencido: number | null;
   cliente_nombre: string | null;
   centro_operacion_nombre: string | null;
@@ -49,9 +49,10 @@ export default function MisDocumentosVencidosPage() {
         }
       }
 
-      const params = clienteId > 0
-        ? { mode: "mis-vencidos", usr_id: clienteId }
-        : { mode: "expired" };
+      const params =
+        clienteId > 0
+          ? { mode: "mis-vencidos", usr_id: clienteId }
+          : { mode: "expired" };
 
       const data = await solicitudesService.getDocumentos(params);
       setRows(data);
@@ -146,7 +147,7 @@ export default function MisDocumentosVencidosPage() {
                         {row.sol_numero_solicitud}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {row.documento_nombre || row.nombre_original}
+                        {row.documento_nombre || row.sa_nombre_original}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {row.cliente_nombre || "-"}
@@ -158,7 +159,7 @@ export default function MisDocumentosVencidosPage() {
                         {formatDate(row.fecha_carga)}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {formatDate(row.fecha_vencimiento)}
+                        {formatDate(row.sa_fecha_vencimiento)}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">

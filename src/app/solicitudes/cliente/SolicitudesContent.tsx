@@ -65,16 +65,16 @@ export default function SolicitudesContent() {
   const itemsPerPage = 5;
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'error' | 'confirm';
+    type: "error" | "confirm";
     title: string;
     message: string;
     action?: () => void;
     numeroSolicitud?: string;
   }>({
     isOpen: false,
-    type: 'error',
-    title: '',
-    message: '',
+    type: "error",
+    title: "",
+    message: "",
   });
 
   useEffect(() => {
@@ -125,7 +125,10 @@ export default function SolicitudesContent() {
     }
   }, [user]);
 
-  async function fetchSolicitudes(filters?: { searchTerm?: string; estado?: string }) {
+  async function fetchSolicitudes(filters?: {
+    searchTerm?: string;
+    estado?: string;
+  }) {
     const requestSequence = ++fetchSequenceRef.current;
 
     try {
@@ -149,7 +152,10 @@ export default function SolicitudesContent() {
         params.estado = filters.estado;
       }
 
-      const data = await solicitudesService.getAllByCliente(user.cliente_id, params);
+      const data = await solicitudesService.getAllByCliente(
+        user.cliente_id,
+        params,
+      );
       console.log(
         "[SolicitudesContent] fetchSolicitudes -> data recibida:",
         data,
@@ -171,9 +177,10 @@ export default function SolicitudesContent() {
       console.error("[SolicitudesContent] Error cargando solicitudes:", error);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: error.message ||
+        type: "error",
+        title: "Error",
+        message:
+          error.message ||
           "Error al cargar las solicitudes. Verifica tu conexión.",
       });
     } finally {
@@ -184,12 +191,12 @@ export default function SolicitudesContent() {
   }
 
   const handleVerDetalle = (id: number) => {
-    console.log("[SolicitudesContent] handleVerDetalle -> solicitud_id:", id);
+    console.log("[SolicitudesContent] handleVerDetalle -> sa_sol_id:", id);
     router.push(`/solicitudes/${id}`);
   };
 
   const handleEditar = (id: number) => {
-    console.log("[SolicitudesContent] handleEditar -> solicitud_id:", id);
+    console.log("[SolicitudesContent] handleEditar -> sa_sol_id:", id);
     const query = new URLSearchParams();
     if (searchTermInput.trim()) query.set("q", searchTermInput.trim());
     if (estadoFilterInput !== "todos") query.set("estado", estadoFilterInput);
@@ -213,32 +220,36 @@ export default function SolicitudesContent() {
   const handleEliminar = (id: number, numeroSolicitud?: string) => {
     setModalState({
       isOpen: true,
-      type: 'confirm',
-      title: 'Eliminar solicitud',
+      type: "confirm",
+      title: "Eliminar solicitud",
       message: `¿Deseas eliminar la solicitud ${numeroSolicitud || `#${id}`}? Esta acción no se puede deshacer.`,
       numeroSolicitud,
       action: async () => {
         try {
           setDeletingId(id);
           await solicitudesService.remove(id);
-      setSolicitudes((prev) =>
-        prev.filter((solicitud) => solicitud.sol_id !== id),
-      );
-      await fetchSolicitudes();
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        setSolicitudes((prev) =>
-          prev.filter((solicitud) => solicitud.sol_id !== id),
-        );
-        return;
-      }
+          setSolicitudes((prev) =>
+            prev.filter((solicitud) => solicitud.sol_id !== id),
+          );
+          await fetchSolicitudes();
+        } catch (error: any) {
+          if (error?.response?.status === 404) {
+            setSolicitudes((prev) =>
+              prev.filter((solicitud) => solicitud.sol_id !== id),
+            );
+            return;
+          }
 
-          console.error("[SolicitudesContent] Error eliminando solicitud:", error);
+          console.error(
+            "[SolicitudesContent] Error eliminando solicitud:",
+            error,
+          );
           setModalState({
             isOpen: true,
-            type: 'error',
-            title: 'Error',
-            message: error?.response?.data?.message ||
+            type: "error",
+            title: "Error",
+            message:
+              error?.response?.data?.message ||
               error?.message ||
               "No fue posible eliminar la solicitud",
           });
@@ -416,14 +427,15 @@ export default function SolicitudesContent() {
                               ? "No se encontraron solicitudes con los filtros aplicados"
                               : "Aún no has creado ninguna solicitud"}
                           </p>
-                          {!searchTermInput && estadoFilterInput === "todos" && (
-                            <button
-                              onClick={handleNuevaSolicitud}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              Crear mi primera solicitud
-                            </button>
-                          )}
+                          {!searchTermInput &&
+                            estadoFilterInput === "todos" && (
+                              <button
+                                onClick={handleNuevaSolicitud}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                Crear mi primera solicitud
+                              </button>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -472,7 +484,8 @@ export default function SolicitudesContent() {
                               <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               <span className="text-sm text-gray-900">
                                 {formatearFecha(
-                                  solicitud.sol_updated_at || solicitud.sol_fecha_creacion,
+                                  solicitud.sol_updated_at ||
+                                    solicitud.sol_fecha_creacion,
                                   true,
                                 )}
                               </span>
@@ -490,9 +503,14 @@ export default function SolicitudesContent() {
                             {solicitud.sol_estado_id === 2 &&
                             solicitud.sol_etapa_actual_id === 3 &&
                             solicitud.sol_resultado_etapa_id === 3 ? (
-                              <div className="text-sm font-medium text-orange-700 bg-orange-50 px-3 py-1 rounded border border-orange-200">
+                              <button
+                                onClick={() =>
+                                  router.push("/solicitudes/mis-documentos")
+                                }
+                                className="text-sm font-medium text-orange-700 bg-orange-50 px-3 py-1 rounded border border-orange-200 hover:bg-orange-100 transition-colors"
+                              >
                                 Corrija los documentos
-                              </div>
+                              </button>
                             ) : (
                               <span className="text-gray-400">—</span>
                             )}
@@ -508,17 +526,22 @@ export default function SolicitudesContent() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              {[1, 2].includes(solicitud.sol_estado_id) && (
-                                <button
-                                  onClick={() =>
-                                    handleEditar(solicitud.sol_id)
-                                  }
-                                  className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
-                                  title="Editar solicitud"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                              )}
+                              {[1, 2].includes(solicitud.sol_estado_id) &&
+                                !(
+                                  solicitud.sol_estado_id === 2 &&
+                                  solicitud.sol_etapa_actual_id === 3 &&
+                                  solicitud.sol_resultado_etapa_id === 3
+                                ) && (
+                                  <button
+                                    onClick={() =>
+                                      handleEditar(solicitud.sol_id)
+                                    }
+                                    className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                                    title="Editar solicitud"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                )}
                               {solicitud.sol_estado_id === 5 && (
                                 <button
                                   onClick={() =>
@@ -527,9 +550,7 @@ export default function SolicitudesContent() {
                                       solicitud.sol_numero_solicitud,
                                     )
                                   }
-                                  disabled={
-                                    deletingId === solicitud.sol_id
-                                  }
+                                  disabled={deletingId === solicitud.sol_id}
                                   className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Eliminar solicitud borrador"
                                 >
@@ -556,10 +577,7 @@ export default function SolicitudesContent() {
                       {startIndex + 1} -{" "}
                       {Math.min(endIndex, solicitudes.length)}
                     </span>{" "}
-                    de{" "}
-                    <span className="font-medium">
-                      {solicitudes.length}
-                    </span>{" "}
+                    de <span className="font-medium">{solicitudes.length}</span>{" "}
                     solicitudes
                   </div>
                   <div className="flex gap-2 flex-wrap">
@@ -655,7 +673,7 @@ export default function SolicitudesContent() {
       </div>
 
       {/* Modals */}
-      {modalState.type === 'error' && (
+      {modalState.type === "error" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -667,7 +685,7 @@ export default function SolicitudesContent() {
         />
       )}
 
-      {modalState.type === 'confirm' && (
+      {modalState.type === "confirm" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}

@@ -37,7 +37,7 @@ interface Solicitud {
   fecha_real_respuesta_comercial?: string | null;
   consumo_mensual_proyectado?: number | null;
   observacionesComercial?: string | null;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
@@ -54,10 +54,10 @@ interface Documento {
   nombre: string;
   descripcion?: string;
   obligatorio?: boolean;
-  fecha_emision?: string | null;
-  fecha_vencimiento?: string | null;
+  sa_fecha_emision?: string | null;
+  sa_fecha_vencimiento?: string | null;
   tipo_documento_id?: number;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   ruta_archivo?: string;
   estado?: boolean;
 }
@@ -166,14 +166,6 @@ export default function GestionarSolicitudPage() {
       return;
     }
 
-    if (
-      gestion.motivo_rechazo_id === 1 &&
-      gestion.documentos_faltantes.length === 0
-    ) {
-      alert("Selecciona al menos un documento faltante.");
-      return;
-    }
-
     setShowConfirmModal(true);
   };
 
@@ -193,7 +185,7 @@ export default function GestionarSolicitudPage() {
         ahora;
 
       await solicitudesService.registrarAprobacion(
-        solicitud.sol_id ?? solicitud.solicitud_id!,
+        solicitud.sol_id ?? solicitud.sa_sol_id!,
         {
           aprobado: gestion.aprobado === true,
           motivo_rechazo_id: gestion.motivo_rechazo_id || null,
@@ -201,6 +193,7 @@ export default function GestionarSolicitudPage() {
             solicitud.fecha_estimada_respuesta_comercial,
           fecha_real_respuesta_comercial: fechaReal,
           usuario_modifica: usuarioId,
+          documentos_faltantes: gestion.documentos_faltantes,
         },
       );
 
@@ -464,77 +457,76 @@ export default function GestionarSolicitudPage() {
                       </select>
                     </div>
 
-                    {gestion.motivo_rechazo_id === 1 &&
-                      documentos.length > 0 && (
-                        <div className="mb-6">
-                          <label className="block text-sm font-medium text-gray-700 mb-3">
-                            Documentos con Fecha de Emisión Incorrecta
-                          </label>
-                          <div className="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            {documentos.map((doc) => (
-                              <label
-                                key={doc.id}
-                                className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded cursor-pointer border border-gray-200"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={gestion.documentos_faltantes.includes(
-                                    doc.id,
-                                  )}
-                                  onChange={(e) =>
-                                    setGestion((prev) => ({
-                                      ...prev,
-                                      documentos_faltantes: e.target.checked
-                                        ? [...prev.documentos_faltantes, doc.id]
-                                        : prev.documentos_faltantes.filter(
-                                            (id) => id !== doc.id,
-                                          ),
-                                    }))
-                                  }
-                                  className="rounded cursor-pointer"
-                                />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {doc.nombre}
-                                  </p>
-                                  {doc.descripcion && (
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      {doc.descripcion}
-                                    </p>
-                                  )}
-                                  <div className="flex gap-4 text-xs text-gray-600">
-                                    {doc.fecha_emision ? (
-                                      <span className="bg-white px-2 py-1 rounded">
-                                        Emisión:{" "}
-                                        {new Date(
-                                          doc.fecha_emision,
-                                        ).toLocaleDateString("es-CO")}
-                                      </span>
-                                    ) : (
-                                      <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-medium">
-                                        ⚠️ Sin fecha de emisión
-                                      </span>
-                                    )}
-                                    {doc.fecha_vencimiento && (
-                                      <span className="bg-white px-2 py-1 rounded">
-                                        Vencimiento:{" "}
-                                        {new Date(
-                                          doc.fecha_vencimiento,
-                                        ).toLocaleDateString("es-CO")}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                {doc.obligatorio && (
-                                  <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded whitespace-nowrap">
-                                    Obligatorio
-                                  </span>
+                    {documentos.length > 0 && (
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Documentos con Fecha de Emisión Incorrecta (opcional)
+                        </label>
+                        <div className="space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          {documentos.map((doc) => (
+                            <label
+                              key={doc.id}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded cursor-pointer border border-gray-200"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={gestion.documentos_faltantes.includes(
+                                  doc.id,
                                 )}
-                              </label>
-                            ))}
-                          </div>
+                                onChange={(e) =>
+                                  setGestion((prev) => ({
+                                    ...prev,
+                                    documentos_faltantes: e.target.checked
+                                      ? [...prev.documentos_faltantes, doc.id]
+                                      : prev.documentos_faltantes.filter(
+                                          (id) => id !== doc.id,
+                                        ),
+                                  }))
+                                }
+                                className="rounded cursor-pointer"
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {doc.nombre}
+                                </p>
+                                {doc.descripcion && (
+                                  <p className="text-xs text-gray-500 mb-1">
+                                    {doc.descripcion}
+                                  </p>
+                                )}
+                                <div className="flex gap-4 text-xs text-gray-600">
+                                  {doc.sa_fecha_emision ? (
+                                    <span className="bg-white px-2 py-1 rounded">
+                                      Emisión:{" "}
+                                      {new Date(
+                                        doc.sa_fecha_emision,
+                                      ).toLocaleDateString("es-CO")}
+                                    </span>
+                                  ) : (
+                                    <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-medium">
+                                      ⚠️ Sin fecha de emisión
+                                    </span>
+                                  )}
+                                  {doc.sa_fecha_vencimiento && (
+                                    <span className="bg-white px-2 py-1 rounded">
+                                      Vencimiento:{" "}
+                                      {new Date(
+                                        doc.sa_fecha_vencimiento,
+                                      ).toLocaleDateString("es-CO")}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {doc.obligatorio && (
+                                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded whitespace-nowrap">
+                                  Obligatorio
+                                </span>
+                              )}
+                            </label>
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -579,12 +571,17 @@ export default function GestionarSolicitudPage() {
               <HistorialSolicitud
                 historial={(historial?.historial || []).map(
                   (item: any, index: number) => ({
-                    historialId: item.historialId || index,
-                    etapaNombre: item.etapaNombre || "Etapa desconocida",
-                    resultadoNombre: item.resultadoNombre,
-                    estadoNombre: item.estadoNombre,
+                    historialId: item.historial_id || item.historialId || index,
+                    etapaNombre:
+                      item.etapa_nombre ||
+                      item.etapaNombre ||
+                      "Etapa desconocida",
+                    resultadoNombre:
+                      item.resultado_nombre || item.resultadoNombre,
+                    estadoNombre: item.estado_nombre || item.estadoNombre,
                     fecha: item.fecha,
-                    usuarioNombre: item.usuarioNombre || item.nombre,
+                    usuarioNombre:
+                      item.usuarioNombre || item.nombre || item.usuario_nombre,
                   }),
                 )}
               />

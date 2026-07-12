@@ -30,12 +30,16 @@ const PLACEHOLDERS = [
 
 export default function CartaPdfVinculacionPage() {
   const [plantillas, setPlantillas] = useState<CartaPdfVinculacion[]>([]);
-  const [plantillasFiltradas, setPlantillasFiltradas] = useState<CartaPdfVinculacion[]>([]);
+  const [plantillasFiltradas, setPlantillasFiltradas] = useState<
+    CartaPdfVinculacion[]
+  >([]);
   const [nombre, setNombre] = useState("");
   const [contenido, setContenido] = useState("");
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [filtroTexto, setFiltroTexto] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<"TODOS" | "ACTIVO" | "INACTIVO">("TODOS");
+  const [filtroEstado, setFiltroEstado] = useState<
+    "TODOS" | "ACTIVO" | "INACTIVO"
+  >("TODOS");
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [editandoNombre, setEditandoNombre] = useState("");
   const [editandoContenido, setEditandoContenido] = useState("");
@@ -47,7 +51,7 @@ export default function CartaPdfVinculacionPage() {
   // Modal states
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'error' | 'success' | 'confirm';
+    type: "error" | "success" | "confirm";
     title: string;
     message: string;
     action?: () => void;
@@ -55,9 +59,9 @@ export default function CartaPdfVinculacionPage() {
     isDangerous?: boolean;
   }>({
     isOpen: false,
-    type: 'error',
-    title: '',
-    message: '',
+    type: "error",
+    title: "",
+    message: "",
   });
 
   const cargarPlantillas = async () => {
@@ -83,9 +87,9 @@ export default function CartaPdfVinculacionPage() {
     if (!nombre.trim() || !contenido.trim()) {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Campos incompletos',
-        message: 'Por favor ingresa nombre y contenido para la plantilla',
+        type: "error",
+        title: "Campos incompletos",
+        message: "Por favor ingresa nombre y contenido para la plantilla",
       });
       return;
     }
@@ -102,17 +106,17 @@ export default function CartaPdfVinculacionPage() {
       await cargarPlantillas();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Plantilla creada',
-        message: 'La plantilla ha sido creada exitosamente',
+        type: "success",
+        title: "Plantilla creada",
+        message: "La plantilla ha sido creada exitosamente",
       });
     } catch (error) {
       console.error(error);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al crear la plantilla. Por favor, intenta nuevamente.',
+        type: "error",
+        title: "Error",
+        message: "Error al crear la plantilla. Por favor, intenta nuevamente.",
       });
     } finally {
       setSubmitting(false);
@@ -135,9 +139,9 @@ export default function CartaPdfVinculacionPage() {
     if (!editandoNombre.trim() || !editandoContenido.trim()) {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Campos incompletos',
-        message: 'El nombre y contenido no pueden estar vacíos',
+        type: "error",
+        title: "Campos incompletos",
+        message: "El nombre y contenido no pueden estar vacíos",
       });
       return;
     }
@@ -153,17 +157,18 @@ export default function CartaPdfVinculacionPage() {
       await cargarPlantillas();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Plantilla actualizada',
-        message: 'La plantilla ha sido actualizada exitosamente',
+        type: "success",
+        title: "Plantilla actualizada",
+        message: "La plantilla ha sido actualizada exitosamente",
       });
     } catch (error) {
       console.error(error);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al actualizar la plantilla. Por favor, intenta nuevamente.',
+        type: "error",
+        title: "Error",
+        message:
+          "Error al actualizar la plantilla. Por favor, intenta nuevamente.",
       });
     }
   };
@@ -171,28 +176,31 @@ export default function CartaPdfVinculacionPage() {
   const toggleActivo = (plantilla: CartaPdfVinculacion) => {
     setModalState({
       isOpen: true,
-      type: 'confirm',
-      title: plantilla.cpv_activo ? 'Inactivar plantilla' : 'Activar plantilla',
+      type: "confirm",
+      title: plantilla.cpv_activo ? "Inactivar plantilla" : "Activar plantilla",
       message: `¿Estás seguro de ${plantilla.cpv_activo ? "inactivar" : "activar"} esta plantilla?`,
       isDangerous: plantilla.cpv_activo,
-      confirmText: plantilla.cpv_activo ? 'Inactivar' : 'Activar',
+      confirmText: plantilla.cpv_activo ? "Inactivar" : "Activar",
       action: async () => {
         try {
-          await cartaPdfVinculacionService.toggleActivo(plantilla.cpv_id, !plantilla.cpv_activo);
+          await cartaPdfVinculacionService.toggleActivo(
+            plantilla.cpv_id,
+            !plantilla.cpv_activo,
+          );
           await cargarPlantillas();
           setModalState({
             isOpen: true,
-            type: 'success',
-            title: 'Operación exitosa',
-            message: `La plantilla ha sido ${plantilla.cpv_activo ? 'inactivada' : 'activada'} correctamente`,
+            type: "success",
+            title: "Operación exitosa",
+            message: `La plantilla ha sido ${plantilla.cpv_activo ? "inactivada" : "activada"} correctamente`,
           });
         } catch (error) {
           console.error(error);
           setModalState({
             isOpen: true,
-            type: 'error',
-            title: 'Error',
-            message: 'Error al cambiar el estado de la plantilla.',
+            type: "error",
+            title: "Error",
+            message: "Error al cambiar el estado de la plantilla.",
           });
         }
       },
@@ -211,7 +219,9 @@ export default function CartaPdfVinculacionPage() {
   };
 
   const insertarPlaceholder = (variable: string) => {
-    const textarea = document.getElementById("contenido-textarea") as HTMLTextAreaElement;
+    const textarea = document.getElementById(
+      "contenido-textarea",
+    ) as HTMLTextAreaElement;
     if (!textarea) return;
 
     const start = textarea.selectionStart || contenido.length;
@@ -227,13 +237,17 @@ export default function CartaPdfVinculacionPage() {
   };
 
   const insertarPlaceholderEdicion = (variable: string) => {
-    const textarea = document.getElementById("contenido-edicion-textarea") as HTMLTextAreaElement;
+    const textarea = document.getElementById(
+      "contenido-edicion-textarea",
+    ) as HTMLTextAreaElement;
     if (!textarea) return;
 
     const start = textarea.selectionStart || editandoContenido.length;
     const end = textarea.selectionEnd || editandoContenido.length;
     const nuevoContenido =
-      editandoContenido.substring(0, start) + variable + editandoContenido.substring(end);
+      editandoContenido.substring(0, start) +
+      variable +
+      editandoContenido.substring(end);
     setEditandoContenido(nuevoContenido);
 
     setTimeout(() => {
@@ -242,7 +256,9 @@ export default function CartaPdfVinculacionPage() {
     }, 0);
   };
 
-  const aplicarFiltros = (sourcePlantillas: CartaPdfVinculacion[] = plantillas) => {
+  const aplicarFiltros = (
+    sourcePlantillas: CartaPdfVinculacion[] = plantillas,
+  ) => {
     const texto = filtroTexto.trim().toLowerCase();
 
     const resultado = sourcePlantillas.filter((plantilla) => {
@@ -250,7 +266,9 @@ export default function CartaPdfVinculacionPage() {
         texto === "" || plantilla.cpv_nombre.toLowerCase().includes(texto);
       const estadoOk =
         filtroEstado === "TODOS" ||
-        (filtroEstado === "ACTIVO" ? plantilla.cpv_activo : !plantilla.cpv_activo);
+        (filtroEstado === "ACTIVO"
+          ? plantilla.cpv_activo
+          : !plantilla.cpv_activo);
 
       return textoOk && estadoOk;
     });
@@ -297,7 +315,8 @@ export default function CartaPdfVinculacionPage() {
                 Vinculación Comercial
               </h1>
               <p className="text-gray-600 mt-1">
-                Crea y gestiona las plantillas de cartas PDF para enviar a los clientes
+                Crea y gestiona las plantillas de cartas PDF para enviar a los
+                clientes
               </p>
             </div>
           </div>
@@ -309,7 +328,8 @@ export default function CartaPdfVinculacionPage() {
                   Crear nueva plantilla
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Ingresa el nombre y contenido de la plantilla. Usa los placeholders disponibles.
+                  Ingresa el nombre y contenido de la plantilla. Usa los
+                  placeholders disponibles.
                 </p>
               </div>
 
@@ -415,7 +435,7 @@ export default function CartaPdfVinculacionPage() {
                     value={filtroEstado}
                     onChange={(e) =>
                       setFiltroEstado(
-                        e.target.value as "TODOS" | "ACTIVO" | "INACTIVO"
+                        e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
                       )
                     }
                     className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -509,7 +529,9 @@ export default function CartaPdfVinculacionPage() {
                             <input
                               type="text"
                               value={editandoNombre}
-                              onChange={(e) => setEditandoNombre(e.target.value)}
+                              onChange={(e) =>
+                                setEditandoNombre(e.target.value)
+                              }
                               className="w-full border border-gray-300 px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               autoFocus
                             />
@@ -520,7 +542,9 @@ export default function CartaPdfVinculacionPage() {
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
                                 {plantilla.cpv_contenido.substring(0, 80)}
-                                {plantilla.cpv_contenido.length > 80 ? "..." : ""}
+                                {plantilla.cpv_contenido.length > 80
+                                  ? "..."
+                                  : ""}
                               </p>
                             </div>
                           )}
@@ -628,7 +652,9 @@ export default function CartaPdfVinculacionPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-auto">
             <div className="sticky top-0 bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Vista previa</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Vista previa
+              </h2>
               <button
                 onClick={() => {
                   setMostrarPreview(false);
@@ -646,7 +672,10 @@ export default function CartaPdfVinculacionPage() {
                     {plantillas.find((p) => p.cpv_id === previewId)?.cpv_nombre}
                   </h3>
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 font-mono text-sm whitespace-pre-wrap text-gray-700">
-                    {plantillas.find((p) => p.cpv_id === previewId)?.cpv_contenido}
+                    {
+                      plantillas.find((p) => p.cpv_id === previewId)
+                        ?.cpv_contenido
+                    }
                   </div>
                 </>
               )}
@@ -660,7 +689,9 @@ export default function CartaPdfVinculacionPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-3xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Editar plantilla</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Editar plantilla
+              </h2>
               <button
                 onClick={cancelarEdicion}
                 className="text-gray-500 hover:text-gray-700"
@@ -735,7 +766,7 @@ export default function CartaPdfVinculacionPage() {
       )}
 
       {/* Modals */}
-      {modalState.type === 'error' && (
+      {modalState.type === "error" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -747,7 +778,7 @@ export default function CartaPdfVinculacionPage() {
         />
       )}
 
-      {modalState.type === 'success' && (
+      {modalState.type === "success" && (
         <SuccessModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -757,12 +788,12 @@ export default function CartaPdfVinculacionPage() {
         />
       )}
 
-      {modalState.type === 'confirm' && (
+      {modalState.type === "confirm" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
           message={modalState.message}
-          confirmText={modalState.confirmText || 'Confirmar'}
+          confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();

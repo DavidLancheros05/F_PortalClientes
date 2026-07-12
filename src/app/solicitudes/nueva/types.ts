@@ -20,6 +20,11 @@ export interface DocumentoCatalogo {
   tdo_nombre: string;
   tdo_descripcion?: string | null;
   tdo_vigencia_dias: number | null;
+  tdo_permite_vencimiento?: boolean | null;
+  tdo_regla_vigencia?: "DIAS" | "ANIO" | null;
+  tdo_anios_atras_permitidos?: number | null;
+  tdo_tiene_plantilla?: boolean;
+  tdo_plantilla_contenido?: string | null;
 }
 
 export interface Seccion {

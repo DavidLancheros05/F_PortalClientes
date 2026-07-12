@@ -22,7 +22,7 @@ export default function EstadosPage() {
   // Modal states
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'error' | 'success' | 'confirm';
+    type: "error" | "success" | "confirm";
     title: string;
     message: string;
     action?: () => void;
@@ -31,9 +31,9 @@ export default function EstadosPage() {
     estadoCode?: string;
   }>({
     isOpen: false,
-    type: 'error',
-    title: '',
-    message: '',
+    type: "error",
+    title: "",
+    message: "",
   });
 
   const cargarEstados = async () => {
@@ -57,9 +57,9 @@ export default function EstadosPage() {
     if (!codigo.trim() || !descripcion.trim() || orden === "") {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Campos incompletos',
-        message: 'Por favor completa código, descripción y orden',
+        type: "error",
+        title: "Campos incompletos",
+        message: "Por favor completa código, descripción y orden",
       });
       return;
     }
@@ -77,17 +77,17 @@ export default function EstadosPage() {
       await cargarEstados();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Estado creado',
-        message: 'El estado ha sido creado exitosamente',
+        type: "success",
+        title: "Estado creado",
+        message: "El estado ha sido creado exitosamente",
       });
     } catch (error) {
       console.error(error);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al crear el estado',
+        type: "error",
+        title: "Error",
+        message: "Error al crear el estado",
       });
     } finally {
       setSubmitting(false);
@@ -116,9 +116,9 @@ export default function EstadosPage() {
     ) {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Campos incompletos',
-        message: 'Código, descripción y orden son obligatorios',
+        type: "error",
+        title: "Campos incompletos",
+        message: "Código, descripción y orden son obligatorios",
       });
       return;
     }
@@ -133,17 +133,17 @@ export default function EstadosPage() {
       await cargarEstados();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Estado actualizado',
-        message: 'El estado ha sido actualizado exitosamente',
+        type: "success",
+        title: "Estado actualizado",
+        message: "El estado ha sido actualizado exitosamente",
       });
     } catch (error) {
       console.error(error);
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Error al actualizar el estado',
+        type: "error",
+        title: "Error",
+        message: "Error al actualizar el estado",
       });
     }
   };
@@ -151,11 +151,11 @@ export default function EstadosPage() {
   const eliminarEstado = (estado: Estado) => {
     setModalState({
       isOpen: true,
-      type: 'confirm',
-      title: 'Eliminar estado',
+      type: "confirm",
+      title: "Eliminar estado",
       message: `¿Deseas eliminar el estado ${estado.codigo}?`,
       isDangerous: true,
-      confirmText: 'Eliminar',
+      confirmText: "Eliminar",
       estadoCode: estado.codigo,
       action: async () => {
         try {
@@ -163,17 +163,17 @@ export default function EstadosPage() {
           await cargarEstados();
           setModalState({
             isOpen: true,
-            type: 'success',
-            title: 'Estado eliminado',
-            message: 'El estado ha sido eliminado exitosamente',
+            type: "success",
+            title: "Estado eliminado",
+            message: "El estado ha sido eliminado exitosamente",
           });
         } catch (error) {
           console.error(error);
           setModalState({
             isOpen: true,
-            type: 'error',
-            title: 'Error',
-            message: 'No se pudo eliminar el estado. Puede estar en uso.',
+            type: "error",
+            title: "Error",
+            message: "No se pudo eliminar el estado. Puede estar en uso.",
           });
         }
       },
@@ -408,7 +408,7 @@ export default function EstadosPage() {
       </div>
 
       {/* Modals */}
-      {modalState.type === 'error' && (
+      {modalState.type === "error" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -420,7 +420,7 @@ export default function EstadosPage() {
         />
       )}
 
-      {modalState.type === 'success' && (
+      {modalState.type === "success" && (
         <SuccessModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -430,12 +430,12 @@ export default function EstadosPage() {
         />
       )}
 
-      {modalState.type === 'confirm' && (
+      {modalState.type === "confirm" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
           message={modalState.message}
-          confirmText={modalState.confirmText || 'Confirmar'}
+          confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();

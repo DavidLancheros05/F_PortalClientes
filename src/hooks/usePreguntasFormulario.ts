@@ -19,6 +19,10 @@ export interface DocumentoCatalogo {
   tdo_descripcion?: string | null;
   tdo_vigencia_dias: number | null;
   tdo_permite_vencimiento?: boolean | null;
+  tdo_regla_vigencia?: "DIAS" | "ANIO" | null;
+  tdo_anios_atras_permitidos?: number | null;
+  tdo_tiene_plantilla?: boolean;
+  tdo_plantilla_contenido?: string | null;
 }
 
 interface UsePreguntasFormularioProps {
@@ -193,6 +197,13 @@ export function usePreguntasFormulario({
               tdo_descripcion: item?.tdo_descripcion ?? item?.descripcion,
               tdo_vigencia_dias: item?.tdo_vigencia_dias ?? item?.vigenciaDias,
               tdo_permite_vencimiento: item?.tdo_permite_vencimiento ?? item?.aplicaFechaEmision,
+              tdo_regla_vigencia: item?.tdo_regla_vigencia ?? item?.reglaVigencia ?? null,
+              tdo_anios_atras_permitidos:
+                item?.tdo_anios_atras_permitidos ?? item?.aniosAtrasPermitidos ?? null,
+              tdo_tiene_plantilla:
+                item?.tdo_tiene_plantilla ?? item?.tienePlantilla ?? false,
+              tdo_plantilla_contenido:
+                item?.tdo_plantilla_contenido ?? item?.plantillaContenido ?? null,
             };
           }
         });

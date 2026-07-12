@@ -58,6 +58,8 @@ function resolverValorPreguntaDisparadora(
 
 type FilaTabla = Record<string, string>;
 
+type OpcionCatalogo = { op_id: number; op_descripcion: string };
+
 type ColumnaTabla = {
   nombre: string;
   tipo: "TEXTO" | "SI_NO" | "CATALOGO";
@@ -65,6 +67,8 @@ type ColumnaTabla = {
   catalogo_tabla?: string;
   catalogo_columna?: string;
   catalogo_pk_column?: string;
+  catalogo_columna_padre?: string;
+  catalogo_columna_filtro?: string;
 };
 
 function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
@@ -86,6 +90,8 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
             catalogo_tabla: col.catalogo_tabla,
             catalogo_columna: col.catalogo_columna,
             catalogo_pk_column: col.catalogo_pk_column,
+            catalogo_columna_padre: col.catalogo_columna_padre,
+            catalogo_columna_filtro: col.catalogo_columna_filtro,
           };
         }
         return null;
@@ -96,6 +102,20 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
   }
 }
 
+// Nombres de todas las columnas que dependen (directa o transitivamente) de `nombreColumna`
+function obtenerDescendientes(
+  nombreColumna: string,
+  columnas: ColumnaTabla[],
+): string[] {
+  const directos = columnas
+    .filter((c) => c.catalogo_columna_padre === nombreColumna)
+    .map((c) => c.nombre);
+  return directos.reduce<string[]>(
+    (acc, nombre) => [...acc, ...obtenerDescendientes(nombre, columnas)],
+    directos,
+  );
+}
+
 function parseFilas(valorTexto: string | undefined): FilaTabla[] {
   if (!valorTexto) return [];
   try {
@@ -104,6 +124,111 @@ function parseFilas(valorTexto: string | undefined): FilaTabla[] {
   } catch {
     return [];
   }
+}
+
+interface CeldaCatalogoDependienteProps {
+  columna: ColumnaTabla;
+  columnaPadre: ColumnaTabla;
+  valorPadreTexto: string;
+  valor: string;
+  disabled: boolean;
+  onChange: (valor: string) => void;
+}
+
+// Select de una columna CATALOGO que depende del valor de OTRA columna de la
+// misma fila (ej: Departamento depende de Pais). Resuelve el id del valor
+// padre consultando su propio catálogo, y con eso trae solo las opciones
+// hijas relacionadas (ej: departamentos de ese país).
+function CeldaCatalogoDependiente({
+  columna,
+  columnaPadre,
+  valorPadreTexto,
+  valor,
+  disabled,
+  onChange,
+}: CeldaCatalogoDependienteProps) {
+  const [opciones, setOpciones] = useState<OpcionCatalogo[]>([]);
+  const [cargando, setCargando] = useState(false);
+
+  useEffect(() => {
+    if (!valorPadreTexto || !columna.catalogo_columna_filtro || !columnaPadre.catalogo_tabla) {
+      setOpciones([]);
+      return;
+    }
+
+    let cancelado = false;
+    setCargando(true);
+
+    maestrosService
+      .getCatalogoValores(
+        columnaPadre.catalogo_tabla,
+        columnaPadre.catalogo_base_datos,
+        columnaPadre.catalogo_columna,
+        columnaPadre.catalogo_pk_column,
+      )
+      .then((opcionesPadre) => {
+        const padreId = opcionesPadre.find(
+          (o) => o.op_descripcion === valorPadreTexto,
+        )?.op_id;
+        if (!padreId || !columna.catalogo_tabla) return [];
+        return maestrosService.getCatalogoValores(
+          columna.catalogo_tabla,
+          columna.catalogo_base_datos,
+          columna.catalogo_columna,
+          columna.catalogo_pk_column,
+          columna.catalogo_columna_filtro,
+          padreId,
+        );
+      })
+      .then((valores) => {
+        if (!cancelado) setOpciones(valores || []);
+      })
+      .catch(() => {
+        if (!cancelado) setOpciones([]);
+      })
+      .finally(() => {
+        if (!cancelado) setCargando(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [
+    valorPadreTexto,
+    columna.catalogo_tabla,
+    columna.catalogo_base_datos,
+    columna.catalogo_columna,
+    columna.catalogo_pk_column,
+    columna.catalogo_columna_filtro,
+    columnaPadre.catalogo_tabla,
+    columnaPadre.catalogo_base_datos,
+    columnaPadre.catalogo_columna,
+    columnaPadre.catalogo_pk_column,
+  ]);
+
+  return (
+    <select
+      disabled={disabled || !valorPadreTexto}
+      value={valor}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+    >
+      <option value="">
+        {!valorPadreTexto
+          ? `Primero elige ${columnaPadre.nombre}`
+          : cargando
+            ? "Cargando..."
+            : opciones.length === 0
+              ? "Sin opciones"
+              : "Selecciona..."}
+      </option>
+      {opciones.map((op) => (
+        <option key={op.op_id} value={op.op_descripcion}>
+          {op.op_descripcion}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 export function TablaField({
@@ -118,13 +243,16 @@ export function TablaField({
     [pregunta.fp_tabla_columnas],
   );
 
+  // Opciones de columnas CATALOGO independientes (no dependen de otra columna);
+  // las columnas dependientes cargan sus opciones por fila, filtradas por el
+  // valor del padre (ver <CeldaCatalogoDependiente />).
   const [valoresCatalogo, setValoresCatalogo] = useState<
-    Record<string, string[]>
+    Record<string, OpcionCatalogo[]>
   >({});
 
   useEffect(() => {
     const columnasCatalogo = columnas.filter(
-      (c) => c.tipo === "CATALOGO" && c.catalogo_tabla,
+      (c) => c.tipo === "CATALOGO" && c.catalogo_tabla && !c.catalogo_columna_padre,
     );
     columnasCatalogo.forEach((c) => {
       maestrosService
@@ -135,10 +263,7 @@ export function TablaField({
           c.catalogo_pk_column,
         )
         .then((valores) => {
-          setValoresCatalogo((prev) => ({
-            ...prev,
-            [c.nombre]: valores.map((v) => v.op_descripcion),
-          }));
+          setValoresCatalogo((prev) => ({ ...prev, [c.nombre]: valores }));
         })
         .catch(() => {
           setValoresCatalogo((prev) => ({ ...prev, [c.nombre]: [] }));
@@ -190,10 +315,19 @@ export function TablaField({
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
   };
 
-  const actualizarCelda = (filaIndex: number, columna: string, valor: string) => {
-    const nuevasFilas = filasVisibles.map((fila, idx) =>
-      idx === filaIndex ? { ...fila, [columna]: valor } : fila,
-    );
+  const actualizarCelda = (filaIndex: number, columnaNombre: string, valor: string) => {
+    const descendientes = obtenerDescendientes(columnaNombre, columnas);
+    const nuevasFilas = filasVisibles.map((fila, idx) => {
+      if (idx !== filaIndex) return fila;
+      const nuevaFila = { ...fila, [columnaNombre]: valor };
+      // Si cambia el valor de una columna de la que dependen otras (ej: Pais),
+      // se limpian sus columnas hijas (ej: Departamento, Ciudad) para que el
+      // usuario vuelva a elegirlas dentro de las opciones ya filtradas.
+      descendientes.forEach((nombreHijo) => {
+        nuevaFila[nombreHijo] = "";
+      });
+      return nuevaFila;
+    });
     actualizarFilas(nuevasFilas);
   };
 
@@ -259,6 +393,33 @@ export function TablaField({
                     );
                   }
 
+                  if (columna.tipo === "CATALOGO" && columna.catalogo_columna_padre) {
+                    const columnaPadre = columnas.find(
+                      (c) => c.nombre === columna.catalogo_columna_padre,
+                    );
+                    if (!columnaPadre) {
+                      return (
+                        <td key={columna.nombre} className="p-1 text-xs text-amber-700">
+                          Columna padre "{columna.catalogo_columna_padre}" no existe
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={columna.nombre} className="p-1">
+                        <CeldaCatalogoDependiente
+                          columna={columna}
+                          columnaPadre={columnaPadre}
+                          valorPadreTexto={fila[columnaPadre.nombre] || ""}
+                          valor={fila[columna.nombre] || ""}
+                          disabled={readOnly}
+                          onChange={(valor) =>
+                            actualizarCelda(filaIndex, columna.nombre, valor)
+                          }
+                        />
+                      </td>
+                    );
+                  }
+
                   if (columna.tipo === "CATALOGO") {
                     const opciones = valoresCatalogo[columna.nombre] || [];
                     return (
@@ -274,9 +435,9 @@ export function TablaField({
                           <option value="">
                             {opciones.length === 0 ? "Sin opciones" : "Selecciona..."}
                           </option>
-                          {opciones.map((valor) => (
-                            <option key={valor} value={valor}>
-                              {valor}
+                          {opciones.map((op) => (
+                            <option key={op.op_id} value={op.op_descripcion}>
+                              {op.op_descripcion}
                             </option>
                           ))}
                         </select>

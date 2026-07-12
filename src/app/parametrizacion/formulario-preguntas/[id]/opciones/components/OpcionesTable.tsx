@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { updateOpcion } from '@/services/parametrizacion/opciones.service';
+import { updateOpcion } from "@/services/parametrizacion/opciones.service";
 
 interface Props {
   fp_id: number;
@@ -39,7 +39,7 @@ export default function OpcionesTable({
           <tr key={op.fpo_id} className="border-t">
             <td className="p-2">{op.fpo_valor}</td>
             <td className="p-2 text-center">
-              {op.fpo_estado ? 'Activo' : 'Inactivo'}
+              {op.fpo_estado ? "Activo" : "Inactivo"}
             </td>
             <td className="p-2 text-center">
               <button

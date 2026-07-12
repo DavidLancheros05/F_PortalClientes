@@ -95,7 +95,10 @@ export default function FormularioSeccionesPage() {
     if (!confirmar) return;
 
     try {
-      await formularioSeccionesService.toggleEstado(seccion.fse_id, !seccion.fse_estado);
+      await formularioSeccionesService.toggleEstado(
+        seccion.fse_id,
+        !seccion.fse_estado,
+      );
       await cargarDatos();
     } catch (error: any) {
       alert(error.message || "Error al actualizar estado");

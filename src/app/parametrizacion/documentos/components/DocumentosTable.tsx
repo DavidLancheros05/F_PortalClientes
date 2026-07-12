@@ -12,26 +12,46 @@ interface Props {
   onReload: () => void;
 }
 
+const getVigenciaDisplay = (tipo: TipoDocumento): string => {
+  if (!tipo.aplicaFechaEmision) return "-";
+
+  if (tipo.reglaVigencia === "DIAS") {
+    return tipo.vigenciaDias
+      ? `${tipo.vigenciaDias} día${tipo.vigenciaDias === 1 ? "" : "s"}`
+      : "-";
+  }
+
+  if (tipo.reglaVigencia === "ANIO") {
+    const anioActual = new Date().getFullYear();
+    const anios = tipo.aniosAtrasPermitidos ?? 0;
+    return anios === 0
+      ? `Solo año ${anioActual}`
+      : `${anioActual - anios} a ${anioActual}`;
+  }
+
+  return "-";
+};
+
 export default function DocumentosTable({ items, onEdit, onReload }: Props) {
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'error' | 'confirm';
+    type: "error" | "confirm";
     title: string;
     message: string;
     action?: () => void;
   }>({
     isOpen: false,
-    type: 'confirm',
-    title: '',
-    message: '',
+    type: "confirm",
+    title: "",
+    message: "",
   });
 
   const handleDelete = (id: number) => {
     setModalState({
       isOpen: true,
-      type: 'confirm',
-      title: 'Eliminar documento',
-      message: '¿Deseas eliminar este tipo de documento?',
+      type: "confirm",
+      title: "Eliminar documento",
+      message: "¿Deseas eliminar este tipo de documento?",
       action: async () => {
         try {
           await documentosService.delete(id);
@@ -40,9 +60,9 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
           console.error(err);
           setModalState({
             isOpen: true,
-            type: 'error',
-            title: 'Error',
-            message: 'Error al eliminar tipo de documento',
+            type: "error",
+            title: "Error",
+            message: "Error al eliminar tipo de documento",
           });
         }
       },
@@ -64,10 +84,13 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
               Aplica fecha emisión
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Validez (días)
+              Vigencia
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
               Obligatorio
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+              Genera documento
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
               Estado
@@ -81,8 +104,8 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
           {items.length === 0 ? (
             <tr>
               <td
-                colSpan={7}
-                className="px-4 py-8 text-center text-sm text-slate-500"
+                colSpan={8}
+                className="px-4 py-8 text-center text-xs text-slate-500"
               >
                 No hay tipos de documentos para mostrar.
               </td>
@@ -93,24 +116,36 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
                 key={tipo.tipoDocumentoId}
                 className="transition-colors hover:bg-slate-50"
               >
-                <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                <td className="px-4 py-3 text-xs font-medium text-slate-800">
                   {tipo.nombre}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700 max-w-[360px]">
+                <td className="px-4 py-3 text-xs text-slate-700 max-w-[360px]">
                   <p className="whitespace-pre-wrap break-words">
                     {tipo.descripcion || "-"}
                   </p>
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">
+                <td className="px-4 py-3 text-xs text-slate-700">
                   {tipo.aplicaFechaEmision ? "Sí" : "No"}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">
-                  {tipo.vigenciaDias ?? "-"}
+                <td className="px-4 py-3 text-xs text-slate-700">
+                  {getVigenciaDisplay(tipo)}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-700">
+                <td className="px-4 py-3 text-xs text-slate-700">
                   {tipo.obligatorio ? "Sí" : "No"}
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3 text-xs">
+                  {tipo.tienePlantilla ? (
+                    <span
+                      className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
+                      title={tipo.plantillaContenido || undefined}
+                    >
+                      Sí, con plantilla
+                    </span>
+                  ) : (
+                    <span className="text-slate-500">No</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
                       tipo.estado
@@ -146,7 +181,7 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
       </table>
 
       {/* Modals */}
-      {modalState.type === 'error' && (
+      {modalState.type === "error" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -158,7 +193,7 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
         />
       )}
 
-      {modalState.type === 'confirm' && (
+      {modalState.type === "confirm" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}

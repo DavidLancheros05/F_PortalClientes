@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { useRouter } from "next/navigation";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 
@@ -36,14 +37,19 @@ export function useSolicitudEdicion({
   setErrorMessage,
   setEstadoId,
 }: UseSolicitudEdicionParams) {
+  const router = useRouter();
+  const [bloqueadoPorRechazoAuxiliar, setBloqueadoPorRechazoAuxiliar] =
+    useState(false);
+
   useEffect(() => {
     if (!solicitudId) {
       return;
     }
 
-    const cargarArchivosExistentes = async (solicitud_id: number) => {
+    const cargarArchivosExistentes = async (sa_sol_id: number) => {
       try {
-        const data = await formularioRespuestasService.getArchivosExistentes(solicitud_id);
+        const data =
+          await formularioRespuestasService.getArchivosExistentes(sa_sol_id);
         const mapArchivos: Record<number, any> = {};
         if (Array.isArray(data)) {
           data.forEach((archivo: any) => {
@@ -66,6 +72,22 @@ export function useSolicitudEdicion({
     solicitudesService
       .getById(solicitudId)
       .then((data: any) => {
+        // Rechazada por ASC (Pendiente + Etapa ASC + Resultado
+        // RECHAZADO): el cliente solo puede corregir desde
+        // /solicitudes/mis-documentos, el formulario completo queda
+        // bloqueado. Misma condición literal usada en
+        // SolicitudesContent.tsx y en el backend.
+        const rechazadoPorAuxiliar =
+          Number(data?.sol_estado_id) === 2 &&
+          Number(data?.sol_etapa_actual_id) === 3 &&
+          Number(data?.sol_resultado_etapa_id) === 3;
+
+        if (rechazadoPorAuxiliar) {
+          setBloqueadoPorRechazoAuxiliar(true);
+          router.replace("/solicitudes/mis-documentos");
+          return;
+        }
+
         setNumeroSolicitud(data?.sol_numero_solicitud || null);
         const versionSolicitud = Number(data?.sol_formulario_version ?? 1);
         setFormularioVersionObjetivo(versionSolicitud);
@@ -158,5 +180,9 @@ export function useSolicitudEdicion({
     setFormularioVersionObjetivo,
     setNumeroSolicitud,
     setRespuestas,
+    setEstadoId,
+    router,
   ]);
+
+  return { bloqueadoPorRechazoAuxiliar };
 }

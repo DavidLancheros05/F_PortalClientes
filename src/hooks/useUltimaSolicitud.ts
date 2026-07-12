@@ -35,7 +35,8 @@ export function useUltimaSolicitud({
   clienteId,
   enabled = true,
 }: UseUltimaSolicitudProps): UseUltimaSolicitudResult {
-  const [ultimaSolicitud, setUltimaSolicitud] = useState<UltimaSolicitud | null>(null);
+  const [ultimaSolicitud, setUltimaSolicitud] =
+    useState<UltimaSolicitud | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +57,9 @@ export function useUltimaSolicitud({
       setLoading(true);
       setError(null);
       try {
-        console.log(`[🔵 useUltimaSolicitud] INICIANDO - cliente_id=${clienteId}`);
+        console.log(
+          `[🔵 useUltimaSolicitud] INICIANDO - cliente_id=${clienteId}`,
+        );
         const data = await solicitudesService.getUltimaSolicitud(clienteId);
         console.log(`[🟢 useUltimaSolicitud] RESPUESTA DEL API:`, data);
 
@@ -94,12 +97,15 @@ export function useUltimaSolicitud({
             respuestas: respuestasIndexadas,
           });
         } else {
-          console.log(`[⚠️ useUltimaSolicitud] No hay solicitud previa (data=${JSON.stringify(data)})`);
+          console.log(
+            `[⚠️ useUltimaSolicitud] No hay solicitud previa (data=${JSON.stringify(data)})`,
+          );
           setUltimaSolicitud(null);
         }
       } catch (err) {
         if (!cancelled) {
-          const errorMsg = (err as any)?.message || "Error al obtener última solicitud";
+          const errorMsg =
+            (err as any)?.message || "Error al obtener última solicitud";
           console.error(`[❌ useUltimaSolicitud] ERROR:`, errorMsg, err);
           setError(errorMsg);
           setUltimaSolicitud(null);
@@ -121,7 +127,8 @@ export function useUltimaSolicitud({
   const tieneBorrador = estadoActual === ESTADO_SOLICITUD.BORRADOR.id;
   const tienePendiente = estadoActual === ESTADO_SOLICITUD.PENDIENTE.id;
   const tieneRevision = estadoActual === ESTADO_SOLICITUD.REVISION.id;
-  const tieneCompletada = estadoActual !== null && estadoActual > ESTADO_SOLICITUD.REVISION.id;
+  const tieneCompletada =
+    estadoActual !== null && estadoActual > ESTADO_SOLICITUD.REVISION.id;
   const tieneActividad = tieneBorrador || tienePendiente || tieneRevision;
   const puedeCrearNueva = noTieneSolicitudes || tieneCompletada;
 

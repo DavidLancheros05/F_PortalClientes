@@ -26,6 +26,7 @@ import type {
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { ErrorModal } from "@/components/modals";
 import { solicitudesService } from "@/services/solicitudes.service";
 import {
   maestrosService,
@@ -35,6 +36,11 @@ import {
 } from "@/services/maestros/maestros.service";
 import { TIPOS_PREGUNTA, type TipoPregunta } from "@/constants/tipos-pregunta";
 import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
+import {
+  calcularVigenciaDocumento,
+  calcularEstadoAnioDocumento,
+  getArchivoPreviewUrl as getArchivoPreviewUrlUtil,
+} from "@/lib/documentos-vigencia.util";
 import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 
 export default function SolicitudFormContent({
@@ -60,7 +66,9 @@ export default function SolicitudFormContent({
   const [documentosCatalogoMap, setDocumentosCatalogoMap] = useState<
     Record<number, DocumentoCatalogo>
   >({});
-  const [estadoIdSolicitud, setEstadoIdSolicitud] = useState<number | null>(null);
+  const [estadoIdSolicitud, setEstadoIdSolicitud] = useState<number | null>(
+    null,
+  );
   const isGuardandoRef = useRef(false);
   const lastSavedResponses = useRef<any>({});
 
@@ -88,10 +96,14 @@ export default function SolicitudFormContent({
     useRespuestasFormulario({
       preguntas,
     });
-  // Obtener datos del cliente
+  // Obtener datos del cliente. Antes solo se pedía para solicitudes nuevas
+  // (!solicitudId) porque el único consumidor era usePrefillConfiguracion,
+  // que ya tiene su propio guard !solicitudId — ahora también lo necesita
+  // el botón "Descargar plantilla" (DocumentoTablaField), que debe
+  // funcionar tanto en una solicitud nueva como al editar una existente.
   const { clienteData: clienteDataRaw } = useClienteData({
     clienteId: user?.cliente_id,
-    enabled: !solicitudId && !!user?.cliente_id,
+    enabled: !!user?.cliente_id,
   });
 
   // IMPORTANTE: Memoizar clienteData para evitar loops infinitos
@@ -99,6 +111,46 @@ export default function SolicitudFormContent({
     // console.log(`[📦 useMemo] clienteData actualizado:`, Object.keys(clienteDataRaw || {}).length);
     return clienteDataRaw || {};
   }, [clienteDataRaw]);
+
+  // Razón social/NIT para rellenar plantillas descargables (botón
+  // "Descargar plantilla" en DocumentoTablaField).
+  const clienteInfo = useMemo(
+    () => ({
+      nombre: (clienteData as any)?.cliente_razon_social || "",
+      nit: (clienteData as any)?.cliente_nit_documento || "",
+    }),
+    [clienteData],
+  );
+
+  // Nombre/cédula del representante legal principal, tomados de la
+  // pregunta tipo TABLA "REPRESENTANTE LEGAL PRINCIPAL Y SUPLENTES" ya
+  // respondida en esta solicitud — mismo dato que se usa para rellenar
+  // plantillas descargables.
+  const representanteLegal = useMemo(() => {
+    const preguntaRepLegal = preguntas.find(
+      (p) =>
+        p.fp_tipo === "TABLA" &&
+        /representante legal/i.test(p.fp_descripcion || ""),
+    );
+    if (!preguntaRepLegal) return null;
+
+    const valorTexto = respuestas[preguntaRepLegal.fp_id]?.valor_texto;
+    if (!valorTexto) return null;
+
+    try {
+      const filas = JSON.parse(valorTexto);
+      if (!Array.isArray(filas) || filas.length === 0) return null;
+      const principal = filas[0] as Record<string, string>;
+      const nombre =
+        principal["Apellidos y Nombre"] || principal["Nombre"] || "";
+      const identificacion =
+        principal["Identificacion"] || principal["Identificación"] || "";
+      if (!nombre && !identificacion) return null;
+      return { nombre, identificacion };
+    } catch {
+      return null;
+    }
+  }, [preguntas, respuestas]);
 
   // Obtener última solicitud del cliente
   const {
@@ -136,10 +188,9 @@ export default function SolicitudFormContent({
   useEffect(() => {
     setDocumentosCatalogoMap(documentosCatalogoMapFromHook || {});
   }, [documentosCatalogoMapFromHook]);
-  useEffect(() => {
-  }, [seccionSeleccionada]);
+  useEffect(() => {}, [seccionSeleccionada]);
 
-  useSolicitudEdicion({
+  const { bloqueadoPorRechazoAuxiliar } = useSolicitudEdicion({
     solicitudId,
     setNumeroSolicitud,
     setFormularioVersionObjetivo,
@@ -149,13 +200,13 @@ export default function SolicitudFormContent({
     setEstadoId: setEstadoIdSolicitud,
   });
 
-
-
   const [fechaHoraActual, setFechaHoraActual] = useState<Date>(new Date());
 
   // Aplicar respuestas precargadas basadas en configuración
   useEffect(() => {
-    const respuestasCount = respuestasPrecargadas ? Object.keys(respuestasPrecargadas).length : 0;
+    const respuestasCount = respuestasPrecargadas
+      ? Object.keys(respuestasPrecargadas).length
+      : 0;
     // console.log(`[🔵 EFECTO] Precarga de respuestas - count=${respuestasCount}`);
 
     if (
@@ -193,7 +244,7 @@ export default function SolicitudFormContent({
     }
 
     const tipoSolicitudPregunta = preguntas.find(
-      (p) => p.fp_codigo === 'TIPO_SOLICITUD',
+      (p) => p.fp_codigo === "TIPO_SOLICITUD",
     );
     if (!tipoSolicitudPregunta) {
       console.log(`[⚠️ EFECTO] No encontrada pregunta 1171`);
@@ -204,8 +255,8 @@ export default function SolicitudFormContent({
       ? tipoSolicitudPregunta.opciones
       : [];
 
-    const clienteNuevoOpcion = opciones.find(
-      (o) => o.op_descripcion?.toLowerCase().includes("cliente nuevo"),
+    const clienteNuevoOpcion = opciones.find((o) =>
+      o.op_descripcion?.toLowerCase().includes("cliente nuevo"),
     );
     const ampliacionCupoOpcion = opciones.find(
       (o) =>
@@ -245,6 +296,33 @@ export default function SolicitudFormContent({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preguntas, ultimaSolicitud, solicitudId]);
+
+  // EFECTO: Autocompletar con la fecha actual las preguntas tipo FECHA
+  // marcadas con fp_subtipo = "ACTUAL" (solo al crear, no al editar una
+  // solicitud existente, y solo si aún no tienen valor).
+  useEffect(() => {
+    if (solicitudId) return;
+
+    const preguntasFechaActual = preguntas.filter(
+      (p) => p.fp_tipo === "FECHA" && p.fp_subtipo === "ACTUAL",
+    );
+    if (preguntasFechaActual.length === 0) return;
+
+    const hoy = new Date().toISOString().split("T")[0];
+
+    setRespuestas((prev) => {
+      const next = { ...prev };
+      let cambio = false;
+      preguntasFechaActual.forEach((p) => {
+        if (!next[p.fp_id]?.valor_fecha) {
+          next[p.fp_id] = { ...next[p.fp_id], valor_fecha: hoy };
+          cambio = true;
+        }
+      });
+      return cambio ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preguntas, solicitudId]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -293,47 +371,8 @@ export default function SolicitudFormContent({
     );
   };
 
-  const getArchivoPreviewUrl = (archivo: any): string | null => {
-    if (!archivo) return null;
-
-    // Prioridad 1: Usar el API endpoint si tenemos sa_id
-    if (solicitudId && archivo.sa_id) {
-      return `/api/solicitudes/${solicitudId}/respuestas/archivo/${archivo.sa_id}`;
-    }
-
-    // Prioridad 2: Usar nombre_guardado con ruta relativa
-    if (archivo.nombre_guardado) {
-      return `/uploads/solicitudes/${encodeURIComponent(archivo.nombre_guardado)}`;
-    }
-
-    const rutaAlmacenamiento = archivo.ruta_almacenamiento;
-    if (!rutaAlmacenamiento || typeof rutaAlmacenamiento !== "string") {
-      return null;
-    }
-
-    // Solo aceptar URLs HTTP/HTTPS, no rutas locales del sistema
-    if (/^https?:\/\//i.test(rutaAlmacenamiento)) {
-      return rutaAlmacenamiento;
-    }
-
-    // Rechazar rutas locales del sistema (C:/, D:/, etc.)
-    if (/^[a-zA-Z]:[\/\\]/.test(rutaAlmacenamiento)) {
-      console.warn(
-        "[getArchivoPreviewUrl] Ruta local del sistema rechazada:",
-        rutaAlmacenamiento,
-      );
-      return null;
-    }
-
-    // Si es una ruta relativa que contiene /uploads/, usarla
-    const rutaNormalizada = rutaAlmacenamiento.replace(/\\/g, "/");
-    const uploadsIndex = rutaNormalizada.toLowerCase().lastIndexOf("/uploads/");
-    if (uploadsIndex >= 0) {
-      return rutaNormalizada.substring(uploadsIndex);
-    }
-
-    return null;
-  };
+  const getArchivoPreviewUrl = (archivo: any): string | null =>
+    getArchivoPreviewUrlUtil(archivo, solicitudId);
 
   // Agrupar preguntas por sección
   const secciones: Seccion[] = useMemo(() => {
@@ -366,9 +405,7 @@ export default function SolicitudFormContent({
   const seccionActual = seccionSeleccionada
     ? secciones.find((s) => s.seccion_id === seccionSeleccionada)
     : secciones[0];
-  useEffect(() => {
-
-  }, [seccionActual]);
+  useEffect(() => {}, [seccionActual]);
 
   const normalizarTexto = (texto?: string | null) =>
     (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
@@ -407,44 +444,10 @@ export default function SolicitudFormContent({
     // Buscar en TODAS las preguntas, no solo en la sección actual
     return (
       preguntas.find(
-        (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
+        (p) =>
+          p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
       ) || null
     );
-  };
-
-  const calcularVigenciaDocumento = (
-    fechaEmision?: string,
-    vigenciaDias?: number | null,
-  ) => {
-    if (!fechaEmision || vigenciaDias === null || vigenciaDias === undefined) {
-      return null;
-    }
-
-    const [year, month, day] = fechaEmision.split("-").map(Number);
-    if (!year || !month || !day) {
-      return null;
-    }
-
-    const fechaBase = new Date(year, month - 1, day);
-    if (Number.isNaN(fechaBase.getTime())) {
-      return null;
-    }
-
-    const fechaVencimiento = new Date(fechaBase);
-    fechaVencimiento.setDate(fechaVencimiento.getDate() + vigenciaDias);
-
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    const milisegundosPorDia = 1000 * 60 * 60 * 24;
-    const diasRestantes = Math.ceil(
-      (fechaVencimiento.getTime() - hoy.getTime()) / milisegundosPorDia,
-    );
-
-    return {
-      diasRestantes,
-      fechaVencimiento,
-    };
   };
 
   const getNotaDisplay = (pregunta: FormularioPregunta) => {
@@ -464,9 +467,28 @@ export default function SolicitudFormContent({
       .map((linea) => linea.trim())
       .filter(Boolean);
 
-    const titulo = lineas[0] || "Nota";
-    const subtitulo = lineas[1] || "";
-    const cuerpo = lineas.slice(2).join("\n");
+    // La mayoría de las notas reales son un solo párrafo largo, sin saltos
+    // de línea (una sola "línea"). Si tratáramos esa única línea como
+    // "título" (como se hacía antes), el texto completo quedaría en negrita
+    // y sin justificar, y "cuerpo" quedaría vacío. Solo se separa
+    // título/subtítulo cuando el autor de la pregunta realmente escribió
+    // varias líneas.
+    let titulo = "";
+    let subtitulo = "";
+    let cuerpo = "";
+
+    if (lineas.length === 0) {
+      titulo = "Nota";
+    } else if (lineas.length === 1) {
+      cuerpo = lineas[0];
+    } else if (lineas.length === 2) {
+      titulo = lineas[0];
+      cuerpo = lineas[1];
+    } else {
+      titulo = lineas[0];
+      subtitulo = lineas[1];
+      cuerpo = lineas.slice(2).join("\n");
+    }
 
     return { titulo, subtitulo, cuerpo };
   };
@@ -500,16 +522,10 @@ export default function SolicitudFormContent({
     if (preguntas.length > 0) {
       const selectPreguntas = preguntas.filter(esPreguntaSeleccion);
       if (selectPreguntas.length === 0) {
-   
-        preguntas.slice(0, 10).forEach((p) => {
-         
-        });
+        preguntas.slice(0, 10).forEach((p) => {});
       } else {
-        selectPreguntas.forEach((p) => {
-         
-        });
+        selectPreguntas.forEach((p) => {});
       }
-    
     }
 
     return {
@@ -732,7 +748,8 @@ export default function SolicitudFormContent({
         if (requiereFecha) {
           const preguntaFechaHija = preguntas.find(
             (p) =>
-              p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
+              p.fp_tipo === "FECHA" &&
+              p.fp_pregunta_padre_id === pregunta.fp_id,
           );
           const fechaEmision =
             archivosExistentes[pregunta.fp_id]?.sd_fecha_emision ||
@@ -828,7 +845,12 @@ export default function SolicitudFormContent({
       .getDepartamentos(Number(paisSeleccionado))
       .then(setDepartamentos)
       .catch((err) => console.error("Error cargando departamentos:", err));
-  }, [maestroPreguntaIds, preguntas, respuestas[maestroPreguntaIds.paisId ?? -1]?.valor_numero, respuestas[maestroPreguntaIds.paisId ?? -1]?.valor_opcion_id]);
+  }, [
+    maestroPreguntaIds,
+    preguntas,
+    respuestas[maestroPreguntaIds.paisId ?? -1]?.valor_numero,
+    respuestas[maestroPreguntaIds.paisId ?? -1]?.valor_opcion_id,
+  ]);
 
   // Cargar ciudades cuando se selecciona un departamento
   useEffect(() => {
@@ -855,7 +877,12 @@ export default function SolicitudFormContent({
       .getCiudades(Number(deptoSeleccionado))
       .then(setCiudades)
       .catch((err) => console.error("Error cargando ciudades:", err));
-  }, [maestroPreguntaIds, preguntas, respuestas[maestroPreguntaIds.departamentoId ?? -1]?.valor_numero, respuestas[maestroPreguntaIds.departamentoId ?? -1]?.valor_opcion_id]);
+  }, [
+    maestroPreguntaIds,
+    preguntas,
+    respuestas[maestroPreguntaIds.departamentoId ?? -1]?.valor_numero,
+    respuestas[maestroPreguntaIds.departamentoId ?? -1]?.valor_opcion_id,
+  ]);
 
   // Inicializar seccion seleccionada cuando carguen secciones
   useEffect(() => {
@@ -1061,30 +1088,52 @@ export default function SolicitudFormContent({
       const documento = pregunta.fp_tipo_documento_id
         ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
         : null;
-      const requiereFecha = documento?.tdo_vigencia_dias != null;
+      const requiereFecha =
+        documento?.tdo_vigencia_dias != null ||
+        documento?.tdo_regla_vigencia === "ANIO";
 
       // Buscar fecha en la pregunta hija, en la misma respuesta, o en archivo existente
-      let tieneFechaEmision = Boolean(respuesta.valor_fecha);
+      let fechaEmisionValor: string | undefined = respuesta.valor_fecha;
 
-      if (!tieneFechaEmision && requiereFecha) {
+      if (!fechaEmisionValor && requiereFecha) {
         const preguntaFechaHija = preguntas.find(
-          (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id
+          (p) =>
+            p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
         );
         if (preguntaFechaHija) {
-          tieneFechaEmision = Boolean(respuestas[preguntaFechaHija.fp_id]?.valor_fecha);
+          fechaEmisionValor = respuestas[preguntaFechaHija.fp_id]?.valor_fecha;
         }
       }
 
       // Si aún no hay fecha pero hay archivo existente con fecha, contar como respondido
-      if (!tieneFechaEmision && requiereFecha && archivoRegistrado) {
+      if (!fechaEmisionValor && requiereFecha && archivoRegistrado) {
         const archivoExistente = archivosExistentes[pregunta.fp_id];
-        tieneFechaEmision = Boolean(archivoExistente?.sd_fecha_emision);
+        fechaEmisionValor = archivoExistente?.sd_fecha_emision;
       }
+
+      const tieneFechaEmision = Boolean(fechaEmisionValor);
 
       const tieneArchivo =
         respuesta.archivo instanceof File ||
         Boolean(respuesta.nombre_archivo?.trim()) ||
         archivoRegistrado;
+
+      // Si el documento exige año específico y es obligatorio, una fecha
+      // fuera del rango permitido no cuenta como respondida (deja el
+      // formulario incompleto en vez de mostrar un bloqueo aparte).
+      if (
+        pregunta.fp_requerida &&
+        documento?.tdo_regla_vigencia === "ANIO" &&
+        fechaEmisionValor
+      ) {
+        const estadoAnio = calcularEstadoAnioDocumento(
+          fechaEmisionValor,
+          documento.tdo_anios_atras_permitidos,
+        );
+        if (estadoAnio && !estadoAnio.valido) {
+          return false;
+        }
+      }
 
       if (requiereFecha) {
         return tieneSeleccionDocumento && tieneFechaEmision && tieneArchivo;
@@ -1103,9 +1152,13 @@ export default function SolicitudFormContent({
         try {
           const parsedColumnas = JSON.parse(pregunta.fp_tabla_columnas || "[]");
           nombresColumnas = Array.isArray(parsedColumnas)
-            ? parsedColumnas.map((c: unknown) =>
-                typeof c === "string" ? c : (c as { nombre?: string })?.nombre,
-              ).filter((n): n is string => typeof n === "string")
+            ? parsedColumnas
+                .map((c: unknown) =>
+                  typeof c === "string"
+                    ? c
+                    : (c as { nombre?: string })?.nombre,
+                )
+                .filter((n): n is string => typeof n === "string")
             : [];
         } catch {
           nombresColumnas = [];
@@ -1120,7 +1173,8 @@ export default function SolicitudFormContent({
             typeof fila === "object" &&
             nombresColumnas.every(
               (columna) =>
-                typeof fila[columna] === "string" && fila[columna].trim() !== "",
+                typeof fila[columna] === "string" &&
+                fila[columna].trim() !== "",
             ),
         );
       } catch {
@@ -1261,9 +1315,9 @@ export default function SolicitudFormContent({
       );
       const respondibles = visibles.filter(
         (p) =>
-        ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
-          p.fp_tipo as any,
-        ),
+          ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
+            p.fp_tipo as any,
+          ),
       );
       const requeridas = respondibles.filter((p) => p.fp_requerida);
       const answered = requeridas.filter(isAnswered).length;
@@ -1295,7 +1349,13 @@ export default function SolicitudFormContent({
     });
 
     return progressMap;
-  }, [secciones, respuestas, archivosExistentes, documentosCatalogoMap, preguntas]);
+  }, [
+    secciones,
+    respuestas,
+    archivosExistentes,
+    documentosCatalogoMap,
+    preguntas,
+  ]);
 
   const overallProgress = useMemo(() => {
     let totalRequired = 0;
@@ -1365,7 +1425,10 @@ export default function SolicitudFormContent({
 
   // Inicializar lastSavedResponses cuando se carguen las respuestas
   useEffect(() => {
-    if (Object.keys(respuestas).length > 0 && Object.keys(lastSavedResponses.current).length === 0) {
+    if (
+      Object.keys(respuestas).length > 0 &&
+      Object.keys(lastSavedResponses.current).length === 0
+    ) {
       lastSavedResponses.current = JSON.parse(JSON.stringify(respuestas));
       setHasNewChanges(false);
     }
@@ -1373,7 +1436,8 @@ export default function SolicitudFormContent({
 
   // Detectar cambios nuevos desde el último guardado
   useEffect(() => {
-    const respondAsChanged = JSON.stringify(respuestas) !== JSON.stringify(lastSavedResponses.current);
+    const respondAsChanged =
+      JSON.stringify(respuestas) !== JSON.stringify(lastSavedResponses.current);
     setHasNewChanges(respondAsChanged);
   }, [respuestas]);
 
@@ -1403,8 +1467,8 @@ export default function SolicitudFormContent({
     // console.log('💾 [FRONTEND] handleGuardar iniciado', { solicitudId, respuestasCount: Object.keys(respuestas).length });
 
     // Log detallado de respuestas con documentos y fechas
-    const respuestasConDocumentos = Object.entries(respuestas).filter(([_, resp]: [string, any]) =>
-      resp?.nombre_archivo || resp?.valor_fecha
+    const respuestasConDocumentos = Object.entries(respuestas).filter(
+      ([_, resp]: [string, any]) => resp?.nombre_archivo || resp?.valor_fecha,
     );
     // console.log('📋 [FRONTEND] Respuestas con documentos/fechas:', respuestasConDocumentos);
 
@@ -1428,7 +1492,9 @@ export default function SolicitudFormContent({
 
     // Validar que solicitudId sea válido si estamos editando
     if (solicitudId && isNaN(solicitudId)) {
-      setErrorMessage("Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.");
+      setErrorMessage(
+        "Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.",
+      );
       isGuardandoRef.current = false;
       return;
     }
@@ -1444,14 +1510,15 @@ export default function SolicitudFormContent({
     // Validar documentos con vigencia: requieren archivo + fecha
     const documentosConVigencia = preguntas.filter(
       (p) =>
-        p.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && p.fp_tipo_documento_id
+        p.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && p.fp_tipo_documento_id,
     );
 
     for (const doc of documentosConVigencia) {
       if (!doc.fp_tipo_documento_id) continue;
 
       const documento = documentosCatalogoMap?.[doc.fp_tipo_documento_id];
-      const tieneVigencia = documento?.tdo_vigencia_dias && documento.tdo_vigencia_dias > 0;
+      const tieneVigencia =
+        documento?.tdo_vigencia_dias && documento.tdo_vigencia_dias > 0;
 
       if (tieneVigencia) {
         // Verificar si hay archivo (existente o nuevo)
@@ -1461,7 +1528,7 @@ export default function SolicitudFormContent({
 
         // Verificar si hay fecha (en pregunta hija o en la misma respuesta)
         const preguntaFechaHija = preguntas.find(
-          (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === doc.fp_id
+          (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === doc.fp_id,
         );
         const tieneFecha = !!(
           archivosExistentes[doc.fp_id]?.sd_fecha_emision ||
@@ -1481,12 +1548,17 @@ export default function SolicitudFormContent({
           if (!tieneArchivo) mensajes.push("archivo");
           if (!tieneFecha) mensajes.push("fecha de emisión");
           setErrorMessage(
-            `El documento "${documento?.tdo_descripcion || "RUT"}" requiere ${mensajes.join(" y ")}.`
+            `El documento "${documento?.tdo_descripcion || "RUT"}" requiere ${mensajes.join(" y ")}.`,
           );
           isGuardandoRef.current = false;
           return;
         }
       }
+      // La regla de vigencia por año (tdo_regla_vigencia === "ANIO") ya no
+      // bloquea aquí con un mensaje aparte: si el documento es obligatorio
+      // y la fecha elegida no cae en el año permitido, isAnswered() lo
+      // cuenta como "no respondido" y el gate genérico de
+      // overallDisplayProgress.percent < 100 (arriba) ya impide guardar.
     }
 
     setIsSaving(true);
@@ -1582,7 +1654,9 @@ export default function SolicitudFormContent({
 
     // Validar que solicitudId sea válido si estamos editando
     if (solicitudId && isNaN(solicitudId)) {
-      setErrorMessage("Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.");
+      setErrorMessage(
+        "Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.",
+      );
       isGuardandoRef.current = false;
       return;
     }
@@ -1663,26 +1737,31 @@ export default function SolicitudFormContent({
 
   // Restricción: Si hay solicitud activa (BORRADOR, PENDIENTE, REVISIÓN), mostrar mensaje
   if (!solicitudId && tieneActividad && !loadingInitial) {
-    const estadoTexto = tieneBorrador ? "Borrador" : tienePendiente ? "Pendiente" : "Revisión";
+    const estadoTexto = tieneBorrador
+      ? "Borrador"
+      : tienePendiente
+        ? "Pendiente"
+        : "Revisión";
     return (
       <div className="w-full h-[calc(100vh-5.8rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
         <div className="w-full h-full bg-white border border-gray-200 rounded-xl shadow p-4 flex flex-col items-center justify-center">
           <div className="max-w-md text-center">
             <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Solicitud en Proceso</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              Solicitud en Proceso
+            </h2>
             <p className="text-sm text-gray-600 mb-4">
               Actualmente tienes una solicitud en estado{" "}
               <span className="font-semibold">{estadoTexto}</span>
               {ultimaSolicitud && (
-                <span>
-                  {" "}
-                  ({ultimaSolicitud.sol_numero_solicitud})
-                </span>
-              )}.
+                <span> ({ultimaSolicitud.sol_numero_solicitud})</span>
+              )}
+              .
             </p>
             <p className="text-sm text-gray-600 mb-6">
-              No puedes crear una nueva solicitud mientras exista una en estos estados. Por favor,
-              espera a que se resuelva o cancela la solicitud existente.
+              No puedes crear una nueva solicitud mientras exista una en estos
+              estados. Por favor, espera a que se resuelva o cancela la
+              solicitud existente.
             </p>
             <button
               onClick={handleVolver}
@@ -1691,6 +1770,29 @@ export default function SolicitudFormContent({
               <ArrowLeft className="h-4 w-4" />
               Volver
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Solicitud rechazada por ASC: el formulario completo queda bloqueado,
+  // solo se corrige desde /solicitudes/mis-documentos (el hook ya disparó
+  // el redirect; esto evita el flash del formulario mientras navega).
+  if (solicitudId && bloqueadoPorRechazoAuxiliar) {
+    return (
+      <div className="w-full h-[calc(100vh-5.8rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
+        <div className="w-full h-full bg-white border border-gray-200 rounded-xl shadow p-4 flex flex-col items-center justify-center">
+          <div className="max-w-md text-center">
+            <AlertCircle className="h-12 w-12 text-orange-600 mx-auto mb-4" />
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              Corrige tus documentos
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Esta solicitud fue rechazada por documentos con fecha de emisión
+              incorrecta. Ya no puedes editar el formulario completo; te estamos
+              redirigiendo a &quot;Mis Documentos&quot; para corregirlos ahí.
+            </p>
           </div>
         </div>
       </div>
@@ -1770,12 +1872,11 @@ export default function SolicitudFormContent({
           </div>
         )}
 
-        {errorMessage && (
-          <div className="mb-1 p-2 bg-red-50 border border-red-200 text-red-700 rounded text-sm flex items-center gap-2">
-            <AlertCircle className="h-3 w-3" />
-            {errorMessage}
-          </div>
-        )}
+        <ErrorModal
+          isOpen={!!errorMessage}
+          message={errorMessage}
+          onAction={() => setErrorMessage("")}
+        />
 
         <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
           <SeccionesSidebar
@@ -1817,40 +1918,42 @@ export default function SolicitudFormContent({
                           respuestas={respuestas}
                           errors={errors}
                           readOnly={
-                            readOnly || pregunta.fp_codigo === 'TIPO_SOLICITUD'
+                            readOnly || pregunta.fp_codigo === "TIPO_SOLICITUD"
                           }
-                            solicitudId={solicitudId}
-                            archivosExistentes={archivosExistentes}
-                            maestroPreguntaIds={maestroPreguntaIds}
-                            paises={paises}
-                            departamentos={departamentos}
-                            ciudades={ciudades}
-                            fechaHoraActualFormateada={
-                              fechaHoraActualFormateada
-                            }
-                            setRespuestas={setRespuestas}
-                            setArchivosExistentes={setArchivosExistentes}
-                            setSuccessMessage={setSuccessMessage}
-                            setErrorMessage={setErrorMessage}
-                            shouldShowQuestionForCurrentUser={
-                              shouldShowQuestionForCurrentUser
-                            }
-                            shouldShowConditionalField={
-                              shouldShowConditionalField
-                            }
-                            getValidationRules={getValidationRules}
-                            validateField={validateField}
-                            handleInputChange={handleInputChange}
-                            getNotaDisplay={getNotaDisplay}
-                            getArchivoPreviewUrl={getArchivoPreviewUrl}
-                            getOpcionDocumentoFija={getOpcionDocumentoFija}
-                            getPreguntaFechaAsociada={getPreguntaFechaAsociada}
-                            calcularVigenciaDocumento={
-                              calcularVigenciaDocumento
-                            }
-                          />
-                        ))}
-                    </div>
+                          solicitudId={solicitudId}
+                          archivosExistentes={archivosExistentes}
+                          maestroPreguntaIds={maestroPreguntaIds}
+                          paises={paises}
+                          departamentos={departamentos}
+                          ciudades={ciudades}
+                          fechaHoraActualFormateada={fechaHoraActualFormateada}
+                          setRespuestas={setRespuestas}
+                          setArchivosExistentes={setArchivosExistentes}
+                          setSuccessMessage={setSuccessMessage}
+                          setErrorMessage={setErrorMessage}
+                          shouldShowQuestionForCurrentUser={
+                            shouldShowQuestionForCurrentUser
+                          }
+                          shouldShowConditionalField={
+                            shouldShowConditionalField
+                          }
+                          getValidationRules={getValidationRules}
+                          validateField={validateField}
+                          handleInputChange={handleInputChange}
+                          getNotaDisplay={getNotaDisplay}
+                          getArchivoPreviewUrl={getArchivoPreviewUrl}
+                          getOpcionDocumentoFija={getOpcionDocumentoFija}
+                          getPreguntaFechaAsociada={getPreguntaFechaAsociada}
+                          calcularVigenciaDocumento={calcularVigenciaDocumento}
+                          calcularEstadoAnioDocumento={
+                            calcularEstadoAnioDocumento
+                          }
+                          representanteLegal={representanteLegal}
+                          clienteInfo={clienteInfo}
+                          numeroSolicitud={numeroSolicitud}
+                        />
+                      ))}
+                  </div>
                 </div>
 
                 <NavegacionSecciones
@@ -1861,7 +1964,7 @@ export default function SolicitudFormContent({
                   hasDraftData={hasNewChanges}
                   estadoId={
                     solicitudId
-                      ? estadoIdSolicitud ?? ESTADO_SOLICITUD.BORRADOR.id
+                      ? (estadoIdSolicitud ?? ESTADO_SOLICITUD.BORRADOR.id)
                       : ESTADO_SOLICITUD.BORRADOR.id
                   }
                   onNavegar={handleNavegar}

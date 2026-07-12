@@ -18,7 +18,7 @@ export default function FormularioPreguntaTable({
 }: Props) {
   const cambiarEstado = async (item: FormularioPregunta) => {
     const ok = confirm(
-      `¿Deseas ${item.fp_estado ? "inactivar" : "activar"} esta pregunta?`
+      `¿Deseas ${item.fp_estado ? "inactivar" : "activar"} esta pregunta?`,
     );
     if (!ok) return;
 
@@ -32,7 +32,6 @@ export default function FormularioPreguntaTable({
       alert("Error al cambiar el estado");
     }
   };
-
 
   return (
     <table className="min-w-full divide-y divide-gray-200 mt-4">
@@ -96,7 +95,6 @@ export default function FormularioPreguntaTable({
               >
                 {item.fp_estado ? "Inactivar" : "Activar"}
               </button>
-
             </td>
           </tr>
         ))}

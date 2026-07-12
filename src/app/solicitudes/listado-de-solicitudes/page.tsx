@@ -6,7 +6,7 @@ import { AuthContext } from "@/context/AuthContext";
 import { getTodayBogota } from "@/lib/date-utils";
 import { useSearching } from "@/context/SearchingContext";
 import * as XLSX from "xlsx";
-import html2pdf from "html2pdf.js";
+import { generarCartaPdf } from "@/lib/carta-pdf.util";
 
 import {
   ArrowLeft,
@@ -14,11 +14,13 @@ import {
   ChevronRight,
   Download,
   Eye,
+  FileSearch,
   FileText,
   Network,
   Search,
   X,
 } from "lucide-react";
+import { LoadingModal, ErrorModal } from "@/components/modals";
 import {
   centrosOperacionService,
   type CentroOperacion,
@@ -115,6 +117,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const hoy = getTodayBogota();
 
   const [loading, setLoading] = useState(false);
+  const [descargandoPdfId, setDescargandoPdfId] = useState<number | null>(null);
+  const [errorPdf, setErrorPdf] = useState("");
   const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Ejecutivo[]>([]);
@@ -369,12 +373,15 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
   async function abrirPdf(solicitudId: number) {
     try {
+      setDescargandoPdfId(solicitudId);
       const blob = await solicitudesService.downloadPdf(solicitudId);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
     } catch (error) {
       console.error("Error abriendo PDF:", error);
-      alert("Error al abrir el PDF");
+      setErrorPdf("No se pudo generar el PDF del formulario. Intenta de nuevo.");
+    } finally {
+      setDescargandoPdfId(null);
     }
   }
 
@@ -437,118 +444,11 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         contenido = contenido.replace(new RegExp(placeholder, "g"), valor);
       });
 
-      // Crear HTML para el PDF
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-            }
-            html, body {
-              height: 100%;
-            }
-            body {
-              font-family: 'Arial', 'Helvetica', sans-serif;
-              line-height: 1.8;
-              color: #333;
-              padding: 40px;
-              background: white;
-              font-size: 14px;
-            }
-            .container {
-              max-width: 800px;
-              margin: 0 auto;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 20px;
-              border-bottom: 3px solid #0066cc;
-            }
-            .header h1 {
-              color: #0066cc;
-              margin: 0 0 10px 0;
-              font-size: 28px;
-              font-weight: bold;
-            }
-            .header p {
-              margin: 5px 0;
-              font-size: 13px;
-              color: #666;
-            }
-            .content {
-              font-family: 'Arial', sans-serif;
-              line-height: 1.8;
-              text-align: left;
-              margin: 30px 0;
-              padding: 20px;
-              background: #f9f9f9;
-              border-radius: 4px;
-            }
-            .content p {
-              margin: 12px 0;
-              padding: 0;
-              line-height: 1.6;
-            }
-            .footer {
-              margin-top: 50px;
-              padding-top: 20px;
-              text-align: center;
-              font-size: 11px;
-              color: #999;
-              border-top: 1px solid #ddd;
-            }
-            @media print {
-              body {
-                padding: 20px;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Carta de Vinculación Comercial</h1>
-              <p>Solicitud: ${solicitud.sol_numero_solicitud}</p>
-              <p>Fecha: ${new Date().toLocaleDateString("es-CO")}</p>
-            </div>
-            <div class="content">${contenido
-              .split("\n")
-              .map(line => line.trim())
-              .filter(line => line.length > 0)
-              .map(line => `<p>${line}</p>`)
-              .join("")}</div>
-            <div class="footer">
-              <p>Documento generado automáticamente el ${new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-              <p>Sistema de Vinculación Comercial - CARTONERA</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      // Generar PDF y abrir en nueva pestaña
-      const opt = {
-        margin: 10,
-        filename: `carta-vinculacion-${solicitud.sol_numero_solicitud}.pdf`,
-        image: { type: "png" as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: "portrait" as const, unit: "mm" as const, format: "a4" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] as any },
-      };
-
-      // Generar el PDF y convertirlo a Blob
-      const pdf = html2pdf().set(opt).from(htmlContent);
-
-      // Obtener el PDF como Blob y abrirlo en una nueva pestaña
-      pdf.toPdf().get("pdf").then((pdfObj: any) => {
-        const blob = pdfObj.output("blob");
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
+      await generarCartaPdf({
+        contenido,
+        asunto: `Vinculación comercial – Solicitud No. ${solicitud.sol_numero_solicitud || "-"}`,
+        destinatarioNombre: solicitud.cliente_nombre || "-",
+        nombreArchivo: `carta-vinculacion-${solicitud.sol_numero_solicitud}.pdf`,
       });
     } catch (error) {
       console.error("Error abriendo Carta de Vinculación:", error);
@@ -1151,14 +1051,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <button
-                            onClick={() =>
-                              abrirPdf(row.sol_id)
-                            }
-                            aria-label="Descargar PDF formulario"
-                            title="Descargar PDF formulario"
-                            className="inline-flex items-center justify-center rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-700 transition-colors hover:bg-violet-100"
+                            onClick={() => abrirPdf(row.sol_id)}
+                            disabled={descargandoPdfId === row.sol_id}
+                            aria-label="Ver PDF del formulario"
+                            title="Ver PDF del formulario"
+                            className="inline-flex items-center justify-center rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Download className="h-4 w-4" />
+                            <FileSearch className="h-4 w-4" />
                           </button>
                         </td>
                         <td className="px-4 py-3 text-sm">
@@ -1280,6 +1179,17 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           )}
         </div>
       </div>
+
+      <LoadingModal
+        isOpen={descargandoPdfId !== null}
+        message="Generando PDF del formulario..."
+      />
+
+      <ErrorModal
+        isOpen={!!errorPdf}
+        message={errorPdf}
+        onAction={() => setErrorPdf("")}
+      />
     </div>
   );
 }

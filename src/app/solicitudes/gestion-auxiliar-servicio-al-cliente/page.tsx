@@ -1,7 +1,10 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { clientesService } from "@/services/clientes/clientes.service";
-import { centrosOperacionService, type CentroOperacion } from "@/services/centros-operacion/centros-operacion.service";
+import {
+  centrosOperacionService,
+  type CentroOperacion,
+} from "@/services/centros-operacion/centros-operacion.service";
 import type { ClienteListResponse } from "@/types/api.types";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
@@ -27,7 +30,7 @@ interface Solicitud {
   fecha_real_respuesta_comercial: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
-  solicitud_id?: number;
+  sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
@@ -150,7 +153,8 @@ export default function AprobacionDesaprobacionPage() {
             Volver
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Listado solicitudes pendientes de Aprobación / Desaprobación de Formulario - gestion auxiliar de serviocio al cliente
+            Listado solicitudes pendientes de Aprobación / Desaprobación de
+            Formulario - gestion auxiliar de serviocio al cliente
           </h1>
           <p className="text-gray-600">
             Revisa y gestiona las solicitudes asignadas a tu centro de operación
@@ -233,9 +237,10 @@ export default function AprobacionDesaprobacionPage() {
                     }
                     // console.log("Buscando solicitudes para usuarioId:", usuarioId);
 
-                    const data = await solicitudesService.getSolicitudesPendientesAuxiliarServicioCliente(
-                      usuarioId,
-                    );
+                    const data =
+                      await solicitudesService.getSolicitudesPendientesAuxiliarServicioCliente(
+                        usuarioId,
+                      );
                     // console.log("Solicitudes obtenidas:", data);
 
                     const numeroBuscado = numeroFiltro.trim().toLowerCase();
@@ -350,7 +355,8 @@ export default function AprobacionDesaprobacionPage() {
                   <tbody className="divide-y divide-gray-200">
                     {solicitudesActuales.map((solicitud) => {
                       const fechaEstimada =
-                        (solicitud as any).sol_fecha_estimada_auxiliar_servicio_cliente ||
+                        (solicitud as any)
+                          .sol_fecha_estimada_auxiliar_servicio_cliente ||
                         solicitud.fecha_estimada_respuesta_comercial;
                       const diasRestantes = fechaEstimada
                         ? Math.max(0, calcularDiasRestantes(fechaEstimada) ?? 0)
@@ -358,7 +364,7 @@ export default function AprobacionDesaprobacionPage() {
 
                       return (
                         <tr
-                          key={solicitud.sol_id ?? solicitud.solicitud_id}
+                          key={solicitud.sol_id ?? solicitud.sa_sol_id}
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
@@ -404,7 +410,7 @@ export default function AprobacionDesaprobacionPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.solicitud_id}`,
+                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
                                 )
                               }
                               className="text-blue-600 hover:text-blue-800 transition-colors"
@@ -440,7 +446,7 @@ export default function AprobacionDesaprobacionPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/solicitudes/gestion-auxiliar-servicio-al-cliente/${solicitud.sol_id ?? solicitud.solicitud_id}/gestionar`,
+                                  `/solicitudes/gestion-auxiliar-servicio-al-cliente/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
                                 )
                               }
                               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

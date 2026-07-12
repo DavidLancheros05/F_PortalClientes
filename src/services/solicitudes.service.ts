@@ -65,7 +65,9 @@ export const solicitudesService = {
 
   // Cambiar estado de una solicitud
   async cambiarEstado(id: number, estadoId: number) {
-    const response = await api.patch(`/solicitudes/${id}/estado`, { estadoId });
+    const response = await api.patch(`/solicitudes/${id}/estado`, {
+      estadoId,
+    });
     return response.data;
   },
 
@@ -221,6 +223,7 @@ export const solicitudesService = {
       fecha_estimada_respuesta_comercial?: string | null;
       fecha_real_respuesta_comercial?: string | null;
       usuario_modifica?: number;
+      documentos_faltantes?: number[];
     },
   ) {
     return workflowSolicitudesService.registrarAprobacion(id, data);
@@ -365,7 +368,7 @@ export const solicitudesService = {
   // Guardar respuestas de formulario
   async guardarRespuestasFormulario(solicitudId: number, respuestas: any[]) {
     const response = await api.post("/formulario/respuestas", {
-      solicitud_id: solicitudId,
+      sa_sol_id: solicitudId,
       respuestas,
     });
     return response.data;
@@ -423,7 +426,9 @@ export const solicitudesService = {
         // Para otros casos: cambiar a estado PENDIENTE (2)
         if (options?.isCorrecionASC) {
           // Ya se manejará en el paso siguiente con llamada a /resultado-pendiente
-          console.log("[guardarSolicitud] Guardando corrección ASC - sin cambio de estado");
+          console.log(
+            "[guardarSolicitud] Guardando corrección ASC - sin cambio de estado",
+          );
         } else {
           await this.cambiarEstado(
             targetSolicitudId,
@@ -446,7 +451,9 @@ export const solicitudesService = {
     // Si es corrección ASC, actualizar resultado a PENDIENTE (1)
     if (options?.isCorrecionASC && targetSolicitudId) {
       try {
-        await api.patch(`/solicitudes/${targetSolicitudId}/resultado-pendiente`);
+        await api.patch(
+          `/solicitudes/${targetSolicitudId}/resultado-pendiente`,
+        );
       } catch (error) {
         console.error("Error actualizando resultado a pendiente:", error);
         // No lanzar error, solo registrar

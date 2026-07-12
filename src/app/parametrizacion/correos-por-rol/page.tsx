@@ -37,7 +37,7 @@ export default function CorreosPorRolPage() {
   // Modal states
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
-    type: 'error' | 'success' | 'confirm';
+    type: "error" | "success" | "confirm";
     title: string;
     message: string;
     action?: () => void;
@@ -46,9 +46,9 @@ export default function CorreosPorRolPage() {
     item?: CorreoPorRol;
   }>({
     isOpen: false,
-    type: 'error',
-    title: '',
-    message: '',
+    type: "error",
+    title: "",
+    message: "",
   });
 
   const isFormValid =
@@ -92,15 +92,15 @@ export default function CorreosPorRolPage() {
       await cargarDatos();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Correo creado',
-        message: 'El correo por rol ha sido creado exitosamente',
+        type: "success",
+        title: "Correo creado",
+        message: "El correo por rol ha sido creado exitosamente",
       });
     } catch (error: any) {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
+        type: "error",
+        title: "Error",
         message: error.message || "Error al crear",
       });
     } finally {
@@ -126,15 +126,15 @@ export default function CorreosPorRolPage() {
       await cargarDatos();
       setModalState({
         isOpen: true,
-        type: 'success',
-        title: 'Correo actualizado',
-        message: 'El correo ha sido actualizado exitosamente',
+        type: "success",
+        title: "Correo actualizado",
+        message: "El correo ha sido actualizado exitosamente",
       });
     } catch (error: any) {
       setModalState({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
+        type: "error",
+        title: "Error",
         message: error.message || "Error al actualizar",
       });
     }
@@ -143,11 +143,11 @@ export default function CorreosPorRolPage() {
   const toggleEstado = (item: CorreoPorRol) => {
     setModalState({
       isOpen: true,
-      type: 'confirm',
-      title: item.activo ? 'Inactivar correo' : 'Activar correo',
+      type: "confirm",
+      title: item.activo ? "Inactivar correo" : "Activar correo",
       message: `Deseas ${item.activo ? "inactivar" : "activar"} este correo?`,
       isDangerous: item.activo,
-      confirmText: item.activo ? 'Inactivar' : 'Activar',
+      confirmText: item.activo ? "Inactivar" : "Activar",
       item,
       action: async () => {
         try {
@@ -155,15 +155,15 @@ export default function CorreosPorRolPage() {
           await cargarDatos();
           setModalState({
             isOpen: true,
-            type: 'success',
-            title: 'Operación exitosa',
-            message: `El correo ha sido ${item.activo ? 'inactivado' : 'activado'} correctamente`,
+            type: "success",
+            title: "Operación exitosa",
+            message: `El correo ha sido ${item.activo ? "inactivado" : "activado"} correctamente`,
           });
         } catch (error: any) {
           setModalState({
             isOpen: true,
-            type: 'error',
-            title: 'Error',
+            type: "error",
+            title: "Error",
             message: error.message || "Error al actualizar estado",
           });
         }
@@ -281,7 +281,7 @@ export default function CorreosPorRolPage() {
       )}
 
       {/* Modals */}
-      {modalState.type === 'error' && (
+      {modalState.type === "error" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -293,7 +293,7 @@ export default function CorreosPorRolPage() {
         />
       )}
 
-      {modalState.type === 'success' && (
+      {modalState.type === "success" && (
         <SuccessModal
           isOpen={modalState.isOpen}
           title={modalState.title}
@@ -303,12 +303,12 @@ export default function CorreosPorRolPage() {
         />
       )}
 
-      {modalState.type === 'confirm' && (
+      {modalState.type === "confirm" && (
         <ConfirmModal
           isOpen={modalState.isOpen}
           title={modalState.title}
           message={modalState.message}
-          confirmText={modalState.confirmText || 'Confirmar'}
+          confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();

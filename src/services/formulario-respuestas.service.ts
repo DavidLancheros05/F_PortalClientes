@@ -145,10 +145,10 @@ export const formularioRespuestasService = {
     respuestaData: any,
   ) {
     if (!solicitudId || isNaN(solicitudId)) {
-      throw new Error("solicitud_id inválido o no proporcionado");
+      throw new Error("sa_sol_id inválido o no proporcionado");
     }
     const response = await api.post("/solicitudes/respuestas", {
-      solicitud_id: solicitudId,
+      sa_sol_id: solicitudId,
       fp_id,
       ...respuestaData,
     });
@@ -170,13 +170,13 @@ export const formularioRespuestasService = {
     // });
 
     if (!solicitudId || isNaN(solicitudId)) {
-      // console.error("🔴 [FRONTEND] solicitud_id inválido:", solicitudId);
-      throw new Error("solicitud_id inválido o no proporcionado");
+      // console.error("🔴 [FRONTEND] sa_sol_id inválido:", solicitudId);
+      throw new Error("sa_sol_id inválido o no proporcionado");
     }
 
     // console.log("📝 [FRONTEND] Construyendo FormData...");
     const formData = new FormData();
-    formData.append("solicitud_id", String(solicitudId));
+    formData.append("sa_sol_id", String(solicitudId));
     formData.append("fp_id", String(fp_id));
     formData.append("archivo", archivo);
     if (fechaEmision) {

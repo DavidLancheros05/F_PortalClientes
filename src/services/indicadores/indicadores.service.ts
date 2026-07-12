@@ -50,7 +50,7 @@ export interface SolicitudDetalle {
   dias_reales: number;
   dias_estimados: number;
   diferencia: number;
-  estado: 'a_tiempo' | 'vencida';
+  estado: "a_tiempo" | "vencida";
 }
 
 export interface DashboardData {

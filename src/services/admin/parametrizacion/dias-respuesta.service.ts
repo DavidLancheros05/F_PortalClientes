@@ -31,9 +31,12 @@ export const diasRespuestaService = {
   },
 
   toggleEstado: async (id: number, estado: boolean) => {
-    const res = await api.patch(`/parametrizacion/dias-respuesta/${id}/estado`, {
-      pdr_estado: estado,
-    });
+    const res = await api.patch(
+      `/parametrizacion/dias-respuesta/${id}/estado`,
+      {
+        pdr_estado: estado,
+      },
+    );
     return res.data;
   },
 

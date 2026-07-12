@@ -18,18 +18,33 @@ export const cartaPdfVinculacionService = {
     return res.data;
   },
 
-  create: async (data: { nombre: string; contenido: string }): Promise<CartaPdfVinculacion> => {
+  create: async (data: {
+    nombre: string;
+    contenido: string;
+  }): Promise<CartaPdfVinculacion> => {
     const res = await api.post("/parametrizacion/carta-pdf-vinculacion", data);
     return res.data;
   },
 
-  update: async (id: number, data: { nombre?: string; contenido?: string }): Promise<CartaPdfVinculacion> => {
-    const res = await api.put(`/parametrizacion/carta-pdf-vinculacion/${id}`, data);
+  update: async (
+    id: number,
+    data: { nombre?: string; contenido?: string },
+  ): Promise<CartaPdfVinculacion> => {
+    const res = await api.put(
+      `/parametrizacion/carta-pdf-vinculacion/${id}`,
+      data,
+    );
     return res.data;
   },
 
-  toggleActivo: async (id: number, activo: boolean): Promise<CartaPdfVinculacion> => {
-    const res = await api.patch(`/parametrizacion/carta-pdf-vinculacion/${id}/estado`, { activo });
+  toggleActivo: async (
+    id: number,
+    activo: boolean,
+  ): Promise<CartaPdfVinculacion> => {
+    const res = await api.patch(
+      `/parametrizacion/carta-pdf-vinculacion/${id}/estado`,
+      { activo },
+    );
     return res.data;
   },
 };

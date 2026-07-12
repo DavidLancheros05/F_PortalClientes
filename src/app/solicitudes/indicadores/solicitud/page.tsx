@@ -34,14 +34,24 @@ function EstadoBadge({ estado }: { estado: string }) {
     BORRADOR: "bg-gray-100 text-gray-600",
   };
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${map[estado] ?? "bg-gray-100 text-gray-600"}`}>
+    <span
+      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${map[estado] ?? "bg-gray-100 text-gray-600"}`}
+    >
       {ESTADO_LABELS[estado] ?? estado}
     </span>
   );
 }
 
 function AreaBar({ area }: { area: AreaTimeline }) {
-  const { dias_meta, dias_reales, procesada, vencida, label, fecha_estimada, fecha_real } = area;
+  const {
+    dias_meta,
+    dias_reales,
+    procesada,
+    vencida,
+    label,
+    fecha_estimada,
+    fecha_real,
+  } = area;
 
   // Si no hay fechas estimadas, el área no aplica a esta solicitud
   if (!fecha_estimada && !procesada) {
@@ -71,16 +81,18 @@ function AreaBar({ area }: { area: AreaTimeline }) {
   const colorBarra = !procesada
     ? "bg-gray-300"
     : excede
-    ? "bg-red-500"
-    : reales === meta
-    ? "bg-amber-400"
-    : "bg-green-500";
+      ? "bg-red-500"
+      : reales === meta
+        ? "bg-amber-400"
+        : "bg-green-500";
 
   return (
     <div className="flex items-center gap-4 py-3 border-b last:border-0">
       {/* Nombre área */}
       <div className="w-44 flex-shrink-0">
-        <p className={`text-sm font-medium ${procesada ? "text-gray-800" : "text-gray-400"}`}>
+        <p
+          className={`text-sm font-medium ${procesada ? "text-gray-800" : "text-gray-400"}`}
+        >
           {label}
         </p>
         {fecha_estimada && (
@@ -120,8 +132,7 @@ function AreaBar({ area }: { area: AreaTimeline }) {
               <>
                 {excede ? (
                   <span className="flex items-center gap-1 text-red-600 font-medium">
-                    <XCircle className="w-3 h-3" />
-                    +{excesoDias} d sobre la meta
+                    <XCircle className="w-3 h-3" />+{excesoDias} d sobre la meta
                   </span>
                 ) : reales === meta ? (
                   <span className="flex items-center gap-1 text-amber-500 font-medium">
@@ -135,16 +146,16 @@ function AreaBar({ area }: { area: AreaTimeline }) {
                   </span>
                 )}
                 {fecha_real && (
-                  <span className="text-gray-400">· Respondido: {fecha_real}</span>
+                  <span className="text-gray-400">
+                    · Respondido: {fecha_real}
+                  </span>
                 )}
               </>
             ) : (
               <span className="text-gray-400">Aún no respondida</span>
             )}
           </div>
-          <span className="text-xs text-gray-400">
-            Meta: {meta} d
-          </span>
+          <span className="text-xs text-gray-400">Meta: {meta} d</span>
         </div>
       </div>
 
@@ -178,7 +189,9 @@ export default function IndicadoresSolicitudPage() {
     setNotFound(false);
     setSolicitud(null);
     try {
-      const res = await indicadoresService.getSolicitudTimeline({ numero: termino });
+      const res = await indicadoresService.getSolicitudTimeline({
+        numero: termino,
+      });
       if (!res) {
         setNotFound(true);
       } else {
@@ -195,11 +208,16 @@ export default function IndicadoresSolicitudPage() {
     if (e.key === "Enter") buscar();
   }
 
-  const areasConDatos = solicitud?.areas.filter((a) => a.fecha_estimada || a.procesada) ?? [];
+  const areasConDatos =
+    solicitud?.areas.filter((a) => a.fecha_estimada || a.procesada) ?? [];
   const areasTotal = areasConDatos.length;
   const areasProcesadas = areasConDatos.filter((a) => a.procesada).length;
-  const areasATiempo = areasConDatos.filter((a) => a.procesada && !a.vencida).length;
-  const areasVencidas = areasConDatos.filter((a) => a.procesada && a.vencida).length;
+  const areasATiempo = areasConDatos.filter(
+    (a) => a.procesada && !a.vencida,
+  ).length;
+  const areasVencidas = areasConDatos.filter(
+    (a) => a.procesada && a.vencida,
+  ).length;
 
   if (authLoading) {
     return (
@@ -218,9 +236,12 @@ export default function IndicadoresSolicitudPage() {
             <FileSearch className="w-6 h-6 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tiempos por Solicitud</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Tiempos por Solicitud
+            </h1>
             <p className="text-sm text-gray-500">
-              Consulta cuántos días tomó cada área para responder en una solicitud específica
+              Consulta cuántos días tomó cada área para responder en una
+              solicitud específica
             </p>
           </div>
         </div>
@@ -262,7 +283,9 @@ export default function IndicadoresSolicitudPage() {
         {notFound && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
             <FileSearch className="w-10 h-10 text-amber-400 mx-auto mb-2" />
-            <p className="text-amber-700 font-medium">Solicitud no encontrada</p>
+            <p className="text-amber-700 font-medium">
+              Solicitud no encontrada
+            </p>
             <p className="text-sm text-amber-500 mt-1">
               Verifica el número e intenta de nuevo
             </p>
@@ -283,22 +306,32 @@ export default function IndicadoresSolicitudPage() {
             <div className="bg-white rounded-2xl shadow-sm border p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">Solicitud</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">
+                    Solicitud
+                  </p>
                   <h2 className="text-xl font-bold text-gray-900 mt-0.5">
                     {solicitud.numero_solicitud}
                   </h2>
-                  <p className="text-gray-600 mt-1">{solicitud.razon_social || "—"}</p>
+                  <p className="text-gray-600 mt-1">
+                    {solicitud.razon_social || "—"}
+                  </p>
                   {solicitud.nit && (
-                    <p className="text-sm text-gray-400">NIT: {solicitud.nit}</p>
+                    <p className="text-sm text-gray-400">
+                      NIT: {solicitud.nit}
+                    </p>
                   )}
                 </div>
                 <div className="text-right space-y-1.5 flex-shrink-0">
                   <EstadoBadge estado={solicitud.estado} />
                   {solicitud.centro_operacion && (
-                    <p className="text-xs text-gray-400">{solicitud.centro_operacion}</p>
+                    <p className="text-xs text-gray-400">
+                      {solicitud.centro_operacion}
+                    </p>
                   )}
                   {solicitud.fecha_envio && (
-                    <p className="text-xs text-gray-400">Enviada: {solicitud.fecha_envio}</p>
+                    <p className="text-xs text-gray-400">
+                      Enviada: {solicitud.fecha_envio}
+                    </p>
                   )}
                 </div>
               </div>
@@ -306,15 +339,23 @@ export default function IndicadoresSolicitudPage() {
               {/* Mini resumen */}
               <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-700">{areasProcesadas}</p>
-                  <p className="text-xs text-gray-400">de {areasTotal} áreas procesadas</p>
+                  <p className="text-2xl font-bold text-gray-700">
+                    {areasProcesadas}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    de {areasTotal} áreas procesadas
+                  </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{areasATiempo}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {areasATiempo}
+                  </p>
                   <p className="text-xs text-gray-400">a tiempo</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-red-500">{areasVencidas}</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    {areasVencidas}
+                  </p>
                   <p className="text-xs text-gray-400">vencidas</p>
                 </div>
               </div>
@@ -328,7 +369,8 @@ export default function IndicadoresSolicitudPage() {
                     Tiempos por área
                   </h3>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    La barra llena al 100% representa el tiempo máximo estimado para cada área
+                    La barra llena al 100% representa el tiempo máximo estimado
+                    para cada área
                   </p>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -359,7 +401,9 @@ export default function IndicadoresSolicitudPage() {
         {!loading && !solicitud && !notFound && !error && (
           <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-400">
             <FileSearch className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p>Ingresa el número de solicitud para ver los tiempos de cada área</p>
+            <p>
+              Ingresa el número de solicitud para ver los tiempos de cada área
+            </p>
           </div>
         )}
       </div>

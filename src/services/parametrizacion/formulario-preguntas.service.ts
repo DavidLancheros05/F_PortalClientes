@@ -61,6 +61,18 @@ export const formularioPreguntasService = {
     return res.data;
   },
 
+  async updateOpcion(
+    fpId: number,
+    fpoId: number,
+    payload: { fpo_valor?: string; fpo_estado?: boolean },
+  ): Promise<Opcion> {
+    const res = await api.put(
+      `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
+      payload,
+    );
+    return res.data;
+  },
+
   async deleteOpcion(fpId: number, fpoId: number): Promise<void> {
     await api.delete(
       `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,

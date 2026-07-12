@@ -49,13 +49,23 @@ function KpiCard({
 }) {
   const colors: Record<string, { bg: string; text: string; icon: string }> = {
     blue: { bg: "bg-blue-50", text: "text-blue-700", icon: "text-blue-500" },
-    green: { bg: "bg-green-50", text: "text-green-700", icon: "text-green-500" },
+    green: {
+      bg: "bg-green-50",
+      text: "text-green-700",
+      icon: "text-green-500",
+    },
     red: { bg: "bg-red-50", text: "text-red-700", icon: "text-red-500" },
-    amber: { bg: "bg-amber-50", text: "text-amber-700", icon: "text-amber-500" },
+    amber: {
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      icon: "text-amber-500",
+    },
   };
   const c = colors[color] || colors.blue;
   return (
-    <div className={`${c.bg} border rounded-2xl p-5 flex items-center gap-4 shadow-sm`}>
+    <div
+      className={`${c.bg} border rounded-2xl p-5 flex items-center gap-4 shadow-sm`}
+    >
       <div className="p-3 bg-white rounded-xl shadow-sm">
         <Icon className={`w-6 h-6 ${c.icon}`} />
       </div>
@@ -70,10 +80,17 @@ function KpiCard({
 
 function PctBar({ pct, color }: { pct: number; color: string }) {
   const bg =
-    color === "green" ? "bg-green-500" : color === "red" ? "bg-red-400" : "bg-amber-400";
+    color === "green"
+      ? "bg-green-500"
+      : color === "red"
+        ? "bg-red-400"
+        : "bg-amber-400";
   return (
     <div className="w-full bg-gray-100 rounded-full h-2 mt-1">
-      <div className={`${bg} h-2 rounded-full`} style={{ width: `${Math.min(pct, 100)}%` }} />
+      <div
+        className={`${bg} h-2 rounded-full`}
+        style={{ width: `${Math.min(pct, 100)}%` }}
+      />
     </div>
   );
 }
@@ -89,8 +106,7 @@ function DiferenciaBadge({ diferencia }: { diferencia: number }) {
   }
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-      <XCircle className="w-3 h-3" />
-      +{diferencia} d vencida
+      <XCircle className="w-3 h-3" />+{diferencia} d vencida
     </span>
   );
 }
@@ -110,7 +126,9 @@ function DetalleModal({
 }) {
   const [solicitudes, setSolicitudes] = useState<SolicitudDetalle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<"todas" | "a_tiempo" | "vencida">("todas");
+  const [filtro, setFiltro] = useState<"todas" | "a_tiempo" | "vencida">(
+    "todas",
+  );
 
   useEffect(() => {
     const params: Record<string, string> = { area: area.area };
@@ -136,7 +154,8 @@ function DetalleModal({
           <div>
             <h2 className="text-lg font-bold text-gray-900">{area.label}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Solicitudes con fecha real registrada — ordenadas de mayor a menor desvío
+              Solicitudes con fecha real registrada — ordenadas de mayor a menor
+              desvío
             </p>
           </div>
           <button
@@ -158,16 +177,16 @@ function DetalleModal({
                   ? f === "vencida"
                     ? "bg-red-100 text-red-700"
                     : f === "a_tiempo"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-blue-100 text-blue-700"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-blue-100 text-blue-700"
                   : "bg-white border text-gray-500 hover:bg-gray-100"
               }`}
             >
               {f === "todas"
                 ? `Todas (${solicitudes.length})`
                 : f === "a_tiempo"
-                ? `A tiempo (${solicitudes.filter((s) => s.estado === "a_tiempo").length})`
-                : `Vencidas (${solicitudes.filter((s) => s.estado === "vencida").length})`}
+                  ? `A tiempo (${solicitudes.filter((s) => s.estado === "a_tiempo").length})`
+                  : `Vencidas (${solicitudes.filter((s) => s.estado === "vencida").length})`}
             </button>
           ))}
         </div>
@@ -186,13 +205,27 @@ function DetalleModal({
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">N° Solicitud</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Razón social</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">F. envío</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">F. estimada</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">F. real</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Días reales</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Desvío</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    N° Solicitud
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Razón social
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                    F. envío
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                    F. estimada
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                    F. real
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                    Días reales
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                    Desvío
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -209,10 +242,18 @@ function DetalleModal({
                     <td className="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate">
                       {s.razon_social || "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 text-center">{s.fecha_envio}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 text-center">{s.fecha_estimada}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 text-center font-medium">{s.fecha_real}</td>
-                    <td className="px-4 py-3 text-sm text-blue-600 text-center">{s.dias_reales} d</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 text-center">
+                      {s.fecha_envio}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 text-center">
+                      {s.fecha_estimada}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700 text-center font-medium">
+                      {s.fecha_real}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-blue-600 text-center">
+                      {s.dias_reales} d
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <DiferenciaBadge diferencia={s.diferencia} />
                     </td>
@@ -252,9 +293,12 @@ export default function IndicadoresPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    centrosOperacionService.getAll().then(setCentros).catch(() => {});
+    centrosOperacionService
+      .getAll()
+      .then(setCentros)
+      .catch(() => {});
     buscar();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading]);
 
   async function buscar() {
@@ -309,8 +353,12 @@ export default function IndicadoresPage() {
             <BarChart2 className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard de Indicadores</h1>
-            <p className="text-sm text-gray-500">Tiempos de respuesta y cumplimiento por área</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Dashboard de Indicadores
+            </h1>
+            <p className="text-sm text-gray-500">
+              Tiempos de respuesta y cumplimiento por área
+            </p>
           </div>
         </div>
 
@@ -318,7 +366,9 @@ export default function IndicadoresPage() {
         <div className="bg-white rounded-2xl shadow-sm border p-5">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Fecha desde</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Fecha desde
+              </label>
               <input
                 type="date"
                 value={fechaDesde}
@@ -327,7 +377,9 @@ export default function IndicadoresPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Fecha hasta</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Fecha hasta
+              </label>
               <input
                 type="date"
                 value={fechaHasta}
@@ -336,7 +388,9 @@ export default function IndicadoresPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Centro de operación</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Centro de operación
+              </label>
               <select
                 value={coId}
                 onChange={(e) => setCoId(e.target.value)}
@@ -389,7 +443,11 @@ export default function IndicadoresPage() {
                 value={data.resumen.aprobadas}
                 sub={`${
                   data.resumen.total_solicitudes > 0
-                    ? Math.round((data.resumen.aprobadas / data.resumen.total_solicitudes) * 100)
+                    ? Math.round(
+                        (data.resumen.aprobadas /
+                          data.resumen.total_solicitudes) *
+                          100,
+                      )
                     : 0
                 }% del total`}
                 icon={CheckCircle}
@@ -400,7 +458,11 @@ export default function IndicadoresPage() {
                 value={data.resumen.rechazadas}
                 sub={`${
                   data.resumen.total_solicitudes > 0
-                    ? Math.round((data.resumen.rechazadas / data.resumen.total_solicitudes) * 100)
+                    ? Math.round(
+                        (data.resumen.rechazadas /
+                          data.resumen.total_solicitudes) *
+                          100,
+                      )
                     : 0
                 }% del total`}
                 icon={XCircle}
@@ -422,7 +484,9 @@ export default function IndicadoresPage() {
                   Días reales vs estimados por área
                 </h2>
                 {chartAreaData.length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center py-8">Sin datos en el período</p>
+                  <p className="text-gray-400 text-sm text-center py-8">
+                    Sin datos en el período
+                  </p>
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart
@@ -439,9 +503,20 @@ export default function IndicadoresPage() {
                       />
                       <YAxis tick={{ fontSize: 11 }} unit=" d" />
                       <Tooltip formatter={(v: number) => [`${v} días`]} />
-                      <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="Días reales" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Días estimados" fill="#d1d5db" radius={[4, 4, 0, 0]} />
+                      <Legend
+                        verticalAlign="top"
+                        wrapperStyle={{ fontSize: 12 }}
+                      />
+                      <Bar
+                        dataKey="Días reales"
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="Días estimados"
+                        fill="#d1d5db"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -452,7 +527,9 @@ export default function IndicadoresPage() {
                   Tendencia mensual (últimos 6 meses)
                 </h2>
                 {chartMesData.length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center py-8">Sin datos</p>
+                  <p className="text-gray-400 text-sm text-center py-8">
+                    Sin datos
+                  </p>
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart
@@ -463,10 +540,25 @@ export default function IndicadoresPage() {
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <Tooltip />
-                      <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="Total" fill="#93c5fd" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Aprobadas" fill="#4ade80" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Rechazadas" fill="#f87171" radius={[4, 4, 0, 0]} />
+                      <Legend
+                        verticalAlign="top"
+                        wrapperStyle={{ fontSize: 12 }}
+                      />
+                      <Bar
+                        dataKey="Total"
+                        fill="#93c5fd"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="Aprobadas"
+                        fill="#4ade80"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="Rechazadas"
+                        fill="#f87171"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -476,9 +568,12 @@ export default function IndicadoresPage() {
             {/* Tabla por área — click para ver detalle */}
             <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
               <div className="px-5 py-4 border-b">
-                <h2 className="text-base font-semibold text-gray-800">Detalle por área</h2>
+                <h2 className="text-base font-semibold text-gray-800">
+                  Detalle por área
+                </h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Haz clic en una fila para ver el listado de solicitudes de esa área
+                  Haz clic en una fila para ver el listado de solicitudes de esa
+                  área
                 </p>
               </div>
               <div className="overflow-x-auto">
@@ -518,8 +613,12 @@ export default function IndicadoresPage() {
                           onClick={() => setAreaDetalle(a)}
                           className="hover:bg-blue-50 cursor-pointer transition-colors"
                         >
-                          <td className="px-4 py-3 text-sm font-medium text-gray-800">{a.label}</td>
-                          <td className="px-4 py-3 text-sm text-gray-700 text-right">{a.total}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                            {a.label}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                            {a.total}
+                          </td>
                           <td className="px-4 py-3 text-sm text-green-600 text-right font-medium">
                             {a.a_tiempo}
                           </td>
@@ -539,8 +638,8 @@ export default function IndicadoresPage() {
                                   a.pct_cumplimiento >= 80
                                     ? "text-green-600"
                                     : a.pct_cumplimiento >= 50
-                                    ? "text-amber-500"
-                                    : "text-red-500"
+                                      ? "text-amber-500"
+                                      : "text-red-500"
                                 }`}
                               >
                                 {a.pct_cumplimiento}%
@@ -552,8 +651,8 @@ export default function IndicadoresPage() {
                                     a.pct_cumplimiento >= 80
                                       ? "green"
                                       : a.pct_cumplimiento >= 50
-                                      ? "amber"
-                                      : "red"
+                                        ? "amber"
+                                        : "red"
                                   }
                                 />
                               </div>
@@ -570,7 +669,8 @@ export default function IndicadoresPage() {
                           colSpan={8}
                           className="px-4 py-8 text-center text-gray-400 text-sm"
                         >
-                          No hay solicitudes procesadas en el período seleccionado
+                          No hay solicitudes procesadas en el período
+                          seleccionado
                         </td>
                       </tr>
                     )}
@@ -585,7 +685,8 @@ export default function IndicadoresPage() {
           <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-400">
             <BarChart2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p>
-              Aplica los filtros y presiona <strong>Consultar</strong> para ver los indicadores
+              Aplica los filtros y presiona <strong>Consultar</strong> para ver
+              los indicadores
             </p>
           </div>
         )}

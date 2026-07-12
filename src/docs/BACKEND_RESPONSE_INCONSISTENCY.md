@@ -8,14 +8,14 @@ El backend devuelve respuestas con **estructuras inconsistentes** para el mismo 
 
 #### Crear Solicitud (`POST /solicitudes`)
 
-El endpoint devuelve el `solicitud_id` en **diferentes niveles**:
+El endpoint devuelve el `sa_sol_id` en **diferentes niveles**:
 
 ```json
 // Formato 1 (esperado)
 {
   "ok": true,
   "data": {
-    "solicitud_id": 123
+    "sa_sol_id": 123
   }
 }
 
@@ -24,7 +24,7 @@ El endpoint devuelve el `solicitud_id` en **diferentes niveles**:
   "ok": true,
   "data": {
     "data": {
-      "solicitud_id": 123
+      "sa_sol_id": 123
     }
   }
 }
@@ -32,7 +32,7 @@ El endpoint devuelve el `solicitud_id` en **diferentes niveles**:
 // Formato 3 (también observado)
 {
   "ok": true,
-  "solicitud_id": 123
+  "sa_sol_id": 123
 }
 
 // Formato 4 (también observado)
@@ -50,10 +50,10 @@ Para manejar esto, el frontend usa:
 
 ```typescript
 const solicitudId =
-  response?.data?.data?.solicitud_id ||
-  response?.data?.solicitud_id ||
+  response?.data?.data?.sa_sol_id ||
+  response?.data?.sa_sol_id ||
   response?.data?.sol_id ||
-  response?.solicitud_id ||
+  response?.sa_sol_id ||
   response?.sol_id;
 ```
 
@@ -94,7 +94,7 @@ const solicitudId =
 {
   "ok": true,
   "data": {
-    "solicitud_id": 123,
+    "sa_sol_id": 123,
     "numero_solicitud": "SOL-2026-05-001",
     "cliente_id": 45,
     "estado_id": 2,
@@ -111,14 +111,14 @@ Mientras se arregla el backend:
 // src/utils/response-normalizers.ts
 export function extractSolicitudId(response: any): number {
   const id =
-    response?.data?.data?.solicitud_id ||
-    response?.data?.solicitud_id ||
+    response?.data?.data?.sa_sol_id ||
+    response?.data?.sa_sol_id ||
     response?.data?.sol_id ||
-    response?.solicitud_id ||
+    response?.sa_sol_id ||
     response?.sol_id;
 
   if (!id || isNaN(id)) {
-    throw new Error("No se pudo extraer solicitud_id");
+    throw new Error("No se pudo extraer sa_sol_id");
   }
 
   return Number(id);

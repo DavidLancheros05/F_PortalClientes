@@ -100,7 +100,7 @@ export default function RolesPage() {
       {roles?.map((rol) => (
         <div key={rol.rol_id}>{rol.rol_nombre}</div>
       ))}
-      <button 
+      <button
         onClick={() => handleCreate({...})}
         disabled={isCreating} // ✅ Botón deshabilitado mientras se procesa
       >
@@ -113,13 +113,13 @@ export default function RolesPage() {
 
 ## Cambios principales
 
-| Antes | Después |
-|-------|---------|
-| `setLoading`, `setError` manuales | `useFetch` automático |
-| `try/catch/finally` repetido | Centralizado en el hook |
-| `alert()` para errores | `useNotification()` elegante |
-| Botones sin estado de carga | `disabled={isLoading}` |
-| Sin sincronización automática | `onSuccess` callback automático |
+| Antes                             | Después                         |
+| --------------------------------- | ------------------------------- |
+| `setLoading`, `setError` manuales | `useFetch` automático           |
+| `try/catch/finally` repetido      | Centralizado en el hook         |
+| `alert()` para errores            | `useNotification()` elegante    |
+| Botones sin estado de carga       | `disabled={isLoading}`          |
+| Sin sincronización automática     | `onSuccess` callback automático |
 
 ## Beneficios
 

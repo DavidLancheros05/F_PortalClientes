@@ -1,4 +1,4 @@
-import api from '@/services/core/api';
+import api from "@/services/core/api";
 
 export interface TipoPregunta {
   fti_id: number;
@@ -20,7 +20,10 @@ export const formularioTiposPreguntaService = {
     fti_descripcion: string;
     fti_estado?: boolean;
   }): Promise<TipoPregunta> {
-    const res = await api.post("/parametrizacion/formulario-tipos-pregunta", payload);
+    const res = await api.post(
+      "/parametrizacion/formulario-tipos-pregunta",
+      payload,
+    );
     return res.data;
   },
 
@@ -32,14 +35,20 @@ export const formularioTiposPreguntaService = {
       fti_estado: boolean;
     },
   ): Promise<TipoPregunta> {
-    const res = await api.put(`/parametrizacion/formulario-tipos-pregunta/${ftiId}`, payload);
+    const res = await api.put(
+      `/parametrizacion/formulario-tipos-pregunta/${ftiId}`,
+      payload,
+    );
     return res.data;
   },
 
   async updateStatus(ftiId: number, estado: boolean): Promise<TipoPregunta> {
-    const res = await api.patch(`/parametrizacion/formulario-tipos-pregunta/${ftiId}`, {
-      fti_estado: estado,
-    });
+    const res = await api.patch(
+      `/parametrizacion/formulario-tipos-pregunta/${ftiId}`,
+      {
+        fti_estado: estado,
+      },
+    );
     return res.data;
   },
 };

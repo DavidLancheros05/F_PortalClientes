@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useContext, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Eye, RefreshCw, Search, Filter, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Eye,
+  RefreshCw,
+  Search,
+  Filter,
+  X,
+} from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
 import { pqrsService } from "@/services/pqrs.service";
 
@@ -78,7 +86,8 @@ export default function MisPQRSPage() {
         pqrs.pqrs_titulo.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesEstado =
-        selectedEstados.length === 0 || selectedEstados.includes(pqrs.pqrs_pe_id);
+        selectedEstados.length === 0 ||
+        selectedEstados.includes(pqrs.pqrs_pe_id);
 
       return matchesSearch && matchesEstado;
     });
@@ -89,7 +98,7 @@ export default function MisPQRSPage() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedPQRS = filteredPQRS.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE
+    startIndex + ITEMS_PER_PAGE,
   );
 
   const formatDate = (dateString?: string) => {
@@ -106,7 +115,7 @@ export default function MisPQRSPage() {
     setSelectedEstados((prev) =>
       prev.includes(estadoId)
         ? prev.filter((id) => id !== estadoId)
-        : [...prev, estadoId]
+        : [...prev, estadoId],
     );
     setCurrentPage(1);
   };
@@ -150,7 +159,9 @@ export default function MisPQRSPage() {
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
                 Actualizar
               </button>
               <button
@@ -180,7 +191,8 @@ export default function MisPQRSPage() {
                 No tienes PQRS creadas
               </h3>
               <p className="text-gray-600 mb-6">
-                Comienza creando una nueva petición, queja, reclamación o sugerencia
+                Comienza creando una nueva petición, queja, reclamación o
+                sugerencia
               </p>
               <button
                 onClick={() => router.push("/pqrs/nueva")}
@@ -329,7 +341,9 @@ export default function MisPQRSPage() {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <button
-                              onClick={() => router.push(`/pqrs/${pqrs.pqrs_id}`)}
+                              onClick={() =>
+                                router.push(`/pqrs/${pqrs.pqrs_id}`)
+                              }
                               className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 transition-all hover:shadow-md"
                               title="Ver detalle"
                             >
@@ -345,7 +359,9 @@ export default function MisPQRSPage() {
                 {/* Footer con info */}
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    Total: <span className="font-semibold">{pqrsList.length}</span> PQRS
+                    Total:{" "}
+                    <span className="font-semibold">{pqrsList.length}</span>{" "}
+                    PQRS
                   </p>
                   <p className="text-xs text-gray-500">
                     Página {currentPage} de {totalPages || 1}
@@ -357,9 +373,7 @@ export default function MisPQRSPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
                   <button
-                    onClick={() =>
-                      setCurrentPage(Math.max(1, currentPage - 1))
-                    }
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >

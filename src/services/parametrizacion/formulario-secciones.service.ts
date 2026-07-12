@@ -12,7 +12,9 @@ export interface FormularioSeccion {
 }
 
 export const formularioSeccionesService = {
-  getAll: async (params?: { formulario_id?: number }): Promise<FormularioSeccion[]> => {
+  getAll: async (params?: {
+    formulario_id?: number;
+  }): Promise<FormularioSeccion[]> => {
     const res = await api.get("/parametrizacion/formulario-secciones", {
       params,
     });
@@ -26,7 +28,10 @@ export const formularioSeccionesService = {
     fse_orden: number;
     fse_estado?: boolean;
   }): Promise<FormularioSeccion> => {
-    const res = await api.post("/parametrizacion/formulario-secciones", payload);
+    const res = await api.post(
+      "/parametrizacion/formulario-secciones",
+      payload,
+    );
     return res.data;
   },
 
@@ -46,7 +51,10 @@ export const formularioSeccionesService = {
     return res.data;
   },
 
-  toggleEstado: async (id: number, estado: boolean): Promise<FormularioSeccion> => {
+  toggleEstado: async (
+    id: number,
+    estado: boolean,
+  ): Promise<FormularioSeccion> => {
     const res = await api.patch(
       `/parametrizacion/formulario-secciones/${id}/estado`,
       { fse_estado: estado },

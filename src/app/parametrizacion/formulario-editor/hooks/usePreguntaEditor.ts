@@ -81,6 +81,17 @@ export function usePreguntaEditor({
   const [loading_opciones, setLoading_opciones] = useState(false);
   const [opcionesNuevas, setOpcionesNuevas] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [opcionAEliminar, setOpcionAEliminar] = useState<number | null>(null);
+  const [preguntaAEliminar, setPreguntaAEliminar] = useState<number | null>(
+    null,
+  );
+  const [opcionEditandoId, setOpcionEditandoId] = useState<number | null>(null);
+  const [opcionEditandoValor, setOpcionEditandoValor] = useState("");
+  const [opcionesPreguntaPadre, setOpcionesPreguntaPadre] = useState<Opcion[]>(
+    [],
+  );
+  const [loadingOpcionesPreguntaPadre, setLoadingOpcionesPreguntaPadre] =
+    useState(false);
 
   // Catalogo state
   const [catalogoBases, setCatalogoBases] = useState<string[]>([]);
@@ -198,6 +209,50 @@ export function usePreguntaEditor({
       setLoadingDocumentosCatalogo(false);
     }
   };
+
+  // Si la "pregunta padre" de una dependencia es de opciones fijas
+  // (SELECT/MULTISELECT/SELECT_CONDICIONAL), cargamos sus opciones reales
+  // para que "Respuesta que dispara" sea un selector, no texto libre.
+  useEffect(() => {
+    if (
+      !formPregunta.dependiente ||
+      !formPregunta.dependencia_pregunta_id ||
+      (!nuevaPregunta && !editandoPregunta)
+    ) {
+      setOpcionesPreguntaPadre([]);
+      return;
+    }
+    const preguntaPadre = preguntas.find(
+      (p) => p.fp_id === formPregunta.dependencia_pregunta_id,
+    );
+    const esDeOpciones = [
+      TIPOS_PREGUNTA.SELECT,
+      TIPOS_PREGUNTA.MULTISELECT,
+      TIPOS_PREGUNTA.SELECT_CONDICIONAL,
+    ].includes(preguntaPadre?.fp_tipo as any);
+    if (!esDeOpciones) {
+      setOpcionesPreguntaPadre([]);
+      return;
+    }
+    setLoadingOpcionesPreguntaPadre(true);
+    formularioPreguntasService
+      .getOpciones(formPregunta.dependencia_pregunta_id)
+      .then((data) => setOpcionesPreguntaPadre(data))
+      .catch((error) => {
+        console.error(
+          "❌ Error cargando opciones de la pregunta padre:",
+          error,
+        );
+        setOpcionesPreguntaPadre([]);
+      })
+      .finally(() => setLoadingOpcionesPreguntaPadre(false));
+  }, [
+    formPregunta.dependiente,
+    formPregunta.dependencia_pregunta_id,
+    nuevaPregunta,
+    editandoPregunta,
+    preguntas,
+  ]);
 
   useEffect(() => {
     if (
@@ -328,6 +383,60 @@ export function usePreguntaEditor({
     editandoPregunta,
   ]);
 
+  // Espeja las validaciones de guardarPregunta, pero sin efectos secundarios
+  // (no llama a setError), para poder deshabilitar el botón "Guardar" mientras
+  // el formulario no esté en un estado guardable.
+  const puedeGuardarPregunta = useMemo(() => {
+    const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
+    const requiereDescripcion =
+      (formPregunta.tipo as any) !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
+    const descripcionNormalizada = formPregunta.descripcion.trim();
+
+    if ((requiereDescripcion && !descripcionNormalizada) || !targetSeccionId) {
+      return false;
+    }
+    if (
+      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
+      !String(formPregunta.catalogo_tabla || "").trim()
+    ) {
+      return false;
+    }
+    if (
+      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
+      !String(formPregunta.catalogo_columna || "").trim()
+    ) {
+      return false;
+    }
+    if (
+      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
+      !String(formPregunta.catalogo_pk_column || "").trim()
+    ) {
+      return false;
+    }
+    if (
+      formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA &&
+      !formPregunta.tipo_documento_id
+    ) {
+      return false;
+    }
+    if (
+      formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO &&
+      !formPregunta.tipo_documento_id
+    ) {
+      return false;
+    }
+    if (
+      formPregunta.tipo === TIPOS_PREGUNTA.TABLA &&
+      formPregunta.tabla_columnas.filter((c) => c.nombre.trim()).length === 0
+    ) {
+      return false;
+    }
+    if (!formularioIdNumber) {
+      return false;
+    }
+    return true;
+  }, [formPregunta, seccionSeleccionada, formularioIdNumber]);
+
   const guardarPregunta = async () => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
     const requiereDescripcion =
@@ -357,14 +466,18 @@ export function usePreguntaEditor({
       formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
       !String(formPregunta.catalogo_columna || "").trim()
     ) {
-      setError("Para 'Selección desde tabla' debes indicar la columna a mostrar");
+      setError(
+        "Para 'Selección desde tabla' debes indicar la columna a mostrar",
+      );
       return;
     }
     if (
       formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
       !String(formPregunta.catalogo_pk_column || "").trim()
     ) {
-      setError("Para 'Selección desde tabla' debes indicar la primary key (PK)");
+      setError(
+        "Para 'Selección desde tabla' debes indicar la primary key (PK)",
+      );
       return;
     }
     if (
@@ -478,10 +591,16 @@ export function usePreguntaEditor({
                     tipo: c.tipo,
                     ...(c.tipo === "CATALOGO"
                       ? {
-                          catalogo_base_datos: c.catalogo_base_datos || undefined,
+                          catalogo_base_datos:
+                            c.catalogo_base_datos || undefined,
                           catalogo_tabla: c.catalogo_tabla || undefined,
                           catalogo_columna: c.catalogo_columna || undefined,
                           catalogo_pk_column: c.catalogo_pk_column || undefined,
+                          catalogo_columna_padre:
+                            c.catalogo_columna_padre || undefined,
+                          catalogo_columna_filtro: c.catalogo_columna_padre
+                            ? c.catalogo_columna_filtro || undefined
+                            : undefined,
                         }
                       : {}),
                   }))
@@ -521,11 +640,15 @@ export function usePreguntaEditor({
       if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT) {
         payload.fp_subtipo =
           formPregunta.subtipo === "CHECK" ? "CHECK" : "LISTA";
-      } else if (formPregunta.tipo === TIPOS_PREGUNTA.NUMERO) {
+      } else if (
+        formPregunta.tipo === TIPOS_PREGUNTA.NUMERO ||
+        formPregunta.tipo === TIPOS_PREGUNTA.FECHA
+      ) {
         payload.fp_subtipo = formPregunta.subtipo || null;
       } else if (
         preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.SELECT ||
-        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.NUMERO
+        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.NUMERO ||
+        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.FECHA
       ) {
         payload.fp_subtipo = null;
       }
@@ -612,7 +735,8 @@ export function usePreguntaEditor({
       subtipo:
         pregunta.fp_tipo === TIPOS_PREGUNTA.SELECT
           ? (pregunta.fp_subtipo ?? "LISTA")
-          : pregunta.fp_tipo === TIPOS_PREGUNTA.NUMERO
+          : pregunta.fp_tipo === TIPOS_PREGUNTA.NUMERO ||
+              pregunta.fp_tipo === TIPOS_PREGUNTA.FECHA
             ? (pregunta.fp_subtipo ?? "")
             : "",
       seccion_id: pregunta.seccion_id ?? null,
@@ -647,6 +771,8 @@ export function usePreguntaEditor({
               catalogo_tabla: col.catalogo_tabla,
               catalogo_columna: col.catalogo_columna,
               catalogo_pk_column: col.catalogo_pk_column,
+              catalogo_columna_padre: col.catalogo_columna_padre,
+              catalogo_columna_filtro: col.catalogo_columna_filtro,
             };
           });
         } catch {
@@ -655,8 +781,10 @@ export function usePreguntaEditor({
       })(),
       ancho_completo: Boolean(pregunta.fp_ancho_completo),
       tabla_limite_modo:
-        (pregunta.fp_tabla_limite_modo as "SIN_LIMITE" | "FIJO" | "CONDICIONAL") ||
-        "SIN_LIMITE",
+        (pregunta.fp_tabla_limite_modo as
+          | "SIN_LIMITE"
+          | "FIJO"
+          | "CONDICIONAL") || "SIN_LIMITE",
       tabla_limite_fijo:
         pregunta.fp_tabla_limite_modo === "FIJO" && pregunta.fp_maximo != null
           ? String(pregunta.fp_maximo)
@@ -671,7 +799,10 @@ export function usePreguntaEditor({
           const parsed = JSON.parse(pregunta.fp_tabla_limite_reglas);
           if (!Array.isArray(parsed)) return [];
           return parsed.map(
-            (r: { valor?: string; limite?: number | null }): ReglaLimiteTabla => ({
+            (r: {
+              valor?: string;
+              limite?: number | null;
+            }): ReglaLimiteTabla => ({
               valor: String(r.valor ?? ""),
               limite: r.limite != null ? String(r.limite) : "",
             }),
@@ -702,7 +833,9 @@ export function usePreguntaEditor({
       setOpcionesNuevas(
         pregunta.opciones
           .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
-          .filter((item: string | undefined): item is string => Boolean(item?.trim())),
+          .filter((item: string | undefined): item is string =>
+            Boolean(item?.trim()),
+          ),
       );
     } else if (
       [
@@ -721,7 +854,9 @@ export function usePreguntaEditor({
         setOpcionesNuevas(
           data
             .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
-            .filter((item: string | undefined): item is string => Boolean(item?.trim())),
+            .filter((item: string | undefined): item is string =>
+              Boolean(item?.trim()),
+            ),
         );
         console.log("✅ Opciones cargadas:", data);
       } catch (error) {
@@ -755,19 +890,121 @@ export function usePreguntaEditor({
       console.log("✅ Opción agregada:", nuevaOp);
     } catch (error) {
       console.error("❌ Error agregando opción:", error);
-      setError(error instanceof Error ? error.message : "Error al agregar opción");
+      setError(
+        error instanceof Error ? error.message : "Error al agregar opción",
+      );
     }
   };
 
-  const eliminarOpcion = async (opcionId: number) => {
-    if (!editandoPregunta) return;
-    if (
-      !confirm(
-        "¿Estás seguro de que deseas eliminar esta opción? Las respuestas asociadas quedarán sin opción.",
-      )
-    ) {
+  // Preguntas que se muestran/ocultan según que esta opción sea la respuesta
+  // seleccionada en `editandoPregunta` (fp_pregunta_padre_id + fp_valor_padre_disparador).
+  const obtenerPreguntasDependientesDeOpcion = (fpoId: number): Pregunta[] => {
+    if (!editandoPregunta) return [];
+    const opcion = opciones.find((o) => o.fpo_id === fpoId);
+    const valorOpcion = (opcion?.fpo_valor || opcion?.op_descripcion || "")
+      .trim()
+      .toLowerCase();
+    if (!valorOpcion) return [];
+    return preguntas.filter(
+      (p) =>
+        p.fp_pregunta_padre_id === editandoPregunta &&
+        (p.fp_valor_padre_disparador || "").trim().toLowerCase() ===
+          valorOpcion,
+    );
+  };
+
+  const iniciarEdicionOpcion = (opcion: Opcion) => {
+    setOpcionEditandoId(opcion.fpo_id);
+    setOpcionEditandoValor(opcion.fpo_valor || opcion.op_descripcion || "");
+  };
+
+  const cancelarEdicionOpcion = () => {
+    setOpcionEditandoId(null);
+    setOpcionEditandoValor("");
+  };
+
+  const guardarEdicionOpcion = async () => {
+    if (!editandoPregunta || opcionEditandoId === null) return;
+    const valorNuevo = opcionEditandoValor.trim();
+    if (!valorNuevo) {
+      setError("El valor de la opción no puede quedar vacío");
       return;
     }
+    const opcionActual = opciones.find((o) => o.fpo_id === opcionEditandoId);
+    const valorAnterior = (
+      opcionActual?.fpo_valor ||
+      opcionActual?.op_descripcion ||
+      ""
+    ).trim();
+
+    try {
+      const actualizada = await formularioPreguntasService.updateOpcion(
+        editandoPregunta,
+        opcionEditandoId,
+        { fpo_valor: valorNuevo },
+      );
+      setOpciones(
+        opciones.map((o) =>
+          o.fpo_id === opcionEditandoId
+            ? { ...o, ...actualizada, fpo_valor: valorNuevo }
+            : o,
+        ),
+      );
+
+      // Si esta opción es el valor que dispara alguna pregunta dependiente,
+      // le actualizamos el texto también para que la dependencia no se rompa.
+      if (
+        valorAnterior &&
+        valorAnterior.toLowerCase() !== valorNuevo.toLowerCase()
+      ) {
+        const dependientes = preguntas.filter(
+          (p) =>
+            p.fp_pregunta_padre_id === editandoPregunta &&
+            (p.fp_valor_padre_disparador || "").trim().toLowerCase() ===
+              valorAnterior.toLowerCase(),
+        );
+        if (dependientes.length > 0) {
+          await Promise.all(
+            dependientes.map((p) =>
+              formularioPreguntasService.update(p.fp_id, {
+                fp_valor_padre_disparador: valorNuevo,
+              } as any),
+            ),
+          );
+          await cargarDatos();
+        }
+      }
+
+      setOpcionEditandoId(null);
+      setOpcionEditandoValor("");
+    } catch (error) {
+      console.error("❌ Error editando opción:", error);
+      setError(
+        error instanceof Error ? error.message : "Error al editar opción",
+      );
+    }
+  };
+
+  const eliminarOpcion = (opcionId: number) => {
+    if (!editandoPregunta) return;
+    const dependientes = obtenerPreguntasDependientesDeOpcion(opcionId);
+    if (dependientes.length > 0) {
+      setError(
+        `No puedes eliminar esta opción: la(s) pregunta(s) "${dependientes
+          .map((p) => p.fp_descripcion)
+          .join(
+            '", "',
+          )}" dependen de ella. Primero cambia o quita esa dependencia (sección "Dependiente de otra pregunta") y luego elimina la opción.`,
+      );
+      return;
+    }
+    setOpcionAEliminar(opcionId);
+  };
+
+  const confirmarEliminarOpcion = async () => {
+    if (!editandoPregunta || opcionAEliminar === null) return;
+    const opcionId = opcionAEliminar;
+    setOpcionAEliminar(null);
     try {
       await formularioPreguntasService.deleteOpcion(editandoPregunta, opcionId);
       setOpciones(opciones.filter((o) => o.fpo_id !== opcionId));
@@ -784,14 +1021,14 @@ export function usePreguntaEditor({
     setOpcionesNuevas((prev) => prev.filter((_, i) => i !== indice));
   };
 
-  const eliminarPregunta = async (preguntaId: number) => {
-    if (
-      !confirm(
-        "¿Estás seguro de que deseas eliminar esta pregunta? Se eliminarán sus respuestas y opciones asociadas.",
-      )
-    ) {
-      return;
-    }
+  const eliminarPregunta = (preguntaId: number) => {
+    setPreguntaAEliminar(preguntaId);
+  };
+
+  const confirmarEliminarPregunta = async () => {
+    if (preguntaAEliminar === null) return;
+    const preguntaId = preguntaAEliminar;
+    setPreguntaAEliminar(null);
     try {
       await formularioPreguntasService.delete(preguntaId);
       if (editandoPregunta === preguntaId) {
@@ -919,6 +1156,8 @@ export function usePreguntaEditor({
     cargarColumnasCatalogo,
     documentosCatalogo,
     loadingDocumentosCatalogo,
+    opcionesPreguntaPadre,
+    loadingOpcionesPreguntaPadre,
     filtroBaseDatos,
     setFiltroBaseDatos,
     filtroTabla,
@@ -936,10 +1175,24 @@ export function usePreguntaEditor({
     setError,
     // Funciones
     guardarPregunta,
+    puedeGuardarPregunta,
     iniciarEdicionPregunta,
     eliminarPregunta,
+    confirmarEliminarPregunta,
+    preguntaAEliminar,
+    setPreguntaAEliminar,
     agregarOpcion,
     eliminarOpcion,
+    confirmarEliminarOpcion,
+    opcionAEliminar,
+    setOpcionAEliminar,
+    opcionEditandoId,
+    opcionEditandoValor,
+    setOpcionEditandoValor,
+    iniciarEdicionOpcion,
+    cancelarEdicionOpcion,
+    guardarEdicionOpcion,
+    obtenerPreguntasDependientesDeOpcion,
     eliminarOpcionNueva,
     cambiarOrdenPregunta,
     guardarOrdenPreguntas,

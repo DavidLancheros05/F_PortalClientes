@@ -24,7 +24,9 @@ export default function BandejaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tomarLoading, setTomarLoading] = useState<number | null>(null);
-  const [userInfo, setUserInfo] = useState<{ id: number; rol: string } | null>(null);
+  const [userInfo, setUserInfo] = useState<{ id: number; rol: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -70,7 +72,13 @@ export default function BandejaPage() {
   const asignadas = pqrs.filter((p) => p.pqrs_usr_asignado_id);
   const disponibles = pqrs.filter((p) => !p.pqrs_usr_asignado_id);
 
-  const TableRow = ({ item, isDisponible }: { item: PQRS; isDisponible: boolean }) => (
+  const TableRow = ({
+    item,
+    isDisponible,
+  }: {
+    item: PQRS;
+    isDisponible: boolean;
+  }) => (
     <tr key={item.pqrs_id} className="hover:bg-gray-50 transition-colors">
       <td className="px-6 py-4 font-medium text-blue-600">
         {item.pqrs_numero}
@@ -132,7 +140,9 @@ export default function BandejaPage() {
             Volver
           </button>
 
-          <h1 className="text-3xl font-bold text-blue-800 mb-8">Bandeja de PQRS</h1>
+          <h1 className="text-3xl font-bold text-blue-800 mb-8">
+            Bandeja de PQRS
+          </h1>
 
           {loading ? (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
@@ -184,7 +194,11 @@ export default function BandejaPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {asignadas.map((item) => (
-                            <TableRow key={item.pqrs_id} item={item} isDisponible={false} />
+                            <TableRow
+                              key={item.pqrs_id}
+                              item={item}
+                              isDisponible={false}
+                            />
                           ))}
                         </tbody>
                       </table>
@@ -225,7 +239,11 @@ export default function BandejaPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {disponibles.map((item) => (
-                            <TableRow key={item.pqrs_id} item={item} isDisponible={true} />
+                            <TableRow
+                              key={item.pqrs_id}
+                              item={item}
+                              isDisponible={true}
+                            />
                           ))}
                         </tbody>
                       </table>

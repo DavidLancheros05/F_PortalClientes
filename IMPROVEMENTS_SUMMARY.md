@@ -1,6 +1,7 @@
 # Resumen de Mejoras - Frontend
 
 ## 🎯 Problema Original
+
 - ❌ Páginas haciendo `fetch()` directo sin token JWT
 - ❌ Código repetido de try/catch/finally en cada página
 - ❌ Errores mostrados con `alert()` feo
@@ -10,13 +11,14 @@
 ## ✅ Soluciones Implementadas
 
 ### 1. **fetchWithAuth** - Autenticación Global
+
 **Archivo:** `src/lib/fetch-with-auth.ts`
 
 ```typescript
 // Antes: repetir en cada página
 const token = localStorage.getItem("token");
 const res = await fetch("/api/...", {
-  headers: { Authorization: `Bearer ${token}` }
+  headers: { Authorization: `Bearer ${token}` },
 });
 
 // Después: automático
@@ -28,7 +30,9 @@ const res = await fetchWithAuth("/api/...");
 ---
 
 ### 2. **Servicios Centralizados** - Separar Lógica de API
+
 **Archivos creados:**
+
 - `src/services/seguridad/roles.service.ts`
 - `src/services/parametrizacion/formulario-tipos-pregunta.service.ts`
 
@@ -39,7 +43,8 @@ const roles = await rolesService.getAll();
 // Servicio usa fetchWithAuth automáticamente
 ```
 
-**Beneficio:** 
+**Beneficio:**
+
 - Reutilizable en múltiples páginas
 - Punto centralizado para cambiar la API
 - Tipos compartidos
@@ -47,6 +52,7 @@ const roles = await rolesService.getAll();
 ---
 
 ### 3. **useFetch Hook** - Manejo de Estados Simplificado
+
 **Archivo:** `src/hooks/useFetch.ts`
 
 ```typescript
@@ -63,6 +69,7 @@ const { data, loading, error, execute } = useFetch(
 ```
 
 **Incluye:**
+
 - `useFetch()` para consultas (GET)
 - `useMutation()` para cambios (POST, PUT, DELETE)
 
@@ -71,7 +78,9 @@ const { data, loading, error, execute } = useFetch(
 ---
 
 ### 4. **Sistema de Notificaciones** - UX Mejorado
+
 **Archivos:**
+
 - `src/context/NotificationContext.tsx`
 - `src/components/Notifications.tsx`
 
@@ -92,7 +101,9 @@ notification.info("Información");
 ---
 
 ### 5. **Arquitectura Limpia**
+
 **Flujo de datos:**
+
 ```
 Página (UI)
   ↓
@@ -111,15 +122,15 @@ Backend API
 
 ## 📊 Comparativa: Antes vs Después
 
-| Aspecto | Antes | Después |
-|---------|-------|---------|
-| **Líneas en página** | ~400 | ~200 |
+| Aspecto                  | Antes                            | Después                      |
+| ------------------------ | -------------------------------- | ---------------------------- |
+| **Líneas en página**     | ~400                             | ~200                         |
 | **Repetición de código** | Alto (try/catch en cada función) | Bajo (centralizado en hooks) |
-| **Autenticación** | Manual en cada fetch | Automática (fetchWithAuth) |
-| **Notificaciones** | `alert()` | Toast elegante |
-| **Estado de botones** | Sin estado de carga | `disabled={isLoading}` |
-| **Sincronización** | Manual `await loadRoles()` | Automática en `onSuccess` |
-| **Manejo de errores** | Inconsistente | Consistente en toda la app |
+| **Autenticación**        | Manual en cada fetch             | Automática (fetchWithAuth)   |
+| **Notificaciones**       | `alert()`                        | Toast elegante               |
+| **Estado de botones**    | Sin estado de carga              | `disabled={isLoading}`       |
+| **Sincronización**       | Manual `await loadRoles()`       | Automática en `onSuccess`    |
+| **Manejo de errores**    | Inconsistente                    | Consistente en toda la app   |
 
 ---
 

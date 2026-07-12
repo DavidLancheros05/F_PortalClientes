@@ -39,14 +39,23 @@ export const correosRolService = {
       activo: boolean;
     }>,
   ): Promise<CorreoPorRolResponse> => {
-    const res = await api.put(`/parametrizacion/correos-por-rol/${id}`, payload);
+    const res = await api.put(
+      `/parametrizacion/correos-por-rol/${id}`,
+      payload,
+    );
     return res.data;
   },
 
-  toggleEstado: async (id: number, activo: boolean): Promise<CorreoPorRolResponse> => {
-    const res = await api.patch(`/parametrizacion/correos-por-rol/${id}/estado`, {
-      activo,
-    });
+  toggleEstado: async (
+    id: number,
+    activo: boolean,
+  ): Promise<CorreoPorRolResponse> => {
+    const res = await api.patch(
+      `/parametrizacion/correos-por-rol/${id}/estado`,
+      {
+        activo,
+      },
+    );
     return res.data;
   },
 

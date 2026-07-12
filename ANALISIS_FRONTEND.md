@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-05-02  
 **Stack:** Next.js 16 + React 19 + Tailwind CSS + Axios  
-**Puerto:** 3000  
+**Puerto:** 3000
 
 ---
 
@@ -17,6 +17,7 @@ El frontend es una aplicación Next.js 16 con App Router que actúa como interfa
 ## 🏗️ Arquitectura
 
 ### Estructura de Directorios
+
 ```
 FRONTEND/
 ├── src/
@@ -52,14 +53,16 @@ FRONTEND/
 ### 🔴 CRÍTICOS
 
 #### 1. **LoginForm.tsx Comentado**
+
 - **Archivo:** `src/components/LoginForm.tsx`
 - **Problema:** Todo el componente está comentado. No se sabe si es código legado o en desarrollo.
 - **Impacto:** Genera confusión, ocupa espacio innecesario.
 - **Solución:** Eliminar si no se usa, o descomentar y refactorizar si se necesita.
 
 #### 2. **Token Almacenado en localStorage INSEGURO**
+
 - **Archivo:** `src/services/api.ts`, `src/context/AuthContext.tsx`
-- **Problema:** 
+- **Problema:**
   - JWT se almacena en localStorage (vulnerable a XSS)
   - No hay protección contra CSRF
   - Token expira en 7 días sin validación de refresh
@@ -67,6 +70,7 @@ FRONTEND/
 - **Solución:** Usar httpOnly cookies en lugar de localStorage
 
 #### 3. **Normalización de Rol Inconsistente**
+
 - **Archivo:** `src/context/AuthContext.tsx` (líneas 68-84, 99-115, 140-155)
 - **Problema:** Lógica compleja para normalizar estructura de rol en 3 lugares diferentes
 - **Código:**
@@ -79,6 +83,7 @@ FRONTEND/
 - **Solución:** Crear función `normalizeUser()` reutilizable
 
 #### 4. **useAuth Hook No Tipado**
+
 - **Archivo:** `src/hooks/useAuth.tsx`
 - **Problema:** Hook personalizado sin tipos TypeScript adecuados
 - **Impacto:** Errores en tiempo de ejecución no detectables
@@ -87,19 +92,22 @@ FRONTEND/
 ### 🟠 ALTOS
 
 #### 5. **Falta de Error Boundaries**
+
 - **Problema:** No hay Error Boundaries en componentes principales
 - **Impacto:** Crashes de la aplicación sin fallback
 - **Solución:** Implementar Error Boundary en `layout.tsx`
 
 #### 6. **Llamadas API sin Retry Logic**
+
 - **Archivo:** Todos los servicios en `src/services/`
 - **Problema:** No hay reintentos automáticos en caso de fallo temporal
 - **Impacto:** Mala UX en conexiones inestables
 - **Solución:** Añadir interceptor de retry en axios
 
 #### 7. **Gestión de Estado Inconsistente**
+
 - **Problema:** Mezcla de localStorage + React Context + localStorage nuevamente
-- **Ejemplo:** 
+- **Ejemplo:**
   - AuthContext intenta rescatar usuario de localStorage
   - Luego hace llamada API innecesaria
   - Guarda de nuevo en localStorage
@@ -107,6 +115,7 @@ FRONTEND/
 - **Solución:** Centralizar en una fuente única de verdad
 
 #### 8. **Falta de Loading States en Componentes**
+
 - **Problema:** Muchos componentes no manejan estados de carga
 - **Impacto:** UI congelada, usuario no sabe si algo está procesándose
 - **Solución:** Implementar loading indicators en todos los formularios
@@ -114,22 +123,26 @@ FRONTEND/
 ### 🟡 MEDIOS
 
 #### 9. **Proxy API Hardcodeado**
+
 - **Archivo:** `next.config.ts`
 - **Problema:** URL del backend hardcodeada en desarrollo
 - **Solución:** Usar variable de entorno `BACKEND_URL`
 
 #### 10. **Falta de Validación de Inputs**
+
 - **Problema:** Componentes de formulario no validan datos antes de enviar
 - **Impacto:** Backend rechaza datos inválidos, mala UX
 - **Solución:** Implementar Zod + react-hook-form en todos los formularios
 
 #### 11. **Console.log Abundante**
+
 - **Archivo:** Múltiples archivos (AuthContext, servicios, componentes)
 - **Ejemplo:** `console.log("[AuthContext] login", userData)`
 - **Impacto:** Código desordenado, leak de información en producción
 - **Solución:** Remover o usar logger estructurado
 
 #### 12. **Ninguna Prueba Unitaria**
+
 - **Problema:** No hay tests en `__tests__/` o `.test.ts`
 - **Impacto:** Cambios rompen funcionalidad sin detectarse
 - **Solución:** Añadir tests con Jest + React Testing Library
@@ -139,6 +152,7 @@ FRONTEND/
 ## 🎯 MEJORAS RECOMENDADAS
 
 ### Corto Plazo (1-2 semanas)
+
 - [ ] Eliminar `LoginForm.tsx` comentado
 - [ ] Remover todos los `console.log` en servicios
 - [ ] Implementar Error Boundary en `layout.tsx`
@@ -146,6 +160,7 @@ FRONTEND/
 - [ ] Añadir variables de entorno para URLs sensibles
 
 ### Mediano Plazo (1 mes)
+
 - [ ] Migrar JWT a httpOnly cookies + CSRF tokens
 - [ ] Implementar interceptor de retry en Axios
 - [ ] Centralizar estado en Context único con useReducer
@@ -153,6 +168,7 @@ FRONTEND/
 - [ ] Implementar validación con Zod en servicios
 
 ### Largo Plazo (2-3 meses)
+
 - [ ] Reemplazar Context API con Zustand o Redux
 - [ ] Implementar SWR o React Query para cache de datos
 - [ ] Tests unitarios para servicios (>80% coverage)
@@ -238,9 +254,9 @@ El frontend funciona pero tiene deudas técnicas significativas:
 5. **UX:** Falta de loading states y error handling
 
 **Prioridad de Fixes:**
+
 1. 🔴 Migrar JWT a httpOnly cookies
 2. 🔴 Eliminar LoginForm comentado
 3. 🟠 Implementar Error Boundary
 4. 🟠 Remover console.log
 5. 🟡 Añadir validación Zod
-
