@@ -46,6 +46,7 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   tabla_limite_seccion_id: null,
   tabla_limite_pregunta_id: null,
   tabla_limite_reglas: [],
+  oculto_en_formulario: false,
 };
 
 type PreguntaEditorDeps = {
@@ -608,6 +609,7 @@ export function usePreguntaEditor({
               )
             : null,
         fp_ancho_completo: formPregunta.ancho_completo,
+        fp_oculto_en_formulario: formPregunta.oculto_en_formulario,
         ...(formPregunta.tipo === TIPOS_PREGUNTA.TABLA
           ? {
               fp_maximo:
@@ -780,6 +782,7 @@ export function usePreguntaEditor({
         }
       })(),
       ancho_completo: Boolean(pregunta.fp_ancho_completo),
+      oculto_en_formulario: Boolean(pregunta.fp_oculto_en_formulario),
       tabla_limite_modo:
         (pregunta.fp_tabla_limite_modo as
           | "SIN_LIMITE"

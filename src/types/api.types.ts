@@ -168,11 +168,13 @@ export interface FormularioPreguntaResponse {
   fp_tabla_limite_modo?: string | null;
   fp_tabla_limite_pregunta_id?: number | null;
   fp_tabla_limite_reglas?: string | null;
+  fp_oculto_en_formulario?: boolean;
 
   // Campos agregados en respuesta DTO (pueden no venir en la respuesta)
   seccion_nombre?: string;
   seccion_descripcion?: string | null;
   seccion_orden?: number;
+  seccion_oculta_en_formulario?: boolean;
   opciones?: FormularioPreguntaOpcion[];
   fp_opcion_disparadora?: string;
   fp_descripcion_adicional?: string;

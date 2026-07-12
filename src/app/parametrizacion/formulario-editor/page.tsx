@@ -29,7 +29,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
-import { LoadingModal, ConfirmModal } from "@/components/modals";
+import { ConfirmModal } from "@/components/modals";
 import { useFormulario } from "./hooks/useFormulario";
 import { useSeccionEditor } from "./hooks/useSeccionEditor";
 import { usePreguntaEditor } from "./hooks/usePreguntaEditor";
@@ -235,10 +235,6 @@ export default function FormularioEditorPage() {
     number | null
   >(null);
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando formulario..." />;
-  }
-
   const seccionActual = secciones.find(
     (s) => (s.fs_id || s.seccion_id) === seccionSeleccionada,
   );
@@ -345,7 +341,7 @@ export default function FormularioEditorPage() {
               onClick={() => {
                 setNuevaSeccion(true);
                 setEditandoSeccion(null);
-                setFormSeccion({ nombre: "", descripcion: "" });
+                setFormSeccion({ nombre: "", descripcion: "", ocultaEnFormulario: false });
               }}
               disabled={readonly || formularioEdicionAbierto}
               className="flex items-center gap-1 px-2 py-1 bg-gradient-to-br from-emerald-500 via-emerald-550 to-emerald-600 text-white font-medium text-xs rounded-lg hover:shadow-xl hover:from-emerald-600 hover:via-emerald-600 hover:to-emerald-700 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
@@ -416,6 +412,23 @@ export default function FormularioEditorPage() {
                     rows={2}
                   />
                 </div>
+                <label className="flex items-center gap-1.5 p-1.5 bg-white rounded-lg border border-emerald-200 cursor-pointer hover:bg-emerald-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={formSeccion.ocultaEnFormulario}
+                    onChange={(e) =>
+                      setFormSeccion({
+                        ...formSeccion,
+                        ocultaEnFormulario: e.target.checked,
+                      })
+                    }
+                    className="w-3.5 h-3.5 rounded accent-emerald-600"
+                  />
+                  <span className="text-xs font-medium text-gray-800">
+                    Ocultar esta sección durante el diligenciamiento (sigue
+                    apareciendo en el PDF final)
+                  </span>
+                </label>
                 <button
                   onClick={guardarSeccion}
                   className="w-full px-2 py-1 bg-gradient-to-br from-emerald-500 via-emerald-550 to-emerald-600 text-white rounded hover:shadow-xl hover:from-emerald-600 hover:via-emerald-600 hover:to-emerald-700 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1 text-xs font-semibold transition-all duration-200"
@@ -438,7 +451,12 @@ export default function FormularioEditorPage() {
               strategy={verticalListSortingStrategy}
             >
               <div className="flex-1 overflow-y-auto space-y-1">
-                {secciones.map((seccion, index) => (
+                {loading ? (
+                  <p className="text-gray-500 text-center py-4 text-xs animate-pulse">
+                    Cargando secciones...
+                  </p>
+                ) : (
+                secciones.map((seccion, index) => (
                   <SortableItem
                     key={seccion.fs_id || seccion.seccion_id}
                     id={`seccion-${seccion.fs_id || seccion.seccion_id}`}
@@ -553,7 +571,8 @@ export default function FormularioEditorPage() {
                       </div>
                     </div>
                   </SortableItem>
-                ))}
+                ))
+                )}
               </div>
             </SortableContext>
           </DndContext>
@@ -620,7 +639,7 @@ export default function FormularioEditorPage() {
             </p>
           )}
 
-          {preguntas.length === 0 && (
+          {!loading && preguntas.length === 0 && (
             <div className="mb-2 rounded-lg border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-xs text-amber-900 font-medium">
               ⚠️ Esta versión (v{version || "1"}) no tiene preguntas
               registradas. Las secciones son globales, pero las preguntas se
@@ -906,6 +925,25 @@ export default function FormularioEditorPage() {
                   />
                   <span className="text-xs font-semibold text-gray-800">
                     Ocupar todo el ancho (sin dividir en columnas)
+                  </span>
+                </label>
+
+                {/* Ocultar en formulario */}
+                <label className="flex items-center gap-1 p-2 bg-white rounded-lg border-2 border-blue-200 cursor-pointer hover:bg-blue-50 transition-colors text-xs">
+                  <input
+                    type="checkbox"
+                    checked={formPregunta.oculto_en_formulario}
+                    onChange={(e) =>
+                      setFormPregunta({
+                        ...formPregunta,
+                        oculto_en_formulario: e.target.checked,
+                      })
+                    }
+                    className="w-5 h-5 rounded accent-blue-600"
+                  />
+                  <span className="text-xs font-semibold text-gray-800">
+                    Ocultar durante el diligenciamiento (sigue apareciendo en
+                    el PDF final)
                   </span>
                 </label>
 
@@ -2556,7 +2594,11 @@ export default function FormularioEditorPage() {
               strategy={verticalListSortingStrategy}
             >
               <div className="flex-1 overflow-y-auto space-y-1">
-                {preguntasDeSeccion.length === 0 ? (
+                {loading ? (
+                  <p className="text-gray-500 text-center py-4 text-xs animate-pulse">
+                    Cargando preguntas...
+                  </p>
+                ) : preguntasDeSeccion.length === 0 ? (
                   <p className="text-gray-500 text-center py-4 text-xs">
                     No hay preguntas en esta sección
                   </p>

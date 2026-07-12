@@ -211,3 +211,50 @@ export async function generarCartaPdf({
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
 }
+
+export interface GenerarPlantillaDocumentoOpciones {
+  tdoNombre: string;
+  tdoPlantillaContenido: string;
+  clienteNombre?: string | null;
+  clienteNit?: string | null;
+  numeroSolicitud?: string | null;
+  representanteLegalNombre?: string | null;
+  representanteLegalCedula?: string | null;
+}
+
+/**
+ * Sustituye los placeholders {{...}} de la plantilla de un tipo de
+ * documento con los datos reales de la solicitud, y genera el PDF
+ * reutilizando el mismo renderizador de carta formal. Usado tanto al
+ * diligenciar el formulario (DocumentoTablaField) como desde Mis
+ * Documentos para los documentos "diferidos" (que se generan después de
+ * guardar la solicitud, porque necesitan el número de solicitud).
+ */
+export async function generarPlantillaDocumentoPdf({
+  tdoNombre,
+  tdoPlantillaContenido,
+  clienteNombre,
+  clienteNit,
+  numeroSolicitud,
+  representanteLegalNombre,
+  representanteLegalCedula,
+}: GenerarPlantillaDocumentoOpciones): Promise<void> {
+  const reemplazos: Record<string, string> = {
+    "{{cliente_nombre}}": clienteNombre || "",
+    "{{cliente_nit}}": clienteNit || "",
+    "{{numero_solicitud}}": numeroSolicitud || "",
+    "{{representante_legal_nombre}}": representanteLegalNombre || "",
+    "{{representante_legal_cedula}}": representanteLegalCedula || "",
+  };
+  const contenido = Object.entries(reemplazos).reduce(
+    (texto, [placeholder, valor]) => texto.split(placeholder).join(valor),
+    tdoPlantillaContenido,
+  );
+
+  await generarCartaPdf({
+    contenido,
+    asunto: tdoNombre,
+    destinatarioNombre: clienteNombre || "-",
+    nombreArchivo: `plantilla-${tdoNombre}.pdf`,
+  });
+}

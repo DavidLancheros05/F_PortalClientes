@@ -4,6 +4,7 @@ export type Seccion = {
   fs_descripcion?: string;
   fs_orden: number;
   fs_activo: boolean;
+  fs_oculta_en_formulario?: boolean;
   // Aliases para compatibilidad con código existente
   seccion_id?: number;
   seccion_nombre?: string;
@@ -50,6 +51,7 @@ export type Pregunta = {
   fp_tabla_limite_modo?: string | null;
   fp_tabla_limite_pregunta_id?: number | null;
   fp_tabla_limite_reglas?: string | null;
+  fp_oculto_en_formulario?: boolean;
   opciones?: Opcion[];
 };
 
@@ -128,4 +130,5 @@ export type FormPreguntaState = {
   tabla_limite_seccion_id: number | null;
   tabla_limite_pregunta_id: number | null;
   tabla_limite_reglas: ReglaLimiteTabla[];
+  oculto_en_formulario: boolean;
 };

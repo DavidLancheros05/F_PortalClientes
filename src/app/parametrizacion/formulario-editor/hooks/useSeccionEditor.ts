@@ -23,7 +23,11 @@ export function useSeccionEditor({
 }: SeccionEditorDeps) {
   const [editandoSeccion, setEditandoSeccion] = useState<number | null>(null);
   const [nuevaSeccion, setNuevaSeccion] = useState(false);
-  const [formSeccion, setFormSeccion] = useState({ nombre: "", descripcion: "" });
+  const [formSeccion, setFormSeccion] = useState({
+    nombre: "",
+    descripcion: "",
+    ocultaEnFormulario: false,
+  });
   const [seccionAEliminar, setSeccionAEliminar] = useState<number | null>(null);
 
   const guardarSeccion = async () => {
@@ -36,6 +40,7 @@ export function useSeccionEditor({
         await api.put(`/parametrizacion/formulario-secciones/${editandoSeccion}`, {
           seccion_nombre: formSeccion.nombre,
           seccion_descripcion: formSeccion.descripcion,
+          seccion_oculta_en_formulario: formSeccion.ocultaEnFormulario,
         });
       } else {
         const nuevoOrden =
@@ -44,9 +49,10 @@ export function useSeccionEditor({
           seccion_nombre: formSeccion.nombre,
           seccion_descripcion: formSeccion.descripcion,
           seccion_orden: nuevoOrden,
+          seccion_oculta_en_formulario: formSeccion.ocultaEnFormulario,
         });
       }
-      setFormSeccion({ nombre: "", descripcion: "" });
+      setFormSeccion({ nombre: "", descripcion: "", ocultaEnFormulario: false });
       setEditandoSeccion(null);
       setNuevaSeccion(false);
       await cargarDatos();
@@ -60,6 +66,7 @@ export function useSeccionEditor({
     setFormSeccion({
       nombre: seccion.fs_nombre || seccion.seccion_nombre || "",
       descripcion: seccion.fs_descripcion || seccion.seccion_descripcion || "",
+      ocultaEnFormulario: seccion.fs_oculta_en_formulario ?? false,
     });
     setEditandoSeccion(seccion.fs_id || seccion.seccion_id || null);
     setNuevaSeccion(false);

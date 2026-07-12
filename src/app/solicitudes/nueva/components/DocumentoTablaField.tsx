@@ -1,7 +1,8 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { generarCartaPdf } from "@/lib/carta-pdf.util";
+import { generarPlantillaDocumentoPdf } from "@/lib/carta-pdf.util";
+import { solicitudesService } from "@/services/solicitudes.service";
 import { Calendar, CheckCircle, Download, FileText } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
@@ -149,27 +150,26 @@ export function DocumentoTablaField({
   const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
 
   const handleDescargarPlantilla = async () => {
-    if (!documento?.tdo_plantilla_contenido) return;
+    if (documento?.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !documento?.tdo_plantilla_contenido)
+      return;
     setDescargandoPlantilla(true);
     try {
-      const reemplazos: Record<string, string> = {
-        "{{cliente_nombre}}": clienteInfo?.nombre || "",
-        "{{cliente_nit}}": clienteInfo?.nit || "",
-        "{{numero_solicitud}}": numeroSolicitud || "",
-        "{{representante_legal_nombre}}": representanteLegal?.nombre || "",
-        "{{representante_legal_cedula}}":
-          representanteLegal?.identificacion || "",
-      };
-      const contenido = Object.entries(reemplazos).reduce(
-        (texto, [placeholder, valor]) => texto.split(placeholder).join(valor),
-        documento.tdo_plantilla_contenido,
-      );
-      await generarCartaPdf({
-        contenido,
-        asunto: tipoDocumentoFijo || documento.tdo_nombre,
-        destinatarioNombre: clienteInfo?.nombre || "-",
-        nombreArchivo: `plantilla-${documento.tdo_nombre}.pdf`,
-      });
+      if (documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") {
+        if (!solicitudId) return;
+        const blob = await solicitudesService.downloadPdf(solicitudId);
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } else {
+        await generarPlantillaDocumentoPdf({
+          tdoNombre: tipoDocumentoFijo || documento!.tdo_nombre,
+          tdoPlantillaContenido: documento!.tdo_plantilla_contenido!,
+          clienteNombre: clienteInfo?.nombre,
+          clienteNit: clienteInfo?.nit,
+          numeroSolicitud,
+          representanteLegalNombre: representanteLegal?.nombre,
+          representanteLegalCedula: representanteLegal?.identificacion,
+        });
+      }
     } catch (err) {
       console.error("Error generando plantilla:", err);
       setErrorMessage("Error generando la plantilla descargable");
@@ -208,7 +208,9 @@ export function DocumentoTablaField({
         </div>
       </div>
 
-      {documento?.tdo_tiene_plantilla && documento?.tdo_plantilla_contenido && (
+      {documento?.tdo_tiene_plantilla &&
+        (documento?.tdo_plantilla_contenido ||
+          documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
         <button
           type="button"
           onClick={handleDescargarPlantilla}

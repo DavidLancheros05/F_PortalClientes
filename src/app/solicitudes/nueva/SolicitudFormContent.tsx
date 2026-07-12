@@ -1584,17 +1584,32 @@ export default function SolicitudFormContent({
         isReturningToAsc ? { isCorrecionASC: true } : undefined,
       );
 
-      const redirectUrl = returnTo || "/solicitudes/cliente";
-      setSuccessMessage(
-        !solicitudId
-          ? "Solicitud creada exitosamente. Redirigiendo..."
-          : isReturningToAsc
-            ? "Solicitud guardada exitosamente. Redirigiendo a solicitudes pendientes de corrección..."
-            : "Solicitud guardada exitosamente. Redirigiendo a mis solicitudes...",
-      );
-      setTimeout(() => {
-        router.replace(redirectUrl);
-      }, 1200);
+      const documentosDiferidosFaltantes =
+        (result as any)?.documentosDiferidosFaltantes || [];
+
+      if (documentosDiferidosFaltantes.length > 0) {
+        const nombres = documentosDiferidosFaltantes
+          .map((d: any) => d.tdo_nombre)
+          .join(", ");
+        setSuccessMessage(
+          `Tu solicitud fue registrada. Aún faltan generar y subir: ${nombres}. Te llevamos a Mis Documentos para continuar.`,
+        );
+        setTimeout(() => {
+          router.replace("/solicitudes/mis-documentos");
+        }, 2500);
+      } else {
+        const redirectUrl = returnTo || "/solicitudes/cliente";
+        setSuccessMessage(
+          !solicitudId
+            ? "Solicitud creada exitosamente. Redirigiendo..."
+            : isReturningToAsc
+              ? "Solicitud guardada exitosamente. Redirigiendo a solicitudes pendientes de corrección..."
+              : "Solicitud guardada exitosamente. Redirigiendo a mis solicitudes...",
+        );
+        setTimeout(() => {
+          router.replace(redirectUrl);
+        }, 1200);
+      }
     } catch (err) {
       console.error("Error completo:", err);
       const apiMessage = (err as any)?.response?.data?.message;
@@ -1799,34 +1814,12 @@ export default function SolicitudFormContent({
     );
   }
 
-  if (loadingInitial || secciones.length === 0) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-50 gap-2 p-3 overflow-hidden">
-        <div className="text-center">
-          <h2 className="text-sm font-semibold mb-1">Cargando formulario...</h2>
-          <p className="text-xs text-gray-600 mb-2">
-            {preguntas.length > 0
-              ? `Preparando ${secciones.length} sección(es) con ${preguntas.length} pregunta(s)...`
-              : "Obteniendo preguntas del servidor..."}
-          </p>
-          {preguntas.length > 0 && secciones.length === 0 && (
-            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-left text-xs text-yellow-800 max-w-md mx-auto">
-              <p className="font-semibold mb-1">Debug Info:</p>
-              <p>Preguntas recibidas: {preguntas.length}</p>
-              <p>Secciones encontradas: {secciones.length}</p>
-              <p className="mt-1 text-yellow-700">
-                Las preguntas no están asignadas a secciones. Revisa la consola
-                del navegador para más detalles.
-              </p>
-            </div>
-          )}
-          <div className="inline-block mt-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // El formulario en sí (secciones/preguntas) es lo único que depende del
+  // fetch inicial — el encabezado (título, botón Atrás) se renderiza de
+  // inmediato con valores por defecto, y mientras falten datos solo el
+  // cuerpo muestra un indicador de carga puntual (mismo patrón que
+  // formulario-editor/page.tsx, ver FRONTEND/mejoras/LOADING_UX_AUDIT.md).
+  const cargandoFormulario = loadingInitial || secciones.length === 0;
 
   return (
     <div className="w-full h-[calc(100vh-5.8rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
@@ -1878,6 +1871,35 @@ export default function SolicitudFormContent({
           onAction={() => setErrorMessage("")}
         />
 
+        {cargandoFormulario ? (
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-sm font-semibold mb-1">
+                Cargando formulario...
+              </h2>
+              <p className="text-xs text-gray-600 mb-2">
+                {preguntas.length > 0
+                  ? `Preparando ${secciones.length} sección(es) con ${preguntas.length} pregunta(s)...`
+                  : "Obteniendo preguntas del servidor..."}
+              </p>
+              {preguntas.length > 0 && secciones.length === 0 && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-left text-xs text-yellow-800 max-w-md mx-auto">
+                  <p className="font-semibold mb-1">Debug Info:</p>
+                  <p>Preguntas recibidas: {preguntas.length}</p>
+                  <p>Secciones encontradas: {secciones.length}</p>
+                  <p className="mt-1 text-yellow-700">
+                    Las preguntas no están asignadas a secciones. Revisa la
+                    consola del navegador para más detalles.
+                  </p>
+                </div>
+              )}
+              <div className="inline-block mt-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
           <SeccionesSidebar
             secciones={secciones}
@@ -1983,6 +2005,8 @@ export default function SolicitudFormContent({
           returnTo={returnTo}
           onGuardar={handleGuardar}
         />
+        </>
+        )}
       </div>
     </div>
   );

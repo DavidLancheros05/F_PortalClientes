@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Upload, Trash2, Download } from "lucide-react";
 import {
   misDocumentosService,
   type MiDocumento,
   type MisDocumentosResponse,
+  type DocumentoDiferido,
 } from "@/services/mis-documentos.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import {
@@ -14,7 +15,15 @@ import {
   calcularEstadoAnioDocumento,
   getArchivoPreviewUrl,
 } from "@/lib/documentos-vigencia.util";
+import { generarPlantillaDocumentoPdf } from "@/lib/carta-pdf.util";
+import { solicitudesService } from "@/services/solicitudes.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+
+async function abrirPdfSolicitud(solicitudId: number) {
+  const blob = await solicitudesService.downloadPdf(solicitudId);
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+}
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -115,19 +124,35 @@ export default function MisDocumentosPage() {
   const [documentos, setDocumentos] = useState<MiDocumento[]>([]);
   const [puedeCorregir, setPuedeCorregir] = useState(false);
   const [rechazadoPorAuxiliar, setRechazadoPorAuxiliar] = useState(false);
+  const [documentosDiferidos, setDocumentosDiferidos] =
+    useState<DocumentoDiferido[]>([]);
+  const [representanteLegal, setRepresentanteLegal] = useState<{
+    nombre: string;
+    identificacion: string;
+  } | null>(null);
+  const [uploadingDiferidoFpId, setUploadingDiferidoFpId] = useState<
+    number | null
+  >(null);
+  const [generandoPlantillaId, setGenerandoPlantillaId] = useState<
+    number | null
+  >(null);
+  const [enviandoDiferidos, setEnviandoDiferidos] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmEliminar, setConfirmEliminar] = useState<MiDocumento | null>(
     null,
   );
-  // Cambios en edición: no se guardan en el backend hasta que el cliente
-  // presiona "Actualizar e informar a Cartonera".
+  // Las fechas de emisión se acumulan en edición y solo se guardan al
+  // presionar "Actualizar e informar a Cartonera". Los archivos, en cambio,
+  // se suben de inmediato al seleccionarlos (ver handleSeleccionarArchivo) —
+  // por eso `huboSubidaSesion` marca que hubo al menos una subida desde la
+  // última vez que se informó a Cartonera, para no desactivar el botón.
   const [pendingFechas, setPendingFechas] = useState<Record<number, string>>(
     {},
   );
-  const [pendingFiles, setPendingFiles] = useState<Record<number, File>>({});
+  const [uploadingSaId, setUploadingSaId] = useState<number | null>(null);
+  const [huboSubidaSesion, setHuboSubidaSesion] = useState(false);
   const huboCambios =
-    Object.keys(pendingFechas).length > 0 ||
-    Object.keys(pendingFiles).length > 0;
+    Object.keys(pendingFechas).length > 0 || huboSubidaSesion;
   const [enviando, setEnviando] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -139,6 +164,7 @@ export default function MisDocumentosPage() {
       setDocumentos(data.documentos);
       setPuedeCorregir(data.puedeCorregir);
       setRechazadoPorAuxiliar(data.rechazadoPorAuxiliar);
+      setDocumentosDiferidos(data.documentosDiferidos || []);
     } catch (error) {
       console.error("[MisDocumentosPage] Error cargando:", error);
       setErrorMessage("No se pudieron cargar tus documentos.");
@@ -151,8 +177,78 @@ export default function MisDocumentosPage() {
     cargar();
   }, []);
 
-  const handleSeleccionarArchivo = (doc: MiDocumento, file: File) => {
-    setPendingFiles((prev) => ({ ...prev, [doc.sa_id]: file }));
+  const handleSeleccionarArchivo = async (doc: MiDocumento, file: File) => {
+    if (!solicitud) return;
+    setUploadingSaId(doc.sa_id);
+    try {
+      await formularioRespuestasService.guardarArchivoRespuesta(
+        solicitud.sol_id,
+        doc.fp_id,
+        file,
+        pendingFechas[doc.sa_id] ??
+          (doc.sd_fecha_emision
+            ? doc.sd_fecha_emision.split("T")[0]
+            : undefined),
+      );
+      setHuboSubidaSesion(true);
+      await cargar();
+    } catch (error) {
+      console.error("[MisDocumentosPage] Error subiendo archivo:", error);
+      setErrorMessage(
+        `No se pudo subir el nuevo archivo de "${doc.tdo_nombre || doc.sa_nombre_original}".`,
+      );
+    } finally {
+      setUploadingSaId(null);
+    }
+  };
+
+  // El representante legal solo hace falta para las plantillas de tipo TEXTO
+  // (para rellenar {{representante_legal_nombre}}, etc). Se pide bajo demanda
+  // justo antes de generar una de esas plantillas, no en la carga inicial de
+  // la página — requiere reconstruir el formulario completo en el backend,
+  // que es la parte más lenta, y las de tipo PDF_SOLICITUD ni lo necesitan.
+  const obtenerRepresentanteLegal = async (solicitudId: number) => {
+    if (representanteLegal) return representanteLegal;
+    try {
+      const data = await misDocumentosService.getRepresentanteLegal(solicitudId);
+      setRepresentanteLegal(data);
+      return data;
+    } catch (error) {
+      console.error(
+        "[MisDocumentosPage] Error obteniendo representante legal:",
+        error,
+      );
+      return null;
+    }
+  };
+
+  const handleGenerarPlantillaDocumento = async (doc: MiDocumento) => {
+    if (!solicitud) return;
+    if (doc.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !doc.tdo_plantilla_contenido) return;
+    try {
+      setGenerandoPlantillaId(doc.sa_id);
+      if (doc.tdo_tipo_plantilla === "PDF_SOLICITUD") {
+        await abrirPdfSolicitud(solicitud.sol_id);
+      } else {
+        const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
+        await generarPlantillaDocumentoPdf({
+          tdoNombre: doc.tdo_nombre || doc.sa_nombre_original,
+          tdoPlantillaContenido: doc.tdo_plantilla_contenido!,
+          clienteNombre: solicitud.cliente_nombre,
+          clienteNit: solicitud.cliente_nit,
+          numeroSolicitud: solicitud.sol_numero_solicitud,
+          representanteLegalNombre: repLegal?.nombre,
+          representanteLegalCedula: repLegal?.identificacion,
+        });
+      }
+    } catch (error) {
+      console.error("[MisDocumentosPage] Error generando plantilla:", error);
+      setErrorMessage(
+        `No se pudo generar la plantilla de "${doc.tdo_nombre}".`,
+      );
+    } finally {
+      setGenerandoPlantillaId(null);
+    }
   };
 
   const handleCambiarFecha = (doc: MiDocumento, fecha: string) => {
@@ -165,20 +261,8 @@ export default function MisDocumentosPage() {
       setEnviando(true);
 
       for (const doc of documentos) {
-        const file = pendingFiles[doc.sa_id];
         const fecha = pendingFechas[doc.sa_id];
-
-        if (file) {
-          await formularioRespuestasService.guardarArchivoRespuesta(
-            solicitud.sol_id,
-            doc.fp_id,
-            file,
-            fecha ??
-              (doc.sd_fecha_emision
-                ? doc.sd_fecha_emision.split("T")[0]
-                : undefined),
-          );
-        } else if (fecha) {
+        if (fecha) {
           await formularioRespuestasService.actualizarFechaDocumento(
             solicitud.sol_id,
             doc.fp_id,
@@ -190,7 +274,7 @@ export default function MisDocumentosPage() {
       await misDocumentosService.enviarCorreccion(solicitud.sol_id);
 
       setPendingFechas({});
-      setPendingFiles({});
+      setHuboSubidaSesion(false);
       setShowSuccessModal(true);
       await cargar();
     } catch (error) {
@@ -201,6 +285,88 @@ export default function MisDocumentosPage() {
       setErrorMessage("No se pudo actualizar e informar a Cartonera.");
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const handleGenerarPlantilla = async (doc: DocumentoDiferido) => {
+    if (!solicitud) return;
+    if (doc.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !doc.tdo_plantilla_contenido) return;
+    try {
+      setGenerandoPlantillaId(doc.tdo_id);
+      if (doc.tdo_tipo_plantilla === "PDF_SOLICITUD") {
+        await abrirPdfSolicitud(solicitud.sol_id);
+      } else {
+        const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
+        await generarPlantillaDocumentoPdf({
+          tdoNombre: doc.tdo_nombre,
+          tdoPlantillaContenido: doc.tdo_plantilla_contenido!,
+          clienteNombre: solicitud.cliente_nombre,
+          clienteNit: solicitud.cliente_nit,
+          numeroSolicitud: solicitud.sol_numero_solicitud,
+          representanteLegalNombre: repLegal?.nombre,
+          representanteLegalCedula: repLegal?.identificacion,
+        });
+      }
+    } catch (error) {
+      console.error("[MisDocumentosPage] Error generando plantilla:", error);
+      setErrorMessage(`No se pudo generar la plantilla de "${doc.tdo_nombre}".`);
+    } finally {
+      setGenerandoPlantillaId(null);
+    }
+  };
+
+  const handleSeleccionarArchivoDiferido = async (
+    doc: DocumentoDiferido,
+    file: File,
+  ) => {
+    if (!solicitud) return;
+    setUploadingDiferidoFpId(doc.fp_id);
+    try {
+      await formularioRespuestasService.guardarArchivoRespuesta(
+        solicitud.sol_id,
+        doc.fp_id,
+        file,
+      );
+      await cargar();
+    } catch (error) {
+      console.error(
+        "[MisDocumentosPage] Error subiendo documento diferido:",
+        error,
+      );
+      setErrorMessage(`No se pudo subir "${doc.tdo_nombre}".`);
+    } finally {
+      setUploadingDiferidoFpId(null);
+    }
+  };
+
+  const handleEnviarDocumentosDiferidos = async () => {
+    if (!solicitud) return;
+    try {
+      setEnviandoDiferidos(true);
+
+      const resultado = await misDocumentosService.verificarDocumentosDiferidos(
+        solicitud.sol_id,
+      );
+
+      if (resultado.avanzo) {
+        setShowSuccessModal(true);
+      } else if (resultado.documentosDiferidosFaltantes.length > 0) {
+        setErrorMessage(
+          `Aún faltan por subir: ${resultado.documentosDiferidosFaltantes
+            .map((d) => d.tdo_nombre)
+            .join(", ")}.`,
+        );
+      }
+
+      await cargar();
+    } catch (error) {
+      console.error(
+        "[MisDocumentosPage] Error enviando documentos diferidos:",
+        error,
+      );
+      setErrorMessage("No se pudieron enviar los documentos generados.");
+    } finally {
+      setEnviandoDiferidos(false);
     }
   };
 
@@ -262,9 +428,137 @@ export default function MisDocumentosPage() {
           </div>
         )}
 
+        {documentosDiferidos.length > 0 && !loading && (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-900 mb-1">
+              Tu solicitud fue registrada, pero antes de que la vea Cartonera
+              faltan por generar y subir estos documentos: descarga la
+              plantilla, fírmala, y súbela aquí mismo.
+            </p>
+            <p className="text-xs font-semibold text-blue-800 mb-3">
+              {documentosDiferidos.filter((doc) => doc.yaSubido).length} de{" "}
+              {documentosDiferidos.length} documentos listos para enviar
+            </p>
+            <div className="space-y-2">
+              {documentosDiferidos.map((doc) => {
+                const subiendo = uploadingDiferidoFpId === doc.fp_id;
+                const listo = doc.yaSubido;
+                const archivoUrl =
+                  listo && doc.sa_id
+                    ? getArchivoPreviewUrl(
+                        { sa_id: doc.sa_id },
+                        solicitud?.sol_id,
+                      )
+                    : null;
+                return (
+                  <div
+                    key={doc.tdo_id}
+                    className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border-2 p-3 transition-colors ${
+                      listo
+                        ? "border-emerald-300 bg-emerald-50"
+                        : "border-red-300 bg-red-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText
+                        className={`h-4 w-4 flex-shrink-0 ${listo ? "text-emerald-600" : "text-red-600"}`}
+                      />
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium text-gray-900 break-words block">
+                          {doc.tdo_nombre}
+                        </span>
+                        <span
+                          className={`text-xs font-semibold ${listo ? "text-emerald-700" : "text-red-700"}`}
+                        >
+                          {subiendo
+                            ? "Subiendo..."
+                            : listo
+                              ? "Ya subido anteriormente"
+                              : "Pendiente: falta generar y subir"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {(doc.tdo_plantilla_contenido ||
+                        doc.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
+                        <button
+                          type="button"
+                          onClick={() => handleGenerarPlantilla(doc)}
+                          disabled={generandoPlantillaId === doc.tdo_id}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
+                        >
+                          <Download className="h-3 w-3" />
+                          {generandoPlantillaId === doc.tdo_id
+                            ? "Generando..."
+                            : "Descargar plantilla"}
+                        </button>
+                      )}
+                      {archivoUrl && (
+                        <a
+                          href={archivoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                        >
+                          Ver archivo
+                        </a>
+                      )}
+                      <label className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
+                        <Upload className="h-3.5 w-3.5" />
+                        {subiendo ? "Subiendo..." : listo ? "Reemplazar" : "Subir firmado"}
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf,image/*"
+                          className="hidden"
+                          disabled={subiendo}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file)
+                              handleSeleccionarArchivoDiferido(doc, file);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                onClick={handleEnviarDocumentosDiferidos}
+                disabled={
+                  enviandoDiferidos ||
+                  uploadingDiferidoFpId !== null ||
+                  documentosDiferidos.some((doc) => !doc.yaSubido)
+                }
+                className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none transition-colors"
+              >
+                {enviandoDiferidos
+                  ? "Enviando..."
+                  : "Enviar e informar a Cartonera"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
-            Cargando tus documentos...
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="border-b border-gray-100 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Cargando tus documentos...
+            </div>
+            <div className="divide-y divide-gray-100">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-4 animate-pulse">
+                  <div className="h-4 w-4 rounded-full bg-gray-200 flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-1/3 rounded bg-gray-200" />
+                    <div className="h-2 w-1/4 rounded bg-gray-100" />
+                  </div>
+                  <div className="h-5 w-20 rounded-full bg-gray-200" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : !solicitud ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
@@ -380,15 +674,33 @@ export default function MisDocumentosPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-3">
+                          {doc.tdo_tiene_plantilla &&
+                            (doc.tdo_plantilla_contenido ||
+                              doc.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
+                            <button
+                              type="button"
+                              onClick={() => handleGenerarPlantillaDocumento(doc)}
+                              disabled={generandoPlantillaId === doc.sa_id}
+                              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
+                            >
+                              <Download className="h-3 w-3" />
+                              {generandoPlantillaId === doc.sa_id
+                                ? "Generando..."
+                                : "Descargar plantilla"}
+                            </button>
+                          )}
                           {editable ? (
                             <>
                               <label className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
                                 <Upload className="h-3.5 w-3.5" />
-                                Reemplazar
+                                {uploadingSaId === doc.sa_id
+                                  ? "Subiendo..."
+                                  : "Reemplazar"}
                                 <input
                                   type="file"
                                   accept=".pdf,application/pdf,image/*"
                                   className="hidden"
+                                  disabled={uploadingSaId === doc.sa_id}
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file)
@@ -414,11 +726,6 @@ export default function MisDocumentosPage() {
                             )
                           )}
                         </div>
-                        {pendingFiles[doc.sa_id] && (
-                          <p className="mt-1 text-xs font-medium text-blue-700">
-                            Pendiente: {pendingFiles[doc.sa_id].name}
-                          </p>
-                        )}
                       </td>
 
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">

@@ -7,7 +7,6 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { cartaPdfVinculacionService } from "@/services/admin/parametrizacion/carta-pdf-vinculacion.service";
 import { ESTADOS } from "@/lib/workflow-labels";
 import html2pdf from "html2pdf.js";
-import { LoadingModal } from "@/components/modals";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -256,22 +255,6 @@ export default function DetalleDetailPage() {
     }
   }, [solicitudId]);
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando detalles de la solicitud..." />;
-  }
-
-  if (error || !solicitud) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <p className="text-red-600">{error || "No se encontró la solicitud"}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -285,26 +268,53 @@ export default function DetalleDetailPage() {
             Volver
           </button>
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Solicitud</p>
-                <h1 className="text-3xl font-bold text-blue-800">
-                  {solicitud.sol_numero_solicitud}
-                </h1>
+            {loading ? (
+              <div className="animate-pulse flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="h-3 w-20 bg-gray-200 rounded" />
+                  <div className="h-8 w-32 bg-gray-200 rounded" />
+                </div>
+                <div className="h-9 w-28 bg-gray-200 rounded-lg" />
               </div>
-              <div className="flex flex-col gap-2">
-                <span
-                  className={`inline-block px-4 py-2 rounded-lg font-semibold border text-center ${getEstadoBadgeClass(
-                    solicitud.sol_estado_id
-                  )}`}
-                >
-                  {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
-                </span>
+            ) : error || !solicitud ? (
+              <p className="text-red-600">
+                {error || "No se encontró la solicitud"}
+              </p>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Solicitud</p>
+                  <h1 className="text-3xl font-bold text-blue-800">
+                    {solicitud.sol_numero_solicitud}
+                  </h1>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span
+                    className={`inline-block px-4 py-2 rounded-lg font-semibold border text-center ${getEstadoBadgeClass(
+                      solicitud.sol_estado_id
+                    )}`}
+                  >
+                    {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
+        {loading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 h-40 animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+
+        {!loading && !error && solicitud && (
+        <>
         {/* Grid de secciones */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Información General */}
@@ -503,6 +513,8 @@ export default function DetalleDetailPage() {
             Cerrar
           </button>
         </div>
+        </>
+        )}
       </div>
 
     </div>

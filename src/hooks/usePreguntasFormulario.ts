@@ -23,6 +23,7 @@ export interface DocumentoCatalogo {
   tdo_anios_atras_permitidos?: number | null;
   tdo_tiene_plantilla?: boolean;
   tdo_plantilla_contenido?: string | null;
+  tdo_tipo_plantilla?: "TEXTO" | "PDF_SOLICITUD";
 }
 
 interface UsePreguntasFormularioProps {
@@ -147,6 +148,8 @@ export function usePreguntasFormulario({
           .filter(
             (p) =>
               p.fp_estado &&
+              !p.fp_oculto_en_formulario &&
+              !p.seccion_oculta_en_formulario &&
               (versionObjetivo
                 ? Number(p.fp_version ?? 1) === Number(versionObjetivo)
                 : true),
@@ -204,6 +207,8 @@ export function usePreguntasFormulario({
                 item?.tdo_tiene_plantilla ?? item?.tienePlantilla ?? false,
               tdo_plantilla_contenido:
                 item?.tdo_plantilla_contenido ?? item?.plantillaContenido ?? null,
+              tdo_tipo_plantilla:
+                item?.tdo_tipo_plantilla ?? item?.tipoPlantilla ?? "TEXTO",
             };
           }
         });

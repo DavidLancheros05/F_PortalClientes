@@ -511,6 +511,23 @@ export default function SolicitudesContent() {
                               >
                                 Corrija los documentos
                               </button>
+                            ) : solicitud.sol_estado_id === 2 &&
+                              solicitud.sol_etapa_actual_id === 1 &&
+                              solicitud.sol_resultado_etapa_id === 5 ? (
+                              <button
+                                onClick={() =>
+                                  router.push("/solicitudes/mis-documentos")
+                                }
+                                className="text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 transition-colors"
+                              >
+                                Faltan documentos por generar y subir
+                              </button>
+                            ) : solicitud.sol_estado_id === 2 ? (
+                              <span className="text-sm text-emerald-700">
+                                Formulario y documentos cargados
+                                correctamente. Puedes editar hasta que
+                                Cartonera revise tu solicitud.
+                              </span>
                             ) : (
                               <span className="text-gray-400">—</span>
                             )}

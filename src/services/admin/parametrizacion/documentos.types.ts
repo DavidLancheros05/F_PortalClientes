@@ -12,6 +12,7 @@ export interface TipoDocumento {
   aplicaZonaFranca: boolean;
   estado: boolean;
   tienePlantilla: boolean;
+  tipoPlantilla: "TEXTO" | "PDF_SOLICITUD";
   plantillaContenido: string | null;
 }
 
@@ -26,5 +27,6 @@ export interface TipoDocumentoPayload {
   aplicaZonaFranca: boolean;
   estado: boolean;
   tienePlantilla?: boolean;
+  tipoPlantilla?: "TEXTO" | "PDF_SOLICITUD";
   plantillaContenido?: string;
 }

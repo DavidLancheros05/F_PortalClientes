@@ -393,6 +393,8 @@ export const solicitudesService = {
         ? ESTADO_SOLICITUD.BORRADOR
         : ESTADO_SOLICITUD.PENDIENTE;
     const soloConValor = accion === AccionSolicitud.BORRADOR;
+    let documentosDiferidosFaltantes: { tdo_id: number; tdo_nombre: string }[] =
+      [];
 
     // Crear solicitud si es nueva
     if (!targetSolicitudId) {
@@ -414,10 +416,12 @@ export const solicitudesService = {
 
       // Si es nueva y es ENVIAR, cambiar estado a PENDIENTE
       if (accion === AccionSolicitud.ENVIAR) {
-        await this.cambiarEstado(
+        const resultadoCambio = await this.cambiarEstado(
           targetSolicitudId,
           ESTADO_SOLICITUD.PENDIENTE.id,
         );
+        documentosDiferidosFaltantes =
+          resultadoCambio?.documentosDiferidosFaltantes || [];
       }
     } else {
       // Si es solicitud existente, cambiar estado según acción
@@ -430,10 +434,12 @@ export const solicitudesService = {
             "[guardarSolicitud] Guardando corrección ASC - sin cambio de estado",
           );
         } else {
-          await this.cambiarEstado(
+          const resultadoCambio = await this.cambiarEstado(
             targetSolicitudId,
             ESTADO_SOLICITUD.PENDIENTE.id,
           );
+          documentosDiferidosFaltantes =
+            resultadoCambio?.documentosDiferidosFaltantes || [];
         }
       }
     }
@@ -460,7 +466,11 @@ export const solicitudesService = {
       }
     }
 
-    return { solicitudId: targetSolicitudId, respuestasGuardadas };
+    return {
+      solicitudId: targetSolicitudId,
+      respuestasGuardadas,
+      documentosDiferidosFaltantes,
+    };
   },
 
   // Guardar solicitud completa (backward compatibility wrapper)

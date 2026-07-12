@@ -45,6 +45,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       aplicaZonaFranca: false,
       estado: true,
       tienePlantilla: false,
+      tipoPlantilla: "TEXTO",
       plantillaContenido: "",
     },
   });
@@ -52,6 +53,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   const aplicaFechaEmision = watch("aplicaFechaEmision");
   const reglaVigencia = watch("reglaVigencia");
   const tienePlantilla = watch("tienePlantilla");
+  const tipoPlantilla = watch("tipoPlantilla");
   const anioActual = new Date().getFullYear();
 
   const [tiposVigencia, setTiposVigencia] = useState<TipoVigencia[]>([]);
@@ -76,6 +78,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         aplicaZonaFranca: false,
         estado: editItem.estado,
         tienePlantilla: editItem.tienePlantilla ?? false,
+        tipoPlantilla: editItem.tipoPlantilla ?? "TEXTO",
         plantillaContenido: editItem.plantillaContenido || "",
       });
     } else {
@@ -90,6 +93,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         aplicaZonaFranca: false,
         estado: true,
         tienePlantilla: false,
+        tipoPlantilla: "TEXTO",
         plantillaContenido: "",
       });
     }
@@ -112,9 +116,13 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             ? data.aniosAtrasPermitidos
             : undefined,
         tienePlantilla: data.tienePlantilla || false,
-        plantillaContenido: data.tienePlantilla
-          ? data.plantillaContenido || undefined
+        tipoPlantilla: data.tienePlantilla
+          ? data.tipoPlantilla || "TEXTO"
           : undefined,
+        plantillaContenido:
+          data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
+            ? data.plantillaContenido || undefined
+            : undefined,
       };
 
       if (editItem?.tipoDocumentoId) {
@@ -330,13 +338,33 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
           {tienePlantilla && (
             <div className="mt-3">
               <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Tipo de generación
+              </label>
+              <select
+                {...register("tipoPlantilla")}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="TEXTO">Texto con placeholders</option>
+                <option value="PDF_SOLICITUD">PDF de la solicitud completa</option>
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                {tipoPlantilla === "PDF_SOLICITUD"
+                  ? "El cliente descargará el PDF generado con todos los datos de su solicitud (el mismo que usa Ejecutivo de Negocios), lo firmará y lo volverá a subir aquí."
+                  : "Se genera un PDF a partir del texto de abajo, reemplazando los placeholders con los datos de la solicitud."}
+              </p>
+            </div>
+          )}
+
+          {tienePlantilla && tipoPlantilla !== "PDF_SOLICITUD" && (
+            <div className="mt-3">
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
                 Contenido de la plantilla
               </label>
               <textarea
                 rows={10}
                 {...register("plantillaContenido", {
                   required:
-                    "Campo obligatorio cuando tiene plantilla descargable",
+                    "Campo obligatorio cuando tiene plantilla descargable de tipo texto",
                 })}
                 placeholder={
                   "Cordial Saludo:\n\n{{representante_legal_nombre}}, mayor de edad, identificado con cédula de ciudadanía {{representante_legal_cedula}}, en mi calidad de Representante Legal de la Sociedad {{cliente_nombre}}, con NIT {{cliente_nit}}, me permito manifestar que..."
