@@ -223,7 +223,7 @@ export default function GestionComiteCredito2Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-      <div className="max-w-full mx-auto mt-2 px-2">
+      <div className="max-w-[90%] mx-auto mt-2 px-2">
         {/* Main Card */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
           {/* Header Section */}

@@ -439,7 +439,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                 Volver a solicitudes
               </button>
               <p className="text-2xl md:text-3xl font-bold text-blue-800 mb-4 leading-tight">
-                Listado de solicitudes 1
+                Listado de solicitudes
               </p>
             </div>
 

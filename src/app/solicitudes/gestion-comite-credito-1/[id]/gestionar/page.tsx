@@ -53,7 +53,6 @@ interface RegistroState {
   limiteCreditoRecomendado: string;
   plazoRecomendado: string;
   observacionesComite: string;
-  recomendacion: "aprobado" | "rechazado" | "";
   guardando: boolean;
 }
 
@@ -79,7 +78,6 @@ export default function GestionComiteCredito1Page() {
     limiteCreditoRecomendado: "",
     plazoRecomendado: "",
     observacionesComite: "",
-    recomendacion: "",
     guardando: false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -149,11 +147,6 @@ export default function GestionComiteCredito1Page() {
       return;
     }
 
-    if (!registro.recomendacion) {
-      alert("Debe seleccionar una recomendación.");
-      return;
-    }
-
     setShowConfirmModal(true);
   };
 
@@ -163,11 +156,10 @@ export default function GestionComiteCredito1Page() {
     try {
       setRegistro((prev) => ({ ...prev, guardando: true }));
 
-      const comentario = `EVALUACIÓN DE RIESGO: ${registro.evaluacionRiesgo}\n\nLÍMITE CRÉDITO RECOMENDADO: ${registro.limiteCreditoRecomendado}\n\nPLAZO RECOMENDADO: ${registro.plazoRecomendado}\n\nOBSERVACIONES: ${registro.observacionesComite}\n\nRECOMENDACIÓN: ${registro.recomendacion.toUpperCase()}`;
+      const comentario = `EVALUACIÓN DE RIESGO: ${registro.evaluacionRiesgo}\n\nLÍMITE CRÉDITO RECOMENDADO: ${registro.limiteCreditoRecomendado}\n\nPLAZO RECOMENDADO: ${registro.plazoRecomendado}\n\nOBSERVACIONES: ${registro.observacionesComite}`;
 
       await solicitudesService.guardarConceptoComiteCredito1(solicitud.sol_id, {
         comentario,
-        recomendacion: registro.recomendacion,
       });
 
       setShowConfirmModal(false);
@@ -188,7 +180,7 @@ export default function GestionComiteCredito1Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-      <div className="max-w-full mx-auto mt-2 px-2">
+      <div className="max-w-[90%] mx-auto mt-2 px-2">
         {/* Main Card */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
           {/* Header Section */}
@@ -442,43 +434,6 @@ export default function GestionComiteCredito1Page() {
                   />
                 </div>
 
-                {/* Recomendación */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Recomendación *
-                  </label>
-                  <div className="space-y-2">
-                    {[
-                      { value: "aprobado", label: "Aprobado", color: "green" },
-                      { value: "rechazado", label: "Rechazado", color: "red" },
-                    ].map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-300 rounded-lg hover:bg-gray-50"
-                      >
-                        <input
-                          type="radio"
-                          name="recomendacion"
-                          value={option.value}
-                          checked={registro.recomendacion === option.value}
-                          onChange={(e) =>
-                            setRegistro((prev) => ({
-                              ...prev,
-                              recomendacion: e.target.value as any,
-                            }))
-                          }
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <span
-                          className={`text-sm font-semibold text-${option.color}-900`}
-                        >
-                          {option.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Botones de acción */}
                 <div className="flex gap-3 pt-4">
                   <button
@@ -486,12 +441,13 @@ export default function GestionComiteCredito1Page() {
                     disabled={
                       !registro.evaluacionRiesgo ||
                       !registro.observacionesComite.trim() ||
-                      !registro.recomendacion ||
                       registro.guardando
                     }
                     className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {registro.guardando ? "Guardando..." : "Guardar Evaluación"}
+                    {registro.guardando
+                      ? "Enviando..."
+                      : "Enviar Revisión a Comité Crédito 2"}
                   </button>
                   <button
                     onClick={() => router.back()}
@@ -516,9 +472,9 @@ export default function GestionComiteCredito1Page() {
 
       <ConfirmModal
         isOpen={showConfirmModal}
-        title="Confirmar Evaluación"
-        message={`¿Estás seguro de que deseas registrar esta evaluación del Comité Crédito 1 con recomendación: ${registro.recomendacion}?`}
-        confirmText="Sí, Guardar"
+        title="Confirmar Envío"
+        message="¿Estás seguro de que deseas enviar esta revisión del Comité Crédito 1? La solicitud pasará a Comité Crédito 2."
+        confirmText="Sí, Enviar"
         cancelText="Cancelar"
         isLoading={registro.guardando}
         onConfirm={handleConfirmGuardarRevision}
@@ -528,7 +484,7 @@ export default function GestionComiteCredito1Page() {
       <SuccessModal
         isOpen={showSuccessModal}
         title="¡Éxito!"
-        message="La evaluación del Comité Crédito 1 fue registrada correctamente. Serás redirigido a la lista de solicitudes."
+        message="La revisión del Comité Crédito 1 fue enviada correctamente a Comité Crédito 2. Serás redirigido a la lista de solicitudes."
         actionText="Aceptar"
         autoClose={true}
         autoCloseDelay={3000}
