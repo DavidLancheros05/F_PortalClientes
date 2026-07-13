@@ -11,7 +11,7 @@ import {
   FileText,
   PlusCircle,
 } from "lucide-react";
-import { ConfirmModal, LoadingModal } from "@/components/modals";
+import { ConfirmModal } from "@/components/modals";
 
 // Roles reales
 const ROLES = {
@@ -145,14 +145,10 @@ export default function DashboardPage() {
     router.replace("/login");
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando dashboard..." />;
-  }
-
-  if (!user) return null;
-
-  const roleConfig = getRolConfig(user.rol_id, user.rol?.nombre);
-  const RoleIcon = roleConfig.icon;
+  const roleConfig = user
+    ? getRolConfig(user.rol_id, user.rol?.nombre)
+    : null;
+  const RoleIcon = roleConfig?.icon;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
@@ -160,23 +156,43 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <div
-              className={`p-3 ${roleConfig.color === "amber" ? "bg-amber-100" : `bg-${roleConfig.color}-100`} rounded-xl`}
-            >
-              <RoleIcon
-                className={`w-6 h-6 ${roleConfig.color === "amber" ? "text-amber-600" : `text-${roleConfig.color}-600`}`}
-              />
+          {loading || !user || !roleConfig || !RoleIcon ? (
+            <div className="flex items-center gap-4 animate-pulse">
+              <div className="p-3 bg-gray-200 rounded-xl w-12 h-12" />
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-40" />
+                <div className="h-3 bg-gray-200 rounded w-24" />
+              </div>
             </div>
-            <div>
-              <p className="font-medium text-gray-900">
-                Bienvenido, {user.nombre}
-              </p>
-              <p className="text-gray-600">Rol: {roleConfig.name}</p>
+          ) : (
+            <div className="flex items-center gap-4">
+              <div
+                className={`p-3 ${roleConfig.color === "amber" ? "bg-amber-100" : `bg-${roleConfig.color}-100`} rounded-xl`}
+              >
+                <RoleIcon
+                  className={`w-6 h-6 ${roleConfig.color === "amber" ? "text-amber-600" : `text-${roleConfig.color}-600`}`}
+                />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">
+                  Bienvenido, {user.nombre}
+                </p>
+                <p className="text-gray-600">Rol: {roleConfig.name}</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
+        {!user ? (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-48 mb-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="h-16 bg-gray-100 rounded-xl" />
+              <div className="h-16 bg-gray-100 rounded-xl" />
+            </div>
+          </div>
+        ) : (
+          <>
         {/* ADMIN */}
         {user.rol_id === ROLES.ADMIN && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
@@ -297,6 +313,8 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
 

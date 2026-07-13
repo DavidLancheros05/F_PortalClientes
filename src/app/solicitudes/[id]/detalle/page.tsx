@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, Building2, User, FileText, DollarSign, Clock, X } from "lucide-react";
+import { ArrowLeft, Calendar, Building2, User, FileText, FileSearch, DollarSign, Clock, X } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { cartaPdfVinculacionService } from "@/services/admin/parametrizacion/carta-pdf-vinculacion.service";
 import { ESTADOS } from "@/lib/workflow-labels";
 import html2pdf from "html2pdf.js";
+import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
+import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
+import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -86,6 +89,24 @@ export default function DetalleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [descargandoPdfFormulario, setDescargandoPdfFormulario] = useState(false);
+  const { historial } = useHistorialWorkflow(
+    Number.isFinite(solicitudId) ? solicitudId : null,
+  );
+
+  const abrirPdfFormulario = async () => {
+    try {
+      setDescargandoPdfFormulario(true);
+      const blob = await solicitudesService.downloadPdf(solicitudId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Error abriendo PDF del formulario:", err);
+      alert("No se pudo generar el PDF del formulario. Intenta de nuevo.");
+    } finally {
+      setDescargandoPdfFormulario(false);
+    }
+  };
 
   const abrirCartaPDF = async () => {
     if (!solicitud) return;
@@ -288,7 +309,7 @@ export default function DetalleDetailPage() {
                     {solicitud.sol_numero_solicitud}
                   </h1>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col items-start sm:items-end gap-2">
                   <span
                     className={`inline-block px-4 py-2 rounded-lg font-semibold border text-center ${getEstadoBadgeClass(
                       solicitud.sol_estado_id
@@ -296,6 +317,23 @@ export default function DetalleDetailPage() {
                   >
                     {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
                   </span>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => router.push(`/solicitudes/${solicitud.sol_id}`)}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 transition-colors"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Ver Formulario
+                    </button>
+                    <button
+                      onClick={abrirPdfFormulario}
+                      disabled={descargandoPdfFormulario}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <FileSearch className="h-4 w-4" />
+                      {descargandoPdfFormulario ? "Generando..." : "Ver PDF Formulario"}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -502,6 +540,16 @@ export default function DetalleDetailPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Documentos y respuestas por etapa */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+            <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+          </div>
+          <div className="lg:col-span-1">
+            <HistorialSolicitud historial={historial} />
+          </div>
         </div>
 
         {/* Footer */}

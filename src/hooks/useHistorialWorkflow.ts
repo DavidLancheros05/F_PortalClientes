@@ -3,11 +3,13 @@ import { solicitudesService } from "@/services/solicitudes.service";
 
 interface HistorialItem {
   historialId: number;
+  etapaCodigo?: string;
   etapaNombre: string;
   resultadoNombre?: string;
   estadoNombre?: string;
   fecha: string;
   usuarioNombre?: string;
+  comentario?: string;
 }
 
 export function useHistorialWorkflow(solicitudId: number | null) {
@@ -34,11 +36,13 @@ export function useHistorialWorkflow(solicitudId: number | null) {
             (h: any, index: number) => {
               const item = {
                 historialId: h.historial_id ?? h.historialId ?? index,
+                etapaCodigo: h.etapa_codigo ?? h.etapaCodigo,
                 etapaNombre:
                   h.etapa_nombre ?? h.etapaNombre ?? "Etapa desconocida",
                 resultadoNombre: h.resultado_nombre ?? h.resultadoNombre,
                 fecha: h.fecha,
                 usuarioNombre: h.nombre ?? h.usuarioNombre,
+                comentario: h.comentario,
               };
               if (index === 0)
                 console.log("[useHistorialWorkflow] Item mapeado:", item);

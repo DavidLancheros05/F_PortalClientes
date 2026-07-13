@@ -47,6 +47,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       tienePlantilla: false,
       tipoPlantilla: "TEXTO",
       plantillaContenido: "",
+      formatoCodigo: "",
+      formatoCodigoSecundario: "",
+      revision: "",
+      paginasTotal: undefined,
     },
   });
 
@@ -80,6 +84,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         tienePlantilla: editItem.tienePlantilla ?? false,
         tipoPlantilla: editItem.tipoPlantilla ?? "TEXTO",
         plantillaContenido: editItem.plantillaContenido || "",
+        formatoCodigo: editItem.formatoCodigo || "",
+        formatoCodigoSecundario: editItem.formatoCodigoSecundario || "",
+        revision: editItem.revision || "",
+        paginasTotal: editItem.paginasTotal ?? undefined,
       });
     } else {
       reset({
@@ -95,6 +103,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         tienePlantilla: false,
         tipoPlantilla: "TEXTO",
         plantillaContenido: "",
+        formatoCodigo: "",
+        formatoCodigoSecundario: "",
+        revision: "",
+        paginasTotal: undefined,
       });
     }
   }, [editItem, reset]);
@@ -122,6 +134,22 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         plantillaContenido:
           data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
             ? data.plantillaContenido || undefined
+            : undefined,
+        formatoCodigo:
+          data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
+            ? data.formatoCodigo || undefined
+            : undefined,
+        formatoCodigoSecundario:
+          data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
+            ? data.formatoCodigoSecundario || undefined
+            : undefined,
+        revision:
+          data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
+            ? data.revision || undefined
+            : undefined,
+        paginasTotal:
+          data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
+            ? data.paginasTotal || undefined
             : undefined,
       };
 
@@ -201,21 +229,11 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
           </label>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-          <label className="flex cursor-pointer items-start gap-2 text-xs font-medium text-slate-700">
-            <input
-              type="checkbox"
-              {...register("obligatorio")}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span>
-              Obligatorio
-              <span className="mt-1 block text-xs font-normal text-slate-500">
-                Si está activo, el sistema exigirá que el cliente adjunte este
-                archivo.
-              </span>
-            </span>
-          </label>
+        <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-500">
+          Si un documento debe ser obligatorio u opcional se define por
+          pregunta en el editor de formularios (campo &quot;Requerida&quot;),
+          no aquí — el mismo tipo de documento puede ser obligatorio en una
+          pregunta y opcional en otra.
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
@@ -383,6 +401,65 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 <code>{"{{representante_legal_nombre}}"}</code>,{" "}
                 <code>{"{{representante_legal_cedula}}"}</code>.
               </p>
+
+              <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                <p className="text-xs font-semibold text-slate-700">
+                  Encabezado de formato oficial (opcional)
+                </p>
+                <p className="text-xs text-slate-500">
+                  Si completas "Páginas totales", el PDF se genera con una
+                  tabla de encabezado (logo, código de formato, página y
+                  revisión) en vez de la carta simple. Déjalo vacío para
+                  seguir usando la carta simple.
+                </p>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      Código de formato
+                    </label>
+                    <input
+                      type="text"
+                      {...register("formatoCodigo")}
+                      placeholder="Ej. F-P3-07"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      Código secundario
+                    </label>
+                    <input
+                      type="text"
+                      {...register("formatoCodigoSecundario")}
+                      placeholder="Ej. B_F-P3-07"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      Revisión
+                    </label>
+                    <input
+                      type="text"
+                      {...register("revision")}
+                      placeholder="Ej. 01"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      Páginas totales
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      {...register("paginasTotal", { valueAsNumber: true })}
+                      placeholder="Ej. 3"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

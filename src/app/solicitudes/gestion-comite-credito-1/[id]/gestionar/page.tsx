@@ -2,7 +2,9 @@
 import { solicitudesService } from "@/services/solicitudes.service";
 import { parametrosService } from "@/services/parametros.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { ConfirmModal, SuccessModal, LoadingModal } from "@/components/modals";
+import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
+import { SoportesAnalisis } from "@/components/SoportesAnalisis";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -51,7 +53,7 @@ interface RegistroState {
   limiteCreditoRecomendado: string;
   plazoRecomendado: string;
   observacionesComite: string;
-  recomendacion: "aprobado" | "rechazado" | "pendiente" | "";
+  recomendacion: "aprobado" | "rechazado" | "";
   guardando: boolean;
 }
 
@@ -69,6 +71,9 @@ export default function GestionComiteCredito1Page() {
   const [loading, setLoading] = useState(true);
   const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
   const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
+  const comentarioOFC = historialWorkflow.find(
+    (h) => h.etapaCodigo === "OFC",
+  )?.comentario;
   const [registro, setRegistro] = useState<RegistroState>({
     evaluacionRiesgo: "",
     limiteCreditoRecomendado: "",
@@ -176,76 +181,22 @@ export default function GestionComiteCredito1Page() {
     }
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando solicitud..." />;
-  }
-
-  if (!solicitud) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-green-600 hover:text-green-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">No se encontró la solicitud</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const fechaEstimada =
-    (solicitud as any).sol_fecha_estimada_comite_credito_1 ||
-    solicitud.sol_fecha_estimada_respuesta_comercial ||
-    solicitud.fecha_estimada_respuesta_comercial;
-
-  const pasos = [
-    {
-      id: "creada",
-      nombre: "Creada",
-      estado: "completado" as const,
-      fecha: solicitud.sol_fecha_creacion || solicitud.fecha_creacion,
-      usuario: solicitud.usuario_registro,
-      dias: diasRespuesta["Creada"] ?? 0,
-    },
-    {
-      id: "comite-credito-1",
-      nombre: "Comité Crédito 1",
-      estado: "en_curso" as const,
-      fecha: new Date().toISOString(),
-      usuario: user?.nombre || user?.email || "-",
-      dias: diasRespuesta["Comité Crédito 1"] ?? 2,
-    },
-    {
-      id: "comite-credito-2",
-      nombre: "Comité Crédito 2",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Comité Crédito 2"] ?? 2,
-    },
-    {
-      id: "aprobada",
-      nombre: "Aprobada",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Aprobada"] ?? 5,
-    },
-  ];
+    (solicitud as any)?.sol_fecha_estimada_comite_credito_1 ||
+    solicitud?.sol_fecha_estimada_respuesta_comercial ||
+    solicitud?.fecha_estimada_respuesta_comercial;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-50/30 to-gray-50 p-0">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
       <div className="max-w-full mx-auto mt-2 px-2">
         {/* Main Card */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.back()}
-                className="inline-flex items-center gap-1 text-xs font-medium text-green-100 hover:text-white transition-colors flex-shrink-0"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
               >
                 <ArrowLeft size={16} />
                 Volver
@@ -257,17 +208,36 @@ export default function GestionComiteCredito1Page() {
                 <h1 className="text-lg md:text-xl font-bold text-white">
                   Gestión Comité Crédito 1
                 </h1>
-                <p className="text-xs md:text-sm text-green-100 truncate">
-                  Solicitud:{" "}
-                  <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud ||
-                      solicitud.numero_solicitud}
-                  </span>
-                </p>
+                {solicitud && (
+                  <p className="text-xs md:text-sm text-blue-100 truncate">
+                    Solicitud:{" "}
+                    <span className="font-semibold text-white">
+                      {solicitud.sol_numero_solicitud ||
+                        solicitud.numero_solicitud}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          {loading ? (
+            <div className="px-8 py-6 animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="h-48 bg-gray-100 rounded" />
+            </div>
+          ) : !solicitud ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-600">No se encontró la solicitud</p>
+            </div>
+          ) : (
+          <>
           {/* Información de la solicitud */}
           <div className="px-8 py-6 border-b border-gray-200 bg-white/50">
             <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
@@ -334,7 +304,7 @@ export default function GestionComiteCredito1Page() {
             {/* Formulario de evaluación - Izquierda */}
             <div className="col-span-2">
               <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <CheckCircle size={24} className="text-green-600" />
+                <CheckCircle size={24} className="text-blue-600" />
                 Evaluación Comité Crédito 1
               </h2>
 
@@ -368,6 +338,26 @@ export default function GestionComiteCredito1Page() {
                   </div>
                 </div>
 
+                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+
+                <SoportesAnalisis
+                  solicitudId={solicitud.sol_id}
+                  wetId={4}
+                  titulo="Soportes de Oficial de Cumplimiento"
+                  readOnly
+                />
+
+                {comentarioOFC && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-blue-900 mb-1">
+                      Comentario de Oficial de Cumplimiento
+                    </p>
+                    <p className="text-sm text-blue-800 whitespace-pre-line">
+                      {comentarioOFC}
+                    </p>
+                  </div>
+                )}
+
                 {/* Evaluación de Riesgo */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -381,7 +371,7 @@ export default function GestionComiteCredito1Page() {
                         evaluacionRiesgo: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
                     <option value="">Selecciona una evaluación</option>
                     <option value="bajo">Riesgo Bajo</option>
@@ -394,7 +384,7 @@ export default function GestionComiteCredito1Page() {
                 {/* Límite de Crédito */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <TrendingUp size={18} className="text-green-600" />
+                    <TrendingUp size={18} className="text-blue-600" />
                     Límite de Crédito Recomendado (USD)
                   </label>
                   <input
@@ -409,7 +399,7 @@ export default function GestionComiteCredito1Page() {
                       }));
                     }}
                     placeholder="Ej: 50000000"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -428,14 +418,14 @@ export default function GestionComiteCredito1Page() {
                       }))
                     }
                     placeholder="Ej: 90"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
 
                 {/* Observaciones */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-green-600" />
+                    <MessageSquare size={18} className="text-blue-600" />
                     Observaciones del Comité *
                   </label>
                   <textarea
@@ -448,7 +438,7 @@ export default function GestionComiteCredito1Page() {
                     }
                     placeholder="Escribe las observaciones del análisis de crédito..."
                     rows={5}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                   />
                 </div>
 
@@ -461,11 +451,6 @@ export default function GestionComiteCredito1Page() {
                     {[
                       { value: "aprobado", label: "Aprobado", color: "green" },
                       { value: "rechazado", label: "Rechazado", color: "red" },
-                      {
-                        value: "pendiente",
-                        label: "Pendiente Análisis",
-                        color: "yellow",
-                      },
                     ].map((option) => (
                       <label
                         key={option.value}
@@ -482,7 +467,7 @@ export default function GestionComiteCredito1Page() {
                               recomendacion: e.target.value as any,
                             }))
                           }
-                          className="w-4 h-4 text-green-600"
+                          className="w-4 h-4 text-blue-600"
                         />
                         <span
                           className={`text-sm font-semibold text-${option.color}-900`}
@@ -504,7 +489,7 @@ export default function GestionComiteCredito1Page() {
                       !registro.recomendacion ||
                       registro.guardando
                     }
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {registro.guardando ? "Guardando..." : "Guardar Evaluación"}
                   </button>
@@ -524,6 +509,8 @@ export default function GestionComiteCredito1Page() {
               <HistorialSolicitud historial={historialWorkflow} />
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 

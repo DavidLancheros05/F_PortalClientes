@@ -6,7 +6,6 @@ import { AuthContext } from "@/context/AuthContext";
 import { getTodayBogota } from "@/lib/date-utils";
 import { useSearching } from "@/context/SearchingContext";
 import * as XLSX from "xlsx";
-import { generarCartaPdf } from "@/lib/carta-pdf.util";
 
 import {
   ArrowLeft,
@@ -14,20 +13,15 @@ import {
   ChevronRight,
   Download,
   Eye,
-  FileSearch,
-  FileText,
-  Network,
   Search,
   X,
 } from "lucide-react";
-import { LoadingModal, ErrorModal } from "@/components/modals";
 import {
   centrosOperacionService,
   type CentroOperacion,
 } from "@/services/centros-operacion/centros-operacion.service";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { cartaPdfVinculacionService } from "@/services/admin/parametrizacion/carta-pdf-vinculacion.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 
 const PAGE_SIZE = 10;
@@ -72,7 +66,9 @@ interface SolicitudListado {
   sol_fecha_real_comite_credito_1: string | null;
   sol_fecha_estimada_comite_credito_2: string | null;
   sol_fecha_real_comite_credito_2: string | null;
+  sol_fecha_estimada_ejecutivo?: string | null;
   sol_fecha_real_ejecutivo?: string | null;
+  sol_fecha_estimada_auxiliar_servicio_cliente?: string | null;
   sol_fecha_real_auxiliar_servicio_cliente?: string | null;
   sol_fecha_estimada_comite_credito_1_ejecutivo?: string | null;
   sol_fecha_real_comite_credito_1_ejecutivo?: string | null;
@@ -117,8 +113,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const hoy = getTodayBogota();
 
   const [loading, setLoading] = useState(false);
-  const [descargandoPdfId, setDescargandoPdfId] = useState<number | null>(null);
-  const [errorPdf, setErrorPdf] = useState("");
   const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Ejecutivo[]>([]);
@@ -371,91 +365,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     window.history.replaceState(null, "", "?");
   }
 
-  async function abrirPdf(solicitudId: number) {
-    try {
-      setDescargandoPdfId(solicitudId);
-      const blob = await solicitudesService.downloadPdf(solicitudId);
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-    } catch (error) {
-      console.error("Error abriendo PDF:", error);
-      setErrorPdf("No se pudo generar el PDF del formulario. Intenta de nuevo.");
-    } finally {
-      setDescargandoPdfId(null);
-    }
-  }
-
-  async function abrirCartaVinculacion(solicitudId: number) {
-    try {
-      // Obtener datos de la solicitud
-      const solicitud = await solicitudesService.getById(solicitudId);
-      if (!solicitud) {
-        alert("No se encontró la solicitud");
-        return;
-      }
-
-      // Obtener plantillas de carta
-      const plantillas = await cartaPdfVinculacionService.getAll();
-      const plantillaActiva = plantillas.find((p) => p.cpv_activo);
-
-      if (!plantillaActiva) {
-        alert("No hay plantilla de carta activa");
-        return;
-      }
-
-      // Funciones auxiliares
-      function formatCurrency(value?: number | null) {
-        if (!value) return "-";
-        return new Intl.NumberFormat("es-CO", {
-          style: "currency",
-          currency: "COP",
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(value);
-      }
-
-      function formatDate(value?: string | null) {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return "-";
-        return date.toLocaleDateString("es-CO", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-
-      // Reemplazar placeholders con datos reales
-      let contenido = plantillaActiva.cpv_contenido;
-
-      const reemplazos: Record<string, string> = {
-        "{{cliente_nombre}}": solicitud.cliente_nombre || "-",
-        "{{cupo_aprobado}}": formatCurrency(solicitud.sol_cupo_aprobado),
-        "{{forma_pago}}": solicitud.sol_forma_pago || "-",
-        "{{plazo}}": solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-",
-        "{{fecha_aprobacion}}": formatDate(solicitud.sol_fecha_real_respuesta_comercial),
-        "{{numero_solicitud}}": solicitud.sol_numero_solicitud || "-",
-        "{{tasa_interes}}": "-",
-      };
-
-      Object.entries(reemplazos).forEach(([placeholder, valor]) => {
-        contenido = contenido.replace(new RegExp(placeholder, "g"), valor);
-      });
-
-      await generarCartaPdf({
-        contenido,
-        asunto: `Vinculación comercial – Solicitud No. ${solicitud.sol_numero_solicitud || "-"}`,
-        destinatarioNombre: solicitud.cliente_nombre || "-",
-        nombreArchivo: `carta-vinculacion-${solicitud.sol_numero_solicitud}.pdf`,
-      });
-    } catch (error) {
-      console.error("Error abriendo Carta de Vinculación:", error);
-      alert("Error al abrir la Carta de Vinculación");
-    }
-  }
-
   function exportarExcelCsv() {
     if (rows.length === 0) return;
 
@@ -466,10 +375,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Área Ejecutivo",
       "Auxiliar Serv. Cliente",
       "Área Auxiliar",
-      "Fecha Estimada",
-      "Fecha Real",
       "Centro de operación",
-      "Versión Formulario",
       "Fecha de creación",
       "Estado",
       "Etapa Actual",
@@ -477,8 +383,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Cupo Aprobado",
       "Plazo Pago",
       "Forma Pago",
-      "F. Real Ejecutivo Concepto",
-      "F. Real Auxiliar ASC",
       "F. Est. Ejecutivo de Negocios",
       "F. Real Ejecutivo de Negocios",
       "F. Est. Auxiliar Servicio al Cliente",
@@ -496,10 +400,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.ejecutivo_area || "-",
       row.auxiliar_nombre || "-",
       row.auxiliar_area || "-",
-      formatDateTime(row.sol_fecha_estimada_respuesta_comercial),
-      formatDateTime(row.sol_fecha_real_respuesta_comercial),
       row.centro_operacion_nombre || "-",
-      row.sol_formulario_version || "-",
       formatDateTime(row.sol_fecha_creacion),
       ESTADOS[row.sol_estado_id] || "Desconocido",
       row.etapa_nombre || "-",
@@ -507,12 +408,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.sol_cupo_aprobado ? `$${row.sol_cupo_aprobado.toLocaleString("es-CO")}` : "-",
       row.sol_plazo_pago || "-",
       row.sol_forma_pago || "-",
+      formatDateTime(row.sol_fecha_estimada_ejecutivo),
       formatDateTime(row.sol_fecha_real_ejecutivo),
+      formatDateTime(row.sol_fecha_estimada_auxiliar_servicio_cliente),
       formatDateTime(row.sol_fecha_real_auxiliar_servicio_cliente),
-      formatDateTime(row.sol_fecha_estimada_comite_credito_1_ejecutivo),
-      formatDateTime(row.sol_fecha_real_comite_credito_1_ejecutivo),
-      formatDateTime(row.sol_fecha_estimada_comite_credito_1_auxiliar),
-      formatDateTime(row.sol_fecha_real_comite_credito_1_auxiliar),
       formatDateTime(row.sol_fecha_estimada_respuesta_financiera),
       formatDateTime(row.sol_fecha_real_respuesta_financiera),
       formatDateTime(row.sol_fecha_estimada_oficial_cumplimiento),
@@ -833,42 +732,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         Resultado Etapa
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Ejecutivo de negocios
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Área Ejecutivo
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Auxiliar Serv. Cliente
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Área Auxiliar
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Fecha Estimada
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Fecha Real
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Versión Formulario
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Cupo Aprobado
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Plazo Pago
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Forma Pago
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Ejecutivo Concepto
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Auxiliar ASC
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         F. Est. Ejecutivo de Negocios
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
@@ -879,6 +742,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         F. Real Auxiliar Servicio al Cliente
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
+                        F. Est. Cumplimiento
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         F. Real Cumplimiento
@@ -896,16 +762,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         F. Real Crédito 2
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Ver Formulario
+                        Cupo Aprobado
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Ver PDF Formulario
+                        Plazo Pago
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Ver Carta
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Ver Flujo
+                        Forma Pago
                       </th>
                       <th className="sticky right-0 z-10 px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200 bg-blue-100">
                         Detalle Solicitud
@@ -937,83 +800,24 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                           {row.resultado_nombre || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.ejecutivo_nombre || "-"}
+                          {formatDateTime(row.sol_fecha_estimada_ejecutivo)}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.ejecutivo_area || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.auxiliar_nombre || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.auxiliar_area || "-"}
+                          {formatDateTime(row.sol_fecha_real_ejecutivo)}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {formatDateTime(
-                            row.sol_fecha_estimada_respuesta_comercial,
+                            row.sol_fecha_estimada_auxiliar_servicio_cliente,
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {formatDateTime(
-                            row.sol_fecha_real_respuesta_comercial,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.sol_formulario_version || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.sol_cupo_aprobado ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
-                              ${row.sol_cupo_aprobado.toLocaleString("es-CO")}
-                            </span>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.sol_plazo_pago || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.sol_forma_pago || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.sol_fecha_real_ejecutivo ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800">
-                              {formatDateTime(row.sol_fecha_real_ejecutivo)}
-                            </span>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.sol_fecha_real_auxiliar_servicio_cliente ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                              {formatDateTime(
-                                row.sol_fecha_real_auxiliar_servicio_cliente,
-                              )}
-                            </span>
-                          ) : (
-                            "-"
+                            row.sol_fecha_real_auxiliar_servicio_cliente,
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {formatDateTime(
-                            row.sol_fecha_estimada_comite_credito_1_ejecutivo,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {formatDateTime(
-                            row.sol_fecha_real_comite_credito_1_ejecutivo,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {formatDateTime(
-                            row.sol_fecha_estimada_comite_credito_1_auxiliar,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {formatDateTime(
-                            row.sol_fecha_real_comite_credito_1_auxiliar,
+                            row.sol_fecha_estimada_oficial_cumplimiento,
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
@@ -1037,54 +841,20 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {formatDateTime(row.sol_fecha_real_comite_credito_2)}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <button
-                            onClick={() =>
-                              router.push(`/solicitudes/${row.sol_id}`)
-                            }
-                            aria-label="Ver formulario"
-                            title="Ver formulario"
-                            className="inline-flex items-center justify-center rounded-lg border border-cyan-200 bg-cyan-50 p-2 text-cyan-700 transition-colors hover:bg-cyan-100"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </button>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {row.sol_cupo_aprobado ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
+                              ${row.sol_cupo_aprobado.toLocaleString("es-CO")}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <button
-                            onClick={() => abrirPdf(row.sol_id)}
-                            disabled={descargandoPdfId === row.sol_id}
-                            aria-label="Ver PDF del formulario"
-                            title="Ver PDF del formulario"
-                            className="inline-flex items-center justify-center rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <FileSearch className="h-4 w-4" />
-                          </button>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {row.sol_plazo_pago || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <button
-                            onClick={() =>
-                              abrirCartaVinculacion(row.sol_id)
-                            }
-                            aria-label="Descargar Carta de Vinculación"
-                            title="Descargar Carta de Vinculación"
-                            className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 transition-colors hover:bg-red-100"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <button
-                            onClick={() =>
-                              router.push(
-                                `/solicitudes/${row.sol_id}/historial`,
-                              )
-                            }
-                            aria-label="Ver historial"
-                            title="Ver historial"
-                            className="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50 p-2 text-orange-700 transition-colors hover:bg-orange-100"
-                          >
-                            <Network className="h-4 w-4" />
-                          </button>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {row.sol_forma_pago || "-"}
                         </td>
                         <td className="sticky right-0 z-10 px-4 py-3 text-sm bg-white border-l border-gray-100">
                           <button
@@ -1180,16 +950,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         </div>
       </div>
 
-      <LoadingModal
-        isOpen={descargandoPdfId !== null}
-        message="Generando PDF del formulario..."
-      />
-
-      <ErrorModal
-        isOpen={!!errorPdf}
-        message={errorPdf}
-        onAction={() => setErrorPdf("")}
-      />
     </div>
   );
 }

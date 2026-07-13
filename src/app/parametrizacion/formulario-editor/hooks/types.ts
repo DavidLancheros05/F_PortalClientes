@@ -29,7 +29,8 @@ export type Pregunta = {
     | "MULTISELECT"
     | "ARCHIVO"
     | "TABLA"
-    | "IMAGEN";
+    | "IMAGEN"
+    | "ESPACIO_FIRMA";
   fp_orden: number;
   fp_estado: boolean;
   fp_requerida?: boolean;
@@ -131,4 +132,5 @@ export type FormPreguntaState = {
   tabla_limite_pregunta_id: number | null;
   tabla_limite_reglas: ReglaLimiteTabla[];
   oculto_en_formulario: boolean;
+  espacio_lineas: string;
 };

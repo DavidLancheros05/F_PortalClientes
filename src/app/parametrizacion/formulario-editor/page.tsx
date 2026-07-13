@@ -87,6 +87,7 @@ const fallbackTipoLabels: Record<Pregunta["fp_tipo"], string> = {
   ARCHIVO: "Archivo / Documento",
   TABLA: "Tabla",
   IMAGEN: "Imagen (firma, logo, etc.)",
+  ESPACIO_FIRMA: "Espacio en blanco para firma manual",
 };
 
 const getTipoLabel = (tipo: TipoPreguntaCatalogo) => {
@@ -2547,6 +2548,37 @@ export default function FormularioEditorPage() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                {/* Número de líneas ESPACIO_FIRMA */}
+                {(editandoPregunta || nuevaPregunta) &&
+                  formPregunta.tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA && (
+                    <div className="border border-indigo-300 bg-indigo-50 rounded p-2 space-y-1.5">
+                      <h4 className="font-semibold text-xs mb-0.5">
+                        Espacio en blanco para firma manual
+                      </h4>
+                      <label className="block text-xs font-semibold text-indigo-900 leading-tight">
+                        Número de líneas
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        placeholder="5"
+                        value={formPregunta.espacio_lineas}
+                        onChange={(e) =>
+                          setFormPregunta({
+                            ...formPregunta,
+                            espacio_lineas: e.target.value,
+                          })
+                        }
+                        className="border border-indigo-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Alto del espacio en blanco que se dibuja en el PDF para
+                        que el cliente firme a mano tras imprimir/descargar. No
+                        se pide ningún archivo en el formulario en línea.
+                      </p>
                     </div>
                   )}
 

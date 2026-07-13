@@ -7,8 +7,8 @@ import {
 } from "@/services/centros-operacion/centros-operacion.service";
 import type { ClienteListResponse } from "@/types/api.types";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft } from "lucide-react";
 import { LoadingModal } from "@/components/modals";
@@ -38,6 +38,8 @@ interface Solicitud {
 
 export default function AprobacionDesaprobacionPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
@@ -45,16 +47,32 @@ export default function AprobacionDesaprobacionPage() {
   const [loadingClientes, setLoadingClientes] = useState(false);
   const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [clientes, setClientes] = useState<ClienteListResponse[]>([]);
+  // Filtros y página inicializados desde la URL (?centro=&cliente=&numero=&pagina=)
+  // para que "Volver" desde /gestionar restaure la búsqueda en vez de
+  // reiniciar el formulario — antes todo esto vivía solo en useState local,
+  // que se perdía al desmontar/remontar la página.
   const [centroSeleccionado, setCentroSeleccionado] = useState<number | null>(
-    null,
+    () => {
+      const v = searchParams.get("centro");
+      return v ? Number(v) : null;
+    },
   );
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<number | null>(
-    null,
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<
+    number | null
+  >(() => {
+    const v = searchParams.get("cliente");
+    return v ? Number(v) : null;
+  });
+  const [numeroFiltro, setNumeroFiltro] = useState(
+    () => searchParams.get("numero") || "",
   );
-  const [numeroFiltro, setNumeroFiltro] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
-  const [paginaActual, setPaginaActual] = useState(1);
+  const [paginaActual, setPaginaActual] = useState(() => {
+    const v = searchParams.get("pagina");
+    return v ? Number(v) : 1;
+  });
   const itemsPorPagina = 5;
+  const autoBuscoRef = useRef(false);
 
   useEffect(() => {
     async function cargarCentros() {
@@ -123,6 +141,89 @@ export default function AprobacionDesaprobacionPage() {
     }
   };
 
+  // Refleja los filtros/página actuales en la URL (sin agregar entradas al
+  // historial) para que "Volver" desde /gestionar los pueda restaurar.
+  const sincronizarUrl = (pagina: number) => {
+    const params = new URLSearchParams();
+    params.set("buscado", "1");
+    if (centroSeleccionado) params.set("centro", String(centroSeleccionado));
+    if (clienteSeleccionado) params.set("cliente", String(clienteSeleccionado));
+    if (numeroFiltro.trim()) params.set("numero", numeroFiltro.trim());
+    params.set("pagina", String(pagina));
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const buscar = async (opts: { preservePagina?: boolean } = {}) => {
+    try {
+      setLoadingSolicitudes(true);
+      const usuarioId = obtenerUsuarioId();
+
+      if (!usuarioId) {
+        alert("No hay usuario autenticado");
+        return;
+      }
+
+      const data =
+        await solicitudesService.getSolicitudesPendientesAuxiliarServicioCliente(
+          usuarioId,
+        );
+
+      const numeroBuscado = numeroFiltro.trim().toLowerCase();
+
+      const mapped = data
+        .map((s: Solicitud) => ({
+          ...s,
+        }))
+        .filter((s: Solicitud) => {
+          const cumpleCentro = centroSeleccionado
+            ? s.sol_co_id === centroSeleccionado
+            : true;
+          return cumpleCentro;
+        })
+        .filter((s: Solicitud) => {
+          const cumpleCliente = clienteSeleccionado
+            ? s.sol_cliente_id === clienteSeleccionado
+            : true;
+          return cumpleCliente;
+        })
+        .filter((s: Solicitud) => {
+          const cumpleNumero = numeroBuscado
+            ? (s.sol_numero_solicitud || s.numero_solicitud || "")
+                .toLowerCase()
+                .includes(numeroBuscado)
+            : true;
+          return cumpleNumero;
+        });
+
+      setSolicitudes(mapped);
+      setHasSearched(true);
+      const paginaFinal = opts.preservePagina ? paginaActual : 1;
+      if (!opts.preservePagina) setPaginaActual(1);
+      sincronizarUrl(paginaFinal);
+    } catch (error) {
+      alert("Error al cargar solicitudes");
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+  };
+
+  // Si se vuelve desde /gestionar con una búsqueda ya hecha (marcador
+  // "buscado=1" en la URL), repetirla automáticamente para restaurar la
+  // tabla en vez de dejar el listado vacío pidiendo buscar de nuevo.
+  useEffect(() => {
+    if (autoBuscoRef.current) return;
+    if (searchParams.get("buscado") !== "1") return;
+    if (!centroSeleccionado) return;
+    autoBuscoRef.current = true;
+    buscar({ preservePagina: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centroSeleccionado]);
+
+  const irAPagina = (page: number) => {
+    setPaginaActual(page);
+    sincronizarUrl(page);
+  };
+
   const calcularDiasRestantes = (fecha?: string | null) => {
     if (!fecha) return null;
     const hoy = new Date();
@@ -153,8 +254,7 @@ export default function AprobacionDesaprobacionPage() {
             Volver
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Listado solicitudes pendientes de Aprobación / Desaprobación de
-            Formulario - gestion auxiliar de serviocio al cliente
+            Solicitudes pendientes gestión auxiliar de servicio al cliente
           </h1>
           <p className="text-gray-600">
             Revisa y gestiona las solicitudes asignadas a tu centro de operación
@@ -226,60 +326,7 @@ export default function AprobacionDesaprobacionPage() {
             </div>
             <div className="flex items-end justify-end">
               <button
-                onClick={async () => {
-                  try {
-                    setLoadingSolicitudes(true);
-                    const usuarioId = obtenerUsuarioId();
-
-                    if (!usuarioId) {
-                      alert("No hay usuario autenticado");
-                      return;
-                    }
-                    // console.log("Buscando solicitudes para usuarioId:", usuarioId);
-
-                    const data =
-                      await solicitudesService.getSolicitudesPendientesAuxiliarServicioCliente(
-                        usuarioId,
-                      );
-                    // console.log("Solicitudes obtenidas:", data);
-
-                    const numeroBuscado = numeroFiltro.trim().toLowerCase();
-
-                    const mapped = data
-                      .map((s: Solicitud) => ({
-                        ...s,
-                      }))
-                      .filter((s: Solicitud) => {
-                        const cumpleCentro = centroSeleccionado
-                          ? s.sol_co_id === centroSeleccionado
-                          : true;
-                        return cumpleCentro;
-                      })
-                      .filter((s: Solicitud) => {
-                        const cumpleCliente = clienteSeleccionado
-                          ? s.sol_cliente_id === clienteSeleccionado
-                          : true;
-                        return cumpleCliente;
-                      })
-                      .filter((s: Solicitud) => {
-                        const cumpleNumero = numeroBuscado
-                          ? (s.sol_numero_solicitud || s.numero_solicitud || "")
-                              .toLowerCase()
-                              .includes(numeroBuscado)
-                          : true;
-                        return cumpleNumero;
-                      });
-
-                    setSolicitudes(mapped);
-                    setHasSearched(true);
-                    setPaginaActual(1);
-                  } catch (error) {
-                    // console.error("Error buscando solicitudes:", error);
-                    alert("Error al cargar solicitudes");
-                  } finally {
-                    setLoadingSolicitudes(false);
-                  }
-                }}
+                onClick={() => buscar()}
                 disabled={loadingSolicitudes}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -469,7 +516,7 @@ export default function AprobacionDesaprobacionPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+                  onClick={() => irAPagina(Math.max(1, paginaActual - 1))}
                   disabled={paginaActual === 1}
                   className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                 >
@@ -479,7 +526,7 @@ export default function AprobacionDesaprobacionPage() {
                   (page) => (
                     <button
                       key={page}
-                      onClick={() => setPaginaActual(page)}
+                      onClick={() => irAPagina(page)}
                       className={`px-3 py-2 rounded-lg text-sm font-medium ${
                         paginaActual === page
                           ? "bg-blue-600 text-white"
@@ -491,9 +538,7 @@ export default function AprobacionDesaprobacionPage() {
                   ),
                 )}
                 <button
-                  onClick={() =>
-                    setPaginaActual(Math.min(totalPaginas, paginaActual + 1))
-                  }
+                  onClick={() => irAPagina(Math.min(totalPaginas, paginaActual + 1))}
                   disabled={paginaActual === totalPaginas}
                   className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                 >

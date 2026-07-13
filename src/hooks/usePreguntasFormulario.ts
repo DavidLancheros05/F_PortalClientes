@@ -24,6 +24,10 @@ export interface DocumentoCatalogo {
   tdo_tiene_plantilla?: boolean;
   tdo_plantilla_contenido?: string | null;
   tdo_tipo_plantilla?: "TEXTO" | "PDF_SOLICITUD";
+  tdo_formato_codigo?: string | null;
+  tdo_formato_codigo_secundario?: string | null;
+  tdo_revision?: string | null;
+  tdo_paginas_total?: number | null;
 }
 
 interface UsePreguntasFormularioProps {
@@ -209,6 +213,15 @@ export function usePreguntasFormulario({
                 item?.tdo_plantilla_contenido ?? item?.plantillaContenido ?? null,
               tdo_tipo_plantilla:
                 item?.tdo_tipo_plantilla ?? item?.tipoPlantilla ?? "TEXTO",
+              tdo_formato_codigo:
+                item?.tdo_formato_codigo ?? item?.formatoCodigo ?? null,
+              tdo_formato_codigo_secundario:
+                item?.tdo_formato_codigo_secundario ??
+                item?.formatoCodigoSecundario ??
+                null,
+              tdo_revision: item?.tdo_revision ?? item?.revision ?? null,
+              tdo_paginas_total:
+                item?.tdo_paginas_total ?? item?.paginasTotal ?? null,
             };
           }
         });

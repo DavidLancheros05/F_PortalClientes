@@ -2,7 +2,7 @@
 import { solicitudesService } from "@/services/solicitudes.service";
 import { parametrosService } from "@/services/parametros.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { ConfirmModal, SuccessModal, LoadingModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -197,40 +197,17 @@ export default function RegistrarConceptoPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando solicitud..." />;
-  }
-
-  if (!solicitud) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">No se encontró la solicitud</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const fechaEstimada =
-    (solicitud as any).sol_fecha_estimada_ejecutivo ||
-    (solicitud as any).fecha_estimada_ejecutivo;
+    (solicitud as any)?.sol_fecha_estimada_ejecutivo ||
+    (solicitud as any)?.fecha_estimada_ejecutivo;
 
   const pasos = [
     {
       id: "creada",
       nombre: "Creada",
       estado: "completado" as const,
-      fecha: solicitud.sol_fecha_creacion || solicitud.fecha_creacion,
-      usuario: solicitud.cliente_nombre || solicitud.usuario_registro,
+      fecha: solicitud?.sol_fecha_creacion || solicitud?.fecha_creacion,
+      usuario: solicitud?.cliente_nombre || solicitud?.usuario_registro,
       dias: diasRespuesta["Creada"] ?? 0,
     },
     {
@@ -283,17 +260,36 @@ export default function RegistrarConceptoPage() {
                 <h1 className="text-lg md:text-xl font-bold text-white">
                   Registrar Concepto Ejecutivo
                 </h1>
-                <p className="text-xs md:text-sm text-blue-100 truncate">
-                  Solicitud:{" "}
-                  <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud ||
-                      solicitud.numero_solicitud}
-                  </span>
-                </p>
+                {solicitud && (
+                  <p className="text-xs md:text-sm text-blue-100 truncate">
+                    Solicitud:{" "}
+                    <span className="font-semibold text-white">
+                      {solicitud.sol_numero_solicitud ||
+                        solicitud.numero_solicitud}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          {loading ? (
+            <div className="px-8 py-6 animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="h-48 bg-gray-100 rounded" />
+            </div>
+          ) : !solicitud ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-600">No se encontró la solicitud</p>
+            </div>
+          ) : (
+          <>
           {/* Información de la solicitud */}
           <div className="px-8 py-6 border-b border-gray-200 bg-white/50">
             <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
@@ -434,6 +430,8 @@ export default function RegistrarConceptoPage() {
               />
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 

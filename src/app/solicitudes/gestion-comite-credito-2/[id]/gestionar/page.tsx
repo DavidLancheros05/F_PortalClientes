@@ -2,7 +2,9 @@
 import { solicitudesService } from "@/services/solicitudes.service";
 import { parametrosService } from "@/services/parametros.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { ConfirmModal, SuccessModal, LoadingModal } from "@/components/modals";
+import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
+import { SoportesAnalisis } from "@/components/SoportesAnalisis";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -44,6 +46,7 @@ interface RegistroState {
   guardando: boolean;
   // Condiciones Financieras
   cupo: string;
+  cupoDisplay: string;
   plazoPago: string;
   formaPago: string;
   nombreAprueba: string;
@@ -65,10 +68,19 @@ export default function GestionComiteCredito2Page() {
   const [loading, setLoading] = useState(true);
   const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
   const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
+  // Etapas previas a Comité de Crédito 2 — CC2 necesita ver qué se subió y
+  // qué se comentó en cada una, no solo el formulario del cliente.
+  const etapasPrevias = [
+    { codigo: "EJN", wetId: 2, nombre: "Ejecutivo de Negocios" },
+    { codigo: "ASC", wetId: 3, nombre: "Auxiliar Servicio Cliente" },
+    { codigo: "OFC", wetId: 4, nombre: "Oficial de Cumplimiento" },
+    { codigo: "CC1", wetId: 5, nombre: "Comité de Crédito 1" },
+  ];
   const [registro, setRegistro] = useState<RegistroState>({
     recomendacion: "",
     guardando: false,
     cupo: "",
+    cupoDisplay: "",
     plazoPago: "",
     formaPago: "",
     nombreAprueba: user?.nombre || "",
@@ -106,6 +118,21 @@ export default function GestionComiteCredito2Page() {
 
     cargarDatos();
   }, [solicitudId]);
+
+  const formatNumberWithThousands = (value: string): string => {
+    const cleaned = value.replace(/\D/g, "");
+    if (!cleaned) return "";
+    return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const handleCupoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = e.target.value.replace(/\D/g, "");
+    setRegistro((prev) => ({
+      ...prev,
+      cupo: cleaned,
+      cupoDisplay: formatNumberWithThousands(cleaned),
+    }));
+  };
 
   const handleGuardarRevision = () => {
     console.log("[handleGuardarRevision] Iniciando validación...");
@@ -189,66 +216,10 @@ export default function GestionComiteCredito2Page() {
     }
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando solicitud..." />;
-  }
-
-  if (!solicitud) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">No se encontró la solicitud</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const fechaEstimada =
-    (solicitud as any).sol_fecha_estimada_comite_credito_2 ||
-    solicitud.sol_fecha_estimada_respuesta_comercial ||
-    solicitud.fecha_estimada_respuesta_comercial;
-
-  const pasos = [
-    {
-      id: "creada",
-      nombre: "Creada",
-      estado: "completado" as const,
-      fecha: solicitud.sol_fecha_creacion || solicitud.fecha_creacion,
-      usuario: solicitud.usuario_registro,
-      dias: diasRespuesta["Creada"] ?? 0,
-    },
-    {
-      id: "comite-credito-1",
-      nombre: "Comité Crédito 1",
-      estado: "completado" as const,
-      fecha: new Date().toISOString(),
-      usuario: "-",
-      dias: diasRespuesta["Comité Crédito 1"] ?? 2,
-    },
-    {
-      id: "comite-credito-2",
-      nombre: "Comité Crédito 2",
-      estado: "en_curso" as const,
-      fecha: new Date().toISOString(),
-      usuario: user?.nombre || user?.email || "-",
-      dias: diasRespuesta["Comité Crédito 2"] ?? 2,
-    },
-    {
-      id: "aprobada",
-      nombre: "Aprobada",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Aprobada"] ?? 5,
-    },
-  ];
+    (solicitud as any)?.sol_fecha_estimada_comite_credito_2 ||
+    solicitud?.sol_fecha_estimada_respuesta_comercial ||
+    solicitud?.fecha_estimada_respuesta_comercial;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
@@ -272,17 +243,36 @@ export default function GestionComiteCredito2Page() {
                 <h1 className="text-lg md:text-xl font-bold text-white">
                   Gestión Comité Crédito 2
                 </h1>
-                <p className="text-xs md:text-sm text-blue-100 truncate">
-                  Solicitud:{" "}
-                  <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud ||
-                      solicitud.numero_solicitud}
-                  </span>
-                </p>
+                {solicitud && (
+                  <p className="text-xs md:text-sm text-blue-100 truncate">
+                    Solicitud:{" "}
+                    <span className="font-semibold text-white">
+                      {solicitud.sol_numero_solicitud ||
+                        solicitud.numero_solicitud}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          {loading ? (
+            <div className="px-8 py-6 animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="h-48 bg-gray-100 rounded" />
+            </div>
+          ) : !solicitud ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-600">No se encontró la solicitud</p>
+            </div>
+          ) : (
+          <>
           {/* Información de la solicitud */}
           <div className="px-8 py-6 border-b border-gray-200 bg-white/50">
             <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
@@ -354,6 +344,34 @@ export default function GestionComiteCredito2Page() {
               </h2>
 
               <div className="space-y-6">
+                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+
+                {etapasPrevias.map((etapa) => {
+                  const comentario = historialWorkflow.find(
+                    (h) => h.etapaCodigo === etapa.codigo,
+                  )?.comentario;
+                  return (
+                    <div key={etapa.codigo} className="space-y-3">
+                      <SoportesAnalisis
+                        solicitudId={solicitud.sol_id}
+                        wetId={etapa.wetId}
+                        titulo={`Soportes de ${etapa.nombre}`}
+                        readOnly
+                      />
+                      {comentario && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <p className="text-sm font-semibold text-blue-900 mb-1">
+                            Comentario de {etapa.nombre}
+                          </p>
+                          <p className="text-sm text-blue-800 whitespace-pre-line">
+                            {comentario}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
                 {/* DECISION */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -410,15 +428,11 @@ export default function GestionComiteCredito2Page() {
                           Cupo ($) *
                         </label>
                         <input
-                          type="number"
-                          value={registro.cupo}
-                          onChange={(e) =>
-                            setRegistro((prev) => ({
-                              ...prev,
-                              cupo: e.target.value,
-                            }))
-                          }
-                          placeholder="Ej: 50000000"
+                          type="text"
+                          inputMode="numeric"
+                          value={registro.cupoDisplay}
+                          onChange={handleCupoChange}
+                          placeholder="Ej: 50.000.000"
                           className="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-green-50"
                         />
                       </div>
@@ -541,6 +555,8 @@ export default function GestionComiteCredito2Page() {
               <HistorialSolicitud historial={historialWorkflow} />
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 

@@ -3,7 +3,8 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { motivosRechazoService } from "@/services/admin/parametrizacion/motivos-rechazo.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { ConfirmModal, SuccessModal, LoadingModal } from "@/components/modals";
+import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -208,29 +209,6 @@ export default function GestionarSolicitudPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando solicitud..." />;
-  }
-
-  if (!solicitud) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">No se encontró la solicitud</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const fechaEstimada =
     (solicitud as any)?.sol_fecha_estimada_auxiliar_servicio_cliente ||
     (solicitud as any)?.fecha_estimada_auxiliar_servicio_cliente;
@@ -250,14 +228,40 @@ export default function GestionarSolicitudPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Aprobar o Rechazar Formulario de Solicitud
           </h1>
-          <p className="text-gray-600">
-            Aprueba o rechaza la solicitud:{" "}
-            <span className="font-semibold">
-              {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
-            </span>
-          </p>
+          {loading ? (
+            <div className="h-5 bg-gray-200 rounded w-64 animate-pulse" />
+          ) : solicitud ? (
+            <p className="text-gray-600">
+              Aprueba o rechaza la solicitud:{" "}
+              <span className="font-semibold">
+                {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+              </span>
+            </p>
+          ) : null}
         </div>
 
+        {loading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse">
+            <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/3" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="h-12 bg-gray-100 rounded" />
+                <div className="h-12 bg-gray-100 rounded" />
+                <div className="h-12 bg-gray-100 rounded" />
+                <div className="h-12 bg-gray-100 rounded" />
+              </div>
+            </div>
+            <div className="lg:col-span-1 space-y-6">
+              <div className="h-40 bg-white rounded-lg border border-gray-200" />
+            </div>
+          </div>
+        ) : !solicitud ? (
+          <div className="max-w-2xl">
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <p className="text-gray-600">No se encontró la solicitud</p>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Formulario de Gestión - Columna Izquierda (2/3) */}
           <div className="lg:col-span-2">
@@ -565,8 +569,11 @@ export default function GestionarSolicitudPage() {
             </div>
           </div>
 
-          {/* Historial - Columna Derecha (1/3) */}
-          <div className="lg:col-span-1">
+          {/* Documentos e Historial - Columna Derecha (1/3) */}
+          <div className="lg:col-span-1 space-y-6">
+            {solicitud && (
+              <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+            )}
             {solicitud && historial && (
               <HistorialSolicitud
                 historial={(historial?.historial || []).map(
@@ -588,6 +595,7 @@ export default function GestionarSolicitudPage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       <ConfirmModal

@@ -1,10 +1,22 @@
 "use client";
 
+import { useContext } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, InboxIcon, Clock, CheckCircle, BarChart3, Settings } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  InboxIcon,
+  Clock,
+  CheckCircle,
+  BarChart3,
+  Settings,
+} from "lucide-react";
+import { AuthContext } from "@/context/AuthContext";
 
 export default function PQRSPage() {
   const router = useRouter();
+  const { user } = useContext(AuthContext);
+  const isCliente = user?.rol?.nombre?.toUpperCase() === "CLIENTE";
 
   const opciones = [
     {
@@ -68,11 +80,14 @@ export default function PQRSPage() {
   const colorClasses = {
     blue: "border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700",
     green: "border-green-200 bg-green-50 hover:bg-green-100 text-green-700",
-    purple: "border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700",
-    orange: "border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700",
+    purple:
+      "border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700",
+    orange:
+      "border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700",
     cyan: "border-cyan-200 bg-cyan-50 hover:bg-cyan-100 text-cyan-700",
     slate: "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700",
-    indigo: "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700",
+    indigo:
+      "border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700",
     gray: "border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700",
   };
 
@@ -98,22 +113,32 @@ export default function PQRSPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {opciones.map((opcion) => {
-              const Icon = opcion.icon;
-              const colorClass = colorClasses[opcion.color as keyof typeof colorClasses];
+            {opciones
+              .filter((opcion) => {
+                if (!isCliente) return true;
+                return ["/pqrs/nueva", "/pqrs/mis-pqrs"].includes(opcion.href);
+              })
+              .map((opcion) => {
+                const Icon = opcion.icon;
+                const colorClass =
+                  colorClasses[opcion.color as keyof typeof colorClasses];
 
-              return (
-                <button
-                  key={opcion.href}
-                  onClick={() => router.push(opcion.href)}
-                  className={`p-6 rounded-xl border-2 transition-all hover:shadow-lg ${colorClass}`}
-                >
-                  <Icon className="h-8 w-8 mb-3" />
-                  <h3 className="font-semibold text-left mb-1">{opcion.titulo}</h3>
-                  <p className="text-sm opacity-80 text-left">{opcion.descripcion}</p>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={opcion.href}
+                    onClick={() => router.push(opcion.href)}
+                    className={`p-6 rounded-xl border-2 transition-all hover:shadow-lg ${colorClass}`}
+                  >
+                    <Icon className="h-8 w-8 mb-3" />
+                    <h3 className="font-semibold text-left mb-1">
+                      {opcion.titulo}
+                    </h3>
+                    <p className="text-sm opacity-80 text-left">
+                      {opcion.descripcion}
+                    </p>
+                  </button>
+                );
+              })}
           </div>
         </div>
       </div>

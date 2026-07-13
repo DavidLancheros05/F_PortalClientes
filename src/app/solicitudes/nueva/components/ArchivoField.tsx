@@ -1,13 +1,16 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { AlertTriangle, Calendar, CheckCircle, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
+import { CampoFechaVigencia } from "./CampoFechaVigencia";
 
 interface ArchivoFieldProps {
   pregunta: any;
   respuestas: Record<number, any>;
   archivosExistentes: Record<number, any>;
+  documentosCatalogoMap: Record<number, any>;
   errors: Record<number, string>;
   readOnly: boolean;
   solicitudId?: number;
@@ -15,18 +18,33 @@ interface ArchivoFieldProps {
   preguntaFechaAsociada?: any;
   shouldShowFechaAsociada: boolean;
   handleInputChange: (fp_id: number, value: any, tipo: string) => void;
+  setRespuestas: Dispatch<SetStateAction<Record<number, any>>>;
   validateField: (fp_id: number, rules: any) => void;
   getValidationRules: (pregunta: any) => any;
   getArchivoPreviewUrl: (archivo: any) => string | null;
   setArchivosExistentes: Dispatch<SetStateAction<Record<number, any>>>;
   setSuccessMessage: (value: string) => void;
   setErrorMessage: (value: string) => void;
+  calcularVigenciaDocumento: (
+    fechaEmision?: string,
+    vigenciaDias?: number | null,
+  ) => { diasRestantes: number; fechaVencimiento: Date } | null;
+  calcularEstadoAnioDocumento: (
+    fechaEmision?: string,
+    aniosAtrasPermitidos?: number | null,
+  ) => {
+    valido: boolean;
+    anioDocumento: number;
+    anioMinimo: number;
+    anioMaximo: number;
+  } | null;
 }
 
 export function ArchivoField({
   pregunta,
   respuestas,
   archivosExistentes,
+  documentosCatalogoMap,
   errors,
   readOnly,
   solicitudId,
@@ -34,13 +52,45 @@ export function ArchivoField({
   preguntaFechaAsociada,
   shouldShowFechaAsociada,
   handleInputChange,
+  setRespuestas,
   validateField,
   getValidationRules,
   getArchivoPreviewUrl,
   setArchivosExistentes,
   setSuccessMessage,
   setErrorMessage,
+  calcularVigenciaDocumento,
+  calcularEstadoAnioDocumento,
 }: ArchivoFieldProps) {
+  // shouldShowFechaAsociada solo gobierna la rama "pregunta hija" (fecha
+  // vinculada manualmente); si no debe mostrarse, se trata como si no
+  // existiera para que el hook caiga al criterio de
+  // tdo_permite_vencimiento/regla_vigencia.
+  const preguntaFechaActiva = shouldShowFechaAsociada
+    ? preguntaFechaAsociada
+    : undefined;
+
+  const {
+    documento,
+    vigenciaDias,
+    esReglaAnio,
+    fechaInputValue,
+    hoy,
+    resumenVigencia,
+    resumenAnio,
+    mostrarCampoFecha,
+    guardarFecha,
+  } = useDocumentoVigencia({
+    pregunta,
+    respuestas,
+    archivosExistentes,
+    documentosCatalogoMap,
+    preguntaFechaAsociada: preguntaFechaActiva,
+    setRespuestas,
+    calcularVigenciaDocumento,
+    calcularEstadoAnioDocumento,
+  });
+
   return (
     <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
       <div className="flex items-center justify-between gap-1 rounded-lg border border-blue-100 bg-white/80 px-2 py-1">
@@ -189,50 +239,36 @@ export function ArchivoField({
         </div>
       )}
 
-      {preguntaFechaAsociada && shouldShowFechaAsociada && (
-        <div className="mt-1 p-2 bg-blue-50/60 border border-blue-200 rounded-lg">
-          <p className="text-xs font-semibold uppercase tracking-tight text-blue-700 mb-1">
-            Fecha del documento
-          </p>
-          <label className="mb-1 flex items-center gap-1 text-xs font-medium text-blue-900">
-            <Calendar className="h-3 w-3" />
-            {preguntaFechaAsociada.fp_descripcion}
-            {preguntaFechaAsociada.fp_requerida && (
-              <span className="text-red-500 ml-0.5">*</span>
-            )}
-          </label>
-          <input
-            type="date"
-            value={respuestas[preguntaFechaAsociada.fp_id]?.valor_fecha || ""}
-            onChange={(e) =>
-              handleInputChange(
-                preguntaFechaAsociada.fp_id,
-                e.target.value,
-                "FECHA",
-              )
-            }
-            onBlur={() =>
-              validateField(
-                preguntaFechaAsociada.fp_id,
-                getValidationRules(preguntaFechaAsociada),
-              )
-            }
-            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors[preguntaFechaAsociada.fp_id]
-                ? "border-red-500"
-                : "border-gray-300"
-            }`}
+      {mostrarCampoFecha && (
+        <>
+          <CampoFechaVigencia
+            fechaInputValue={fechaInputValue}
+            hoy={hoy}
+            esReglaAnio={esReglaAnio}
+            vigenciaDias={vigenciaDias}
+            documento={documento}
+            resumenVigencia={resumenVigencia}
+            resumenAnio={resumenAnio}
+            preguntaFechaAsociada={preguntaFechaActiva}
+            readOnly={readOnly}
+            hasError={errors[preguntaFechaActiva?.fp_id]}
+            onChange={(fecha) => {
+              guardarFecha(fecha);
+              if (preguntaFechaActiva) {
+                validateField(
+                  preguntaFechaActiva.fp_id,
+                  getValidationRules(preguntaFechaActiva),
+                );
+              }
+            }}
           />
-          <p className="text-xs text-blue-700 mt-1">
-            Esta fecha corresponde al documento seleccionado.
-          </p>
-          {!readOnly && errors[preguntaFechaAsociada.fp_id] && (
+          {!readOnly && preguntaFechaActiva && errors[preguntaFechaActiva.fp_id] && (
             <div className="flex items-center gap-0.5 text-red-500 text-xs mt-1">
               <AlertTriangle className="h-3 w-3" />
-              {errors[preguntaFechaAsociada.fp_id]}
+              {errors[preguntaFechaActiva.fp_id]}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

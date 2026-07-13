@@ -16,8 +16,6 @@ import {
   formulariosService,
   type Formulario,
 } from "@/services/parametrizacion/formularios.service";
-import { LoadingModal } from "@/components/modals";
-
 export default function FormulariosPage() {
   const router = useRouter();
   const [formularios, setFormularios] = useState<Formulario[]>([]);
@@ -68,10 +66,6 @@ export default function FormulariosPage() {
       await cargarFormularios();
     }
   };
-
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando formularios..." />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
@@ -171,7 +165,20 @@ export default function FormulariosPage() {
             </div>
 
             <div className="p-4 md:p-6">
-              {formulariosFiltrados.length === 0 ? (
+              {loading ? (
+                <div className="grid gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-pulse"
+                    >
+                      <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
+                      <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : formulariosFiltrados.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600">

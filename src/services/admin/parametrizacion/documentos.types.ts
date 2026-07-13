@@ -14,6 +14,10 @@ export interface TipoDocumento {
   tienePlantilla: boolean;
   tipoPlantilla: "TEXTO" | "PDF_SOLICITUD";
   plantillaContenido: string | null;
+  formatoCodigo: string | null;
+  formatoCodigoSecundario: string | null;
+  revision: string | null;
+  paginasTotal: number | null;
 }
 
 export interface TipoDocumentoPayload {
@@ -29,4 +33,8 @@ export interface TipoDocumentoPayload {
   tienePlantilla?: boolean;
   tipoPlantilla?: "TEXTO" | "PDF_SOLICITUD";
   plantillaContenido?: string;
+  formatoCodigo?: string;
+  formatoCodigoSecundario?: string;
+  revision?: string;
+  paginasTotal?: number;
 }

@@ -2,7 +2,9 @@
 import { solicitudesService } from "@/services/solicitudes.service";
 import { parametrosService } from "@/services/parametros.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { ConfirmModal, SuccessModal, LoadingModal } from "@/components/modals";
+import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
+import { SoportesAnalisis } from "@/components/SoportesAnalisis";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -147,78 +149,22 @@ export default function GestionOCPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando solicitud..." />;
-  }
-
-  if (!solicitud) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">No se encontró la solicitud</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const fechaEstimada =
-    (solicitud as any).sol_fecha_estimada_oficial_cumplimiento ||
-    solicitud.sol_fecha_estimada_respuesta_comercial ||
-    solicitud.fecha_estimada_respuesta_comercial;
-
-  const pasos = [
-    {
-      id: "creada",
-      nombre: "Creada",
-      estado: "completado" as const,
-      fecha: solicitud.sol_fecha_creacion || solicitud.fecha_creacion,
-      usuario: solicitud.usuario_registro,
-      dias: diasRespuesta["Creada"] ?? 0,
-    },
-    {
-      id: "concepto",
-      nombre: "Concepto",
-      estado: "completado" as const,
-      fecha: new Date().toISOString(),
-      usuario: solicitud.ejecutivo_nombre || "-",
-      dias: diasRespuesta["Concepto"] ?? 1,
-    },
-    {
-      id: "cumplimiento",
-      nombre: "Cumplimiento",
-      estado: "en_curso" as const,
-      fecha: new Date().toISOString(),
-      usuario: "-",
-      dias: diasRespuesta["Cumplimiento"] ?? 1,
-    },
-    {
-      id: "aprobada",
-      nombre: "Aprobada",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Aprobada"] ?? 5,
-    },
-  ];
+    (solicitud as any)?.sol_fecha_estimada_oficial_cumplimiento ||
+    solicitud?.sol_fecha_estimada_respuesta_comercial ||
+    solicitud?.fecha_estimada_respuesta_comercial;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-      <div className="max-w-full mx-auto mt-2 px-2">
+      <div className="max-w-[90%] mx-auto mt-2 px-2">
         {/* Main Card */}
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.back()}
-                className="inline-flex items-center gap-1 text-xs font-medium text-purple-100 hover:text-white transition-colors flex-shrink-0"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
               >
                 <ArrowLeft size={16} />
                 Volver
@@ -230,17 +176,36 @@ export default function GestionOCPage() {
                 <h1 className="text-lg md:text-xl font-bold text-white">
                   Gestión Oficial de Cumplimiento
                 </h1>
-                <p className="text-xs md:text-sm text-purple-100 truncate">
-                  Solicitud:{" "}
-                  <span className="font-semibold text-white">
-                    {solicitud.sol_numero_solicitud ||
-                      solicitud.numero_solicitud}
-                  </span>
-                </p>
+                {solicitud && (
+                  <p className="text-xs md:text-sm text-blue-100 truncate">
+                    Solicitud:{" "}
+                    <span className="font-semibold text-white">
+                      {solicitud.sol_numero_solicitud ||
+                        solicitud.numero_solicitud}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
+          {loading ? (
+            <div className="px-8 py-6 animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="h-48 bg-gray-100 rounded" />
+            </div>
+          ) : !solicitud ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-600">No se encontró la solicitud</p>
+            </div>
+          ) : (
+          <>
           {/* Información de la solicitud */}
           <div className="px-8 py-6 border-b border-gray-200 bg-white/50">
             <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
@@ -302,12 +267,14 @@ export default function GestionOCPage() {
             </div>
           </div>
 
-          {/* Contenido en dos columnas */}
-          <div className="grid grid-cols-3 gap-6 px-8 py-8">
+          {/* Contenido en dos columnas: el formulario aprovecha todo el
+              espacio que el historial no está usando (angosto o plegado),
+              en vez de quedar fijo en 2/3 aunque el historial ocupe menos */}
+          <div className="flex gap-6 px-8 py-8">
             {/* Formulario de revisión - Izquierda */}
-            <div className="col-span-2">
+            <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <CheckCircle size={24} className="text-purple-600" />
+                <CheckCircle size={24} className="text-blue-600" />
                 Revisión de Cumplimiento
               </h2>
 
@@ -341,10 +308,14 @@ export default function GestionOCPage() {
                   </div>
                 </div>
 
+                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+
+                <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={4} />
+
                 {/* Observaciones de Cumplimiento */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-purple-600" />
+                    <MessageSquare size={18} className="text-blue-600" />
                     Observaciones de Cumplimiento *
                   </label>
                   <textarea
@@ -357,7 +328,7 @@ export default function GestionOCPage() {
                     }
                     placeholder="Describe los hallazgos y observaciones de la revisión de cumplimiento..."
                     rows={6}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                   />
                   <p className="text-xs text-gray-500 mt-2">
                     Mínimo 10 caracteres requeridos
@@ -471,7 +442,7 @@ export default function GestionOCPage() {
                           registro.motivoRechazo.length < 10)) ||
                       registro.guardando
                     }
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {registro.guardando ? "Guardando..." : "Guardar Revisión"}
                   </button>
@@ -487,10 +458,12 @@ export default function GestionOCPage() {
             </div>
 
             {/* Historial - Derecha */}
-            <div className="col-span-1">
+            <div className="flex-shrink-0">
               <HistorialSolicitud historial={historialWorkflow} />
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
 
@@ -509,10 +482,8 @@ export default function GestionOCPage() {
       <SuccessModal
         isOpen={showSuccessModal}
         title="¡Éxito!"
-        message="La revisión de cumplimiento fue registrada correctamente. Serás redirigido a la lista de solicitudes."
+        message="La revisión de cumplimiento fue registrada correctamente."
         actionText="Aceptar"
-        autoClose={true}
-        autoCloseDelay={3000}
         onAction={() =>
           router.push("/solicitudes/gestion-oficial-de-cumplimiento")
         }

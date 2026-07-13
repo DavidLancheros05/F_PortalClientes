@@ -17,7 +17,6 @@ import {
   Clock,
 } from "lucide-react";
 import { versionesService } from "@/services/versiones.service";
-import { LoadingModal } from "@/components/modals";
 
 export default function VersionesPage() {
   const router = useRouter();
@@ -64,29 +63,6 @@ export default function VersionesPage() {
     cargar();
   }, [formularioId]);
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando versiones..." />;
-  }
-
-  if (!formulario) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">
-            Formulario no encontrado
-          </h2>
-          <button
-            onClick={() => router.push("/parametrizacion/formulario-editor")}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Volver al listado
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -102,6 +78,26 @@ export default function VersionesPage() {
               <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             </button>
 
+            {loading ? (
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-64 mb-4" />
+                <div className="h-6 bg-gray-200 rounded w-80 mb-3" />
+                <div className="h-4 bg-gray-100 rounded w-48" />
+              </div>
+            ) : !formulario ? (
+              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-200">
+                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h2 className="text-2xl font-semibold text-gray-700 mb-2">
+                  Formulario no encontrado
+                </h2>
+                <button
+                  onClick={() => router.push("/parametrizacion/formulario-editor")}
+                  className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  Volver al listado
+                </button>
+              </div>
+            ) : (
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex-1">
@@ -144,9 +140,11 @@ export default function VersionesPage() {
                 </button>
               </div>
             </div>
+            )}
           </div>
 
           {/* Timeline de versiones */}
+          {!loading && formulario && (
           <div className="relative">
             <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-300 via-blue-400 to-blue-300 hidden md:block"></div>
 
@@ -326,6 +324,7 @@ export default function VersionesPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

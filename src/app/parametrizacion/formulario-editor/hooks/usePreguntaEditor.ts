@@ -47,6 +47,7 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   tabla_limite_pregunta_id: null,
   tabla_limite_reglas: [],
   oculto_en_formulario: false,
+  espacio_lineas: "",
 };
 
 type PreguntaEditorDeps = {
@@ -637,6 +638,13 @@ export function usePreguntaEditor({
                   : null,
             }
           : {}),
+        ...(formPregunta.tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA
+          ? {
+              fp_maximo: formPregunta.espacio_lineas.trim()
+                ? parseInt(formPregunta.espacio_lineas, 10)
+                : 5,
+            }
+          : {}),
       };
 
       if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT) {
@@ -790,6 +798,11 @@ export function usePreguntaEditor({
           | "CONDICIONAL") || "SIN_LIMITE",
       tabla_limite_fijo:
         pregunta.fp_tabla_limite_modo === "FIJO" && pregunta.fp_maximo != null
+          ? String(pregunta.fp_maximo)
+          : "",
+      espacio_lineas:
+        pregunta.fp_tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA &&
+        pregunta.fp_maximo != null
           ? String(pregunta.fp_maximo)
           : "",
       tabla_limite_seccion_id:

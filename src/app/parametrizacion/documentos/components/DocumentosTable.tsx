@@ -87,9 +87,6 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
               Vigencia
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Obligatorio
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
               Genera documento
             </th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
@@ -104,7 +101,7 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
           {items.length === 0 ? (
             <tr>
               <td
-                colSpan={8}
+                colSpan={7}
                 className="px-4 py-8 text-center text-xs text-slate-500"
               >
                 No hay tipos de documentos para mostrar.
@@ -129,9 +126,6 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-700">
                   {getVigenciaDisplay(tipo)}
-                </td>
-                <td className="px-4 py-3 text-xs text-slate-700">
-                  {tipo.obligatorio ? "Sí" : "No"}
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {tipo.tienePlantilla ? (

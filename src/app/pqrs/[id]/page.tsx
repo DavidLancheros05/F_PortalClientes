@@ -15,7 +15,6 @@ import { pqrsService } from "@/services/pqrs.service";
 import { StateBadge } from "@/components/pqrs/StateBadge";
 import { PQRSTimeline } from "@/components/pqrs/PQRSTimeline";
 import { PQRSComments } from "@/components/pqrs/PQRSComments";
-import { LoadingModal } from "@/components/modals";
 
 interface PQRSDetalle {
   pqrs_id: number;
@@ -134,22 +133,29 @@ export default function PQRSDetallePage() {
     }
   };
 
-  if (loading) {
-    return <LoadingModal isOpen message="Cargando detalles..." />;
-  }
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
+          <button
+            onClick={() => router.push("/pqrs/mis-pqrs")}
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </button>
 
-  if (!pqrs || error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-            <button
-              onClick={() => router.push("/pqrs/mis-pqrs")}
-              className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-6"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Volver
-            </button>
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-gray-200 rounded w-2/3" />
+              <div className="h-4 bg-gray-200 rounded w-1/3" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="h-16 bg-gray-100 rounded-lg" />
+                <div className="h-16 bg-gray-100 rounded-lg" />
+              </div>
+              <div className="h-32 bg-gray-100 rounded-lg" />
+            </div>
+          ) : !pqrs || error ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
               <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-red-900 mb-2">
@@ -165,24 +171,8 @@ export default function PQRSDetallePage() {
                 Volver a Mis PQRS
               </button>
             </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <button
-            onClick={() => router.push("/pqrs/mis-pqrs")}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </button>
-
+          ) : (
+          <>
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
@@ -306,6 +296,8 @@ export default function PQRSDetallePage() {
             <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
               {error}
             </div>
+          )}
+          </>
           )}
         </div>
       </div>

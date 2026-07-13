@@ -327,6 +327,37 @@ export const solicitudesService = {
     return workflowSolicitudesService.guardarConceptoComiteCredito2(id, data);
   },
 
+  // Documentos cargados de una solicitud (uso interno, pantallas de gestión)
+  async getDocumentosPorSolicitud(id: number) {
+    const response = await api.get(`/solicitudes/${id}/documentos`);
+    return response.data?.data ?? [];
+  },
+
+  // Soportes de análisis (archivos que sube el personal interno para
+  // respaldar su revisión, ej. Oficial de Cumplimiento)
+  async getSoportesAnalisis(id: number, wetId: number) {
+    const response = await api.get(`/solicitudes/${id}/soportes-analisis`, {
+      params: { wet_id: wetId },
+    });
+    return response.data?.data ?? [];
+  },
+
+  async subirSoporteAnalisis(id: number, wetId: number, file: File) {
+    const formData = new FormData();
+    formData.append("archivo", file);
+    formData.append("wet_id", String(wetId));
+    const response = await api.post(
+      `/solicitudes/${id}/soportes-analisis`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data;
+  },
+
+  async eliminarSoporteAnalisis(id: number, ssaId: number) {
+    await api.delete(`/solicitudes/${id}/soportes-analisis/${ssaId}`);
+  },
+
   // Descargar PDF de una solicitud
   async downloadPdf(id: number) {
     const response = await api.get(`/solicitudes/${id}/pdf`, {

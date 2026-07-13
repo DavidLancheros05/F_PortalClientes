@@ -142,7 +142,7 @@ export default function GestionComiteCredito2Page() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[64.8rem] mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -278,7 +278,7 @@ export default function GestionComiteCredito2Page() {
                   }
                 }}
                 disabled={loadingSolicitudes}
-                // className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Buscar
               </button>

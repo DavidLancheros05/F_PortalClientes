@@ -155,6 +155,17 @@ export default function MisDocumentosPage() {
     Object.keys(pendingFechas).length > 0 || huboSubidaSesion;
   const [enviando, setEnviando] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [busquedaInput, setBusquedaInput] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const documentosFiltrados = busqueda.trim()
+    ? documentos.filter((doc) => {
+        const termino = busqueda.trim().toLowerCase();
+        return (
+          doc.tdo_nombre?.toLowerCase().includes(termino) ||
+          doc.sa_nombre_original?.toLowerCase().includes(termino)
+        );
+      })
+    : documentos;
 
   const cargar = async () => {
     try {
@@ -239,6 +250,10 @@ export default function MisDocumentosPage() {
           numeroSolicitud: solicitud.sol_numero_solicitud,
           representanteLegalNombre: repLegal?.nombre,
           representanteLegalCedula: repLegal?.identificacion,
+          formatoCodigo: doc.tdo_formato_codigo,
+          formatoCodigoSecundario: doc.tdo_formato_codigo_secundario,
+          revision: doc.tdo_revision,
+          paginasTotal: doc.tdo_paginas_total,
         });
       }
     } catch (error) {
@@ -305,6 +320,10 @@ export default function MisDocumentosPage() {
           numeroSolicitud: solicitud.sol_numero_solicitud,
           representanteLegalNombre: repLegal?.nombre,
           representanteLegalCedula: repLegal?.identificacion,
+          formatoCodigo: doc.tdo_formato_codigo,
+          formatoCodigoSecundario: doc.tdo_formato_codigo_secundario,
+          revision: doc.tdo_revision,
+          paginasTotal: doc.tdo_paginas_total,
         });
       }
     } catch (error) {
@@ -569,20 +588,60 @@ export default function MisDocumentosPage() {
             No hay documentos cargados en esta solicitud.
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="px-4 py-3">Documento</th>
-                  <th className="px-4 py-3">Vigencia</th>
-                  <th className="px-4 py-3">Fecha de emisión</th>
-                  <th className="px-4 py-3">Archivo</th>
-                  <th className="px-4 py-3">Acciones</th>
-                  <th className="px-4 py-3">Cargado el</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documentos.map((doc) => {
+          <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setBusqueda(busquedaInput);
+              }}
+              className="mb-3 flex gap-2"
+            >
+              <input
+                type="text"
+                value={busquedaInput}
+                onChange={(e) => setBusquedaInput(e.target.value)}
+                placeholder="Buscar documento por nombre..."
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Buscar
+              </button>
+              {busqueda && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBusquedaInput("");
+                    setBusqueda("");
+                  }}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Limpiar
+                </button>
+              )}
+            </form>
+
+            {documentosFiltrados.length === 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
+                Ningún documento coincide con &quot;{busqueda}&quot;.
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-4 py-3">Documento</th>
+                      <th className="px-4 py-3">Vigencia</th>
+                      <th className="px-4 py-3">Fecha de emisión</th>
+                      <th className="px-4 py-3">Archivo</th>
+                      <th className="px-4 py-3">Acciones</th>
+                      <th className="px-4 py-3">Cargado el</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {documentosFiltrados.map((doc) => {
                   const estado = getEstadoVigencia(doc);
                   const editable = esDocumentoEditable(
                     doc,
@@ -734,9 +793,11 @@ export default function MisDocumentosPage() {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
 
         {rechazadoPorAuxiliar &&

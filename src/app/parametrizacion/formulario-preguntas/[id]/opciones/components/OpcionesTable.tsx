@@ -15,7 +15,34 @@ export default function OpcionesTable({
   onChange,
   loading,
 }: Props) {
-  if (loading) return <p>Cargando opciones...</p>;
+  if (loading) {
+    return (
+      <table className="w-full border">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2 text-left">Valor</th>
+            <th className="p-2">Estado</th>
+            <th className="p-2">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <tr key={i} className="border-t animate-pulse">
+              <td className="p-2">
+                <div className="h-4 bg-gray-200 rounded w-32" />
+              </td>
+              <td className="p-2 text-center">
+                <div className="h-4 bg-gray-200 rounded w-16 mx-auto" />
+              </td>
+              <td className="p-2 text-center">
+                <div className="h-4 bg-gray-200 rounded w-24 mx-auto" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
   if (!opciones.length) return <p>No hay opciones</p>;
 
   const toggleEstado = async (opcion: any) => {

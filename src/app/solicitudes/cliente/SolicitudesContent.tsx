@@ -116,6 +116,16 @@ export default function SolicitudesContent() {
       color: "bg-green-100 text-green-800",
       icon: CheckCircle,
     },
+    5: {
+      nombre: ESTADOS_MAP[5],
+      color: "bg-emerald-100 text-emerald-800",
+      icon: CheckCircle,
+    },
+    6: {
+      nombre: ESTADOS_MAP[6],
+      color: "bg-red-100 text-red-800",
+      icon: XCircle,
+    },
   };
 
   useEffect(() => {
@@ -527,6 +537,20 @@ export default function SolicitudesContent() {
                                 Formulario y documentos cargados
                                 correctamente. Puedes editar hasta que
                                 Cartonera revise tu solicitud.
+                              </span>
+                            ) : solicitud.sol_estado_id === 6 ? (
+                              <span className="text-sm text-red-700">
+                                Solicitud rechazada de forma definitiva
+                                {solicitud.sol_etapa_actual_id === 4
+                                  ? " por Cumplimiento"
+                                  : ""}
+                                . Revisa el correo enviado para más detalle.
+                              </span>
+                            ) : solicitud.sol_estado_id === 3 ? (
+                              <span className="text-sm text-blue-700">
+                                Tu solicitud está en revisión.
+                                Te avisaremos por correo cuando haya una
+                                decisión.
                               </span>
                             ) : (
                               <span className="text-gray-400">—</span>

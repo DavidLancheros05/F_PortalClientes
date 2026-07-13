@@ -22,6 +22,10 @@ export interface MiDocumento {
   tdo_tiene_plantilla: boolean | null;
   tdo_plantilla_contenido: string | null;
   tdo_tipo_plantilla: "TEXTO" | "PDF_SOLICITUD" | null;
+  tdo_formato_codigo?: string | null;
+  tdo_formato_codigo_secundario?: string | null;
+  tdo_revision?: string | null;
+  tdo_paginas_total?: number | null;
 }
 
 export interface DocumentoDiferidoPendiente {
@@ -29,6 +33,10 @@ export interface DocumentoDiferidoPendiente {
   tdo_nombre: string;
   tdo_plantilla_contenido: string | null;
   tdo_tipo_plantilla: "TEXTO" | "PDF_SOLICITUD";
+  tdo_formato_codigo?: string | null;
+  tdo_formato_codigo_secundario?: string | null;
+  tdo_revision?: string | null;
+  tdo_paginas_total?: number | null;
   fp_id: number;
 }
 

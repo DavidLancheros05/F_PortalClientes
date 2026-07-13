@@ -17,6 +17,7 @@ export const TIPOS_PREGUNTA = {
   ARCHIVO: 'ARCHIVO',
   TABLA: 'TABLA',
   IMAGEN: 'IMAGEN',
+  ESPACIO_FIRMA: 'ESPACIO_FIRMA',
 } as const;
 
 export type TipoPregunta = typeof TIPOS_PREGUNTA[keyof typeof TIPOS_PREGUNTA];

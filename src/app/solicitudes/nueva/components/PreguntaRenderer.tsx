@@ -459,6 +459,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           pregunta={pregunta}
           respuestas={respuestas}
           archivosExistentes={archivosExistentes}
+          documentosCatalogoMap={documentosCatalogoMap}
           errors={errors}
           readOnly={readOnly}
           solicitudId={solicitudId}
@@ -466,12 +467,15 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           preguntaFechaAsociada={preguntaFechaAsociada}
           shouldShowFechaAsociada={shouldShowFechaAsociada}
           handleInputChange={handleInputChange}
+          setRespuestas={setRespuestas}
           validateField={validateField}
           getValidationRules={getValidationRules}
           getArchivoPreviewUrl={getArchivoPreviewUrl}
           setArchivosExistentes={setArchivosExistentes}
           setSuccessMessage={setSuccessMessage}
           setErrorMessage={setErrorMessage}
+          calcularVigenciaDocumento={calcularVigenciaDocumento}
+          calcularEstadoAnioDocumento={calcularEstadoAnioDocumento}
         />
       )}
 
