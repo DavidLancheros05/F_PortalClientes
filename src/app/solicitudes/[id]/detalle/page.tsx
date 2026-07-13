@@ -27,6 +27,7 @@ interface SolicitudDetalle {
   sol_razon_social?: string;
   sol_nit_documento?: string;
   sol_direccion?: string;
+  cliente_direccion?: string;
   sol_telefono?: string;
   sol_consumo_mensual_proyectado?: number;
   sol_cupo_aprobado?: number;
@@ -63,6 +64,32 @@ function formatCurrency(value?: number | null) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function construirHtmlContenidoCarta(contenido: string): string {
+  const escapado = contenido.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  return escapado
+    .split("\n\n")
+    .map((bloque) => {
+      const lineas = bloque
+        .split("\n")
+        .map((linea) => linea.trim())
+        .filter(Boolean);
+      const items = lineas.filter((linea) => linea.startsWith("- "));
+      const titulo = lineas.find((linea) => !linea.startsWith("- "));
+
+      if (items.length > 0) {
+        const tituloHtml = titulo ? `<p class="cpv-list-title">${titulo}</p>` : "";
+        const itemsHtml = items
+          .map((item) => `<li>${item.replace(/^- /, "")}</li>`)
+          .join("");
+        return `${tituloHtml}<ul class="cpv-list">${itemsHtml}</ul>`;
+      }
+
+      return `<p>${bloque.trim().replace(/\n/g, "<br/>")}</p>`;
+    })
+    .join("");
 }
 
 function getEstadoBadgeClass(estadoId: number) {
@@ -138,97 +165,92 @@ export default function DetalleDetailPage() {
         contenido = contenido.replace(new RegExp(placeholder, "g"), valor);
       });
 
-      // Crear HTML para el PDF
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-            }
-            html, body {
-              height: 100%;
-            }
-            body {
-              font-family: 'Arial', 'Helvetica', sans-serif;
-              line-height: 1.8;
-              color: #333;
-              padding: 40px;
-              background: white;
-              font-size: 14px;
-            }
-            .container {
-              max-width: 800px;
-              margin: 0 auto;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 20px;
-              border-bottom: 3px solid #0066cc;
-            }
-            .header h1 {
-              color: #0066cc;
-              margin: 0 0 10px 0;
-              font-size: 28px;
-              font-weight: bold;
-            }
-            .header p {
-              margin: 5px 0;
-              font-size: 13px;
-              color: #666;
-            }
-            .content {
-              white-space: pre-wrap;
-              word-wrap: break-word;
-              font-family: 'Georgia', serif;
-              line-height: 1.9;
-              text-align: justify;
-              margin: 30px 0;
-              padding: 20px;
-              background: #f9f9f9;
-              border-radius: 4px;
-            }
-            .content p {
-              margin: 15px 0;
-              text-indent: 40px;
-            }
-            .content p:first-child {
-              text-indent: 0;
-            }
-            .footer {
-              margin-top: 50px;
-              padding-top: 20px;
-              text-align: center;
-              font-size: 11px;
-              color: #999;
-              border-top: 1px solid #ddd;
-            }
-            @media print {
-              body {
-                padding: 20px;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Carta de Vinculación Comercial</h1>
-              <p>Solicitud: ${solicitud.sol_numero_solicitud}</p>
-              <p>Fecha: ${new Date().toLocaleDateString("es-CO")}</p>
-            </div>
-            <div class="content">${contenido.replace(/</g, "&lt;").replace(/>/g, "&gt;").split("\n\n").map(p => `<p>${p.trim().replace(/\n/g, "<br/>")}</p>`).join("")}</div>
-            <div class="footer">
-              <p>Documento generado automáticamente el ${new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-              <p>Sistema de Vinculación Comercial - CARTONERA</p>
-            </div>
+      // Crear el contenido como elemento DOM real: html2pdf().from(string) pasa por
+      // DOMPurify internamente, que descarta por completo <head>/<style> (están en su
+      // DEFAULT_FORBID_CONTENTS), así que un string con <style> pierde todo el CSS
+      // silenciosamente. Pasar un elemento evita ese saneamiento.
+      const container = document.createElement("div");
+      container.innerHTML = `
+        <style>
+          .cpv-container {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            line-height: 1.8;
+            color: #333;
+            padding: 40px;
+            background: white;
+            font-size: 14px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .cpv-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #0066cc;
+          }
+          .cpv-header h1 {
+            color: #0066cc;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: bold;
+          }
+          .cpv-header p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #666;
+          }
+          .cpv-content {
+            word-wrap: break-word;
+            font-family: 'Georgia', serif;
+            line-height: 1.9;
+            text-align: justify;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 4px;
+          }
+          .cpv-content p {
+            margin: 15px 0;
+            text-indent: 40px;
+          }
+          .cpv-content p:first-child {
+            text-indent: 0;
+          }
+          .cpv-list {
+            list-style: disc;
+            text-align: left;
+            margin: 6px 0 20px 0;
+            padding-left: 40px;
+          }
+          .cpv-list li {
+            margin: 4px 0;
+          }
+          .cpv-list-title {
+            text-indent: 0;
+            font-weight: bold;
+            margin: 15px 0 5px 0;
+          }
+          .cpv-footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            border-top: 1px solid #ddd;
+          }
+        </style>
+        <div class="cpv-container">
+          <div class="cpv-header">
+            <h1>Carta de Vinculación Comercial</h1>
+            <p>Solicitud: ${solicitud.sol_numero_solicitud}</p>
+            <p>Fecha: ${new Date().toLocaleDateString("es-CO")}</p>
           </div>
-        </body>
-        </html>
+          <div class="cpv-content">${construirHtmlContenidoCarta(contenido)}</div>
+          <div class="cpv-footer">
+            <p>Documento generado automáticamente el ${new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+            <p>Sistema de Vinculación Comercial - CARTONERA</p>
+          </div>
+        </div>
       `;
 
       // Generar PDF y abrir en nueva pestaña
@@ -242,14 +264,21 @@ export default function DetalleDetailPage() {
       };
 
       // Generar el PDF y convertirlo a Blob
-      const pdf = html2pdf().set(opt).from(htmlContent);
+      const pdf = html2pdf().set(opt).from(container);
 
       // Obtener el PDF como Blob y abrirlo en una nueva pestaña
-      pdf.toPdf().get("pdf").then((pdfObj: any) => {
-        const blob = pdfObj.output("blob");
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
-      });
+      pdf
+        .toPdf()
+        .get("pdf")
+        .then((pdfObj: any) => {
+          const blob = pdfObj.output("blob");
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank");
+        })
+        .catch((err: unknown) => {
+          console.error("Error generando el PDF de la carta:", err);
+          alert("Error al generar el PDF");
+        });
     } catch (err) {
       console.error("Error generando PDF:", err);
       alert("Error al generar el PDF");
@@ -451,7 +480,7 @@ export default function DetalleDetailPage() {
               <div>
                 <p className="text-xs text-gray-500 uppercase">Dirección</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_direccion || "-"}
+                  {solicitud.sol_direccion || solicitud.cliente_direccion || "-"}
                 </p>
               </div>
               <div>
