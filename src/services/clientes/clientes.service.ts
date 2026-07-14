@@ -35,6 +35,13 @@ export const clientesService = {
     return res.data;
   },
 
+  // Solo clientes con al menos una solicitud aprobada — para selectores
+  // donde no aplica cualquier registro (ej. Ampliación de Cupo).
+  getAprobados: async (): Promise<ClienteListResponse[]> => {
+    const res = await api.get("/clientes/aprobados");
+    return res.data;
+  },
+
   getClientesByCentro: async (
     centroId: number,
   ): Promise<ClienteListResponse[]> => {

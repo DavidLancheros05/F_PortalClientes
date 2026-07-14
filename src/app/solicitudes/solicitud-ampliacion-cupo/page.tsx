@@ -28,7 +28,7 @@ interface FormData {
   justificacion: string;
 }
 
-export default function AmpliacionCupoEJNPage() {
+export default function AmpliacionCupoPage() {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -58,7 +58,7 @@ export default function AmpliacionCupoEJNPage() {
     async function cargarClientes() {
       try {
         setLoading(true);
-        const datos = await clientesService.getAll();
+        const datos = await clientesService.getAprobados();
         setClientes(datos);
       } catch (error) {
         console.error("Error cargando clientes:", error);
