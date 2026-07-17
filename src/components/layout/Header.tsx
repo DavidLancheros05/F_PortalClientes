@@ -59,6 +59,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       .trim()
       .toUpperCase(),
   );
+  const isCliente = String(rol || "").trim().toUpperCase() === "CLIENTE";
 
   const logout = () => {
     localStorage.clear();
@@ -433,6 +434,14 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
           <span className="hidden md:block text-white text-sm font-medium">
             {nombreUsuario}
           </span>
+          {isCliente && (
+            <Link
+              href="/perfil"
+              className="hidden md:block px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-semibold transition-all"
+            >
+              Mi Perfil
+            </Link>
+          )}
           <button
             onClick={logout}
             className="hidden md:block px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-semibold transition-all"
@@ -568,6 +577,16 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
               )}
             </div>
           ))}
+
+          {isCliente && (
+            <Link
+              href="/perfil"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block w-full px-3 py-2 mt-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all text-center"
+            >
+              Mi Perfil
+            </Link>
+          )}
 
           <button
             onClick={logout}

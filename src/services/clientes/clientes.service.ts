@@ -174,4 +174,20 @@ export const clientesService = {
   deshabilitarAcceso: async (clienteId: number): Promise<void> => {
     await api.post(`/clientes/${clienteId}/deshabilitar-acceso`, {});
   },
+
+  getPerfil: async (): Promise<ClienteDetailResponse> => {
+    const res = await api.get("/clientes/perfil");
+    return res.data;
+  },
+
+  cambiarPasswordPerfil: async (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> => {
+    const res = await api.patch(
+      "/clientes/perfil/cambiar-contrasena",
+      payload,
+    );
+    return res.data;
+  },
 };
