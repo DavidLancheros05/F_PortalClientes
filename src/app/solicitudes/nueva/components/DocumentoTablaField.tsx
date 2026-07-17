@@ -3,7 +3,7 @@
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import { generarPlantillaDocumentoPdf } from "@/lib/carta-pdf.util";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { CheckCircle, Download, FileText } from "lucide-react";
+import { CheckCircle, Download, FileText, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
@@ -98,6 +98,10 @@ export function DocumentoTablaField({
   const archivoExistente = archivosExistentes[pregunta.fp_id];
 
   const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
+  // Fuerza remount del <input type="file"> nativo al quitar una seleccion:
+  // limpiar el estado de React no borra el nombre que el navegador sigue
+  // mostrando en el input si no se remonta.
+  const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
   const handleDescargarPlantilla = async () => {
     if (documento?.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !documento?.tdo_plantilla_contenido)
@@ -288,20 +292,53 @@ export function DocumentoTablaField({
 
       {respuestas[pregunta.fp_id]?.nombre_archivo &&
         !archivosExistentes[pregunta.fp_id] && (
-          <div className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
-            <CheckCircle className="h-3 w-3 flex-shrink-0" />
-            <span className="break-words font-medium">
-              {respuestas[pregunta.fp_id]?.nombre_archivo}
-            </span>
+          <div className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
+            <div className="flex items-center gap-1 min-w-0">
+              <CheckCircle className="h-3 w-3 flex-shrink-0" />
+              <span className="break-words font-medium">
+                {respuestas[pregunta.fp_id]?.nombre_archivo}
+              </span>
+            </div>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => {
+                  const vistaPreviaUrl =
+                    respuestas[pregunta.fp_id]?.vista_previa_url;
+                  if (vistaPreviaUrl) {
+                    URL.revokeObjectURL(vistaPreviaUrl);
+                  }
+                  setRespuestas((prev) => {
+                    const next = { ...prev };
+                    next[pregunta.fp_id] = {
+                      ...next[pregunta.fp_id],
+                      archivo: undefined,
+                      nombre_archivo: undefined,
+                      vista_previa_url: undefined,
+                    };
+                    return next;
+                  });
+                  setFileInputResetKey((prev) => prev + 1);
+                }}
+                className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200 flex-shrink-0"
+                title="Quitar archivo seleccionado (aún no se ha guardado)"
+              >
+                <X className="h-3 w-3" />
+                Quitar
+              </button>
+            )}
           </div>
         )}
 
-      {!archivosExistentes[pregunta.fp_id] && !readOnly && (
+      {!archivosExistentes[pregunta.fp_id] &&
+        !respuestas[pregunta.fp_id]?.nombre_archivo &&
+        !readOnly && (
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-tight text-slate-600">
             Cargar archivo
           </p>
           <input
+            key={fileInputResetKey}
             id={`file-input-doc-${pregunta.fp_id}`}
             type="file"
             onChange={(e) => {

@@ -20,6 +20,7 @@ type RespuestasState = {
 
 interface UseSolicitudEdicionParams {
   solicitudId?: number;
+  preguntas: Array<{ fp_id: number; fp_tipo: string }>;
   setNumeroSolicitud: (value: string | null) => void;
   setFormularioVersionObjetivo: (value: number) => void;
   setRespuestas: Dispatch<SetStateAction<RespuestasState>>;
@@ -30,6 +31,7 @@ interface UseSolicitudEdicionParams {
 
 export function useSolicitudEdicion({
   solicitudId,
+  preguntas,
   setNumeroSolicitud,
   setFormularioVersionObjetivo,
   setRespuestas,
@@ -42,9 +44,15 @@ export function useSolicitudEdicion({
     useState(false);
 
   useEffect(() => {
-    if (!solicitudId) {
+    if (!solicitudId || preguntas.length === 0) {
       return;
     }
+
+    const multiselectFpIds = new Set(
+      preguntas
+        .filter((p) => p.fp_tipo === "MULTISELECT")
+        .map((p) => p.fp_id),
+    );
 
     const cargarArchivosExistentes = async (sa_sol_id: number) => {
       try {
@@ -152,8 +160,15 @@ export function useSolicitudEdicion({
               ? Number(respuesta.fr_valor_catalogo_id)
               : undefined;
 
-          const valor_opcion =
-            opcionesIds.length > 1
+          // Para MULTISELECT el valor siempre debe quedar como arreglo, aunque
+          // se haya marcado una sola opcion (isAnswered() y el checklist de
+          // la UI solo reconocen un MULTISELECT como respondido si es
+          // Array.isArray) -- antes se colapsaba a un numero suelto cuando
+          // opcionesIds.length era 1, y esas preguntas quedaban contadas
+          // como sin responder pese a tener una opcion guardada.
+          const valor_opcion = multiselectFpIds.has(fpId)
+            ? opcionesIds
+            : opcionesIds.length > 1
               ? opcionesIds
               : (opcionesIds[0] ?? valorOpcionCatalogo);
 
@@ -175,6 +190,7 @@ export function useSolicitudEdicion({
     cargarArchivosExistentes(solicitudId);
   }, [
     solicitudId,
+    preguntas,
     setArchivosExistentes,
     setErrorMessage,
     setFormularioVersionObjetivo,

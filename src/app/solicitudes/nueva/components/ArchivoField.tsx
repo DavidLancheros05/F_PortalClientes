@@ -1,8 +1,9 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { AlertTriangle, CheckCircle, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { useState } from "react";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
 
@@ -90,6 +91,11 @@ export function ArchivoField({
     calcularVigenciaDocumento,
     calcularEstadoAnioDocumento,
   });
+
+  // Fuerza remount del <input type="file"> nativo al quitar una seleccion:
+  // limpiar el estado de React no borra el nombre que el navegador sigue
+  // mostrando en el input si no se remonta.
+  const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
   return (
     <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
@@ -204,25 +210,57 @@ export function ArchivoField({
                 {respuestas[pregunta.fp_id]?.nombre_archivo}
               </span>
             </div>
-            {respuestas[pregunta.fp_id]?.vista_previa_url && (
-              <a
-                href={respuestas[pregunta.fp_id]?.vista_previa_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-0.5 flex-shrink-0 text-xs px-1.5 py-0.5 bg-white text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors font-semibold border border-emerald-200"
-              >
-                Ver
-              </a>
-            )}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {respuestas[pregunta.fp_id]?.vista_previa_url && (
+                <a
+                  href={respuestas[pregunta.fp_id]?.vista_previa_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors font-semibold border border-emerald-200"
+                >
+                  Ver
+                </a>
+              )}
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const vistaPreviaUrl =
+                      respuestas[pregunta.fp_id]?.vista_previa_url;
+                    if (vistaPreviaUrl) {
+                      URL.revokeObjectURL(vistaPreviaUrl);
+                    }
+                    setRespuestas((prev) => {
+                      const next = { ...prev };
+                      next[pregunta.fp_id] = {
+                        ...next[pregunta.fp_id],
+                        archivo: undefined,
+                        nombre_archivo: undefined,
+                        vista_previa_url: undefined,
+                      };
+                      return next;
+                    });
+                    setFileInputResetKey((prev) => prev + 1);
+                  }}
+                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-semibold border border-red-200"
+                  title="Quitar archivo seleccionado (aún no se ha guardado)"
+                >
+                  <X className="h-3 w-3" />
+                  Quitar
+                </button>
+              )}
+            </div>
           </div>
         )}
 
-      {!archivosExistentes[pregunta.fp_id] && (
+      {!archivosExistentes[pregunta.fp_id] &&
+        !respuestas[pregunta.fp_id]?.nombre_archivo && (
         <div className="rounded-lg border border-dashed border-blue-200 bg-white p-2">
           <p className="text-xs font-semibold uppercase tracking-tight text-blue-700 mb-1">
             Cargar documento
           </p>
           <input
+            key={fileInputResetKey}
             id={`file-input-${pregunta.fp_id}`}
             type="file"
             onChange={(e) => {

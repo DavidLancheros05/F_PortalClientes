@@ -26,7 +26,7 @@ import type {
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
-import { ErrorModal } from "@/components/modals";
+import { ErrorModal, LoadingModal } from "@/components/modals";
 import { solicitudesService } from "@/services/solicitudes.service";
 import {
   maestrosService,
@@ -55,7 +55,8 @@ export default function SolicitudFormContent({
     null,
   );
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingBorrador, setIsSavingBorrador] = useState(false);
+  const [isSavingFinal, setIsSavingFinal] = useState(false);
   const [hasNewChanges, setHasNewChanges] = useState(false);
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [successMessage, setSuccessMessage] = useState<string>("");
@@ -192,6 +193,7 @@ export default function SolicitudFormContent({
 
   const { bloqueadoPorRechazoAuxiliar } = useSolicitudEdicion({
     solicitudId,
+    preguntas,
     setNumeroSolicitud,
     setFormularioVersionObjetivo,
     setRespuestas,
@@ -1561,7 +1563,7 @@ export default function SolicitudFormContent({
       // overallDisplayProgress.percent < 100 (arriba) ya impide guardar.
     }
 
-    setIsSaving(true);
+    setIsSavingFinal(true);
     // console.log('📤 [FRONTEND] Llamando a guardarSolicitudCompleta...');
 
     // Si es cliente, pasar NULL como usuarioId. Si es admin/ejecutivo, pasar usr_id
@@ -1647,7 +1649,7 @@ export default function SolicitudFormContent({
       console.error("   Mensaje:", errorMsg);
       setErrorMessage(`Error: ${errorMsg}`);
     } finally {
-      setIsSaving(false);
+      setIsSavingFinal(false);
       isGuardandoRef.current = false;
     }
   };
@@ -1676,7 +1678,7 @@ export default function SolicitudFormContent({
       return;
     }
 
-    setIsSaving(true);
+    setIsSavingBorrador(true);
     try {
       // Solo se reenvían las respuestas que cambiaron desde el último guardado
       // (no todo el formulario), para no reprocesar campos que no se tocaron.
@@ -1707,6 +1709,16 @@ export default function SolicitudFormContent({
       lastSavedResponses.current = JSON.parse(JSON.stringify(respuestas));
       setHasNewChanges(false);
 
+      // Si la solicitud se acaba de crear (veníamos de /solicitudes/nueva sin
+      // ID), pasamos a la URL /editar/{id}. Sin esto, el componente sigue
+      // creyendo que no existe solicitud y cada "Guardar Borrador" posterior
+      // crea una fila nueva en vez de actualizar la ya creada.
+      if (!solicitudId && result.solicitudId) {
+        const query = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : "";
+        router.replace(`/solicitudes/${result.solicitudId}/editar${query}`);
+        return;
+      }
+
       // Limpiar el mensaje de éxito después de 3 segundos
       setTimeout(() => {
         setSuccessMessage("");
@@ -1721,7 +1733,7 @@ export default function SolicitudFormContent({
       console.error("   Mensaje:", errorMsg);
       setErrorMessage(`Error: ${errorMsg}`);
     } finally {
-      setIsSaving(false);
+      setIsSavingBorrador(false);
       isGuardandoRef.current = false;
     }
   };
@@ -1871,6 +1883,11 @@ export default function SolicitudFormContent({
           onAction={() => setErrorMessage("")}
         />
 
+        <LoadingModal
+          isOpen={isSavingBorrador}
+          message="Guardando borrador..."
+        />
+
         {cargandoFormulario ? (
           <div className="flex-1 min-h-0 flex items-center justify-center">
             <div className="text-center">
@@ -1982,7 +1999,8 @@ export default function SolicitudFormContent({
                   isFirstSection={isFirstSection}
                   isLastSection={isLastSection}
                   readOnly={readOnly}
-                  isSaving={isSaving}
+                  isSaving={isSavingBorrador}
+                  isBlocked={isSavingBorrador || isSavingFinal}
                   hasDraftData={hasNewChanges}
                   estadoId={
                     solicitudId
@@ -1999,7 +2017,8 @@ export default function SolicitudFormContent({
         </div>
         <ResumenAvanceAcciones
           readOnly={readOnly}
-          isSaving={isSaving}
+          isSaving={isSavingFinal}
+          isBlocked={isSavingBorrador || isSavingFinal}
           overallProgress={overallProgress}
           overallDisplayProgress={overallDisplayProgress}
           returnTo={returnTo}
