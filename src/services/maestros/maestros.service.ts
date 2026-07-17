@@ -1,4 +1,5 @@
 import api from "@/services/core/api";
+import { cachedRequest } from "@/services/core/requestCache";
 
 export interface Pais {
   pais_id: number;
@@ -20,20 +21,26 @@ export interface Ciudad {
 
 export const maestrosService = {
   getPaises: async (): Promise<Pais[]> => {
-    const res = await api.get("/maestros/paises");
-    return Array.isArray(res.data) ? res.data : [];
+    return cachedRequest("maestros/paises", async () => {
+      const res = await api.get("/maestros/paises");
+      return Array.isArray(res.data) ? res.data : [];
+    });
   },
 
   getDepartamentos: async (pais_id: number): Promise<Departamento[]> => {
-    const res = await api.get("/maestros/departamentos", {
-      params: { pais_id },
+    return cachedRequest(`maestros/departamentos:${pais_id}`, async () => {
+      const res = await api.get("/maestros/departamentos", {
+        params: { pais_id },
+      });
+      return Array.isArray(res.data) ? res.data : [];
     });
-    return Array.isArray(res.data) ? res.data : [];
   },
 
   getCiudades: async (depto_id: number): Promise<Ciudad[]> => {
-    const res = await api.get("/maestros/ciudades", { params: { depto_id } });
-    return Array.isArray(res.data) ? res.data : [];
+    return cachedRequest(`maestros/ciudades:${depto_id}`, async () => {
+      const res = await api.get("/maestros/ciudades", { params: { depto_id } });
+      return Array.isArray(res.data) ? res.data : [];
+    });
   },
 
   getCatalogo: async (

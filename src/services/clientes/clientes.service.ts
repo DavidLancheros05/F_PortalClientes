@@ -1,4 +1,5 @@
 import api from "@/services/core/api";
+import { cachedRequest } from "@/services/core/requestCache";
 import {
   ClienteListResponse,
   ClienteDetailResponse,
@@ -52,8 +53,10 @@ export const clientesService = {
   getEjecutivosNegocio: async (): Promise<
     { ejng_id: number; ejng_nombre: string }[]
   > => {
-    const res = await api.get("/clientes/ejecutivos-negocio");
-    return res.data;
+    return cachedRequest("clientes/ejecutivos-negocio", async () => {
+      const res = await api.get("/clientes/ejecutivos-negocio");
+      return res.data;
+    });
   },
 
   getById: async (clienteId: number): Promise<ClienteDetailResponse> => {
@@ -144,18 +147,24 @@ export const clientesService = {
   },
 
   getTiposIdentificacion: async (): Promise<TipoIdentificacionResponse[]> => {
-    const res = await api.get("/tipos-identificacion");
-    return res.data;
+    return cachedRequest("tipos-identificacion", async () => {
+      const res = await api.get("/tipos-identificacion");
+      return res.data;
+    });
   },
 
   getAllCentrosOperacion: async (): Promise<CentroOperacionResponse[]> => {
-    const res = await api.get("/centros-operacion");
-    return res.data;
+    return cachedRequest("centros-operacion", async () => {
+      const res = await api.get("/centros-operacion");
+      return res.data;
+    });
   },
 
   getEjecutivos: async (): Promise<Usuario[]> => {
-    const res = await api.get("/usuarios/ejecutivos");
-    return res.data;
+    return cachedRequest("usuarios/ejecutivos", async () => {
+      const res = await api.get("/usuarios/ejecutivos");
+      return res.data;
+    });
   },
 
   habilitarAcceso: async (clienteId: number): Promise<void> => {

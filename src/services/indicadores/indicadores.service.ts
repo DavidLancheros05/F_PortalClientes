@@ -1,4 +1,5 @@
 import api from "@/services/core/api";
+import { cachedRequest } from "@/services/core/requestCache";
 
 export interface AreaKPI {
   area: string;
@@ -95,7 +96,9 @@ export const indicadoresService = {
   },
 
   getCentros: async () => {
-    const res = await api.get("/centros-operacion");
-    return res.data;
+    return cachedRequest("centros-operacion", async () => {
+      const res = await api.get("/centros-operacion");
+      return res.data;
+    });
   },
 };
