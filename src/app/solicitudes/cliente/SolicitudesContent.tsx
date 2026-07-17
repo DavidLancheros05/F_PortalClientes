@@ -532,6 +532,14 @@ export default function SolicitudesContent() {
                               >
                                 Faltan documentos por generar y subir
                               </button>
+                            ) : solicitud.sol_observacion_cliente ? (
+                              // Guardada por el backend en el evento que la origino
+                              // (ver cambiarEstado() en solicitudes-workflow.service.ts).
+                              // Los casos de abajo son respaldo para solicitudes
+                              // viejas o transiciones que aun no la escriben.
+                              <span className="text-sm text-gray-700">
+                                {solicitud.sol_observacion_cliente}
+                              </span>
                             ) : solicitud.sol_estado_id === 2 ? (
                               <span className="text-sm text-emerald-700">
                                 Formulario y documentos cargados
@@ -552,8 +560,20 @@ export default function SolicitudesContent() {
                                 Te avisaremos por correo cuando haya una
                                 decisión.
                               </span>
+                            ) : solicitud.sol_estado_id === 5 ? (
+                              <span className="text-sm text-emerald-700">
+                                ¡Tu solicitud fue aprobada! Ya puedes operar
+                                con el cupo asignado.
+                              </span>
+                            ) : solicitud.sol_estado_id === 1 ? (
+                              <span className="text-sm text-yellow-700">
+                                Aún no has enviado tu solicitud. Complétala
+                                y envíala cuando estés listo.
+                              </span>
                             ) : (
-                              <span className="text-gray-400">—</span>
+                              <span className="text-sm text-gray-500">
+                                Sin novedades por el momento.
+                              </span>
                             )}
                           </td>
                           <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
