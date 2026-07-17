@@ -7,6 +7,7 @@ interface NavegacionSeccionesProps {
   isLastSection: boolean;
   readOnly: boolean;
   isSaving: boolean;
+  isBlocked?: boolean;
   hasDraftData: boolean;
   estadoId?: number; // 1=BORRADOR, 2=PENDIENTE, 3=REVISIÓN, 4=COMPLETADA
   returnTo?: string | null;
@@ -19,6 +20,7 @@ export function NavegacionSecciones({
   isLastSection,
   readOnly,
   isSaving,
+  isBlocked = false,
   hasDraftData,
   estadoId,
   returnTo,
@@ -49,7 +51,7 @@ export function NavegacionSecciones({
       {!readOnly && estadoId !== 2 && !isCorrecionASC && (
         <button
           onClick={onGuardarParcial}
-          disabled={isSaving || !hasDraftData}
+          disabled={isBlocked || !hasDraftData}
           className="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-100 hover:border-slate-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isSaving ? "Guardando..." : "📋 Guardar Borrador"}

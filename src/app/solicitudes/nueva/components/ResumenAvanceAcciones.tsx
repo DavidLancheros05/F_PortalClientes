@@ -17,6 +17,7 @@ interface OverallDisplayProgress {
 interface ResumenAvanceAccionesProps {
   readOnly: boolean;
   isSaving: boolean;
+  isBlocked?: boolean;
   overallProgress: OverallProgress;
   overallDisplayProgress: OverallDisplayProgress;
   returnTo?: string | null;
@@ -26,6 +27,7 @@ interface ResumenAvanceAccionesProps {
 export function ResumenAvanceAcciones({
   readOnly,
   isSaving,
+  isBlocked = false,
   overallProgress,
   overallDisplayProgress,
   returnTo,
@@ -64,7 +66,7 @@ export function ResumenAvanceAcciones({
           <button
             onClick={onGuardar}
             disabled={
-              isSaving ||
+              isBlocked ||
               overallDisplayProgress.percent < 100
             }
             className="inline-flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-[#0a4d85] to-[#0e5e9f] px-3 py-1 text-xs font-semibold text-white shadow-md ring-1 ring-[#0a4d85]/30 transition-all duration-200 hover:from-[#084370] hover:to-[#0b548f] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0e5e9f]/40 disabled:cursor-not-allowed disabled:opacity-40 md:ml-2"
