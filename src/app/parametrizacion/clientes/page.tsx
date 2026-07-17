@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { clientesService } from "@/services/clientes/clientes.service";
 import * as XLSX from "xlsx";
@@ -21,6 +21,8 @@ import {
   Download,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals";
+
+const FILTROS_STORAGE_KEY = "parametrizacion:clientes:filtros";
 
 export default function ClientesPage() {
   const router = useRouter();
@@ -62,11 +64,82 @@ export default function ClientesPage() {
     }
   };
 
+  const fetchClientesList = async (centro: number | undefined) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const clientesData = centro
+        ? await clientesService.getClientesByCentro(centro)
+        : await clientesService.getAll();
+      setClientes(clientesData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al buscar clientes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!authLoading) {
-      fetchCentros();
+    if (authLoading) return;
+
+    fetchCentros();
+
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(FILTROS_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      setCentroSeleccionado(saved.centroSeleccionado);
+      setSearchInputValue(saved.searchInputValue ?? "");
+      setSearchTerm(saved.searchTerm ?? "");
+      setFilterNit(saved.filterNit ?? "");
+      setFilterDireccion(saved.filterDireccion ?? "");
+      setCurrentPage(saved.currentPage ?? 1);
+      // Repite la busqueda con los filtros guardados (ej. venimos de editar un
+      // cliente) en vez de restaurar la tabla vieja, para no mostrar datos
+      // obsoletos ni depender de que la lista cacheada siga siendo valida.
+      if (saved.hasSearched) {
+        fetchClientesList(saved.centroSeleccionado).then(() =>
+          setHasSearched(true),
+        );
+      }
+    } catch {
+      // sessionStorage corrupto o no disponible: arranca limpio, sin filtros restaurados.
     }
   }, [authLoading]);
+
+  const skipNextPersistRef = useRef(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // La primera pasada (montaje) coincide con el efecto que restaura desde
+    // sessionStorage; si escribimos aqui, guardamos los valores por defecto
+    // (aun no actualizados) y pisamos lo que se acaba de restaurar.
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
+    sessionStorage.setItem(
+      FILTROS_STORAGE_KEY,
+      JSON.stringify({
+        centroSeleccionado,
+        searchInputValue,
+        searchTerm,
+        filterNit,
+        filterDireccion,
+        hasSearched,
+        currentPage,
+      }),
+    );
+  }, [
+    centroSeleccionado,
+    searchInputValue,
+    searchTerm,
+    filterNit,
+    filterDireccion,
+    hasSearched,
+    currentPage,
+  ]);
 
   const refetch = () => {
     setSearchTerm(searchInputValue);
@@ -74,20 +147,9 @@ export default function ClientesPage() {
   };
 
   const handleSearch = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const clientesData = centroSeleccionado
-        ? await clientesService.getClientesByCentro(centroSeleccionado)
-        : await clientesService.getAll();
-      setClientes(clientesData);
-      setHasSearched(true);
-      setCurrentPage(1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al buscar clientes");
-    } finally {
-      setLoading(false);
-    }
+    await fetchClientesList(centroSeleccionado);
+    setHasSearched(true);
+    setCurrentPage(1);
   };
 
   const handleDownloadExcel = () => {
