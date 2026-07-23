@@ -7,7 +7,7 @@ import {
 } from "@/lib/carta-pdf.util";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
-import { CheckCircle, Download, FileText, X } from "lucide-react";
+import { CheckCircle, Download, FileText, Loader2, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
@@ -107,6 +107,20 @@ export function DocumentoTablaField({
   // limpiar el estado de React no borra el nombre que el navegador sigue
   // mostrando en el input si no se remonta.
   const [fileInputResetKey, setFileInputResetKey] = useState(0);
+
+  // handleInputChange("ARCHIVO") es sincrono, pero dispara un re-render de
+  // TODO el formulario (puede tener 90+ preguntas) — sin este indicador la
+  // pantalla se sentía "pegada" un instante tras elegir el archivo, sin
+  // ninguna señal de que algo estaba pasando. El setTimeout(0) deja que
+  // React pinte el spinner ANTES de correr el trabajo pesado.
+  const [procesandoArchivo, setProcesandoArchivo] = useState(false);
+  const procesarArchivoSeleccionado = (file: File) => {
+    setProcesandoArchivo(true);
+    setTimeout(() => {
+      handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+      setProcesandoArchivo(false);
+    }, 0);
+  };
 
   const handleDescargarPlantilla = async () => {
     if (documento?.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !documento?.tdo_plantilla_contenido)
@@ -380,22 +394,28 @@ export function DocumentoTablaField({
           <p className="text-xs font-semibold uppercase tracking-tight text-slate-600">
             Cargar archivo
           </p>
-          <input
-            key={fileInputResetKey}
-            id={`file-input-doc-${pregunta.fp_id}`}
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              // console.log('📄 [FRONTEND] Archivo seleccionado:', { fp_id: pregunta.fp_id, nombreArchivo: file?.name, tamaño: file?.size });
-              if (file) {
-                handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-              }
-            }}
-            accept=".pdf,application/pdf"
-            className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-              hasError ? "border-red-500" : "border-blue-200"
-            }`}
-          />
+          {procesandoArchivo ? (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-blue-700 px-2 py-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Procesando archivo...
+            </div>
+          ) : (
+            <input
+              key={fileInputResetKey}
+              id={`file-input-doc-${pregunta.fp_id}`}
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  procesarArchivoSeleccionado(file);
+                }
+              }}
+              accept=".pdf,application/pdf"
+              className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+                hasError ? "border-red-500" : "border-blue-200"
+              }`}
+            />
+          )}
         </div>
       )}
 

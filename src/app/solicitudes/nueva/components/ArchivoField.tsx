@@ -1,7 +1,7 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { AlertTriangle, CheckCircle, FileText, X } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Loader2, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
@@ -97,6 +97,20 @@ export function ArchivoField({
   // mostrando en el input si no se remonta.
   const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
+  // handleInputChange("ARCHIVO") es sincrono, pero dispara un re-render de
+  // TODO el formulario (puede tener 90+ preguntas) — sin este indicador la
+  // pantalla se sentía "pegada" un instante tras elegir el archivo, sin
+  // ninguna señal de que algo estaba pasando. El setTimeout(0) deja que
+  // React pinte el spinner ANTES de correr el trabajo pesado.
+  const [procesandoArchivo, setProcesandoArchivo] = useState(false);
+  const procesarArchivoSeleccionado = (file: File) => {
+    setProcesandoArchivo(true);
+    setTimeout(() => {
+      handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+      setProcesandoArchivo(false);
+    }, 0);
+  };
+
   return (
     <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
       <div className="flex items-center justify-between gap-1 rounded-lg border border-blue-100 bg-white/80 px-2 py-1">
@@ -186,12 +200,13 @@ export function ArchivoField({
                       const target = event.target as HTMLInputElement;
                       const file = target.files?.[0];
                       if (file) {
-                        handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+                        procesarArchivoSeleccionado(file);
                       }
                     };
                     tempInput.click();
                   }}
-                  className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                  disabled={procesandoArchivo}
+                  className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60"
                 >
                   Cambiar
                 </button>
@@ -259,21 +274,28 @@ export function ArchivoField({
           <p className="text-xs font-semibold uppercase tracking-tight text-blue-700 mb-1">
             Cargar documento
           </p>
-          <input
-            key={fileInputResetKey}
-            id={`file-input-${pregunta.fp_id}`}
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-              }
-            }}
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
-            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-              hasError ? "border-red-500" : "border-blue-200"
-            }`}
-          />
+          {procesandoArchivo ? (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-blue-700 px-2 py-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Procesando archivo...
+            </div>
+          ) : (
+            <input
+              key={fileInputResetKey}
+              id={`file-input-${pregunta.fp_id}`}
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  procesarArchivoSeleccionado(file);
+                }
+              }}
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
+              className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+                hasError ? "border-red-500" : "border-blue-200"
+              }`}
+            />
+          )}
         </div>
       )}
 

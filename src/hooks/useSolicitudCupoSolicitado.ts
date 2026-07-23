@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { formularioPreguntasService } from "@/services/parametrizacion/formulario-preguntas.service";
-
-// IDs fijos de las preguntas del formulario (sección "SOLICITUD DE CREDITO",
-// versión activa) que capturan si el cliente pide cupo de crédito y el
-// monto. Mismo patrón de fp_id hardcodeado que ya usa SolicitudFormContent
-// para la pregunta "Tipo de solicitud" (fp_id=1171).
-const FP_ID_SOLICITA_CREDITO = 2249;
-const FP_ID_CUPO_SOLICITADO = 1217;
 
 export interface SolicitudCupoSolicitado {
   loading: boolean;
   // null = la pregunta no fue respondida
   solicitaCredito: boolean | null;
-  montoSolicitado: number | null;
+  // Ya formateado por el backend (ej. "$50.000.000") — mismo criterio que
+  // usa el PDF de la solicitud para preguntas NUMERO/MONEDA.
+  montoSolicitadoTexto: string | null;
+  formaPagoSolicitada: string | null;
 }
 
 export function useSolicitudCupoSolicitado(
@@ -23,14 +18,18 @@ export function useSolicitudCupoSolicitado(
   const [solicitaCredito, setSolicitaCredito] = useState<boolean | null>(
     null,
   );
-  const [montoSolicitado, setMontoSolicitado] = useState<number | null>(
-    null,
-  );
+  const [montoSolicitadoTexto, setMontoSolicitadoTexto] = useState<
+    string | null
+  >(null);
+  const [formaPagoSolicitada, setFormaPagoSolicitada] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (!solicitudId) {
       setSolicitaCredito(null);
-      setMontoSolicitado(null);
+      setMontoSolicitadoTexto(null);
+      setFormaPagoSolicitada(null);
       setLoading(false);
       return;
     }
@@ -38,43 +37,48 @@ export function useSolicitudCupoSolicitado(
     let cancelado = false;
     setLoading(true);
 
-    Promise.all([
-      solicitudesService.getRespuestas(solicitudId),
-      formularioPreguntasService
-        .getOpciones(FP_ID_SOLICITA_CREDITO)
-        .catch(() => []),
-    ])
-      .then(([respuestas, opciones]) => {
+    // Resuelto vía formulario-renderizable (por fp_codigo, no fp_id fijo):
+    // ese endpoint ya filtra por la VERSION real con la que se respondió
+    // esta solicitud puntual, a diferencia de fp_id hardcodeados que solo
+    // existían en la versión 9 — cualquier solicitud diligenciada contra
+    // una versión más nueva quedaba con solicitaCredito=null, y el render
+    // (`solicitaCredito ? ... : "No"`) lo mostraba como "No" aunque el
+    // cliente hubiera respondido "Sí" (ver Registrar Concepto Ejecutivo).
+    solicitudesService
+      .getFormularioRenderizable(solicitudId)
+      .then((renderizable) => {
         if (cancelado) return;
+        const preguntas = renderizable?.preguntas || [];
 
-        const respuestasArr = Array.isArray(respuestas) ? respuestas : [];
-        const respuestaSolicita = respuestasArr.find(
-          (r: any) => Number(r.fr_fp_id) === FP_ID_SOLICITA_CREDITO,
+        const pSolicita = preguntas.find(
+          (p) => p.fp_codigo === "SOLICITA_CREDITO",
         );
-        const respuestaMonto = respuestasArr.find(
-          (r: any) => Number(r.fr_fp_id) === FP_ID_CUPO_SOLICITADO,
-        );
-
-        let respondioSi: boolean | null = null;
-        if (respuestaSolicita?.fr_valor_opcion_id != null) {
-          const opcion = (opciones as any[]).find(
-            (o) =>
-              String(o.fpo_id ?? o.op_id) ===
-              String(respuestaSolicita.fr_valor_opcion_id),
-          );
-          const texto = (opcion?.fpo_valor ?? opcion?.op_descripcion ?? "")
-            .toString()
-            .trim()
-            .toLowerCase();
-          respondioSi = texto === "si" || texto === "sí";
-        }
-
+        const textoSolicita = (pSolicita?.valor_resuelto || "")
+          .trim()
+          .toLowerCase();
+        const respondioSi = pSolicita?.tiene_respuesta
+          ? textoSolicita === "si" || textoSolicita === "sí"
+          : null;
         setSolicitaCredito(respondioSi);
-        setMontoSolicitado(
-          respondioSi && respuestaMonto?.fr_valor_numero != null
-            ? Number(respuestaMonto.fr_valor_numero)
-            : null,
-        );
+
+        if (respondioSi) {
+          const pMonto = preguntas.find(
+            (p) => p.fp_codigo === "CUPO_SOLICITADO",
+          );
+          setMontoSolicitadoTexto(
+            pMonto?.tiene_respuesta ? pMonto.valor_resuelto : null,
+          );
+
+          const pForma = preguntas.find(
+            (p) => p.fp_codigo === "FORMA_PAGO_SOLICITADA",
+          );
+          setFormaPagoSolicitada(
+            pForma?.tiene_respuesta ? pForma.valor_resuelto : null,
+          );
+        } else {
+          setMontoSolicitadoTexto(null);
+          setFormaPagoSolicitada(null);
+        }
       })
       .catch((err) => {
         console.error("Error obteniendo cupo solicitado:", err);
@@ -88,5 +92,10 @@ export function useSolicitudCupoSolicitado(
     };
   }, [solicitudId]);
 
-  return { loading, solicitaCredito, montoSolicitado };
+  return {
+    loading,
+    solicitaCredito,
+    montoSolicitadoTexto,
+    formaPagoSolicitada,
+  };
 }

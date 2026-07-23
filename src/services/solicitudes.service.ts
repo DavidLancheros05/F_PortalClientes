@@ -377,8 +377,12 @@ export const solicitudesService = {
         fp_id: number;
         fp_tipo: string;
         fp_descripcion: string;
+        // Código lógico estable (sobrevive renames y versiones nuevas del
+        // formulario) — ver migrations/20260722_asignar_fp_codigo_*.sql.
+        fp_codigo?: string | null;
         seccion_id: number;
         valor_resuelto: string;
+        tiene_respuesta: boolean;
         tabla_columnas?: string[];
         tabla_filas?: Record<string, string>[];
       }>;

@@ -15,7 +15,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import { ArrowLeft, FileText, CheckCircle } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle, Wallet } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
@@ -96,7 +96,7 @@ export default function GestionComiteCredito2Page() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const { solicitaCredito, montoSolicitado } =
+  const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
     useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
@@ -289,7 +289,7 @@ export default function GestionComiteCredito2Page() {
             <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
               Información de la Solicitud
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                   Cliente
@@ -325,16 +325,45 @@ export default function GestionComiteCredito2Page() {
                     "Desconocido"}
                 </span>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Solicita Cupo
-                </p>
-                <p className="font-semibold text-gray-900">
-                  {solicitaCredito
-                    ? `Sí — $${(montoSolicitado ?? 0).toLocaleString("es-CO")}`
-                    : "No"}
+            </div>
+
+            {/* Solicita Cupo — el dato que más pesa en esta gestión, por
+                eso destacado aparte del grid y no como una celda más */}
+            <div
+              className={`mt-4 rounded-xl border-2 p-4 ${
+                solicitaCredito
+                  ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50/60"
+                  : "border-gray-200 bg-gray-50/60"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <div
+                  className={`rounded-full p-1.5 ${solicitaCredito ? "bg-emerald-100" : "bg-gray-200"}`}
+                >
+                  <Wallet
+                    className={`h-4 w-4 ${solicitaCredito ? "text-emerald-700" : "text-gray-500"}`}
+                  />
+                </div>
+                <p
+                  className={`text-xs font-bold uppercase tracking-wide ${solicitaCredito ? "text-emerald-800" : "text-gray-500"}`}
+                >
+                  Solicita Cupo de Crédito
                 </p>
               </div>
+              {solicitaCredito ? (
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 pl-1">
+                  <span className="text-2xl font-bold text-emerald-900">
+                    {montoSolicitadoTexto || "Monto no especificado"}
+                  </span>
+                  {formaPagoSolicitada && (
+                    <span className="inline-flex items-center rounded-full bg-white border border-emerald-300 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                      {formaPagoSolicitada}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="pl-1 text-sm font-medium text-gray-500">No</p>
+              )}
             </div>
 
             {/* Concepto del Ejecutivo de Negocios — agrupado aparte para

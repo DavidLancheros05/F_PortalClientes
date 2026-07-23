@@ -121,9 +121,10 @@ export default function DetalleDetailPage() {
   const { historial } = useHistorialWorkflow(
     Number.isFinite(solicitudId) ? solicitudId : null,
   );
-  const { solicitaCredito, montoSolicitado } = useSolicitudCupoSolicitado(
-    Number.isFinite(solicitudId) ? solicitudId : null,
-  );
+  const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
+    useSolicitudCupoSolicitado(
+      Number.isFinite(solicitudId) ? solicitudId : null,
+    );
 
   const abrirPdfFormulario = async () => {
     try {
@@ -533,7 +534,7 @@ export default function DetalleDetailPage() {
                 <p className="text-xs text-gray-500 uppercase">Solicita Cupo</p>
                 <p className="text-sm font-medium text-gray-900">
                   {solicitaCredito
-                    ? `Sí — ${formatCurrency(montoSolicitado)}`
+                    ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
                     : "No"}
                 </p>
               </div>
