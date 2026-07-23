@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { ArchivoField } from "./ArchivoField";
 import { ImagenField } from "./ImagenField";
 import { DocumentoTablaField } from "./DocumentoTablaField";
@@ -198,7 +199,22 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         </div>
       )}
 
-      {pregunta.fp_tipo === "TEXTO" && (
+      {pregunta.fp_tipo === "TEXTO" && pregunta.fp_subtipo === "PARRAFO" && (
+        <textarea
+          rows={4}
+          disabled={readOnly || isLockedPrefillField}
+          value={respuestas[pregunta.fp_id]?.valor_texto || ""}
+          onChange={(e) =>
+            handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")
+          }
+          onBlur={() => validateField(pregunta.fp_id, rules)}
+          className={`w-full border rounded px-2 py-1 text-sm resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            hasError ? "border-red-500" : "border-gray-300"
+          } ${isLockedPrefillField ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
+        />
+      )}
+
+      {pregunta.fp_tipo === "TEXTO" && pregunta.fp_subtipo !== "PARRAFO" && (
         <input
           type="text"
           disabled={readOnly || isLockedPrefillField}
@@ -334,63 +350,51 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       {((pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo !== "CHECK") ||
         ["SELECT_CONDICIONAL", "SELECT_TABLA"].includes(pregunta.fp_tipo)) && (
         <>
-          <select
+          <SearchableSelect
+            options={
+              pregunta.fp_id === maestroPreguntaIds.paisId && Array.isArray(paises)
+                ? paises.map((pais: any) => ({
+                    id: String(pais.pais_id),
+                    label: pais.pais_nombre,
+                  }))
+                : pregunta.fp_id === maestroPreguntaIds.departamentoId &&
+                    Array.isArray(departamentos)
+                  ? departamentos.map((depto: any) => ({
+                      id: String(depto.depto_id),
+                      label: depto.depto_nombre,
+                    }))
+                  : pregunta.fp_id === maestroPreguntaIds.ciudadId &&
+                      Array.isArray(ciudades)
+                    ? ciudades.map((ciudad: any) => ({
+                        id: String(ciudad.ciudad_id),
+                        label: ciudad.ciudad_nombre,
+                      }))
+                    : pregunta.opciones?.map((opcion: any) => {
+                        const id = opcion.op_id ?? opcion.fpo_id;
+                        const label =
+                          opcion.op_descripcion ?? opcion.fpo_valor;
+                        return {
+                          id: String(id),
+                          label,
+                        };
+                      }) || []
+            }
             value={String(
               pregunta.fp_tipo === "SELECT_TABLA"
                 ? respuestas[pregunta.fp_id]?.valor_numero || ""
                 : respuestas[pregunta.fp_id]?.valor_opcion_id || ""
             )}
-            onChange={(e) =>
+            onChange={(value) =>
               handleInputChange(
                 pregunta.fp_id,
-                Number(e.target.value) || e.target.value,
+                Number(value) || value,
                 pregunta.fp_tipo,
               )
             }
-            onBlur={() => validateField(pregunta.fp_id, rules)}
+            placeholder="Selecciona una opción"
             disabled={readOnly || isLockedPrefillField}
-            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? "border-red-500" : "border-gray-300"
-            } ${readOnly && pregunta.fp_id === 1171 ? "bg-blue-50 text-blue-600 border-blue-300 font-semibold" : ""}`}
-          >
-            <option value="">Selecciona una opción</option>
-            {pregunta.fp_id === maestroPreguntaIds.paisId &&
-              Array.isArray(paises) &&
-              paises.map((pais: any) => (
-                <option key={pais.pais_id} value={String(pais.pais_id)}>
-                  {pais.pais_nombre}
-                </option>
-              ))}
-          {pregunta.fp_id === maestroPreguntaIds.departamentoId &&
-            Array.isArray(departamentos) &&
-            departamentos.map((depto: any) => (
-              <option key={depto.depto_id} value={String(depto.depto_id)}>
-                {depto.depto_nombre}
-              </option>
-            ))}
-          {pregunta.fp_id === maestroPreguntaIds.ciudadId &&
-            Array.isArray(ciudades) &&
-            ciudades.map((ciudad: any) => (
-              <option key={ciudad.ciudad_id} value={String(ciudad.ciudad_id)}>
-                {ciudad.ciudad_nombre}
-              </option>
-            ))}
-          {![
-            maestroPreguntaIds.paisId,
-            maestroPreguntaIds.departamentoId,
-            maestroPreguntaIds.ciudadId,
-          ].includes(pregunta.fp_id) &&
-            pregunta.opciones?.map((opcion: any) => {
-              const id = opcion.op_id ?? opcion.fpo_id;
-              const label = opcion.op_descripcion ?? opcion.fpo_valor;
-              return (
-                <option key={id} value={String(id)}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
-          {readOnly && pregunta.fp_id === 1171 && (
+          />
+          {readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" && (
             <p className="mt-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
               El tipo de solicitud se define automáticamente según tu historial de solicitudes.
             </p>
@@ -434,7 +438,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                       }));
                     }}
                     disabled={readOnly || isLockedPrefillField}
-                    className={readOnly && pregunta.fp_id === 1171 ? "accent-blue-600" : ""}
+                    className={readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" ? "accent-blue-600" : ""}
                   />
                   <span className="text-xs">{label}</span>
                 </label>

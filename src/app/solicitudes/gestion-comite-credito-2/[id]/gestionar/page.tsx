@@ -1,6 +1,10 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { parametrosService } from "@/services/parametros.service";
+import {
+  condicionesFinancierasService,
+  FormaPago,
+} from "@/services/condiciones-financieras/condiciones-financieras.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
@@ -10,6 +14,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
+import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import { ArrowLeft, FileText, CheckCircle } from "lucide-react";
 
 interface Solicitud {
@@ -27,6 +32,7 @@ interface Solicitud {
   sol_fecha_creacion: string;
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
+  sol_observacion_ejn?: string | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
@@ -67,12 +73,13 @@ export default function GestionComiteCredito2Page() {
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
   const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
+  const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
   // Etapas previas a Comité de Crédito 2 — CC2 necesita ver qué se subió y
   // qué se comentó en cada una, no solo el formulario del cliente.
+  // El concepto del Ejecutivo de Negocios se muestra en su propia
+  // subsección (consumo + observación), por eso no se repite aquí.
   const etapasPrevias = [
-    { codigo: "EJN", wetId: 2, nombre: "Ejecutivo de Negocios" },
-    { codigo: "ASC", wetId: 3, nombre: "Auxiliar Servicio Cliente" },
     { codigo: "OFC", wetId: 4, nombre: "Oficial de Cumplimiento" },
     { codigo: "CC1", wetId: 5, nombre: "Comité de Crédito 1" },
   ];
@@ -89,6 +96,8 @@ export default function GestionComiteCredito2Page() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { solicitaCredito, montoSolicitado } =
+    useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -96,9 +105,10 @@ export default function GestionComiteCredito2Page() {
 
       try {
         setLoading(true);
-        const [solicitudData, dias] = await Promise.all([
+        const [solicitudData, dias, formas] = await Promise.all([
           solicitudesService.getById(solicitudId),
           parametrosService.getDiasRespuesta(),
+          condicionesFinancierasService.getFormasPago(),
         ]);
 
         console.log(
@@ -108,6 +118,7 @@ export default function GestionComiteCredito2Page() {
         console.log("[Gestión Comité Crédito 2] Días de respuesta:", dias);
         setSolicitud(solicitudData);
         setDiasRespuesta(dias);
+        setFormasPago(formas);
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -177,7 +188,7 @@ export default function GestionComiteCredito2Page() {
       setRegistro((prev) => ({ ...prev, guardando: true }));
       console.log("[handleConfirmGuardarRevision] Guardando...");
 
-      const comentario = `DECISIÓN: ${registro.recomendacion.toUpperCase()}\nNOMBRE QUIEN APRUEBA: ${registro.nombreAprueba}\nFECHA: ${registro.fecha}`;
+      const comentario = `DECISIÓN: ${registro.recomendacion.toUpperCase()}\nNOMBRE QUIEN APRUEBA: ${user?.nombre || registro.nombreAprueba}\nFECHA: ${registro.fecha}`;
 
       console.log(
         "[handleConfirmGuardarRevision] Llamando API con solicitud ID:",
@@ -316,20 +327,48 @@ export default function GestionComiteCredito2Page() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Consumo Proyectado
+                  Solicita Cupo
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {solicitud.sol_consumo_mensual_proyectado ||
-                  solicitud.consumo_mensual_proyectado
-                    ? `$${(
-                        solicitud.sol_consumo_mensual_proyectado ||
-                        solicitud.consumo_mensual_proyectado
-                      )?.toLocaleString("es-CO", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`
-                    : "-"}
+                  {solicitaCredito
+                    ? `Sí — $${(montoSolicitado ?? 0).toLocaleString("es-CO")}`
+                    : "No"}
                 </p>
+              </div>
+            </div>
+
+            {/* Concepto del Ejecutivo de Negocios — agrupado aparte para
+                que quede claro que estos datos vienen de esa etapa */}
+            <div className="mt-4 bg-blue-50/60 border border-blue-200 rounded-lg p-4">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">
+                Concepto del Ejecutivo de Negocios
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Consumo Mensual Proyectado
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {solicitud.sol_consumo_mensual_proyectado ||
+                    solicitud.consumo_mensual_proyectado
+                      ? `$${(
+                          solicitud.sol_consumo_mensual_proyectado ||
+                          solicitud.consumo_mensual_proyectado
+                        )?.toLocaleString("es-CO", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Observaciones
+                  </p>
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {solicitud.sol_observacion_ejn || "-"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -344,33 +383,13 @@ export default function GestionComiteCredito2Page() {
               </h2>
 
               <div className="space-y-6">
-                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-
-                {etapasPrevias.map((etapa) => {
-                  const comentario = historialWorkflow.find(
-                    (h) => h.etapaCodigo === etapa.codigo,
-                  )?.comentario;
-                  return (
-                    <div key={etapa.codigo} className="space-y-3">
-                      <SoportesAnalisis
-                        solicitudId={solicitud.sol_id}
-                        wetId={etapa.wetId}
-                        titulo={`Soportes de ${etapa.nombre}`}
-                        readOnly
-                      />
-                      {comentario && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <p className="text-sm font-semibold text-blue-900 mb-1">
-                            Comentario de {etapa.nombre}
-                          </p>
-                          <p className="text-sm text-blue-800 whitespace-pre-line">
-                            {comentario}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {/* Subsección: lo que corresponde exactamente a esta
+                    gestión (Comité Crédito 2) — ubicada primero para no
+                    hacer scroll entre los conceptos de etapas previas */}
+                <div className="border-2 border-blue-200 bg-blue-50/40 rounded-xl p-5 space-y-6">
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                    Registrar tu Decisión
+                  </p>
 
                 {/* DECISION */}
                 <div>
@@ -456,13 +475,14 @@ export default function GestionComiteCredito2Page() {
                         />
                       </div>
 
-                      {/* Forma de Pago */}
+                      {/* Forma de Pago — catálogo Forma_pago de la BD;
+                          nombre de quien aprueba y fecha se envían por
+                          debajo (usuario logueado + fecha de hoy) */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Forma de Pago *
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={registro.formaPago}
                           onChange={(e) =>
                             setRegistro((prev) => ({
@@ -470,49 +490,15 @@ export default function GestionComiteCredito2Page() {
                               formaPago: e.target.value,
                             }))
                           }
-                          placeholder="Ej: Transferencia"
                           className="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-green-50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Nombre de quien aprueba */}
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Nombre de quien aprueba
-                        </label>
-                        <input
-                          type="text"
-                          value={registro.nombreAprueba}
-                          onChange={(e) =>
-                            setRegistro((prev) => ({
-                              ...prev,
-                              nombreAprueba: e.target.value,
-                            }))
-                          }
-                          placeholder="Tu nombre"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                      </div>
-
-                      {/* Fecha */}
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Fecha
-                        </label>
-                        <input
-                          type="date"
-                          value={registro.fecha}
-                          onChange={(e) =>
-                            setRegistro((prev) => ({
-                              ...prev,
-                              fecha: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
-                          disabled
-                        />
+                        >
+                          <option value="">Selecciona una forma de pago</option>
+                          {formasPago.map((fp) => (
+                            <option key={fp.fpg_id} value={fp.fpg_nombre}>
+                              {fp.fpg_nombre}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
@@ -547,6 +533,44 @@ export default function GestionComiteCredito2Page() {
                     Cancelar
                   </button>
                 </div>
+                </div>
+
+                {/* Subsecciones: contexto/referencia dejado por cada etapa
+                    previa — de solo lectura, no son parte de la gestión
+                    del Comité 2 */}
+                {etapasPrevias.map((etapa) => {
+                  const comentario = historialWorkflow.find(
+                    (h) => h.etapaCodigo === etapa.codigo,
+                  )?.comentario;
+                  return (
+                    <div
+                      key={etapa.codigo}
+                      className="bg-blue-50/60 border border-blue-200 rounded-lg p-4 space-y-4"
+                    >
+                      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                        Concepto de {etapa.nombre}
+                      </p>
+                      <SoportesAnalisis
+                        solicitudId={solicitud.sol_id}
+                        wetId={etapa.wetId}
+                        titulo={`Soportes de ${etapa.nombre}`}
+                        readOnly
+                      />
+                      {comentario && (
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                            Comentario
+                          </p>
+                          <p className="text-gray-900 whitespace-pre-line">
+                            {comentario}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
               </div>
             </div>
 

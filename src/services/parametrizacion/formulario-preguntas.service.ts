@@ -1,10 +1,15 @@
 import api from '@/services/core/api';
 
+function extraerMensajeError(error: any, fallback: string): string {
+  return error?.response?.data?.message || fallback;
+}
+
 export interface FormularioPregunta {
   fp_id?: number;
   fp_descripcion: string;
   fp_tipo: string;
   fp_subtipo?: string;
+  fp_patron?: string | null;
   seccion_id?: number | null;
   fp_estado?: boolean;
   fp_requerida?: boolean;
@@ -19,6 +24,9 @@ export interface FormularioPregunta {
   fp_tipo_documento_id?: number | null;
   fp_precarga_fuente?: string | null;
   fp_precarga_campo_cliente?: string | null;
+  seccion_nombre?: string | null;
+  seccion_orden?: number | null;
+  fp_tabla_columnas?: string | null;
 }
 
 export interface Opcion {
@@ -34,18 +42,35 @@ export const formularioPreguntasService = {
     return res.data;
   },
 
+  // Preguntas del formulario activo (última versión), para el selector de
+  // variables al editar la plantilla de un tipo de documento.
+  async getFormularioActivo(): Promise<FormularioPregunta[]> {
+    const res = await api.get(
+      "/parametrizacion/formulario-preguntas/formulario-activo",
+    );
+    return res.data;
+  },
+
   async create(payload: FormularioPregunta): Promise<any> {
     const res = await api.post("/parametrizacion/formulario-preguntas", payload);
     return res.data;
   },
 
   async update(fpId: number, payload: Partial<FormularioPregunta>): Promise<any> {
-    const res = await api.put(`/parametrizacion/formulario-preguntas/${fpId}`, payload);
-    return res.data;
+    try {
+      const res = await api.put(`/parametrizacion/formulario-preguntas/${fpId}`, payload);
+      return res.data;
+    } catch (error) {
+      throw new Error(extraerMensajeError(error, "Error al editar la pregunta"));
+    }
   },
 
   async delete(fpId: number): Promise<void> {
-    await api.delete(`/parametrizacion/formulario-preguntas/${fpId}`);
+    try {
+      await api.delete(`/parametrizacion/formulario-preguntas/${fpId}`);
+    } catch (error) {
+      throw new Error(extraerMensajeError(error, "Error al eliminar la pregunta"));
+    }
   },
 
   async getOpciones(fpId: number): Promise<Opcion[]> {
@@ -66,17 +91,25 @@ export const formularioPreguntasService = {
     fpoId: number,
     payload: { fpo_valor?: string; fpo_estado?: boolean },
   ): Promise<Opcion> {
-    const res = await api.put(
-      `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
-      payload,
-    );
-    return res.data;
+    try {
+      const res = await api.put(
+        `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
+        payload,
+      );
+      return res.data;
+    } catch (error) {
+      throw new Error(extraerMensajeError(error, "Error al editar la opción"));
+    }
   },
 
   async deleteOpcion(fpId: number, fpoId: number): Promise<void> {
-    await api.delete(
-      `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
-    );
+    try {
+      await api.delete(
+        `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
+      );
+    } catch (error) {
+      throw new Error(extraerMensajeError(error, "Error al eliminar la opción"));
+    }
   },
 
   async syncOpciones(

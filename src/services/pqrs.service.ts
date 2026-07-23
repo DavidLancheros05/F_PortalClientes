@@ -137,6 +137,22 @@ export const pqrsService = {
     }
   },
 
+  async subirAdjunto(pqrsId: number, file: File) {
+    try {
+      const formData = new FormData();
+      formData.append("archivo", file);
+      const response = await api.post(
+        `/pqrs/${pqrsId}/adjuntos`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error subiendo adjunto:", error);
+      throw error;
+    }
+  },
+
   async obtener(id: number): Promise<PqrsDetalle> {
     try {
       const response = await api.get(`/pqrs/${id}`);

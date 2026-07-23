@@ -10,6 +10,7 @@ import html2pdf from "html2pdf.js";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
+import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -118,6 +119,9 @@ export default function DetalleDetailPage() {
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [descargandoPdfFormulario, setDescargandoPdfFormulario] = useState(false);
   const { historial } = useHistorialWorkflow(
+    Number.isFinite(solicitudId) ? solicitudId : null,
+  );
+  const { solicitaCredito, montoSolicitado } = useSolicitudCupoSolicitado(
     Number.isFinite(solicitudId) ? solicitudId : null,
   );
 
@@ -523,6 +527,14 @@ export default function DetalleDetailPage() {
                 <p className="text-xs text-gray-500 uppercase">Consumo Mensual Proyectado</p>
                 <p className="text-sm font-medium text-gray-900">
                   {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Solicita Cupo</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {solicitaCredito
+                    ? `Sí — ${formatCurrency(montoSolicitado)}`
+                    : "No"}
                 </p>
               </div>
             </div>

@@ -13,6 +13,8 @@ interface HistorialItem {
   resultadoNombre?: string;
   estadoNombre?: string;
   fecha: string;
+  fechaEstimadaInicio?: string | null;
+  fechaEstimadaEtapaAnterior?: string | null;
   usuarioNombre?: string;
 }
 
@@ -61,6 +63,11 @@ export default function SolicitudHistorialPage() {
               item.resultado_nombre || item.resultadoNombre || undefined,
             estadoNombre: item.estado_nombre || item.estadoNombre || undefined,
             fecha: item.fecha,
+            fechaEstimadaInicio:
+              item.fecha_estimada_inicio || item.fechaEstimadaInicio,
+            fechaEstimadaEtapaAnterior:
+              item.fecha_estimada_etapa_anterior ||
+              item.fechaEstimadaEtapaAnterior,
             usuarioNombre: item.nombre || item.usuarioNombre || undefined,
           }));
 

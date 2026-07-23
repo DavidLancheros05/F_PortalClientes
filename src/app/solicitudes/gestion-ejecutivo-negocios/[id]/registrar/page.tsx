@@ -1,12 +1,13 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { parametrosService } from "@/services/parametros.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
+import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import {
   ArrowLeft,
   CheckCircle,
@@ -51,10 +52,6 @@ interface RegistroState {
   guardando: boolean;
 }
 
-interface DiasRespuesta {
-  [key: string]: number;
-}
-
 export default function RegistrarConceptoPage() {
   const router = useRouter();
   const params = useParams();
@@ -63,7 +60,7 @@ export default function RegistrarConceptoPage() {
 
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
-  const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
+  const [historial, setHistorial] = useState<any>(null);
   const [registro, setRegistro] = useState<RegistroState>({
     consumoMensual: null,
     consumoMensualDisplay: "",
@@ -72,6 +69,8 @@ export default function RegistrarConceptoPage() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { solicitaCredito, montoSolicitado } =
+    useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -79,18 +78,28 @@ export default function RegistrarConceptoPage() {
 
       try {
         setLoading(true);
-        const [solicitudData, dias] = await Promise.all([
-          solicitudesService.getById(solicitudId),
-          parametrosService.getDiasRespuesta(),
-        ]);
+        const solicitudData = await solicitudesService.getById(solicitudId);
 
         console.log(
           "[Registrar Concepto] Datos de solicitud recibidos:",
           solicitudData,
         );
-        console.log("[Registrar Concepto] Días de respuesta:", dias);
         setSolicitud(solicitudData);
-        setDiasRespuesta(dias);
+
+        // Historial real del workflow — independiente del resto (si falla,
+        // seguimos mostrando la página sin el panel de historial en vez de
+        // romper todo).
+        try {
+          const historialData =
+            await solicitudesService.obtenerHistorialWorkflow(solicitudId);
+          setHistorial(historialData);
+        } catch (historialError) {
+          console.warn(
+            "[Registrar Concepto] Error cargando historial:",
+            historialError,
+          );
+          setHistorial(null);
+        }
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -197,47 +206,6 @@ export default function RegistrarConceptoPage() {
     }
   };
 
-  const fechaEstimada =
-    (solicitud as any)?.sol_fecha_estimada_ejecutivo ||
-    (solicitud as any)?.fecha_estimada_ejecutivo;
-
-  const pasos = [
-    {
-      id: "creada",
-      nombre: "Creada",
-      estado: "completado" as const,
-      fecha: solicitud?.sol_fecha_creacion || solicitud?.fecha_creacion,
-      usuario: solicitud?.cliente_nombre || solicitud?.usuario_registro,
-      dias: diasRespuesta["Creada"] ?? 0,
-    },
-    {
-      id: "concepto",
-      nombre: "Concepto",
-      estado: "en_curso" as const,
-      fecha: new Date().toISOString(),
-      usuario: user?.nombre || user?.email || "-",
-      dias: diasRespuesta["Concepto"] ?? 1,
-    },
-    {
-      id: "comercial",
-      nombre: "Comercial",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Comercial"] ?? 2,
-    },
-    {
-      id: "financiera",
-      nombre: "Financiera",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Financiera"] ?? 1,
-    },
-    {
-      id: "aprobada",
-      nombre: "Aprobada",
-      estado: "pendiente" as const,
-      dias: diasRespuesta["Aprobada"] ?? 5,
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
       <div className="max-w-[90%] mx-auto mt-2 px-2">
@@ -333,12 +301,12 @@ export default function RegistrarConceptoPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Fecha Estimada
+                  Solicita Cupo
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {fechaEstimada
-                    ? new Date(fechaEstimada).toLocaleDateString("es-CO")
-                    : "-"}
+                  {solicitaCredito
+                    ? `Sí — $${(montoSolicitado ?? 0).toLocaleString("es-CO")}`
+                    : "No"}
                 </p>
               </div>
             </div>
@@ -347,86 +315,105 @@ export default function RegistrarConceptoPage() {
           {/* Contenido en dos columnas */}
           <div className="grid grid-cols-3 gap-6 px-8 py-8">
             {/* Formulario de registro - Izquierda */}
-            <div className="col-span-2">
-              <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <CheckCircle size={24} className="text-blue-600" />
-                Registrar Concepto
-              </h2>
+            <div className="col-span-2 space-y-6">
+              <div className="bg-blue-50/60 border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
+                <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <CheckCircle size={24} className="text-blue-600" />
+                  Registrar Concepto
+                  <span className="ml-auto text-xs font-semibold uppercase tracking-wide text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full">
+                    Acción requerida
+                  </span>
+                </h2>
 
-              <div className="space-y-6">
-                {/* Consumo Mensual Proyectado */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <DollarSign size={18} className="text-blue-600" />
-                    Consumo Mensual Proyectado (USD) *
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={registro.consumoMensualDisplay}
-                    onChange={handleConsumoChange}
-                    placeholder="Ej: 5.000.000"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
+                <div className="space-y-6">
+                  {/* Consumo Mensual Proyectado */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <DollarSign size={18} className="text-blue-600" />
+                      Consumo Mensual Proyectado (USD) *
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={registro.consumoMensualDisplay}
+                      onChange={handleConsumoChange}
+                      placeholder="Ej: 5.000.000"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                    />
+                  </div>
 
-                {/* Observaciones */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-blue-600" />
-                    Observaciones *
-                  </label>
-                  <textarea
-                    value={registro.observaciones}
-                    onChange={(e) =>
-                      setRegistro((prev) => ({
-                        ...prev,
-                        observaciones: e.target.value,
-                      }))
-                    }
-                    placeholder="Escribe tus observaciones aquí..."
-                    rows={5}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                  />
-                </div>
+                  {/* Observaciones */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <MessageSquare size={18} className="text-blue-600" />
+                      Observaciones *
+                    </label>
+                    <textarea
+                      value={registro.observaciones}
+                      onChange={(e) =>
+                        setRegistro((prev) => ({
+                          ...prev,
+                          observaciones: e.target.value,
+                        }))
+                      }
+                      placeholder="Escribe tus observaciones aquí..."
+                      rows={5}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none bg-white"
+                    />
+                  </div>
 
-                {/* Botones de acción */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleGuardarConcepto}
-                    disabled={
-                      !registro.consumoMensual ||
-                      !registro.observaciones.trim() ||
-                      registro.guardando
-                    }
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {registro.guardando ? "Guardando..." : "Guardar Concepto"}
-                  </button>
-                  <button
-                    onClick={() => router.back()}
-                    disabled={registro.guardando}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancelar
-                  </button>
+                  {/* Botones de acción */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleGuardarConcepto}
+                      disabled={
+                        !registro.consumoMensual ||
+                        !registro.observaciones.trim() ||
+                        registro.guardando
+                      }
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {registro.guardando ? "Guardando..." : "Guardar Concepto"}
+                    </button>
+                    <button
+                      onClick={() => router.back()}
+                      disabled={registro.guardando}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {solicitud && (
+                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+              )}
             </div>
 
             {/* Historial - Derecha */}
             <div className="col-span-1">
               <HistorialSolicitud
-                historial={
-                  pasos?.map((item: any, index: number) => ({
-                    historialId: index,
-                    etapaNombre: item.nombre || "Etapa desconocida",
-                    resultadoNombre: item.resultado,
-                    estadoNombre: undefined,
+                historial={(historial?.historial || []).map(
+                  (item: any, index: number) => ({
+                    historialId: item.historial_id || item.historialId || index,
+                    etapaNombre:
+                      item.etapa_nombre ||
+                      item.etapaNombre ||
+                      "Etapa desconocida",
+                    resultadoNombre:
+                      item.resultado_nombre || item.resultadoNombre,
+                    estadoNombre: item.estado_nombre || item.estadoNombre,
                     fecha: item.fecha,
-                    usuarioNombre: item.usuario,
-                  })) || []
-                }
+                    fechaEstimadaInicio:
+                      item.fecha_estimada_inicio || item.fechaEstimadaInicio,
+                    fechaEstimadaEtapaAnterior:
+                      item.fecha_estimada_etapa_anterior ||
+                      item.fechaEstimadaEtapaAnterior,
+                    usuarioNombre:
+                      item.usuarioNombre || item.nombre || item.usuario_nombre,
+                  }),
+                )}
               />
             </div>
           </div>

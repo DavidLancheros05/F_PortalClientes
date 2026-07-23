@@ -271,40 +271,37 @@ export default function ClientesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Listado de clientes
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Gestiona y administra los clientes del sistema
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={() => refetch()}
-              className="flex items-center px-4 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 shadow border border-gray-200 transition"
-            >
-              <RefreshCw className="w-5 h-5 mr-2" />
-              Actualizar
-            </button>
-            <button
-              onClick={() => router.push("/parametrizacion/clientes/nuevo")}
-              className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all"
-            >
-              <UserPlus className="w-5 h-5 mr-2" />
-              Nuevo Cliente
-            </button>
-          </div>
-        </div>
-
-        {/* Filtros */}
+        {/* Header + Filtros */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Filtros de búsqueda
-          </h3>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Listado de clientes
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Gestiona y administra los clientes del sistema
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => refetch()}
+                className="flex items-center px-4 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 shadow border border-gray-200 transition"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Actualizar
+              </button>
+              <button
+                onClick={() => router.push("/parametrizacion/clientes/nuevo")}
+                className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all"
+              >
+                <UserPlus className="w-5 h-5 mr-2" />
+                Nuevo Cliente
+              </button>
+            </div>
+          </div>
+
+          <div className="h-px w-full bg-gradient-to-r from-gray-200 via-gray-300 to-transparent mb-6" />
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* Centro de Operación */}

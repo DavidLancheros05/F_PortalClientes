@@ -9,6 +9,8 @@ interface HistorialItem {
   resultadoNombre?: string;
   estadoNombre?: string;
   fecha: string;
+  fechaEstimadaInicio?: string | null;
+  fechaEstimadaEtapaAnterior?: string | null;
   usuarioNombre?: string;
   comentario?: string;
 }
@@ -80,12 +82,34 @@ export default function HistorialSolicitud({
       <div className="space-y-4 text-xs">
         {historial.map((item, index) => {
           const isLast = index === historial.length - 1;
+          const resultadoEraPendiente = Boolean(
+            item.resultadoNombre?.toLowerCase().startsWith("pendiente"),
+          );
+          // Una fila solo puede seguir "pendiente" si es la última del
+          // historial (la etapa donde está la solicitud ahora mismo). Si
+          // existe una fila posterior, esta etapa ya quedó resuelta —
+          // aunque su propio resultado se haya grabado como "Pendiente" en
+          // el momento en que la solicitud ENTRÓ a esa etapa (así se
+          // registra cada transición: al entrar, no al salir).
+          const esPendiente = isLast && resultadoEraPendiente;
+          // Para una etapa ya resuelta, la fecha real de gestión es cuando
+          // se disparó la siguiente transición (la fecha de la fila
+          // siguiente), no la fecha de esta fila (que es cuándo entró a
+          // la etapa, no cuándo la resolvió).
+          const fechaMostrada =
+            !isLast && resultadoEraPendiente
+              ? historial[index + 1]?.fecha || item.fecha
+              : item.fecha;
 
           return (
             <div key={item.historialId || index} className="flex gap-3">
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-600 text-white font-semibold text-xs">
-                  ✓
+                <div
+                  className={`flex items-center justify-center h-8 w-8 rounded-full text-white font-semibold text-xs ${
+                    esPendiente ? "bg-amber-500" : "bg-green-600"
+                  }`}
+                >
+                  {esPendiente ? "…" : "✓"}
                 </div>
                 {!isLast && (
                   <div className="w-0.5 h-10 bg-gradient-to-b from-green-300 to-gray-300 mt-1" />
@@ -97,9 +121,24 @@ export default function HistorialSolicitud({
                   {item.etapaNombre}
                 </p>
 
-                {item.fecha && (
+                {fechaMostrada && (
                   <p className="text-gray-600 mt-0.5">
-                    {formatearFecha(item.fecha)}
+                    {esPendiente ? "Pendiente desde" : "Gestionado"}:{" "}
+                    {formatearFecha(fechaMostrada)}
+                  </p>
+                )}
+
+                {item.fechaEstimadaInicio && (
+                  <p className="text-amber-700 mt-0.5">
+                    Fecha estimada desde inicio:{" "}
+                    {formatearFecha(item.fechaEstimadaInicio)}
+                  </p>
+                )}
+
+                {item.fechaEstimadaEtapaAnterior && (
+                  <p className="text-amber-700 mt-0.5">
+                    Fecha estimada desde etapa anterior:{" "}
+                    {formatearFecha(item.fechaEstimadaEtapaAnterior)}
                   </p>
                 )}
 

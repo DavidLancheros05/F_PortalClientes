@@ -10,11 +10,11 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
+import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import {
   ArrowLeft,
   FileText,
   CheckCircle,
-  AlertCircle,
   MessageSquare,
   TrendingUp,
 } from "lucide-react";
@@ -34,6 +34,7 @@ interface Solicitud {
   sol_fecha_creacion: string;
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
+  sol_observacion_ejn?: string | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
@@ -82,6 +83,8 @@ export default function GestionComiteCredito1Page() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { solicitaCredito, montoSolicitado } =
+    useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -273,20 +276,48 @@ export default function GestionComiteCredito1Page() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Consumo Proyectado
+                  Solicita Cupo
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {solicitud.sol_consumo_mensual_proyectado ||
-                  solicitud.consumo_mensual_proyectado
-                    ? `$${(
-                        solicitud.sol_consumo_mensual_proyectado ||
-                        solicitud.consumo_mensual_proyectado
-                      )?.toLocaleString("es-CO", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`
-                    : "-"}
+                  {solicitaCredito
+                    ? `Sí — $${(montoSolicitado ?? 0).toLocaleString("es-CO")}`
+                    : "No"}
                 </p>
+              </div>
+            </div>
+
+            {/* Concepto del Ejecutivo de Negocios — agrupado aparte para
+                que quede claro que estos datos vienen de esa etapa */}
+            <div className="mt-4 bg-blue-50/60 border border-blue-200 rounded-lg p-4">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">
+                Concepto del Ejecutivo de Negocios
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Consumo Mensual Proyectado
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {solicitud.sol_consumo_mensual_proyectado ||
+                    solicitud.consumo_mensual_proyectado
+                      ? `$${(
+                          solicitud.sol_consumo_mensual_proyectado ||
+                          solicitud.consumo_mensual_proyectado
+                        )?.toLocaleString("es-CO", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Observaciones
+                  </p>
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {solicitud.sol_observacion_ejn || "-"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -301,162 +332,149 @@ export default function GestionComiteCredito1Page() {
               </h2>
 
               <div className="space-y-6">
-                {/* Ver Formulario */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle
-                      className="text-blue-600 flex-shrink-0 mt-1"
-                      size={20}
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-900 mb-2">
-                        Revisar Formulario Completo
-                      </p>
-                      <p className="text-sm text-blue-700 mb-3">
-                        Accede al formulario de la solicitud para revisar todas
-                        las respuestas y documentos.
-                      </p>
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
-                          )
-                        }
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        Ver Formulario Completo →
-                      </button>
-                    </div>
+                {/* Subsección: lo que corresponde exactamente a esta
+                    gestión (Comité Crédito 1) — ubicada antes de
+                    documentos */}
+                <div className="border-2 border-blue-200 bg-blue-50/40 rounded-xl p-5 space-y-6">
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                    Registrar tu Evaluación
+                  </p>
+
+                  {/* Evaluación de Riesgo */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Evaluación de Riesgo *
+                    </label>
+                    <select
+                      value={registro.evaluacionRiesgo}
+                      onChange={(e) =>
+                        setRegistro((prev) => ({
+                          ...prev,
+                          evaluacionRiesgo: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                    >
+                      <option value="">Selecciona una evaluación</option>
+                      <option value="bajo">Riesgo Bajo</option>
+                      <option value="medio">Riesgo Medio</option>
+                      <option value="alto">Riesgo Alto</option>
+                      <option value="muy-alto">Riesgo Muy Alto</option>
+                    </select>
                   </div>
+
+                  {/* Límite de Crédito */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <TrendingUp size={18} className="text-blue-600" />
+                      Límite de Crédito Recomendado (USD)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={registro.limiteCreditoRecomendado}
+                      onChange={(e) => {
+                        const valor = e.target.value.replace(/\D/g, "");
+                        setRegistro((prev) => ({
+                          ...prev,
+                          limiteCreditoRecomendado: valor,
+                        }));
+                      }}
+                      placeholder="Ej: 50000000"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                    />
+                  </div>
+
+                  {/* Plazo Recomendado */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Plazo Recomendado (días)
+                    </label>
+                    <input
+                      type="number"
+                      value={registro.plazoRecomendado}
+                      onChange={(e) =>
+                        setRegistro((prev) => ({
+                          ...prev,
+                          plazoRecomendado: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej: 90"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                    />
+                  </div>
+
+                  {/* Observaciones */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <MessageSquare size={18} className="text-blue-600" />
+                      Observaciones del Comité *
+                    </label>
+                    <textarea
+                      value={registro.observacionesComite}
+                      onChange={(e) =>
+                        setRegistro((prev) => ({
+                          ...prev,
+                          observacionesComite: e.target.value,
+                        }))
+                      }
+                      placeholder="Escribe las observaciones del análisis de crédito..."
+                      rows={5}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none bg-white"
+                    />
+                  </div>
+
+                  {/* Botones de acción */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleGuardarRevision}
+                      disabled={
+                        !registro.evaluacionRiesgo ||
+                        !registro.observacionesComite.trim() ||
+                        registro.guardando
+                      }
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {registro.guardando
+                        ? "Enviando..."
+                        : "Enviar Revisión a Comité Crédito 2"}
+                    </button>
+                    <button
+                      onClick={() => router.back()}
+                      disabled={registro.guardando}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subsección: contexto/referencia dejado por el Oficial
+                    de Cumplimiento en su etapa — de solo lectura, no es
+                    parte de la gestión del Comité */}
+                <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4 space-y-4">
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                    Concepto de Oficial de Cumplimiento
+                  </p>
+                  <SoportesAnalisis
+                    solicitudId={solicitud.sol_id}
+                    wetId={4}
+                    titulo="Soportes de Oficial de Cumplimiento"
+                    readOnly
+                  />
+                  {comentarioOFC && (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                        Comentario
+                      </p>
+                      <p className="text-gray-900 whitespace-pre-line">
+                        {comentarioOFC}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-
-                <SoportesAnalisis
-                  solicitudId={solicitud.sol_id}
-                  wetId={4}
-                  titulo="Soportes de Oficial de Cumplimiento"
-                  readOnly
-                />
-
-                {comentarioOFC && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm font-semibold text-blue-900 mb-1">
-                      Comentario de Oficial de Cumplimiento
-                    </p>
-                    <p className="text-sm text-blue-800 whitespace-pre-line">
-                      {comentarioOFC}
-                    </p>
-                  </div>
-                )}
-
-                {/* Evaluación de Riesgo */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Evaluación de Riesgo *
-                  </label>
-                  <select
-                    value={registro.evaluacionRiesgo}
-                    onChange={(e) =>
-                      setRegistro((prev) => ({
-                        ...prev,
-                        evaluacionRiesgo: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="">Selecciona una evaluación</option>
-                    <option value="bajo">Riesgo Bajo</option>
-                    <option value="medio">Riesgo Medio</option>
-                    <option value="alto">Riesgo Alto</option>
-                    <option value="muy-alto">Riesgo Muy Alto</option>
-                  </select>
-                </div>
-
-                {/* Límite de Crédito */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <TrendingUp size={18} className="text-blue-600" />
-                    Límite de Crédito Recomendado (USD)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={registro.limiteCreditoRecomendado}
-                    onChange={(e) => {
-                      const valor = e.target.value.replace(/\D/g, "");
-                      setRegistro((prev) => ({
-                        ...prev,
-                        limiteCreditoRecomendado: valor,
-                      }));
-                    }}
-                    placeholder="Ej: 50000000"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Plazo Recomendado */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Plazo Recomendado (días)
-                  </label>
-                  <input
-                    type="number"
-                    value={registro.plazoRecomendado}
-                    onChange={(e) =>
-                      setRegistro((prev) => ({
-                        ...prev,
-                        plazoRecomendado: e.target.value,
-                      }))
-                    }
-                    placeholder="Ej: 90"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Observaciones */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-blue-600" />
-                    Observaciones del Comité *
-                  </label>
-                  <textarea
-                    value={registro.observacionesComite}
-                    onChange={(e) =>
-                      setRegistro((prev) => ({
-                        ...prev,
-                        observacionesComite: e.target.value,
-                      }))
-                    }
-                    placeholder="Escribe las observaciones del análisis de crédito..."
-                    rows={5}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                  />
-                </div>
-
-                {/* Botones de acción */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleGuardarRevision}
-                    disabled={
-                      !registro.evaluacionRiesgo ||
-                      !registro.observacionesComite.trim() ||
-                      registro.guardando
-                    }
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {registro.guardando
-                      ? "Enviando..."
-                      : "Enviar Revisión a Comité Crédito 2"}
-                  </button>
-                  <button
-                    onClick={() => router.back()}
-                    disabled={registro.guardando}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancelar
-                  </button>
-                </div>
               </div>
             </div>
 

@@ -25,6 +25,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { ESTADOS as ESTADOS_MAP } from "@/lib/workflow-labels";
+import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
 import { ConfirmModal, LoadingModal } from "@/components/modals";
 
 const formatearFecha = (fecha?: string | null, conHora = false): string => {
@@ -61,6 +62,7 @@ export default function SolicitudesContent() {
     return Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   });
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [navegandoNueva, setNavegandoNueva] = useState(false);
   const fetchSequenceRef = useRef(0);
   const itemsPerPage = 5;
   const [modalState, setModalState] = useState<{
@@ -223,6 +225,9 @@ export default function SolicitudesContent() {
 
   const handleNuevaSolicitud = () => {
     console.log("[SolicitudesContent] handleNuevaSolicitud");
+    // Feedback inmediato: el formulario de nueva solicitud tarda en abrir
+    // y sin esto el clic parece no hacer nada
+    setNavegandoNueva(true);
     // new solicitud page lives at /solicitudes/nueva
     router.push("/solicitudes/nueva");
   };
@@ -299,51 +304,41 @@ export default function SolicitudesContent() {
       <LoadingModal isOpen={loading} message="Cargando solicitudes..." />
       <div className="max-w-7xl mx-auto">
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-3">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => router.back()}
-                    className="p-2 rounded-full hover:bg-gray-200 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
-                    Mis Solicitudes 1
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={handleRefresh}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Actualizar
-                  </button>
-                  <button
-                    onClick={handleNuevaSolicitud}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Nueva Solicitud
-                  </button>
-                </div>
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.back()}
+                  className="p-2 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
+                  Mis Solicitudes
+                </p>
               </div>
 
-              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-4" />
-
-              <p className="text-gray-600">
-                Gestiona y revisa el estado de tus solicitudes de vinculación
-                comercial
-              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleRefresh}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Actualizar
+                </button>
+                <button
+                  onClick={handleNuevaSolicitud}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nueva Solicitud
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-6 p-6">
-            <h2 className="text-lg font-semibold text-slate-800">Filtros</h2>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-6" />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="lg:col-span-2">
                 <label className="mb-1 block text-sm font-medium text-slate-700">
                   Buscar solicitud
@@ -405,7 +400,6 @@ export default function SolicitudesContent() {
                       "N° Solicitud",
                       "Cliente",
                       "Fecha Creación",
-                      "Versión",
                       "Última Actualización",
                       "Estado",
                       "Observaciones",
@@ -413,7 +407,9 @@ export default function SolicitudesContent() {
                     ].map((th, idx) => (
                       <th
                         key={idx}
-                        className="px-4 sm:px-6 py-3 text-left text-xs font-bold text-blue-900 uppercase tracking-wider whitespace-nowrap border-b border-blue-200"
+                        className={`px-4 sm:px-6 py-3 text-left text-xs font-bold text-blue-900 uppercase tracking-wider whitespace-nowrap border-b border-blue-200 ${
+                          th === "Acciones" ? "sticky right-0 bg-gradient-to-r from-blue-100 via-blue-100 to-blue-50 z-10" : ""
+                        }`}
                       >
                         {th}
                       </th>
@@ -424,7 +420,7 @@ export default function SolicitudesContent() {
                   {solicitudes.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={7}
                         className="px-4 sm:px-6 py-12 text-center"
                       >
                         <div className="flex flex-col items-center justify-center">
@@ -480,14 +476,9 @@ export default function SolicitudesContent() {
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               <span className="text-sm text-gray-900">
-                                {formatearFecha(solicitud.sol_fecha_creacion)}
+                                {formatearFecha(solicitud.sol_fecha_creacion, true)}
                               </span>
                             </div>
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                              v{Number(solicitud.sol_formulario_version ?? 1)}
-                            </span>
                           </td>
                           <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
@@ -509,7 +500,7 @@ export default function SolicitudesContent() {
                               <span>{estado.nombre}</span>
                             </div>
                           </td>
-                          <td className="px-4 sm:px-6 py-3">
+                          <td className="px-4 sm:px-6 py-3 min-w-xs">
                             {solicitud.sol_estado_id === 2 &&
                             solicitud.sol_etapa_actual_id === 3 &&
                             solicitud.sol_resultado_etapa_id === 3 ? (
@@ -576,7 +567,7 @@ export default function SolicitudesContent() {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
+                          <td className="px-4 sm:px-6 py-3 whitespace-nowrap sticky right-0 bg-white z-10">
                             <div className="text-sm font-medium flex gap-2">
                               <button
                                 onClick={() =>
@@ -603,7 +594,8 @@ export default function SolicitudesContent() {
                                     <Edit className="w-4 h-4" />
                                   </button>
                                 )}
-                              {solicitud.sol_estado_id === 5 && (
+                              {solicitud.sol_estado_id ===
+                                ESTADO_SOLICITUD.BORRADOR.id && (
                                 <button
                                   onClick={() =>
                                     handleEliminar(
@@ -760,6 +752,11 @@ export default function SolicitudesContent() {
           onCancel={() => setModalState({ ...modalState, isOpen: false })}
         />
       )}
+
+      <LoadingModal
+        isOpen={navegandoNueva}
+        message="Abriendo formulario de solicitud..."
+      />
     </div>
   );
 }

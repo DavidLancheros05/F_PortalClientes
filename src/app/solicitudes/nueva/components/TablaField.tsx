@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { maestrosService } from "@/services/parametrizacion/maestros.service";
 import type { FormularioPregunta, RespuestasState } from "../types";
 
@@ -62,7 +63,7 @@ type OpcionCatalogo = { op_id: number; op_descripcion: string };
 
 type ColumnaTabla = {
   nombre: string;
-  tipo: "TEXTO" | "SI_NO" | "CATALOGO";
+  tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA";
   catalogo_base_datos?: string;
   catalogo_tabla?: string;
   catalogo_columna?: string;
@@ -85,7 +86,12 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
           return {
             nombre: col.nombre,
             tipo:
-              col.tipo === "SI_NO" || col.tipo === "CATALOGO" ? col.tipo : "TEXTO",
+              col.tipo === "SI_NO" ||
+              col.tipo === "CATALOGO" ||
+              col.tipo === "MONEDA" ||
+              col.tipo === "NUMERO"
+                ? col.tipo
+                : "TEXTO",
             catalogo_base_datos: col.catalogo_base_datos,
             catalogo_tabla: col.catalogo_tabla,
             catalogo_columna: col.catalogo_columna,
@@ -206,28 +212,25 @@ function CeldaCatalogoDependiente({
     columnaPadre.catalogo_pk_column,
   ]);
 
+  const placeholderText = !valorPadreTexto
+    ? `Primero elige ${columnaPadre.nombre}`
+    : cargando
+      ? "Cargando..."
+      : opciones.length === 0
+        ? "Sin opciones"
+        : "Selecciona...";
+
   return (
-    <select
-      disabled={disabled || !valorPadreTexto}
+    <SearchableSelect
+      options={opciones.map((op) => ({
+        id: op.op_descripcion,
+        label: op.op_descripcion,
+      }))}
       value={valor}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
-    >
-      <option value="">
-        {!valorPadreTexto
-          ? `Primero elige ${columnaPadre.nombre}`
-          : cargando
-            ? "Cargando..."
-            : opciones.length === 0
-              ? "Sin opciones"
-              : "Selecciona..."}
-      </option>
-      {opciones.map((op) => (
-        <option key={op.op_id} value={op.op_descripcion}>
-          {op.op_descripcion}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      disabled={disabled || !valorPadreTexto || cargando}
+      placeholder={placeholderText}
+    />
   );
 }
 
@@ -349,8 +352,8 @@ export function TablaField({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-md shadow-slate-200/60">
-      <div className="overflow-x-auto">
+    <div className="rounded-2xl border border-slate-200 shadow-md shadow-slate-200/60">
+      <div className="overflow-x-auto" style={{overflowY: 'visible'}}>
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-gradient-to-r from-blue-600 to-blue-700">
@@ -376,19 +379,19 @@ export function TablaField({
                 {columnas.map((columna) => {
                   if (columna.tipo === "SI_NO") {
                     return (
-                      <td key={columna.nombre} className="p-1">
-                        <select
-                          disabled={readOnly}
+                      <td key={columna.nombre} className="p-1 relative">
+                        <SearchableSelect
+                          options={[
+                            { id: "Sí", label: "Sí" },
+                            { id: "No", label: "No" },
+                          ]}
                           value={fila[columna.nombre] || ""}
-                          onChange={(e) =>
-                            actualizarCelda(filaIndex, columna.nombre, e.target.value)
+                          onChange={(value) =>
+                            actualizarCelda(filaIndex, columna.nombre, String(value))
                           }
-                          className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
-                        >
-                          <option value="">Selecciona...</option>
-                          <option value="Sí">Sí</option>
-                          <option value="No">No</option>
-                        </select>
+                          disabled={readOnly}
+                          placeholder="Selecciona..."
+                        />
                       </td>
                     );
                   }
@@ -405,7 +408,7 @@ export function TablaField({
                       );
                     }
                     return (
-                      <td key={columna.nombre} className="p-1">
+                      <td key={columna.nombre} className="p-1 relative">
                         <CeldaCatalogoDependiente
                           columna={columna}
                           columnaPadre={columnaPadre}
@@ -423,24 +426,64 @@ export function TablaField({
                   if (columna.tipo === "CATALOGO") {
                     const opciones = valoresCatalogo[columna.nombre] || [];
                     return (
+                      <td key={columna.nombre} className="p-1 relative">
+                        <SearchableSelect
+                          options={opciones.map((op) => ({
+                            id: op.op_descripcion,
+                            label: op.op_descripcion,
+                          }))}
+                          value={fila[columna.nombre] || ""}
+                          onChange={(value) =>
+                            actualizarCelda(filaIndex, columna.nombre, String(value))
+                          }
+                          disabled={readOnly || opciones.length === 0}
+                          placeholder={opciones.length === 0 ? "Sin opciones" : "Selecciona..."}
+                        />
+                      </td>
+                    );
+                  }
+
+                  if (columna.tipo === "MONEDA") {
+                    return (
                       <td key={columna.nombre} className="p-1">
-                        <select
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-slate-500">
+                            $
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            disabled={readOnly}
+                            value={
+                              fila[columna.nombre]
+                                ? Number(fila[columna.nombre]).toLocaleString("es-CO")
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const soloDigitos = e.target.value.replace(/\D/g, "");
+                              actualizarCelda(filaIndex, columna.nombre, soloDigitos);
+                            }}
+                            className="w-full rounded-lg border border-transparent bg-transparent py-1.5 pl-5 pr-2 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                          />
+                        </div>
+                      </td>
+                    );
+                  }
+
+                  if (columna.tipo === "NUMERO") {
+                    return (
+                      <td key={columna.nombre} className="p-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
                           disabled={readOnly}
                           value={fila[columna.nombre] || ""}
-                          onChange={(e) =>
-                            actualizarCelda(filaIndex, columna.nombre, e.target.value)
-                          }
+                          onChange={(e) => {
+                            const soloDigitos = e.target.value.replace(/\D/g, "");
+                            actualizarCelda(filaIndex, columna.nombre, soloDigitos);
+                          }}
                           className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
-                        >
-                          <option value="">
-                            {opciones.length === 0 ? "Sin opciones" : "Selecciona..."}
-                          </option>
-                          {opciones.map((op) => (
-                            <option key={op.op_id} value={op.op_descripcion}>
-                              {op.op_descripcion}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </td>
                     );
                   }

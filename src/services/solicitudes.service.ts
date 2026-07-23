@@ -220,6 +220,7 @@ export const solicitudesService = {
     data: {
       aprobado: boolean;
       motivo_rechazo_id?: number | null;
+      modo_solucion?: string | null;
       fecha_estimada_respuesta_comercial?: string | null;
       fecha_real_respuesta_comercial?: string | null;
       usuario_modifica?: number;
@@ -364,6 +365,24 @@ export const solicitudesService = {
       responseType: "blob",
     });
     return response.data;
+  },
+
+  // Respuestas resueltas de cada pregunta (mismo dato que arma el PDF
+  // completo) — usado para resolver variables de plantillas de documentos
+  // (ver construirMapaRespuestasPregunta en carta-pdf.util.ts).
+  async getFormularioRenderizable(id: number) {
+    const response = await api.get(`/solicitudes/${id}/formulario-renderizable`);
+    return response.data as {
+      preguntas: Array<{
+        fp_id: number;
+        fp_tipo: string;
+        fp_descripcion: string;
+        seccion_id: number;
+        valor_resuelto: string;
+        tabla_columnas?: string[];
+        tabla_filas?: Record<string, string>[];
+      }>;
+    };
   },
 
   // Obtener última solicitud pendiente de un cliente

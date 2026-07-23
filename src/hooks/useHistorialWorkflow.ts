@@ -8,6 +8,8 @@ interface HistorialItem {
   resultadoNombre?: string;
   estadoNombre?: string;
   fecha: string;
+  fechaEstimadaInicio?: string | null;
+  fechaEstimadaEtapaAnterior?: string | null;
   usuarioNombre?: string;
   comentario?: string;
 }
@@ -41,6 +43,11 @@ export function useHistorialWorkflow(solicitudId: number | null) {
                   h.etapa_nombre ?? h.etapaNombre ?? "Etapa desconocida",
                 resultadoNombre: h.resultado_nombre ?? h.resultadoNombre,
                 fecha: h.fecha,
+                fechaEstimadaInicio:
+                  h.fecha_estimada_inicio ?? h.fechaEstimadaInicio,
+                fechaEstimadaEtapaAnterior:
+                  h.fecha_estimada_etapa_anterior ??
+                  h.fechaEstimadaEtapaAnterior,
                 usuarioNombre: h.nombre ?? h.usuarioNombre,
                 comentario: h.comentario,
               };

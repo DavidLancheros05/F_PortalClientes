@@ -15,8 +15,10 @@ import {
   GitBranch,
   Layers,
   Clock,
+  Lock,
 } from "lucide-react";
 import { versionesService } from "@/services/versiones.service";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 export default function VersionesPage() {
   const router = useRouter();
@@ -27,6 +29,10 @@ export default function VersionesPage() {
   const [versiones, setVersiones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activandoVersion, setActivandoVersion] = useState<number | null>(null);
+  const [versionAConfirmar, setVersionAConfirmar] = useState<number | null>(null);
+  const [notificacion, setNotificacion] = useState<
+    { type: "success" | "error"; message: string } | null
+  >(null);
 
   const activarVersion = async (versionNumero: number) => {
     setActivandoVersion(versionNumero);
@@ -45,7 +51,7 @@ export default function VersionesPage() {
   };
 
   const showNotification = (type: "success" | "error", message: string) => {
-    alert(message);
+    setNotificacion({ type, message });
   };
 
   useEffect(() => {
@@ -151,7 +157,7 @@ export default function VersionesPage() {
             <div className="space-y-4">
               {versiones.map((version, index) => {
                 const esVersionActiva =
-                  version.fv_numero || version.version_numero === formulario.formulario_version;
+                  (version.fv_numero ?? version.version_numero) === formulario.formulario_version;
                 const isLatest = index === 0;
 
                 return (
@@ -235,6 +241,16 @@ export default function VersionesPage() {
                                   <span>{version.creador_nombre}</span>
                                 </div>
                               )}
+                              {version.total_solicitudes > 0 && (
+                                <div className="flex items-center gap-1.5 text-amber-700">
+                                  <Lock className="h-3.5 w-3.5" />
+                                  <span>
+                                    {version.total_solicitudes} solicitud
+                                    {version.total_solicitudes === 1 ? "" : "es"} asociada
+                                    {version.total_solicitudes === 1 ? "" : "s"} — no editable
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -251,35 +267,43 @@ export default function VersionesPage() {
                               <span className="font-medium">Ver</span>
                             </button>
 
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/parametrizacion/formulario-editor?formulario_id=${formularioId}&version=${version.fv_numero || version.version_numero}`,
-                                )
-                              }
-                              className="group flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200"
-                            >
-                              <Edit className="h-4 w-4 group-hover:rotate-12 transition-transform" />
-                              <span className="font-medium">Editar</span>
-                            </button>
+                            {version.total_solicitudes > 0 ? (
+                              <button
+                                type="button"
+                                disabled
+                                title="Esta versión ya tiene solicitudes asociadas — editar sus preguntas cambiaría en silencio lo que muestran los PDF ya generados. Creá una nueva versión para hacer cambios."
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed"
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span className="font-medium">Editar</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  router.push(
+                                    `/parametrizacion/formulario-editor?formulario_id=${formularioId}&version=${version.fv_numero || version.version_numero}`,
+                                  )
+                                }
+                                className="group flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200"
+                              >
+                                <Edit className="h-4 w-4 group-hover:rotate-12 transition-transform" />
+                                <span className="font-medium">Editar</span>
+                              </button>
+                            )}
 
                             {!esVersionActiva && (
                               <button
-                                onClick={() => {
-                                  if (
-                                    confirm(
-                                      `¿Activar versión ${version.fv_numero || version.version_numero}?\n\nLas nuevas solicitudes usarán esta versión.`,
-                                    )
-                                  ) {
-                                    activarVersion(version.fv_numero || version.version_numero);
-                                  }
-                                }}
+                                onClick={() =>
+                                  setVersionAConfirmar(
+                                    version.fv_numero || version.version_numero,
+                                  )
+                                }
                                 disabled={
-                                  activandoVersion === version.fv_numero || version.version_numero
+                                  activandoVersion === (version.fv_numero ?? version.version_numero)
                                 }
                                 className="group flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-all duration-200 border border-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {activandoVersion === version.fv_numero || version.version_numero ? (
+                                {activandoVersion === (version.fv_numero ?? version.version_numero) ? (
                                   <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-700"></div>
                                     <span>Activando...</span>
@@ -327,6 +351,37 @@ export default function VersionesPage() {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={versionAConfirmar !== null}
+        title="Activar versión"
+        message={`¿Activar versión ${versionAConfirmar}? Las nuevas solicitudes usarán esta versión.`}
+        confirmText="Activar"
+        isLoading={activandoVersion !== null}
+        onConfirm={async () => {
+          if (versionAConfirmar === null) return;
+          await activarVersion(versionAConfirmar);
+          setVersionAConfirmar(null);
+        }}
+        onCancel={() => setVersionAConfirmar(null)}
+      />
+
+      <SuccessModal
+        isOpen={notificacion?.type === "success"}
+        title="Listo"
+        message={notificacion?.message ?? ""}
+        onAction={() => setNotificacion(null)}
+      />
+
+      <ConfirmModal
+        isOpen={notificacion?.type === "error"}
+        title="Error"
+        message={notificacion?.message ?? ""}
+        confirmText="Aceptar"
+        isDangerous
+        onConfirm={() => setNotificacion(null)}
+        onCancel={() => setNotificacion(null)}
+      />
     </div>
   );
 }

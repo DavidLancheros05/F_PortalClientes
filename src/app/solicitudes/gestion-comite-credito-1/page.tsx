@@ -344,7 +344,7 @@ export default function GestionComiteCredito1Page() {
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                         Dias Faltantes
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                      <th className="sticky right-0 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
                         Accion
                       </th>
                     </tr>
@@ -362,7 +362,7 @@ export default function GestionComiteCredito1Page() {
                       return (
                         <tr
                           key={solicitud.sol_id ?? solicitud.sa_sol_id}
-                          className="hover:bg-gray-50 transition-colors"
+                          className="group hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                             {solicitud.sol_numero_solicitud ||
@@ -439,7 +439,7 @@ export default function GestionComiteCredito1Page() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {diasRestantes !== null ? diasRestantes : "-"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
                             <button
                               onClick={() =>
                                 router.push(

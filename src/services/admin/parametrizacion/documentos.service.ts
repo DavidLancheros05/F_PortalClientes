@@ -1,5 +1,10 @@
 import api from "@/services/core/api";
-import { TipoDocumento, TipoDocumentoPayload } from "./documentos.types";
+import {
+  TipoDocumento,
+  TipoDocumentoPayload,
+  TipoDocumentoRevision,
+  TipoDocumentoRevisionPayload,
+} from "./documentos.types";
 
 export const documentosService = {
   getAll: async (): Promise<TipoDocumento[]> => {
@@ -25,5 +30,45 @@ export const documentosService = {
 
   delete: async (id: number) => {
     await api.delete(`/parametrizacion/tipos-documentos/${id}`);
+  },
+
+  getRevisiones: async (
+    tipoDocumentoId: number,
+  ): Promise<TipoDocumentoRevision[]> => {
+    const res = await api.get(
+      `/parametrizacion/tipos-documentos/${tipoDocumentoId}/revisiones`,
+    );
+    return res.data;
+  },
+
+  createRevision: async (
+    tipoDocumentoId: number,
+    payload: TipoDocumentoRevisionPayload,
+  ): Promise<TipoDocumentoRevision> => {
+    const res = await api.post(
+      `/parametrizacion/tipos-documentos/${tipoDocumentoId}/revisiones`,
+      payload,
+    );
+    return res.data;
+  },
+
+  updateRevision: async (
+    tipoDocumentoId: number,
+    revisionId: number,
+    payload: Partial<TipoDocumentoRevisionPayload>,
+  ): Promise<void> => {
+    await api.patch(
+      `/parametrizacion/tipos-documentos/${tipoDocumentoId}/revisiones/${revisionId}`,
+      payload,
+    );
+  },
+
+  deleteRevision: async (
+    tipoDocumentoId: number,
+    revisionId: number,
+  ): Promise<void> => {
+    await api.delete(
+      `/parametrizacion/tipos-documentos/${tipoDocumentoId}/revisiones/${revisionId}`,
+    );
   },
 };

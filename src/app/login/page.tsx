@@ -4,7 +4,7 @@ import { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
 import { loginService } from "@/services/auth/login.service";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
 type AccessType = "cliente" | "usuario";
 
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [identifierError, setIdentifierError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
 
   const validateForm = () => {
@@ -191,17 +192,28 @@ export default function LoginPage() {
             <label className="block text-sm font-medium text-[#003366] mb-2">
               Contraseña
             </label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (passwordError) setPasswordError("");
-                if (loginError) setLoginError("");
-              }}
-              className="block w-full pl-3 pr-4 py-3.5 bg-white border-2 border-[#003366]/20 rounded-xl shadow-sm focus:ring-2 focus:ring-[#0072C6] focus:border-[#0072C6] outline-none transition-all duration-200 text-[#003366] placeholder-[#003366]/40"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError("");
+                  if (loginError) setLoginError("");
+                }}
+                className="block w-full pl-3 pr-11 py-3.5 bg-white border-2 border-[#003366]/20 rounded-xl shadow-sm focus:ring-2 focus:ring-[#0072C6] focus:border-[#0072C6] outline-none transition-all duration-200 text-[#003366] placeholder-[#003366]/40"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-[#003366]/40 hover:text-[#003366]"
+                tabIndex={-1}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             {passwordError && (
               <p className="mt-2 text-sm text-[#003366] bg-[#003366]/10 px-3 py-2 rounded-lg">
                 {passwordError}

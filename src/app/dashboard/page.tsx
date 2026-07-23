@@ -11,7 +11,7 @@ import {
   FileText,
   PlusCircle,
 } from "lucide-react";
-import { ConfirmModal } from "@/components/modals";
+import { ConfirmModal, LoadingModal } from "@/components/modals";
 
 // Roles reales
 const ROLES = {
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [inactiveModalOpen, setInactiveModalOpen] = useState(false);
+  const [navegandoNueva, setNavegandoNueva] = useState(false);
 
   const getRolConfig = (rol_id?: number, rolNombre?: string) => {
     // Si hay nombre en el objeto rol, usarlo como prioridad
@@ -251,7 +252,10 @@ export default function DashboardPage() {
                 </div>
               </button>
               <button
-                onClick={() => router.push("/solicitudes/nueva")}
+                onClick={() => {
+                  setNavegandoNueva(true);
+                  router.push("/solicitudes/nueva");
+                }}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
               >
                 <div className="flex items-center">
@@ -326,6 +330,11 @@ export default function DashboardPage() {
         isDangerous={true}
         onConfirm={handleInactiveUserClose}
         onCancel={handleInactiveUserClose}
+      />
+
+      <LoadingModal
+        isOpen={navegandoNueva}
+        message="Abriendo formulario de solicitud..."
       />
     </div>
   );

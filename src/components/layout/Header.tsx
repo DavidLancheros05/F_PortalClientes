@@ -63,6 +63,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
 
   const logout = () => {
     localStorage.clear();
+    Cookies.remove("pc_token");
     Cookies.remove("token");
     router.push("/login");
   };

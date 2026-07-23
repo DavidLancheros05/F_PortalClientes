@@ -23,6 +23,7 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   codigo: undefined,
   tipo: TIPOS_PREGUNTA.TEXTO,
   subtipo: "",
+  patron: "",
   seccion_id: null,
   requerida: false,
   tipo_documento_id: null,
@@ -83,6 +84,7 @@ export function usePreguntaEditor({
   const [loading_opciones, setLoading_opciones] = useState(false);
   const [opcionesNuevas, setOpcionesNuevas] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<"creada" | "editada" | null>(null);
   const [opcionAEliminar, setOpcionAEliminar] = useState<number | null>(null);
   const [preguntaAEliminar, setPreguntaAEliminar] = useState<number | null>(
     null,
@@ -655,16 +657,32 @@ export function usePreguntaEditor({
         formPregunta.tipo === TIPOS_PREGUNTA.FECHA
       ) {
         payload.fp_subtipo = formPregunta.subtipo || null;
+      } else if (formPregunta.tipo === TIPOS_PREGUNTA.TEXTO) {
+        payload.fp_subtipo = formPregunta.subtipo || null;
+        payload.fp_patron = formPregunta.subtipo
+          ? formPregunta.patron || null
+          : null;
       } else if (
         preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.SELECT ||
         preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.NUMERO ||
-        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.FECHA
+        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.FECHA ||
+        preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.TEXTO
       ) {
         payload.fp_subtipo = null;
+        payload.fp_patron = null;
       }
 
       if (editandoPregunta) {
         await formularioPreguntasService.update(editandoPregunta, payload);
+        // Actualizar el estado local en lugar de recargar todo
+        setPreguntas((prev) =>
+          prev.map((p) =>
+            p.fp_id === editandoPregunta
+              ? { ...p, ...payload, fp_descripcion: descripcionPersistida }
+              : p,
+          ),
+        );
+        setSuccessMessage("editada");
       } else {
         const creada = await formularioPreguntasService.create(payload);
 
@@ -712,6 +730,12 @@ export function usePreguntaEditor({
             opcionesNuevas,
           );
         }
+
+        // Agregar la nueva pregunta al estado local
+        if (creada) {
+          setPreguntas((prev) => [...prev, creada]);
+          setSuccessMessage("creada");
+        }
       }
 
       setFormPregunta(FORM_PREGUNTA_DEFAULT);
@@ -722,7 +746,6 @@ export function usePreguntaEditor({
       setFiltroTabla("");
       setFiltroColumna("");
       setCatalogoColumnas([]);
-      await cargarDatos();
     } catch (error) {
       console.error("Error guardando pregunta:", error);
       setError(
@@ -746,9 +769,14 @@ export function usePreguntaEditor({
         pregunta.fp_tipo === TIPOS_PREGUNTA.SELECT
           ? (pregunta.fp_subtipo ?? "LISTA")
           : pregunta.fp_tipo === TIPOS_PREGUNTA.NUMERO ||
-              pregunta.fp_tipo === TIPOS_PREGUNTA.FECHA
+              pregunta.fp_tipo === TIPOS_PREGUNTA.FECHA ||
+              pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO
             ? (pregunta.fp_subtipo ?? "")
             : "",
+      patron:
+        pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO
+          ? (pregunta.fp_patron ?? "")
+          : "",
       seccion_id: pregunta.seccion_id ?? null,
       requerida: Boolean(pregunta.fp_requerida),
       tipo_documento_id: pregunta.fp_tipo_documento_id ?? null,
@@ -987,7 +1015,17 @@ export function usePreguntaEditor({
               } as any),
             ),
           );
-          await cargarDatos();
+          // Actualizar el estado local en lugar de recargar todo
+          setPreguntas((prev) =>
+            prev.map((p) =>
+              dependientes.some((d) => d.fp_id === p.fp_id)
+                ? {
+                    ...p,
+                    fp_valor_padre_disparador: valorNuevo,
+                  }
+                : p,
+            ),
+          );
         }
       }
 
@@ -1053,7 +1091,8 @@ export function usePreguntaEditor({
         setOpciones([]);
         setNuevaOpcion("");
       }
-      await cargarDatos();
+      // Actualizar el estado local en lugar de recargar todo
+      setPreguntas((prev) => prev.filter((p) => p.fp_id !== preguntaId));
     } catch (error) {
       console.error("Error eliminando pregunta:", error);
       setError(
@@ -1077,6 +1116,11 @@ export function usePreguntaEditor({
       );
     } catch (error) {
       console.error("Error guardando orden de preguntas:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Error al guardar el orden de las preguntas",
+      );
     }
   };
 
@@ -1137,7 +1181,18 @@ export function usePreguntaEditor({
           fp_estado: preguntaSwap.fp_estado,
         } as any),
       ]);
-      await cargarDatos();
+      // Actualizar el estado local intercambiando órdenes
+      setPreguntas((prev) =>
+        prev.map((p) => {
+          if (p.fp_id === preguntaActual.fp_id) {
+            return { ...p, fp_orden: preguntaSwap.fp_orden };
+          }
+          if (p.fp_id === preguntaSwap.fp_id) {
+            return { ...p, fp_orden: preguntaActual.fp_orden };
+          }
+          return p;
+        }),
+      );
     } catch (error) {
       console.error("Error cambiando orden de pregunta:", error);
       setError("Error al cambiar orden de pregunta");
@@ -1214,5 +1269,7 @@ export function usePreguntaEditor({
     guardarOrdenPreguntas,
     handlePreguntaDragEnd,
     FORM_PREGUNTA_DEFAULT,
+    successMessage,
+    setSuccessMessage,
   };
 }

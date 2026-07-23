@@ -9,6 +9,7 @@ import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
+import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import {
   ArrowLeft,
   FileText,
@@ -32,6 +33,7 @@ interface Solicitud {
   sol_fecha_creacion: string;
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
+  sol_observacion_ejn?: string | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
@@ -74,6 +76,8 @@ export default function GestionOCPage() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { solicitaCredito, montoSolicitado } =
+    useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -249,20 +253,49 @@ export default function GestionOCPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Consumo Proyectado
+                  Solicita Cupo
                 </p>
                 <p className="font-semibold text-gray-900">
-                  {solicitud.sol_consumo_mensual_proyectado ||
-                  solicitud.consumo_mensual_proyectado
-                    ? `$${(
-                        solicitud.sol_consumo_mensual_proyectado ||
-                        solicitud.consumo_mensual_proyectado
-                      )?.toLocaleString("es-CO", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`
-                    : "-"}
+                  {solicitaCredito
+                    ? `Sí — $${(montoSolicitado ?? 0).toLocaleString("es-CO")}`
+                    : "No"}
                 </p>
+              </div>
+            </div>
+
+            {/* Concepto del Ejecutivo de Negocios — agrupado aparte para que
+                quede claro que estos dos datos vienen de esa etapa, no de
+                la solicitud en general */}
+            <div className="mt-4 bg-blue-50/60 border border-blue-200 rounded-lg p-4">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">
+                Concepto del Ejecutivo de Negocios
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Consumo Mensual Proyectado
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {solicitud.sol_consumo_mensual_proyectado ||
+                    solicitud.consumo_mensual_proyectado
+                      ? `$${(
+                          solicitud.sol_consumo_mensual_proyectado ||
+                          solicitud.consumo_mensual_proyectado
+                        )?.toLocaleString("es-CO", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                    Observaciones
+                  </p>
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {solicitud.sol_observacion_ejn || "-"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -308,130 +341,136 @@ export default function GestionOCPage() {
                   </div>
                 </div>
 
-                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-
-                <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={4} />
-
-                {/* Observaciones de Cumplimiento */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare size={18} className="text-blue-600" />
-                    Observaciones de Cumplimiento *
-                  </label>
-                  <textarea
-                    value={registro.observacionesCumplimiento}
-                    onChange={(e) =>
-                      setRegistro((prev) => ({
-                        ...prev,
-                        observacionesCumplimiento: e.target.value,
-                      }))
-                    }
-                    placeholder="Describe los hallazgos y observaciones de la revisión de cumplimiento..."
-                    rows={6}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Mínimo 10 caracteres requeridos
+                {/* Subsección: lo que corresponde exactamente a esta
+                    gestión (Oficial de Cumplimiento) — separada de la
+                    info general y ubicada antes de documentos/soportes */}
+                <div className="border-2 border-blue-200 bg-blue-50/40 rounded-xl p-5 space-y-6">
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                    Registrar tu Revisión de Cumplimiento
                   </p>
-                </div>
 
-                {/* Resultado de Cumplimiento */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Resultado de Cumplimiento *
-                  </label>
-                  <div className="space-y-3">
-                    <label
-                      className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-green-50 transition-colors"
-                      style={{
-                        borderColor:
-                          registro.resultado === "aprobado"
-                            ? "#22c55e"
-                            : "inherit",
-                        backgroundColor:
-                          registro.resultado === "aprobado"
-                            ? "rgba(34, 197, 94, 0.05)"
-                            : "inherit",
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="resultado"
-                        value="aprobado"
-                        checked={registro.resultado === "aprobado"}
-                        onChange={() =>
-                          setRegistro((prev) => ({
-                            ...prev,
-                            resultado: "aprobado",
-                            motivoRechazo: "",
-                          }))
-                        }
-                        className="w-5 h-5 text-green-600"
-                      />
-                      <span className="text-sm font-semibold text-gray-900">
-                        ✓ Aprobado - Cumple con todos los requisitos
-                      </span>
-                    </label>
-                    <label
-                      className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors"
-                      style={{
-                        borderColor:
-                          registro.resultado === "rechazado"
-                            ? "#ef4444"
-                            : "inherit",
-                        backgroundColor:
-                          registro.resultado === "rechazado"
-                            ? "rgba(239, 68, 68, 0.05)"
-                            : "inherit",
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="resultado"
-                        value="rechazado"
-                        checked={registro.resultado === "rechazado"}
-                        onChange={() =>
-                          setRegistro((prev) => ({
-                            ...prev,
-                            resultado: "rechazado",
-                          }))
-                        }
-                        className="w-5 h-5 text-red-600"
-                      />
-                      <span className="text-sm font-semibold text-gray-900">
-                        ✗ Rechazado - No cumple con los requisitos
-                      </span>
-                    </label>
-                  </div>
-                </div>
+                  <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={4} />
 
-                {/* Motivo de Rechazo - Solo si está rechazado */}
-                {registro.resultado === "rechazado" && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Motivo del Rechazo *
+                  {/* Observaciones de Cumplimiento */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <MessageSquare size={18} className="text-blue-600" />
+                      Observaciones de Cumplimiento *
                     </label>
                     <textarea
-                      value={registro.motivoRechazo}
+                      value={registro.observacionesCumplimiento}
                       onChange={(e) =>
                         setRegistro((prev) => ({
                           ...prev,
-                          motivoRechazo: e.target.value,
+                          observacionesCumplimiento: e.target.value,
                         }))
                       }
-                      placeholder="Describe por qué se rechaza la solicitud..."
-                      rows={4}
-                      className="w-full px-4 py-3 border border-red-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+                      placeholder="Describe los hallazgos y observaciones de la revisión de cumplimiento..."
+                      rows={6}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none bg-white"
                     />
-                    <p className="text-xs text-gray-600 mt-2">
+                    <p className="text-xs text-gray-500 mt-2">
                       Mínimo 10 caracteres requeridos
                     </p>
                   </div>
-                )}
 
-                {/* Botones de acción */}
-                <div className="flex gap-3 pt-4">
-                  <button
+                  {/* Resultado de Cumplimiento */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Resultado de Cumplimiento *
+                    </label>
+                    <div className="space-y-3">
+                      <label
+                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg bg-white hover:bg-green-50 transition-colors"
+                        style={{
+                          borderColor:
+                            registro.resultado === "aprobado"
+                              ? "#22c55e"
+                              : "inherit",
+                          backgroundColor:
+                            registro.resultado === "aprobado"
+                              ? "rgba(34, 197, 94, 0.05)"
+                              : "inherit",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="resultado"
+                          value="aprobado"
+                          checked={registro.resultado === "aprobado"}
+                          onChange={() =>
+                            setRegistro((prev) => ({
+                              ...prev,
+                              resultado: "aprobado",
+                              motivoRechazo: "",
+                            }))
+                          }
+                          className="w-5 h-5 text-green-600"
+                        />
+                        <span className="text-sm font-semibold text-gray-900">
+                          ✓ Aprobado - Cumple con todos los requisitos
+                        </span>
+                      </label>
+                      <label
+                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg bg-white hover:bg-red-50 transition-colors"
+                        style={{
+                          borderColor:
+                            registro.resultado === "rechazado"
+                              ? "#ef4444"
+                              : "inherit",
+                          backgroundColor:
+                            registro.resultado === "rechazado"
+                              ? "rgba(239, 68, 68, 0.05)"
+                              : "inherit",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="resultado"
+                          value="rechazado"
+                          checked={registro.resultado === "rechazado"}
+                          onChange={() =>
+                            setRegistro((prev) => ({
+                              ...prev,
+                              resultado: "rechazado",
+                            }))
+                          }
+                          className="w-5 h-5 text-red-600"
+                        />
+                        <span className="text-sm font-semibold text-gray-900">
+                          ✗ Rechazado - No cumple con los requisitos
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Motivo de Rechazo - Solo si está rechazado */}
+                  {registro.resultado === "rechazado" && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">
+                        Motivo del Rechazo *
+                      </label>
+                      <textarea
+                        value={registro.motivoRechazo}
+                        onChange={(e) =>
+                          setRegistro((prev) => ({
+                            ...prev,
+                            motivoRechazo: e.target.value,
+                          }))
+                        }
+                        placeholder="Describe por qué se rechaza la solicitud..."
+                        rows={4}
+                        className="w-full px-4 py-3 border border-red-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+                      />
+                      <p className="text-xs text-gray-600 mt-2">
+                        Mínimo 10 caracteres requeridos
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Botones de acción */}
+                  <div className="flex gap-3">
+                    <button
                     onClick={handleGuardarRevision}
                     disabled={
                       !registro.observacionesCumplimiento.trim() ||
@@ -453,7 +492,10 @@ export default function GestionOCPage() {
                   >
                     Cancelar
                   </button>
+                  </div>
                 </div>
+
+                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
               </div>
             </div>
 

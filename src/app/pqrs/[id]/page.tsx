@@ -9,12 +9,14 @@ import {
   FileText,
   AlertCircle,
   Loader,
+  Paperclip,
 } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
 import { pqrsService } from "@/services/pqrs.service";
 import { StateBadge } from "@/components/pqrs/StateBadge";
 import { PQRSTimeline } from "@/components/pqrs/PQRSTimeline";
 import { PQRSComments } from "@/components/pqrs/PQRSComments";
+import { PQRSAdjuntos } from "@/components/pqrs/PQRSAdjuntos";
 
 interface PQRSDetalle {
   pqrs_id: number;
@@ -34,6 +36,16 @@ interface PQRSDetalle {
   prioridad?: string;
   sla_estado?: string;
   horas_para_vencimiento?: number;
+  adjuntos?: Adjunto[];
+}
+
+interface Adjunto {
+  pa_id: number;
+  pa_nombre_original: string;
+  pa_ruta?: string;
+  pa_mime_type?: string;
+  pa_tamano?: number;
+  pa_fecha?: string;
 }
 
 interface Comentario {
@@ -65,9 +77,9 @@ export default function PQRSDetallePage() {
   const [historial, setHistorial] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"timeline" | "comentarios">(
-    "timeline",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "timeline" | "comentarios" | "adjuntos"
+  >("timeline");
 
   useEffect(() => {
     loadPQRSDetails();
@@ -115,6 +127,11 @@ export default function PQRSDetallePage() {
       console.error("Error añadiendo comentario:", err);
       setError("No se pudo enviar el comentario");
     }
+  };
+
+  const handleSubirAdjunto = async (file: File) => {
+    await pqrsService.subirAdjunto(pqrsId, file);
+    await loadPQRSDetails();
   };
 
   const formatDate = (dateString?: string) => {
@@ -271,6 +288,22 @@ export default function PQRSDetallePage() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab("adjuntos")}
+                className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors relative ${
+                  activeTab === "adjuntos"
+                    ? "text-blue-600 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-transparent"
+                }`}
+              >
+                <Paperclip className="h-4 w-4 inline mr-2" />
+                Adjuntos
+                {(pqrs.adjuntos?.length ?? 0) > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-blue-600 rounded-full">
+                    {pqrs.adjuntos?.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -288,6 +321,16 @@ export default function PQRSDetallePage() {
                 pqrsId={pqrsId}
                 onAddComentario={handleAddComentario}
                 usuarioNombre={user?.nombre}
+              />
+            </div>
+          )}
+
+          {activeTab === "adjuntos" && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+              <PQRSAdjuntos
+                adjuntos={pqrs.adjuntos || []}
+                pqrsEstado={pqrs.estado}
+                onSubirAdjunto={handleSubirAdjunto}
               />
             </div>
           )}

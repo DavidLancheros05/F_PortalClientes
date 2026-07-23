@@ -14,7 +14,7 @@ export async function proxy(req: NextRequest) {
   }
 
   // 2️⃣ Obtener token
-  const token = req.cookies.get("token")?.value;
+  const token = req.cookies.get("pc_token")?.value;
 
   if (!token) {
     return NextResponse.redirect(new URL("/login", req.url));
@@ -32,7 +32,7 @@ export async function proxy(req: NextRequest) {
     console.error("JWT inválido:", error?.message || error);
 
     const response = NextResponse.redirect(new URL("/login", req.url));
-    response.cookies.delete("token");
+    response.cookies.delete("pc_token");
     return response;
   }
 }
@@ -42,6 +42,7 @@ export const config = {
     "/dashboard/:path*",
     "/solicitudes/:path*",
     "/pedidos/:path*",
+    "/consultas/:path*",
     "/aprobaciones/:path*",
     "/condiciones-financieras/:path*",
     "/admin/:path*",

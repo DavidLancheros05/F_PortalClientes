@@ -57,6 +57,7 @@ const RolesPage = () => {
           rolDescripcion: rolData.rolDescripcion,
           rolCodigo: rolData.rolCodigo!,
           rolActivo: rolData.rolActivo,
+          modulos: rolData.modulos,
         });
       } else {
         return rolesService.update(rolData.rolId!, {
@@ -64,6 +65,7 @@ const RolesPage = () => {
           rolDescripcion: rolData.rolDescripcion,
           rolCodigo: rolData.rolCodigo,
           rolActivo: rolData.rolActivo,
+          modulos: rolData.modulos,
         });
       }
     },

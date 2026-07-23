@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Save, Copy } from "lucide-react";
+import api from "@/services/core/api";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 interface Version {
-  version_numero: number;
+  fv_numero: number;
   version_descripcion: string;
   total_preguntas: number;
 }
@@ -19,6 +21,9 @@ export default function NuevaVersionPage() {
   const [versiones, setVersiones] = useState<Version[]>([]);
   const [descripcion, setDescripcion] = useState("");
   const [copiarDe, setCopiarDe] = useState<number | null>(null);
+  const [notificacion, setNotificacion] = useState<
+    { type: "success" | "error"; message: string } | null
+  >(null);
 
   useEffect(() => {
     cargarVersiones();
@@ -26,15 +31,13 @@ export default function NuevaVersionPage() {
 
   const cargarVersiones = async () => {
     try {
-      const res = await fetch(
-        `/api/parametrizacion/formularios/${formularioId}/versiones`,
+      const res = await api.get(
+        `/parametrizacion/formularios/${formularioId}/versiones`,
       );
-      if (res.ok) {
-        const data = await res.json();
-        setVersiones(data.versiones || []);
-        if (data.versiones && data.versiones.length > 0) {
-          setCopiarDe(data.versiones[0].version_numero);
-        }
+      const data = res.data;
+      setVersiones(data.versiones || []);
+      if (data.versiones && data.versiones.length > 0) {
+        setCopiarDe(data.versiones[0].fv_numero);
       }
     } catch (error) {
       console.error("Error cargando versiones:", error);
@@ -46,30 +49,19 @@ export default function NuevaVersionPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `/api/parametrizacion/formularios/${formularioId}/nueva-version`,
+      const res = await api.post(
+        `/parametrizacion/formularios/${formularioId}/nueva-version`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            descripcion,
-            copiarDeVersion: copiarDe,
-            usuarioId: 1,
-          }),
+          descripcion,
+          copiarDeVersion: copiarDe,
+          usuarioId: 1,
         },
       );
-
-      if (res.ok) {
-        const data = await res.json();
-        alert(`✅ ${data.message}`);
-        router.push(`/parametrizacion/formularios/${formularioId}/versiones`);
-      } else {
-        const error = await res.json();
-        alert(`❌ Error: ${error.error}${error.details ? `\n${error.details}` : ""}`);
-      }
-    } catch (error) {
+      setNotificacion({ type: "success", message: res.data.message });
+    } catch (error: any) {
       console.error("Error creando versión:", error);
-      alert("❌ Error al crear la versión");
+      const mensaje = error?.response?.data?.message || "Error al crear la versión";
+      setNotificacion({ type: "error", message: mensaje });
     } finally {
       setLoading(false);
     }
@@ -136,8 +128,8 @@ export default function NuevaVersionPage() {
               >
                 <option value="">No copiar (versión vacía)</option>
                 {versiones.map((v) => (
-                  <option key={v.version_numero} value={v.version_numero}>
-                    Versión {v.version_numero} - {v.total_preguntas} preguntas
+                  <option key={v.fv_numero} value={v.fv_numero}>
+                    Versión {v.fv_numero} - {v.total_preguntas} preguntas
                   </option>
                 ))}
               </select>
@@ -191,6 +183,26 @@ export default function NuevaVersionPage() {
           </ul>
         </div>
       </div>
+
+      <SuccessModal
+        isOpen={notificacion?.type === "success"}
+        title="Listo"
+        message={notificacion?.message ?? ""}
+        onAction={() => {
+          setNotificacion(null);
+          router.push(`/parametrizacion/formularios/${formularioId}/versiones`);
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={notificacion?.type === "error"}
+        title="Error"
+        message={notificacion?.message ?? ""}
+        confirmText="Aceptar"
+        isDangerous
+        onConfirm={() => setNotificacion(null)}
+        onCancel={() => setNotificacion(null)}
+      />
     </div>
   );
 }

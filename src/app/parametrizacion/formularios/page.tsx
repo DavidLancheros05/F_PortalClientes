@@ -61,9 +61,11 @@ export default function FormulariosPage() {
 
     if (!confirmar) return;
 
-    const exito = await formulariosService.eliminar(formulario.frm_id);
-    if (exito) {
+    try {
+      await formulariosService.eliminar(formulario.frm_id);
       await cargarFormularios();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Error eliminando formulario");
     }
   };
 

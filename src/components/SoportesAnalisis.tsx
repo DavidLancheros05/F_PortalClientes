@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Eye, Paperclip, Trash2, Upload } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
+import { LoadingModal } from "@/components/modals";
 
 interface SoporteAnalisis {
   ssa_id: number;
@@ -152,6 +153,8 @@ export function SoportesAnalisis({
           ))}
         </div>
       )}
+
+      <LoadingModal isOpen={subiendo} message="Subiendo archivo de soporte..." />
     </div>
   );
 }

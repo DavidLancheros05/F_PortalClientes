@@ -39,40 +39,200 @@ function esBloqueVineta(lineas: string[]): boolean {
   return primera.length <= 60 && primera.endsWith(":");
 }
 
-type ParteTexto =
+// Detecta una viñeta explícita ("• ", ver botón "• Viñeta" del editor) aun
+// cuando el usuario seleccionó la línea ENTERA (incluido el "•") al aplicar
+// Tamaño/Negrita — en ese caso el marcador queda antes del "•" (ej.
+// "{{size:14}}• texto{{/size}}") y un startsWith("• ") literal no lo
+// detectaría. Devuelve el prefijo de marcadores (para conservarlo) y el
+// resto de la línea ya sin ese prefijo, para poder chequear/quitar el "• "
+// real que viene después.
+function separarPrefijoDeMarcadores(linea: string): { prefijo: string; resto: string } {
+  const match = linea.match(/^(?:\*\*|\{\{size:\d+\}\}|\{\{\/size\}\})*/);
+  const prefijo = match ? match[0] : "";
+  return { prefijo, resto: linea.slice(prefijo.length) };
+}
+
+function esLineaVinetaExplicita(linea: string): boolean {
+  return separarPrefijoDeMarcadores(linea).resto.startsWith("• ");
+}
+
+type ParteTexto = (
   | { tipo: "subtitulo"; texto: string }
   | { tipo: "parrafo"; texto: string }
   | { tipo: "lista"; lineas: string[] }
-  | { tipo: "vineta"; label: string; resto: string };
+  | { tipo: "vineta"; label: string; resto: string }
+) & {
+  // Líneas en blanco de más que el autor de la plantilla dejó ANTES de
+  // este bloque, además de la línea en blanco normal que ya separa
+  // bloques — ej. varias líneas vacías entre "Atentamente," y la raya de
+  // firma para dejar un hueco visual grande. Se traduce en espacio
+  // vertical extra al dibujar (ver dibujarBloquesPdf), en vez de
+  // perderse silenciosamente como antes.
+  espacioExtra: number;
+  // true si este bloque viene justo después de una viñeta explícita, sin
+  // línea en blanco de por medio — texto de continuación/explicación de esa
+  // viñeta que se dibuja corrido a la derecha (mismo indent que el texto de
+  // la viñeta), en vez de pegado al margen izquierdo como un párrafo suelto.
+  sangrado: boolean;
+};
 
-function clasificarBloquesTexto(contenido: string): ParteTexto[] {
-  const bloques = contenido
-    .split(/\n\s*\n/)
-    .map((bloque) =>
-      bloque
-        .split("\n")
-        .map((linea) => linea.trim())
-        .filter(Boolean),
-    )
-    .filter((lineas) => lineas.length > 0);
+function agruparBloquesConEspacio(
+  contenido: string,
+): { lineas: string[]; espacioExtra: number; sangrado: boolean }[] {
+  const bloques: { lineas: string[]; espacioExtra: number; sangrado: boolean }[] = [];
+  let lineasActuales: string[] = [];
+  let espacioExtraActual = 0;
+  let blancosConsecutivos = 0;
+  // true mientras las líneas que siguen deban indentarse por venir justo
+  // después de una viñeta — se apaga con una línea en blanco (corta la
+  // continuación) o se reafirma con cada viñeta nueva.
+  let sangradoPendiente = false;
+
+  const cerrarBloque = () => {
+    if (lineasActuales.length === 0) return;
+    bloques.push({
+      lineas: lineasActuales,
+      espacioExtra: espacioExtraActual,
+      sangrado: sangradoPendiente,
+    });
+    lineasActuales = [];
+  };
+
+  for (const lineaRaw of contenido.split("\n")) {
+    const linea = lineaRaw.trim();
+    if (linea === "") {
+      blancosConsecutivos++;
+      continue;
+    }
+    if (blancosConsecutivos > 0) {
+      cerrarBloque();
+      // La primera línea en blanco solo separa bloques (como siempre);
+      // cada línea en blanco ADICIONAL se convierte en espacio extra.
+      espacioExtraActual = blancosConsecutivos - 1;
+      sangradoPendiente = false;
+    }
+    blancosConsecutivos = 0;
+
+    if (esLineaVinetaExplicita(linea)) {
+      // Una viñeta explícita (botón "• Viñeta" del editor) nunca se agrupa
+      // con la línea de al lado, aunque no haya línea en blanco entre
+      // medio — cada una es su propio bloque de un solo renglón, así el PDF
+      // dibuja un "•" por línea en vez de fusionarlas en un párrafo o
+      // lista.
+      // Caso no cubierto a propósito: si negrita/tamaño se aplicó
+      // seleccionando texto que cruza hacia una línea de viñeta,
+      // balancearMarcadoresPorLinea antepone el marcador abierto (ej. "**")
+      // antes del "• ", y esLineaVinetaExplicita ya no lo detecta como
+      // viñeta — en la práctica el botón "Viñeta" se usa sobre una línea
+      // puntual, no sobre una selección que además cruza a la siguiente.
+      cerrarBloque();
+      lineasActuales.push(linea);
+      cerrarBloque();
+      espacioExtraActual = 0;
+      sangradoPendiente = true;
+      continue;
+    }
+
+    lineasActuales.push(linea);
+  }
+  cerrarBloque();
+
+  return bloques;
+}
+
+// Un marcador de negrita (**) o de tamaño ({{size:N}}...{{/size}}) puede
+// quedar con la apertura en una línea y el cierre varias líneas después —
+// pasa cuando la selección que se envolvió en el editor cruza uno o más
+// saltos de línea (ej. el usuario aplicó "Tamaño" sobre el documento
+// completo de una sola vez, en vez de sobre una frase). El problema no es
+// solo entre párrafos: dibujarVinetaPdf separa la primera línea de un
+// bloque tipo viñeta ("label") del resto ("resto") como DOS strings
+// independientes, y dibujarListaPdf procesa cada línea de un bloque tipo
+// lista una por una — en ambos casos cada string se le pasa por separado a
+// palabrasConEstilosPdf, que solo reconoce un marcador si la apertura Y el
+// cierre están en el MISMO string. Un marcador sin cerrar en su línea
+// nunca se reconocía como tal y terminaba imprimiéndose como texto
+// literal. Esta función reescribe el contenido cerrando cada marcador
+// todavía abierto al final de cada línea y reabriéndolo al principio de la
+// siguiente, para que cualquier línea individual quede autocontenida sin
+// cambiar el resultado visual (el tramo completo se sigue viendo en
+// negrita/con el tamaño elegido). Usa una pila (no un simple booleano) por
+// si negrita y tamaño llegan a solaparse, para cerrarlos en el orden
+// correcto (el último abierto se cierra primero).
+function balancearMarcadoresPorLinea(contenido: string): string {
+  const pila: string[] = [];
+  const textoDeCierre = (marcador: string) =>
+    marcador === "**" ? "**" : "{{/size}}";
+
+  const lineasFinal = contenido.split("\n").map((linea) => {
+    const prefijo = pila.join("");
+
+    const regexToken = /\*\*|\{\{size:\d+\}\}|\{\{\/size\}\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = regexToken.exec(linea))) {
+      if (match[0] === "**") {
+        const i = pila.lastIndexOf("**");
+        if (i !== -1) pila.splice(i, 1);
+        else pila.push("**");
+      } else if (match[0] === "{{/size}}") {
+        const i = pila.findIndex((m) => m.startsWith("{{size:"));
+        if (i !== -1) pila.splice(i, 1);
+      } else {
+        pila.push(match[0]);
+      }
+    }
+
+    const sufijo = [...pila].reverse().map(textoDeCierre).join("");
+    return prefijo + linea + sufijo;
+  });
+
+  return lineasFinal.join("\n");
+}
+
+function clasificarBloquesTexto(contenidoOriginal: string): ParteTexto[] {
+  const contenido = balancearMarcadoresPorLinea(contenidoOriginal);
+  const bloques = agruparBloquesConEspacio(contenido);
 
   const partes: ParteTexto[] = [];
 
-  for (const lineas of bloques) {
+  for (const { lineas, espacioExtra, sangrado } of bloques) {
+    if (lineas.length === 1 && esLineaVinetaExplicita(lineas[0])) {
+      // Viñeta explícita (ver botón "• Viñeta" en PlantillaEditor.tsx) —
+      // un "•" real por línea, sin el label en negrita forzado que usa la
+      // heurística vieja de abajo (label="" no agrega palabras, ver
+      // dibujarVinetaPdf/palabrasConEstilosPdf). Se conserva el prefijo de
+      // marcadores (ej. {{size:14}}) si el usuario sizeó/negrilló la línea
+      // completa incluido el "•" — ver separarPrefijoDeMarcadores.
+      const { prefijo, resto } = separarPrefijoDeMarcadores(lineas[0]);
+      partes.push({
+        tipo: "vineta",
+        label: "",
+        resto: (prefijo + resto.slice(2)).trim(),
+        espacioExtra,
+        sangrado,
+      });
+      continue;
+    }
     if (esBloqueVineta(lineas)) {
       const [primera, ...resto] = lineas;
-      partes.push({ tipo: "vineta", label: primera, resto: resto.join(" ") });
+      partes.push({
+        tipo: "vineta",
+        label: primera,
+        resto: resto.join(" "),
+        espacioExtra,
+        sangrado,
+      });
       continue;
     }
     if (lineas.length === 1) {
       const esSubtitulo = lineas[0].length <= 60 && lineas[0].endsWith(":");
       if (esSubtitulo) {
-        partes.push({ tipo: "subtitulo", texto: lineas[0] });
+        partes.push({ tipo: "subtitulo", texto: lineas[0], espacioExtra, sangrado });
       } else {
-        partes.push({ tipo: "parrafo", texto: lineas[0] });
+        partes.push({ tipo: "parrafo", texto: lineas[0], espacioExtra, sangrado });
       }
     } else {
-      partes.push({ tipo: "lista", lineas });
+      partes.push({ tipo: "lista", lineas, espacioExtra, sangrado });
     }
   }
 
@@ -84,10 +244,14 @@ function clasificarBloquesTexto(contenido: string): ParteTexto[] {
 interface PalabraPdf {
   texto: string;
   bold: boolean;
+  /** Tamaño puntual (ver {{size:N}}...{{/size}} y palabrasConEstilosPdf) —
+   * si falta, se usa el fontSize del bloque que la dibuja. */
+  size?: number;
 }
 
-// Envuelve una secuencia de palabras (algunas en negrita) en líneas que no
-// superen maxWidth, midiendo cada palabra con su propia fuente.
+// Envuelve una secuencia de palabras (algunas en negrita/tamaño propio) en
+// líneas que no superen maxWidth, midiendo cada palabra con su propia
+// fuente y tamaño.
 function envolverPalabrasPdf(
   palabras: PalabraPdf[],
   maxWidth: number,
@@ -102,7 +266,7 @@ function envolverPalabrasPdf(
 
   for (const palabra of palabras) {
     const font = palabra.bold ? fontBold : fontRegular;
-    const anchoPalabra = font.widthOfTextAtSize(palabra.texto, fontSize);
+    const anchoPalabra = font.widthOfTextAtSize(palabra.texto, palabra.size ?? fontSize);
     const anchoConEspacio =
       lineaActual.length > 0
         ? anchoActual + spaceWidth + anchoPalabra
@@ -118,6 +282,62 @@ function envolverPalabrasPdf(
   }
   if (lineaActual.length > 0) lineas.push(lineaActual);
   return lineas;
+}
+
+// Alto vertical a reservar para una línea ya envuelta: si contiene palabras
+// con tamaño puntual mayor al del bloque, la línea crece proporcionalmente
+// para no pisar la línea siguiente.
+function altoLineaPdf(lineaPalabras: PalabraPdf[], fontSizeBase: number, lineHeightBase: number): number {
+  const tamañoMax = lineaPalabras.reduce(
+    (max, p) => Math.max(max, p.size ?? fontSizeBase),
+    fontSizeBase,
+  );
+  return Math.max(lineHeightBase, lineHeightBase * (tamañoMax / fontSizeBase));
+}
+
+// Parsea marcadores **texto** dentro de una cadena en palabras con negrita
+// puntual — para poder resaltar una frase dentro de un párrafo/lista/viñeta
+// de la plantilla sin que todo el bloque sea negrita (ver botón "Negrita" en
+// DocumentosForm.tsx, que envuelve la selección en **...**). Los marcadores
+// no se dibujan, solo determinan qué palabras van en fontBold.
+function palabrasConNegritaPdf(texto: string, boldPorDefecto = false): PalabraPdf[] {
+  const palabras: PalabraPdf[] = [];
+  for (const parte of texto.split(/(\*\*[^*]+\*\*)/g)) {
+    if (!parte) continue;
+    const esNegrita = parte.startsWith("**") && parte.endsWith("**") && parte.length > 4;
+    const contenido = esNegrita ? parte.slice(2, -2) : parte;
+    for (const palabra of contenido.split(/\s+/).filter(Boolean)) {
+      palabras.push({ texto: palabra, bold: esNegrita || boldPorDefecto });
+    }
+  }
+  return palabras;
+}
+
+// Parsea marcadores {{size:N}}texto{{/size}} para tamaño de letra puntual —
+// misma idea que palabrasConNegritaPdf, pero para tamaño (ver botón
+// "Tamaño" en DocumentosForm.tsx). Se resuelve primero el tamaño por tramos
+// y, dentro de cada tramo, se delega en palabrasConNegritaPdf para que
+// negrita y tamaño puntual puedan combinarse sin pisarse.
+function palabrasConEstilosPdf(texto: string, boldPorDefecto = false): PalabraPdf[] {
+  const palabras: PalabraPdf[] = [];
+  const regexTamaño = /\{\{size:(\d+)\}\}([\s\S]*?)\{\{\/size\}\}/g;
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  const agregarTramo = (fragmento: string, size?: number) => {
+    for (const palabra of palabrasConNegritaPdf(fragmento, boldPorDefecto)) {
+      palabras.push(size != null ? { ...palabra, size } : palabra);
+    }
+  };
+
+  while ((match = regexTamaño.exec(texto))) {
+    if (match.index > cursor) agregarTramo(texto.slice(cursor, match.index));
+    agregarTramo(match[2], Number(match[1]));
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < texto.length) agregarTramo(texto.slice(cursor));
+
+  return palabras;
 }
 
 // Dibuja una línea con palabras mixtas negrita/regular, opcionalmente
@@ -141,8 +361,9 @@ function dibujarLineaMixtaPdf(
     let cursorX = x;
     for (const palabra of palabras) {
       const font = palabra.bold ? fontBold : fontRegular;
-      page.drawText(palabra.texto, { x: cursorX, y, size: fontSize, font, color });
-      cursorX += font.widthOfTextAtSize(palabra.texto, fontSize) + spaceWidth;
+      const size = palabra.size ?? fontSize;
+      page.drawText(palabra.texto, { x: cursorX, y, size, font, color });
+      cursorX += font.widthOfTextAtSize(palabra.texto, size) + spaceWidth;
     }
     return;
   }
@@ -150,7 +371,7 @@ function dibujarLineaMixtaPdf(
   const anchoNatural =
     palabras.reduce(
       (suma, p) =>
-        suma + (p.bold ? fontBold : fontRegular).widthOfTextAtSize(p.texto, fontSize),
+        suma + (p.bold ? fontBold : fontRegular).widthOfTextAtSize(p.texto, p.size ?? fontSize),
       0,
     ) +
     spaceWidth * (palabras.length - 1);
@@ -160,9 +381,10 @@ function dibujarLineaMixtaPdf(
   let cursorX = x;
   palabras.forEach((palabra) => {
     const font = palabra.bold ? fontBold : fontRegular;
-    page.drawText(palabra.texto, { x: cursorX, y, size: fontSize, font, color });
+    const size = palabra.size ?? fontSize;
+    page.drawText(palabra.texto, { x: cursorX, y, size, font, color });
     cursorX +=
-      font.widthOfTextAtSize(palabra.texto, fontSize) + spaceWidth + espacioPorHueco;
+      font.widthOfTextAtSize(palabra.texto, size) + spaceWidth + espacioPorHueco;
   });
 }
 
@@ -189,10 +411,7 @@ interface EstiloCuerpoPdf {
 }
 
 function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: string) {
-  const palabras: PalabraPdf[] = texto
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((t) => ({ texto: t, bold: false }));
+  const palabras = palabrasConEstilosPdf(texto);
   const lineas = envolverPalabrasPdf(
     palabras,
     estilo.contentWidth,
@@ -201,7 +420,8 @@ function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: st
     estilo.fontBold,
   );
   lineas.forEach((lineaPalabras, idx) => {
-    estilo.checkSpace(cursor, estilo.lineHeightParrafo);
+    const alto = altoLineaPdf(lineaPalabras, estilo.fontSizeBody, estilo.lineHeightParrafo);
+    estilo.checkSpace(cursor, alto);
     dibujarLineaMixtaPdf(
       cursor.page,
       lineaPalabras,
@@ -214,7 +434,7 @@ function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: st
       estilo.color,
       idx < lineas.length - 1,
     );
-    cursor.y -= estilo.lineHeightParrafo;
+    cursor.y -= alto;
   });
   cursor.y -= 10;
 }
@@ -222,7 +442,14 @@ function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: st
 function dibujarSubtituloPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: string) {
   estilo.checkSpace(cursor, estilo.fontSizeBody + 14);
   cursor.y -= 14;
-  cursor.page.drawText(texto, {
+  // Ya se dibuja entera en negrita — solo se limpian marcadores ** y
+  // {{size:N}}/{{/size}}, por si el autor de la plantilla los dejó puestos
+  // por costumbre.
+  const textoLimpio = texto
+    .replace(/\*\*/g, "")
+    .replace(/\{\{size:\d+\}\}/g, "")
+    .replace(/\{\{\/size\}\}/g, "");
+  cursor.page.drawText(textoLimpio, {
     x: estilo.marginLeft,
     y: cursor.y,
     size: estilo.fontSizeBody,
@@ -234,10 +461,7 @@ function dibujarSubtituloPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: 
 
 function dibujarListaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, lineas: string[]) {
   for (const linea of lineas) {
-    const palabras: PalabraPdf[] = linea
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((t) => ({ texto: t, bold: false }));
+    const palabras = palabrasConEstilosPdf(linea);
     const subLineas = envolverPalabrasPdf(
       palabras,
       estilo.contentWidth,
@@ -246,7 +470,8 @@ function dibujarListaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, lineas: str
       estilo.fontBold,
     );
     subLineas.forEach((subLinea) => {
-      estilo.checkSpace(cursor, estilo.lineHeightLista);
+      const alto = altoLineaPdf(subLinea, estilo.fontSizeBody, estilo.lineHeightLista);
+      estilo.checkSpace(cursor, alto);
       dibujarLineaMixtaPdf(
         cursor.page,
         subLinea,
@@ -259,11 +484,16 @@ function dibujarListaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, lineas: str
         estilo.color,
         false,
       );
-      cursor.y -= estilo.lineHeightLista;
+      cursor.y -= alto;
     });
   }
   cursor.y -= 12;
 }
+
+// Sangría de una viñeta (y del texto que la sigue sin línea en blanco de
+// por medio, ver "sangrado" en ParteTexto) — compartida para que ambos
+// queden alineados verticalmente.
+const INDENT_SANGRIA = 14;
 
 function dibujarVinetaPdf(
   cursor: CursorPdf,
@@ -271,17 +501,11 @@ function dibujarVinetaPdf(
   label: string,
   resto: string,
 ) {
-  const indent = 14;
+  const indent = INDENT_SANGRIA;
   const maxWidth = estilo.contentWidth - indent;
   const palabras: PalabraPdf[] = [
-    ...label
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((t) => ({ texto: t, bold: true })),
-    ...resto
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((t) => ({ texto: t, bold: false })),
+    ...palabrasConEstilosPdf(label, true),
+    ...palabrasConEstilosPdf(resto, false),
   ];
   const lineas = envolverPalabrasPdf(
     palabras,
@@ -291,7 +515,8 @@ function dibujarVinetaPdf(
     estilo.fontBold,
   );
   lineas.forEach((lineaPalabras, idx) => {
-    estilo.checkSpace(cursor, estilo.lineHeightParrafo);
+    const alto = altoLineaPdf(lineaPalabras, estilo.fontSizeBody, estilo.lineHeightParrafo);
+    estilo.checkSpace(cursor, alto);
     if (idx === 0) {
       cursor.page.drawText("•", {
         x: estilo.marginLeft,
@@ -313,17 +538,191 @@ function dibujarVinetaPdf(
       estilo.color,
       idx < lineas.length - 1,
     );
-    cursor.y -= estilo.lineHeightParrafo;
+    cursor.y -= alto;
   });
   cursor.y -= 10;
 }
 
 function dibujarBloquesPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, partes: ParteTexto[]) {
   for (const parte of partes) {
-    if (parte.tipo === "subtitulo") dibujarSubtituloPdf(cursor, estilo, parte.texto);
-    else if (parte.tipo === "parrafo") dibujarParrafoPdf(cursor, estilo, parte.texto);
-    else if (parte.tipo === "lista") dibujarListaPdf(cursor, estilo, parte.lineas);
+    if (parte.espacioExtra > 0) {
+      const espacio = parte.espacioExtra * estilo.lineHeightParrafo;
+      estilo.checkSpace(cursor, espacio);
+      cursor.y -= espacio;
+    }
+    // Texto de continuación de una viñeta (sin línea en blanco de por
+    // medio) se dibuja con el mismo indent que el texto de esa viñeta, en
+    // vez de pegado al margen izquierdo — la viñeta misma no usa esto
+    // (dibujarVinetaPdf ya aplica su propio indent internamente).
+    const estiloEfectivo =
+      parte.sangrado && parte.tipo !== "vineta"
+        ? {
+            ...estilo,
+            marginLeft: estilo.marginLeft + INDENT_SANGRIA,
+            contentWidth: estilo.contentWidth - INDENT_SANGRIA,
+          }
+        : estilo;
+    if (parte.tipo === "subtitulo") dibujarSubtituloPdf(cursor, estiloEfectivo, parte.texto);
+    else if (parte.tipo === "parrafo") dibujarParrafoPdf(cursor, estiloEfectivo, parte.texto);
+    else if (parte.tipo === "lista") dibujarListaPdf(cursor, estiloEfectivo, parte.lineas);
     else dibujarVinetaPdf(cursor, estilo, parte.label, parte.resto);
+  }
+}
+
+// ===== Tabla "CONTROL DE CAMBIOS" (Revisión / Descripción del Cambio /
+// Fecha) — historial editable por tipo de documento (ver "Editar tipo de
+// documento"), se dibuja una sola vez al final del cuerpo, en la última
+// página. Compartida por generarCartaPdf y generarFormatoOficialPdf. =====
+
+export interface RevisionDocumentoPdf {
+  revision: string;
+  descripcionCambio: string;
+  fecha: string;
+}
+
+// WinAnsi (cp1252, la codificación que usan las fuentes estándar de
+// pdf-lib) no puede representar cualquier code point Unicode — un
+// caracter corrupto (mojibake de un dato mal codificado, un emoji, etc.)
+// en un campo libre como "Descripción del Cambio" hacía que
+// page.drawText() reventara y tumbara la generación del PDF completo, no
+// solo esa fila. Se reemplaza cualquier code point fuera del rango seguro
+// (ASCII imprimible + acentos/ñ/¿/¡ en español) por "?" antes de dibujar.
+function sanearTextoPdf(texto: string): string {
+  return texto.replace(/[^\x20-\x7E¡¿À-ÿ]/g, "?");
+}
+
+function envolverTextoPlano(
+  texto: string,
+  maxWidth: number,
+  fontSize: number,
+  font: PDFFont,
+): string[] {
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  const lineas: string[] = [];
+  let actual = "";
+  for (const palabra of palabras) {
+    const tentativa = actual ? `${actual} ${palabra}` : palabra;
+    if (actual && font.widthOfTextAtSize(tentativa, fontSize) > maxWidth) {
+      lineas.push(actual);
+      actual = palabra;
+    } else {
+      actual = tentativa;
+    }
+  }
+  if (actual) lineas.push(actual);
+  return lineas.length ? lineas : [""];
+}
+
+function dibujarTablaRevisionesPdf(
+  cursor: CursorPdf,
+  opciones: {
+    marginLeft: number;
+    contentWidth: number;
+    fontRegular: PDFFont;
+    fontBold: PDFFont;
+    checkSpace: (c: CursorPdf, needed: number) => void;
+  },
+  revisiones: RevisionDocumentoPdf[],
+) {
+  if (revisiones.length === 0) return;
+  const { marginLeft, contentWidth, fontRegular, fontBold, checkSpace } = opciones;
+  const negro = rgb(0.1, 0.1, 0.1);
+  const fontSize = 8;
+  const padX = 6;
+  const padY = 5;
+  const lineHeight = 10;
+
+  const colRevisionW = 70;
+  const colFechaW = 100;
+  const colDescW = contentWidth - colRevisionW - colFechaW;
+
+  checkSpace(cursor, 24);
+  cursor.y -= 10;
+  cursor.page.drawText("CONTROL DE CAMBIOS", {
+    x: marginLeft,
+    y: cursor.y,
+    size: 9,
+    font: fontBold,
+    color: negro,
+  });
+  cursor.y -= 14;
+
+  const dibujarFila = (
+    celdasOriginales: [string, string, string],
+    font: PDFFont,
+    alturaMin: number,
+  ) => {
+    const celdas: [string, string, string] = [
+      sanearTextoPdf(celdasOriginales[0]),
+      sanearTextoPdf(celdasOriginales[1]),
+      sanearTextoPdf(celdasOriginales[2]),
+    ];
+    const lineasDesc = envolverTextoPlano(celdas[1], colDescW - padX * 2, fontSize, font);
+    const altoFila = Math.max(alturaMin, lineasDesc.length * lineHeight + padY * 2);
+    checkSpace(cursor, altoFila);
+
+    const xRevision = marginLeft;
+    const xDesc = marginLeft + colRevisionW;
+    const xFecha = xDesc + colDescW;
+    const filaTopY = cursor.y;
+
+    cursor.page.drawRectangle({
+      x: marginLeft,
+      y: filaTopY - altoFila,
+      width: contentWidth,
+      height: altoFila,
+      borderColor: negro,
+      borderWidth: 1,
+    });
+    cursor.page.drawLine({
+      start: { x: xDesc, y: filaTopY },
+      end: { x: xDesc, y: filaTopY - altoFila },
+      thickness: 1,
+      color: negro,
+    });
+    cursor.page.drawLine({
+      start: { x: xFecha, y: filaTopY },
+      end: { x: xFecha, y: filaTopY - altoFila },
+      thickness: 1,
+      color: negro,
+    });
+
+    dibujarCentradoEncabezado(
+      cursor.page,
+      celdas[0],
+      xRevision,
+      colRevisionW,
+      filaTopY - altoFila / 2 - 3,
+      fontSize,
+      font,
+      negro,
+    );
+    lineasDesc.forEach((linea, idx) => {
+      cursor.page.drawText(linea, {
+        x: xDesc + padX,
+        y: filaTopY - padY - (idx + 1) * lineHeight + 2,
+        size: fontSize,
+        font,
+        color: negro,
+      });
+    });
+    dibujarCentradoEncabezado(
+      cursor.page,
+      celdas[2],
+      xFecha,
+      colFechaW,
+      filaTopY - altoFila / 2 - 3,
+      fontSize,
+      font,
+      negro,
+    );
+
+    cursor.y -= altoFila;
+  };
+
+  dibujarFila(["Revisión", "Descripción del Cambio", "Fecha"], fontBold, 18);
+  for (const rev of revisiones) {
+    dibujarFila([rev.revision || "-", rev.descripcionCambio, rev.fecha], fontRegular, 16);
   }
 }
 
@@ -534,6 +933,9 @@ export interface GenerarCartaPdfOpciones {
   formatoCodigoSecundario?: string | null;
   /** Revisión mostrada en el encabezado, si aplica. */
   revision?: string | null;
+  /** Historial de revisiones (tabla "CONTROL DE CAMBIOS"), se dibuja una
+   * sola vez al final del documento. */
+  revisiones?: RevisionDocumentoPdf[];
 }
 
 export async function generarCartaPdf({
@@ -545,7 +947,8 @@ export async function generarCartaPdf({
   formatoCodigo = "-",
   formatoCodigoSecundario,
   revision,
-}: GenerarCartaPdfOpciones): Promise<void> {
+  revisiones = [],
+}: GenerarCartaPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
   const pdfDoc = await PDFDocument.create();
@@ -698,6 +1101,12 @@ export async function generarCartaPdf({
     color: gris,
   });
 
+  dibujarTablaRevisionesPdf(
+    cursor,
+    { marginLeft, contentWidth, fontRegular: helvetica, fontBold: helveticaBold, checkSpace },
+    revisiones,
+  );
+
   // Encabezado — el mismo componente que generarFormatoOficialPdf, en
   // todas las páginas, con la paginación real ya conocida.
   const totalPaginas = paginas.length;
@@ -722,6 +1131,7 @@ export async function generarCartaPdf({
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
+  return new File([blob], nombreArchivo, { type: "application/pdf" });
 }
 
 // ===== Formato oficial (mismo encabezado, título/revisión propios del
@@ -743,6 +1153,9 @@ export interface GenerarFormatoOficialPdfOpciones {
   nombreArchivo: string;
   /** Razón social mostrada en el encabezado. */
   razonSocial?: string;
+  /** Historial de revisiones (tabla "CONTROL DE CAMBIOS"), se dibuja una
+   * sola vez al final del documento. */
+  revisiones?: RevisionDocumentoPdf[];
 }
 
 export async function generarFormatoOficialPdf({
@@ -753,7 +1166,8 @@ export async function generarFormatoOficialPdf({
   revision,
   nombreArchivo,
   razonSocial = "CARTONERA NACIONAL S.A.",
-}: GenerarFormatoOficialPdfOpciones): Promise<void> {
+  revisiones = [],
+}: GenerarFormatoOficialPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
   const pdfDoc = await PDFDocument.create();
@@ -806,6 +1220,12 @@ export async function generarFormatoOficialPdf({
   };
   dibujarBloquesPdf(cursor, estilo, partes);
 
+  dibujarTablaRevisionesPdf(
+    cursor,
+    { marginLeft, contentWidth, fontRegular: helvetica, fontBold: helveticaBold, checkSpace },
+    revisiones,
+  );
+
   // El encabezado se dibuja al final, una vez que se sabe el total real de
   // páginas que ocupó el cuerpo — "PAGINA No. X de N" refleja la
   // paginación real generada, no un valor fijo configurado de antemano.
@@ -831,6 +1251,7 @@ export async function generarFormatoOficialPdf({
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
+  return new File([blob], nombreArchivo, { type: "application/pdf" });
 }
 
 export interface GenerarPlantillaDocumentoOpciones {
@@ -845,6 +1266,74 @@ export interface GenerarPlantillaDocumentoOpciones {
   formatoCodigoSecundario?: string | null;
   revision?: string | null;
   paginasTotal?: number | null;
+  /** Respuestas resueltas por pregunta, para reemplazar los placeholders
+   * agregados desde el selector de variables del formulario de tipos de
+   * documento. Clave = "<seccion_id>|<fp_descripcion>" para preguntas
+   * simples, o "<seccion_id>|<fp_descripcion>|col:<columna>" para una
+   * columna de la primera fila de una pregunta tipo TABLA — ver
+   * construirMapaRespuestasPregunta.
+   *
+   * Se identifica por sección+texto y no por fp_id porque "crear nueva
+   * versión" del formulario clona cada pregunta como una fila NUEVA (fp_id
+   * distinto) pero conserva seccion_id y fp_descripcion tal cual — un
+   * placeholder anclado a fp_id se rompería en silencio (queda vacío) en
+   * cuanto la solicitud se responde contra una versión más nueva. */
+  respuestasPregunta?: Record<string, string>;
+  /** Historial de revisiones (tabla "CONTROL DE CAMBIOS"), se dibuja una
+   * sola vez al final del documento. */
+  revisiones?: RevisionDocumentoPdf[];
+}
+
+export interface PreguntaRenderizadaParaPlantilla {
+  fp_id: number;
+  fp_tipo: string;
+  fp_descripcion: string;
+  /** Código lógico estable de la pregunta (sobrevive renames y versiones
+   * nuevas) — ancla preferida de los placeholders {{pregunta|cod:...}}. */
+  fp_codigo?: string | null;
+  seccion_id: number;
+  valor_resuelto: string;
+  tabla_columnas?: string[];
+  tabla_filas?: Record<string, string>[];
+}
+
+function clavePregunta(seccionId: number, descripcion: string): string {
+  return `${seccionId}|${descripcion}`;
+}
+
+/**
+ * Arma el mapa de sustitución a partir de la respuesta de
+ * `/solicitudes/:id/formulario-renderizable`: una entrada por pregunta
+ * simple, y una entrada por columna (de la primera fila) para preguntas
+ * tipo TABLA — misma convención de "primera fila = principal" que ya usa
+ * el resto del código para representante legal.
+ */
+export function construirMapaRespuestasPregunta(
+  preguntas: PreguntaRenderizadaParaPlantilla[],
+): Record<string, string> {
+  const mapa: Record<string, string> = {};
+  for (const p of preguntas) {
+    // Ancla preferida: fp_codigo (estable ante renames y versiones nuevas).
+    // Ancla legada: sección+texto — sigue registrándose para plantillas
+    // viejas que aún usan ese formato.
+    const claves = [clavePregunta(p.seccion_id, p.fp_descripcion)];
+    if (p.fp_codigo) claves.unshift(`cod:${p.fp_codigo}`);
+    for (const clave of claves) {
+      // Si dos preguntas comparten ancla (dato duplicado, no debería
+      // pasar pero ya se vio un caso real), gana la primera — igual
+      // criterio "TOP 1" que ya usa crearNuevaVersion al emparejar por
+      // descripción.
+      if (!(clave in mapa)) mapa[clave] = p.valor_resuelto;
+      if (p.fp_tipo === "TABLA" && p.tabla_columnas && p.tabla_filas?.[0]) {
+        const primeraFila = p.tabla_filas[0];
+        p.tabla_columnas.forEach((columna) => {
+          const claveCol = `${clave}|col:${columna}`;
+          if (!(claveCol in mapa)) mapa[claveCol] = primeraFila[columna] || "";
+        });
+      }
+    }
+  }
+  return mapa;
 }
 
 /**
@@ -867,7 +1356,9 @@ export async function generarPlantillaDocumentoPdf({
   formatoCodigoSecundario,
   revision,
   paginasTotal,
-}: GenerarPlantillaDocumentoOpciones): Promise<void> {
+  respuestasPregunta,
+  revisiones = [],
+}: GenerarPlantillaDocumentoOpciones): Promise<File> {
   const reemplazos: Record<string, string> = {
     "{{cliente_nombre}}": clienteNombre || "",
     "{{cliente_nit}}": clienteNit || "",
@@ -875,30 +1366,66 @@ export async function generarPlantillaDocumentoPdf({
     "{{representante_legal_nombre}}": representanteLegalNombre || "",
     "{{representante_legal_cedula}}": representanteLegalCedula || "",
   };
-  const contenido = Object.entries(reemplazos).reduce(
+  const contenidoFijo = Object.entries(reemplazos).reduce(
     (texto, [placeholder, valor]) => texto.split(placeholder).join(valor),
     tdoPlantillaContenido,
   );
+  // Variables dinámicas: cualquier pregunta del formulario (o, para
+  // preguntas tipo TABLA, una columna puntual de su primera fila), elegida
+  // desde el selector al editar la plantilla. Ancla preferida: fp_codigo
+  // ({{pregunta|cod:REP_LEGAL_TABLA|col:...}}), estable ante renames y
+  // versiones nuevas del formulario. Ancla legada: sección+texto
+  // ({{pregunta|1012|REPRESENTANTE LEGAL PRINCIPAL|...}}), que se rompe si
+  // renombran la pregunta. Un ancla que no matchea NINGUNA pregunta de la
+  // solicitud es un error de configuración de la plantilla — se reporta
+  // con error visible en vez de dejar el hueco en blanco en silencio (ya
+  // pasó con un documento legal generado con el nombre vacío).
+  const anclasRotas: string[] = [];
+  const contenido = contenidoFijo.replace(
+    /\{\{pregunta\|(?:cod:([A-Za-z0-9_-]+)|(\d+)\|([^|{}]*))(?:\|col:([^|{}]*))?\}\}/g,
+    (
+      match,
+      codigo: string | undefined,
+      seccionId: string | undefined,
+      descripcion: string | undefined,
+      columna?: string,
+    ) => {
+      const base = codigo ? `cod:${codigo}` : `${seccionId}|${descripcion}`;
+      const clave = columna ? `${base}|col:${columna}` : base;
+      const valor = respuestasPregunta?.[clave];
+      if (valor === undefined) {
+        anclasRotas.push(match);
+        return "";
+      }
+      return valor;
+    },
+  );
+  if (anclasRotas.length > 0) {
+    throw new Error(
+      `La plantilla "${tdoNombre}" referencia preguntas que ya no existen en el formulario de esta solicitud (probablemente fueron renombradas o eliminadas): ${anclasRotas.join(", ")}. Corrige las variables de la plantilla en Parametrización → Documentos.`,
+    );
+  }
 
   // Solo los documentos configurados con "páginas totales" usan el
   // encabezado de formato oficial (tabla con logo/código/revisión) — el
   // resto sigue con la carta simple de siempre, sin cambios.
   if (paginasTotal) {
-    await generarFormatoOficialPdf({
+    return generarFormatoOficialPdf({
       contenido,
       tituloDocumento: tdoNombre,
       formatoCodigo: formatoCodigo || "-",
       formatoCodigoSecundario,
       revision,
       nombreArchivo: `plantilla-${tdoNombre}.pdf`,
+      revisiones,
     });
-    return;
   }
 
-  await generarCartaPdf({
+  return generarCartaPdf({
     contenido,
     asunto: tdoNombre,
     destinatarioNombre: clienteNombre || "-",
     nombreArchivo: `plantilla-${tdoNombre}.pdf`,
+    revisiones,
   });
 }

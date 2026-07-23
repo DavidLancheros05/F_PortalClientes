@@ -107,6 +107,17 @@ export function usePreguntasFormulario({
       return;
     }
 
+    // Al editar una solicitud existente, la versión objetivo la resuelve
+    // useSolicitudEdicion consultando la solicitud (llega un instante
+    // después del primer render). Si dispararamos la carga antes de
+    // conocerla, traeríamos preguntas de TODAS las versiones mezcladas y
+    // luego, en cuanto llegara la versión real, tendríamos que repetir toda
+    // la carga ya filtrada — duplicando la petición y el mensaje de carga
+    // en pantalla. Mejor esperar a que la versión esté resuelta.
+    if (solicitudId && formularioVersionObjetivo == null) {
+      return;
+    }
+
     // Evitar condición de carrera: si este efecto vuelve a ejecutarse antes
     // de que la petición anterior resuelva (p.ej. al llegar formularioVersionObjetivo
     // después del primer render), descartamos la respuesta obsoleta para que no
@@ -134,15 +145,35 @@ export function usePreguntasFormulario({
           }
         });
 
-        // Obtener la última versión disponible de las preguntas
+        // Última versión que existe entre las preguntas (puede incluir
+        // borradores de versión aún no publicados) — se usa solo como
+        // último recurso si no se puede resolver la versión activa oficial.
         const versionsAvailable = (data as FormularioPregunta[])
           .map((p) => Number(p.fp_version ?? 1))
           .filter((v, i, arr) => arr.indexOf(v) === i); // valores únicos
         const latestVersion = Math.max(...versionsAvailable, 1);
 
+        // Versión activa oficial (formularios.frm_version_activa, la misma
+        // que el backend usa en solicitudes.service.ts al crear la
+        // solicitud). Antes se usaba `latestVersion` acá, que es la versión
+        // MÁS ALTA que exista entre las preguntas aunque no esté publicada
+        // — si alguien deja un borrador de una versión nueva a medio armar
+        // (ej. v10) sin activarla, el cliente terminaba diligenciando y
+        // guardando contra esa v10, mientras el backend etiquetaba la
+        // solicitud con la v9 activa. Al reabrir para editar, la pantalla
+        // vuelve a cargar preguntas de la v9 (la que quedó en
+        // sol_formulario_version) y ningún fp_id de lo ya guardado
+        // coincide, así que el formulario se ve completamente vacío pese a
+        // que las respuestas sí están en la base de datos.
+        const versionActivaOficial = Number(
+          (formularioData as any)?.formulario_version ?? NaN,
+        );
+
         const versionObjetivo = solicitudId
           ? formularioVersionObjetivo
-          : latestVersion;
+          : Number.isFinite(versionActivaOficial)
+            ? versionActivaOficial
+            : latestVersion;
 
         if (!solicitudId && versionObjetivo) {
           setFormularioVersionObjetivo(versionObjetivo);

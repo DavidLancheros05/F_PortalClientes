@@ -210,14 +210,22 @@ export default function AprobacionDesaprobacionPage() {
   // Si se vuelve desde /gestionar con una búsqueda ya hecha (marcador
   // "buscado=1" en la URL), repetirla automáticamente para restaurar la
   // tabla en vez de dejar el listado vacío pidiendo buscar de nuevo.
+  // El centro es opcional en la búsqueda (buscar() no lo exige), así que
+  // no podemos condicionar esto a que centroSeleccionado tenga valor: si el
+  // usuario buscó sin centro (o no tiene centro por defecto), esa condición
+  // nunca se cumplía y el auto-restore no disparaba. Solo esperamos a que
+  // termine de resolverse el centro por defecto cuando sabemos que va a
+  // llegar (usuario con co_id); si el usuario no tiene co_id, no hay nada
+  // que esperar.
   useEffect(() => {
     if (autoBuscoRef.current) return;
     if (searchParams.get("buscado") !== "1") return;
-    if (!centroSeleccionado) return;
+    if (!user) return;
+    if (centroSeleccionado === null && user?.co_id) return;
     autoBuscoRef.current = true;
     buscar({ preservePagina: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [centroSeleccionado]);
+  }, [user, centroSeleccionado]);
 
   const irAPagina = (page: number) => {
     setPaginaActual(page);
@@ -394,7 +402,7 @@ export default function AprobacionDesaprobacionPage() {
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                         Dias Faltantes
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                      <th className="sticky right-0 px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
                         Accion
                       </th>
                     </tr>
@@ -412,7 +420,7 @@ export default function AprobacionDesaprobacionPage() {
                       return (
                         <tr
                           key={solicitud.sol_id ?? solicitud.sa_sol_id}
-                          className="hover:bg-gray-50 transition-colors"
+                          className="group hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                             {solicitud.sol_numero_solicitud ||
@@ -489,7 +497,7 @@ export default function AprobacionDesaprobacionPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {diasRestantes !== null ? diasRestantes : "-"}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="sticky right-0 px-6 py-4 whitespace-nowrap text-sm font-medium bg-white group-hover:bg-gray-50 transition-colors shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
                             <button
                               onClick={() =>
                                 router.push(

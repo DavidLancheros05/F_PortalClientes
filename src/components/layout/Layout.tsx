@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useContext } from "react";
 import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import type { Modulo } from "@/components/layout/Header";
 import { AuthContext } from "@/context/AuthContext";
@@ -65,7 +66,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setLoadingModulos(false);
   }, [user, loading, pathname]);
 
-  if (loading || loadingModulos) return <p>Cargando...</p>;
+  // Gate de sesión al recargar: dura milisegundos (lee localStorage), pero
+  // sin esto estilizado se veía una página en blanco con texto plano
+  if (loading || loadingModulos)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 flex flex-col items-center justify-center gap-3">
+        <Loader2 size={36} className="text-blue-600 animate-spin" />
+        <p className="text-sm font-medium text-gray-500">Cargando…</p>
+      </div>
+    );
 
   // Si es página de login, renderizar sin header
   if (isLoginPage) {

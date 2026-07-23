@@ -153,11 +153,12 @@ export default function CorregirFormularioASCPage() {
             Volver
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Solicitudes Pendientes de Corrección por Cliente
+            Solicitudes Pendientes de Corrección por el Auxiliar
           </h1>
           <p className="text-gray-600">
-            Revisa las solicitudes que fueron rechazadas y requieren corrección
-            por parte del cliente
+            Revisa las solicitudes que fueron rechazadas con modo de solución
+            "Auxiliar Actualiza" — el cliente no puede tocarlas, corrígelas
+            tú aquí
           </p>
         </div>
 
@@ -439,11 +440,11 @@ export default function CorregirFormularioASCPage() {
                             <button
                               onClick={() =>
                                 router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}/editar?returnTo=/solicitudes/corregir-formulario-asc`,
+                                  `/solicitudes/mis-documentos?solicitudId=${solicitud.sol_id ?? solicitud.sa_sol_id}`,
                                 )
                               }
                               className="text-blue-600 hover:text-blue-800 transition-colors"
-                              title="Editar formulario"
+                              title="Corregir documentos"
                             >
                               <Edit2 size={18} />
                             </button>

@@ -139,7 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // console.log("[AuthContext] login", userData);
 
     localStorage.setItem("token", token);
-    Cookies.set("token", token, { expires: 7 });
+    // Nombre propio del portal: las cookies de localhost no distinguen
+    // puerto, y otra app local con una cookie "token" la sobrescribiría
+    Cookies.set("pc_token", token, { expires: 7 });
 
     const normalizedUser: User = {
       ...userData,
@@ -170,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("modulos");
+    Cookies.remove("pc_token");
     Cookies.remove("token");
   };
 

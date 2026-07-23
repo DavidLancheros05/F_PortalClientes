@@ -26,7 +26,7 @@ import type {
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
-import { ErrorModal, LoadingModal } from "@/components/modals";
+import { ErrorModal, LoadingModal, SuccessModal } from "@/components/modals";
 import { solicitudesService } from "@/services/solicitudes.service";
 import {
   maestrosService,
@@ -41,7 +41,7 @@ import {
   calcularEstadoAnioDocumento,
   getArchivoPreviewUrl as getArchivoPreviewUrlUtil,
 } from "@/lib/documentos-vigencia.util";
-import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function SolicitudFormContent({
   solicitudId,
@@ -60,6 +60,16 @@ export default function SolicitudFormContent({
   const [hasNewChanges, setHasNewChanges] = useState(false);
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const [successTitle, setSuccessTitle] = useState<string>("");
+  // A dónde redirige el modal de éxito del envío (clic en Aceptar o
+  // auto-redirect del setTimeout, lo que ocurra primero)
+  const [successRedirect, setSuccessRedirect] = useState<string>("");
+  // Separado de successMessage: ese se usa también para el flujo de "Enviar
+  // solicitud", que se auto-redirige a los pocos segundos (no puede
+  // depender de que el usuario haga clic en "Aceptar"). Este es solo para
+  // el modal de éxito de "Guardar Borrador", que sí espera confirmación.
+  const [borradorGuardadoMessage, setBorradorGuardadoMessage] =
+    useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [archivosExistentes, setArchivosExistentes] = useState<
     Record<number, any>
@@ -128,11 +138,20 @@ export default function SolicitudFormContent({
   // respondida en esta solicitud — mismo dato que se usa para rellenar
   // plantillas descargables.
   const representanteLegal = useMemo(() => {
-    const preguntaRepLegal = preguntas.find(
-      (p) =>
-        p.fp_tipo === "TABLA" &&
-        /representante legal/i.test(p.fp_descripcion || ""),
-    );
+    // Ancla preferida: fp_codigo REP_LEGAL_TABLA (estable ante renames y
+    // versiones nuevas del formulario). Fallback para versiones viejas sin
+    // código: regex laxa sobre el nombre ("REPRESENTANTE LEGAL
+    // PRINCIPAL...", "Tabla represéntate legal" (sic), etc.) — no matchea
+    // la tabla de suplentes porque esa no dice "legal".
+    const preguntaRepLegal =
+      preguntas.find(
+        (p) => p.fp_tipo === "TABLA" && p.fp_codigo === "REP_LEGAL_TABLA",
+      ) ||
+      preguntas.find(
+        (p) =>
+          p.fp_tipo === "TABLA" &&
+          /repres.*legal/i.test(p.fp_descripcion || ""),
+      );
     if (!preguntaRepLegal) return null;
 
     const valorTexto = respuestas[preguntaRepLegal.fp_id]?.valor_texto;
@@ -249,7 +268,7 @@ export default function SolicitudFormContent({
       (p) => p.fp_codigo === "TIPO_SOLICITUD",
     );
     if (!tipoSolicitudPregunta) {
-      console.log(`[⚠️ EFECTO] No encontrada pregunta 1171`);
+      console.log(`[⚠️ EFECTO] No encontrada pregunta con fp_codigo=TIPO_SOLICITUD`);
       return;
     }
 
@@ -290,8 +309,8 @@ export default function SolicitudFormContent({
       // (para cambiar de "Cliente Nuevo" a "Ampliación de cupo" cuando llega ultimaSolicitud)
       return {
         ...prev,
-        1171: {
-          ...prev[1171],
+        [tipoSolicitudPregunta.fp_id]: {
+          ...prev[tipoSolicitudPregunta.fp_id],
           valor_opcion_id: opcionAUsar.op_id,
         },
       };
@@ -453,46 +472,27 @@ export default function SolicitudFormContent({
   };
 
   const getNotaDisplay = (pregunta: FormularioPregunta) => {
-    const bloques: string[] = [];
+    const descripcion = pregunta.fp_descripcion?.trim() || "";
+    const descripcionAdicional =
+      pregunta.fp_descripcion_adicional?.trim() || "";
 
-    if (pregunta.fp_descripcion?.trim()) {
-      bloques.push(pregunta.fp_descripcion.trim());
+    if (!descripcion && !descripcionAdicional) {
+      return { titulo: "Nota", subtitulo: "", cuerpo: "" };
     }
 
-    if (pregunta.fp_descripcion_adicional?.trim()) {
-      bloques.push(pregunta.fp_descripcion_adicional.trim());
+    // Este formulario solo permite editar fp_descripcion (ver
+    // PreguntaFormCamposComunes) — fp_descripcion_adicional no tiene campo
+    // propio en el editor. Por eso el caso normal es un único bloque de
+    // texto, que puede traer varias líneas/párrafos escritos por el autor
+    // y debe mostrarse completo como cuerpo, preservando esos saltos de
+    // línea (ver whitespace-pre-wrap en PreguntaRenderer). Solo si además
+    // hay una descripción adicional configurada (por otra vía) se usa la
+    // pregunta como título corto y la adicional como cuerpo.
+    if (descripcionAdicional) {
+      return { titulo: descripcion, subtitulo: "", cuerpo: descripcionAdicional };
     }
 
-    const lineas = bloques
-      .join("\n")
-      .split("\n")
-      .map((linea) => linea.trim())
-      .filter(Boolean);
-
-    // La mayoría de las notas reales son un solo párrafo largo, sin saltos
-    // de línea (una sola "línea"). Si tratáramos esa única línea como
-    // "título" (como se hacía antes), el texto completo quedaría en negrita
-    // y sin justificar, y "cuerpo" quedaría vacío. Solo se separa
-    // título/subtítulo cuando el autor de la pregunta realmente escribió
-    // varias líneas.
-    let titulo = "";
-    let subtitulo = "";
-    let cuerpo = "";
-
-    if (lineas.length === 0) {
-      titulo = "Nota";
-    } else if (lineas.length === 1) {
-      cuerpo = lineas[0];
-    } else if (lineas.length === 2) {
-      titulo = lineas[0];
-      cuerpo = lineas[1];
-    } else {
-      titulo = lineas[0];
-      subtitulo = lineas[1];
-      cuerpo = lineas.slice(2).join("\n");
-    }
-
-    return { titulo, subtitulo, cuerpo };
+    return { titulo: "", subtitulo: "", cuerpo: descripcion };
   };
 
   const maestroPreguntaIds = useMemo(() => {
@@ -1425,16 +1425,23 @@ export default function SolicitudFormContent({
     [respuestas],
   );
 
-  // Inicializar lastSavedResponses cuando se carguen las respuestas
+  // Inicializar lastSavedResponses cuando se carguen las respuestas ya
+  // guardadas de una solicitud existente (solicitudId presente). Para una
+  // solicitud nueva (sin solicitudId), `respuestas` ya trae valores por la
+  // precarga automática (cliente, última solicitud, fecha actual, tipo de
+  // solicitud) que todavía NO existen en el servidor — si se capturaran acá
+  // como "ya guardadas", el primer "Guardar Borrador" no vería cambios en
+  // esos campos y nunca los enviaría al backend, perdiendo la precarga.
   useEffect(() => {
     if (
+      solicitudId &&
       Object.keys(respuestas).length > 0 &&
       Object.keys(lastSavedResponses.current).length === 0
     ) {
       lastSavedResponses.current = JSON.parse(JSON.stringify(respuestas));
       setHasNewChanges(false);
     }
-  }, [respuestas, loadingInitial]);
+  }, [respuestas, loadingInitial, solicitudId]);
 
   // Detectar cambios nuevos desde el último guardado
   useEffect(() => {
@@ -1593,14 +1600,21 @@ export default function SolicitudFormContent({
         const nombres = documentosDiferidosFaltantes
           .map((d: any) => d.tdo_nombre)
           .join(", ");
+        setSuccessTitle("Solicitud registrada");
         setSuccessMessage(
           `Tu solicitud fue registrada. Aún faltan generar y subir: ${nombres}. Te llevamos a Mis Documentos para continuar.`,
         );
+        setSuccessRedirect("/solicitudes/mis-documentos");
+        // Más tiempo que el flujo simple: el modal lista documentos y el
+        // usuario necesita alcanzar a leerlos
         setTimeout(() => {
           router.replace("/solicitudes/mis-documentos");
-        }, 2500);
+        }, 6000);
       } else {
         const redirectUrl = returnTo || "/solicitudes/cliente";
+        setSuccessTitle(
+          !solicitudId ? "Solicitud creada" : "Solicitud guardada",
+        );
         setSuccessMessage(
           !solicitudId
             ? "Solicitud creada exitosamente. Redirigiendo..."
@@ -1608,9 +1622,10 @@ export default function SolicitudFormContent({
               ? "Solicitud guardada exitosamente. Redirigiendo a solicitudes pendientes de corrección..."
               : "Solicitud guardada exitosamente. Redirigiendo a mis solicitudes...",
         );
+        setSuccessRedirect(redirectUrl);
         setTimeout(() => {
           router.replace(redirectUrl);
-        }, 1200);
+        }, 2000);
       }
     } catch (err) {
       console.error("Error completo:", err);
@@ -1699,7 +1714,7 @@ export default function SolicitudFormContent({
         hasValorEnRespuesta,
       );
 
-      setSuccessMessage(
+      setBorradorGuardadoMessage(
         solicitudId
           ? `Borrador actualizado con ${result.respuestasGuardadas} respuestas.`
           : `Borrador guardado con ${result.respuestasGuardadas} respuestas.`,
@@ -1719,10 +1734,6 @@ export default function SolicitudFormContent({
         return;
       }
 
-      // Limpiar el mensaje de éxito después de 3 segundos
-      setTimeout(() => {
-        setSuccessMessage("");
-      }, 3000);
     } catch (err) {
       console.error("Error completo:", err);
       const errorMsg = getApiErrorMessage(
@@ -1870,12 +1881,22 @@ export default function SolicitudFormContent({
           </div>
         </div>
 
-        {successMessage && (
-          <div className="mb-1 p-2 bg-green-50 border border-green-200 text-green-700 rounded text-sm flex items-center gap-2">
-            <CheckCircle className="h-3 w-3" />
-            {successMessage}
-          </div>
-        )}
+        <SuccessModal
+          isOpen={!!successMessage}
+          title={successTitle || "¡Éxito!"}
+          message={successMessage}
+          actionText="Aceptar"
+          onAction={() => {
+            if (successRedirect) router.replace(successRedirect);
+          }}
+        />
+
+        <SuccessModal
+          isOpen={!!borradorGuardadoMessage}
+          title="Borrador guardado"
+          message={borradorGuardadoMessage}
+          onAction={() => setBorradorGuardadoMessage("")}
+        />
 
         <ErrorModal
           isOpen={!!errorMessage}
@@ -1886,6 +1907,11 @@ export default function SolicitudFormContent({
         <LoadingModal
           isOpen={isSavingBorrador}
           message="Guardando borrador..."
+        />
+
+        <LoadingModal
+          isOpen={isSavingFinal}
+          message="Guardando y enviando tu solicitud..."
         />
 
         {cargandoFormulario ? (

@@ -347,30 +347,23 @@ export default function ListadoDocumentosPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-[115rem] mx-auto">
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <div className="mb-8 bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <button
-              onClick={() => router.push("/solicitudes")}
-              className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Volver a solicitudes
-            </button>
-            <p className="text-2xl md:text-3xl font-bold text-blue-800 mb-3 leading-tight">
-              Listado de documentos 2
-            </p>
-            <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-4" />
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-              Control de vigencias y estados
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Consulta documentos, revisa dias para vencimiento y exporta
-              resultados.
-            </p>
-          </div>
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 mb-4">
+            <div className="mb-6">
+              <button
+                onClick={() => router.push("/solicitudes")}
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a solicitudes
+              </button>
+              <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
+                Listado de documentos
+              </p>
+            </div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4">
-            <div className="px-6 py-4 border-b border-gray-200 bg-blue-50/40">
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-6" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Centro de operacion
@@ -548,7 +541,6 @@ export default function ListadoDocumentosPage() {
                 </button>
               </div>
             </div>
-          </div>
 
           {loading ? (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">

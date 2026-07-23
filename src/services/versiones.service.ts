@@ -1,12 +1,13 @@
 import api from "@/services/core/api";
 
 interface Version {
-  version_id: number;
-  version_numero: number;
+  fv_id: number;
+  fv_numero: number;
   version_descripcion: string;
   created_at: string;
   created_by: number;
   total_preguntas: number;
+  total_solicitudes: number;
 }
 
 interface Formulario {

@@ -35,6 +35,7 @@ export type Pregunta = {
   fp_estado: boolean;
   fp_requerida?: boolean;
   fp_subtipo?: string | null;
+  fp_patron?: string | null;
   seccion_id?: number;
   seccion_nombre?: string;
   fp_pregunta_padre_id?: number | null;
@@ -70,6 +71,10 @@ export type Formulario = {
   formulario_id?: number;
   formulario_nombre?: string;
   formulario_descripcion?: string;
+  // true si la versión solicitada ya tiene solicitudes asociadas: el backend
+  // rechaza cualquier edición de sus preguntas/opciones (ver
+  // assertVersionSinSolicitudes en el backend).
+  tiene_solicitudes?: boolean;
 };
 
 export type TipoPreguntaCatalogo = {
@@ -88,7 +93,7 @@ export type Opcion = {
 
 export type ColumnaTabla = {
   nombre: string;
-  tipo: "TEXTO" | "SI_NO" | "CATALOGO";
+  tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA";
   catalogo_base_datos?: string;
   catalogo_tabla?: string;
   catalogo_columna?: string;
@@ -108,6 +113,7 @@ export type FormPreguntaState = {
   codigo?: string | null;
   tipo: Pregunta["fp_tipo"];
   subtipo: string;
+  patron: string;
   seccion_id: number | null;
   requerida: boolean;
   tipo_documento_id: number | null;

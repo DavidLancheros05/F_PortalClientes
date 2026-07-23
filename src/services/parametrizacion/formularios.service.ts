@@ -65,14 +65,17 @@ export const formulariosService = {
     }
   },
 
-  // Eliminar formulario
+  // Eliminar formulario. Lanza el mensaje del backend (ej. "es el
+  // formulario activo" o "ya tiene solicitudes asociadas") para que la
+  // pantalla se lo muestre al usuario en vez de fallar en silencio.
   async eliminar(id: number): Promise<boolean> {
     try {
       await api.delete(`/parametrizacion/formularios/${id}`);
       return true;
-    } catch (error) {
-      console.error("Error eliminando formulario:", error);
-      return false;
+    } catch (error: any) {
+      const mensaje =
+        error?.response?.data?.message || "Error eliminando formulario";
+      throw new Error(mensaje);
     }
   },
 

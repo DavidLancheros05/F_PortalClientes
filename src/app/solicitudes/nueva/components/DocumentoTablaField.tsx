@@ -1,11 +1,16 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { generarPlantillaDocumentoPdf } from "@/lib/carta-pdf.util";
+import {
+  generarPlantillaDocumentoPdf,
+  construirMapaRespuestasPregunta,
+} from "@/lib/carta-pdf.util";
 import { solicitudesService } from "@/services/solicitudes.service";
+import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { CheckCircle, Download, FileText, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
 
@@ -113,10 +118,41 @@ export function DocumentoTablaField({
         const blob = await solicitudesService.downloadPdf(solicitudId);
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
+        const nombreArchivo = `formato-solicitud-${numeroSolicitud || solicitudId}.pdf`;
+        const archivo = new File([blob], nombreArchivo, { type: "application/pdf" });
+        handleInputChange(pregunta.fp_id, archivo, "ARCHIVO");
       } else {
-        await generarPlantillaDocumentoPdf({
+        const contenido = documento!.tdo_plantilla_contenido!;
+        let respuestasPregunta: Record<string, string> | undefined;
+        if (solicitudId && /\{\{pregunta\|/.test(contenido)) {
+          const renderizable =
+            await solicitudesService.getFormularioRenderizable(solicitudId);
+          respuestasPregunta = construirMapaRespuestasPregunta(
+            renderizable.preguntas,
+          );
+        }
+
+        let revisiones: { revision: string; descripcionCambio: string; fecha: string }[] = [];
+        if (documento?.tdo_id) {
+          try {
+            const revs = await documentosService.getRevisiones(documento.tdo_id);
+            revisiones = revs.map((r) => ({
+              revision: r.revision,
+              descripcionCambio: r.descripcionCambio,
+              fecha: new Date(`${r.fecha}T00:00:00`).toLocaleDateString("es-CO", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+            }));
+          } catch (err) {
+            console.error("Error cargando historial de revisiones:", err);
+          }
+        }
+
+        const archivo = await generarPlantillaDocumentoPdf({
           tdoNombre: tipoDocumentoFijo || documento!.tdo_nombre,
-          tdoPlantillaContenido: documento!.tdo_plantilla_contenido!,
+          tdoPlantillaContenido: contenido,
           clienteNombre: clienteInfo?.nombre,
           clienteNit: clienteInfo?.nit,
           numeroSolicitud,
@@ -126,12 +162,23 @@ export function DocumentoTablaField({
           formatoCodigoSecundario: documento?.tdo_formato_codigo_secundario,
           revision: documento?.tdo_revision,
           paginasTotal: documento?.tdo_paginas_total,
+          respuestasPregunta,
+          revisiones,
         });
+        handleInputChange(pregunta.fp_id, archivo, "ARCHIVO");
       }
     } catch (err) {
       console.error("Error generando plantilla:", err);
-      setErrorMessage("Error generando la plantilla descargable");
-      setTimeout(() => setErrorMessage(""), 3000);
+      // generarPlantillaDocumentoPdf lanza un Error con detalle específico
+      // cuando una variable {{pregunta|...}} no resuelve (pregunta
+      // renombrada/eliminada) — se muestra en el ErrorModal del padre sin
+      // auto-cerrar, a diferencia de los banners temporales de abajo, para
+      // dar tiempo a leer el detalle.
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Error generando la plantilla descargable",
+      );
     } finally {
       setDescargandoPlantilla(false);
     }
@@ -185,27 +232,23 @@ export function DocumentoTablaField({
           <label className="text-xs font-semibold uppercase tracking-tight text-slate-600">
             Tipo de documento
           </label>
-          <select
+          <div className="relative">
+            <SearchableSelect
+            options={pregunta.opciones?.map((opcion: any) => ({
+              id: String(opcion.op_id),
+              label: opcion.op_descripcion,
+            })) || []}
             value={String(respuestas[pregunta.fp_id]?.valor_opcion_id || "")}
-            onChange={(e) =>
+            onChange={(value) =>
               handleInputChange(
                 pregunta.fp_id,
-                Number(e.target.value) || e.target.value,
+                Number(value) || value,
                 "SELECT",
               )
             }
-            onBlur={() => validateField(pregunta.fp_id, rules)}
-            className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? "border-red-500" : "border-gray-300"
-            }`}
-          >
-            <option value="">Selecciona una opción</option>
-            {pregunta.opciones?.map((opcion: any) => (
-              <option key={opcion.op_id} value={String(opcion.op_id)}>
-                {opcion.op_descripcion}
-              </option>
-            ))}
-          </select>
+            placeholder="Selecciona una opción"
+            />
+          </div>
         </div>
       )}
 

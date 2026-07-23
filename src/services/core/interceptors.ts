@@ -12,7 +12,7 @@ function getCookie(name: string): string | null {
 
 export const setupInterceptors = (api: AxiosInstance) => {
   api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token") || getCookie("token");
+    const token = localStorage.getItem("token") || getCookie("pc_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

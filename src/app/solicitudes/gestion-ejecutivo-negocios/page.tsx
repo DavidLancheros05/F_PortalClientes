@@ -19,6 +19,7 @@ interface Solicitud {
   co_id: number;
   centro_operacion_nombre: string;
   fecha_creacion: string;
+  fecha_envio?: string | null;
   fecha_estimada_respuesta?: string | null;
   sol_estado_id: number;
   sol_etapa_actual_id?: number;
@@ -200,6 +201,7 @@ export default function ConceptoEjecutivoPage() {
           co_id: s.sol_co_id ?? s.co_id,
           cliente_id: s.sol_cliente_id ?? s.cliente_id,
           fecha_creacion: s.fecha_creacion ?? s.sol_fecha_creacion ?? null,
+          fecha_envio: s.fecha_envio ?? s.sol_fecha_envio ?? null,
           fecha_estimada_respuesta:
             s.fecha_estimada_respuesta ??
             (s as any).fecha_estimada_respuesta_comercial ??
@@ -375,6 +377,9 @@ export default function ConceptoEjecutivoPage() {
                         Fecha diligenciamiento
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                        Fecha de envío
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                         Ver formulario
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
@@ -433,6 +438,10 @@ export default function ConceptoEjecutivoPage() {
 
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                               {formatDateTime(solicitud.fecha_creacion)}
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {formatDateTime(solicitud.fecha_envio)}
                             </td>
 
                             <td className="px-6 py-4 whitespace-nowrap text-sm">

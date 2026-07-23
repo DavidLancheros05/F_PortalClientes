@@ -20,6 +20,24 @@ export interface TipoDocumento {
   paginasTotal: number | null;
 }
 
+export interface TipoDocumentoRevision {
+  tdrId: number;
+  tipoDocumentoId: number;
+  revision: string;
+  descripcionCambio: string;
+  /** ISO yyyy-MM-dd (columna DATE del backend). */
+  fecha: string;
+  orden: number;
+  estado: boolean;
+}
+
+export interface TipoDocumentoRevisionPayload {
+  revision: string;
+  descripcionCambio: string;
+  fecha: string;
+  orden?: number;
+}
+
 export interface TipoDocumentoPayload {
   nombre: string;
   descripcion: string;

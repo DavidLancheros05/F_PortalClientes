@@ -14,6 +14,7 @@ import {
   Download,
   Eye,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -23,6 +24,7 @@ import {
 import { clientesService } from "@/services/clientes/clientes.service";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
+import { ConfirmModal } from "@/components/modals";
 
 const PAGE_SIZE = 10;
 
@@ -107,8 +109,9 @@ function csvEscape(value: string | number | null | undefined) {
 export default function SolicitudesListadoDeSolicitudesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loading: authLoading } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const { startSearching, stopSearching } = useSearching();
+  const esAdmin = user?.rol?.nombre === "ADMIN";
 
   const hoy = getTodayBogota();
 
@@ -125,6 +128,12 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const [rows, setRows] = useState<SolicitudListado[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasSearched, setHasSearched] = useState(false);
+  const [solicitudAEliminar, setSolicitudAEliminar] = useState<{
+    sol_id: number;
+    numero: string;
+  } | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
 
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
@@ -425,12 +434,33 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     XLSX.writeFile(wb, `listado-solicitudes-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
+  async function confirmarEliminar() {
+    if (!solicitudAEliminar) return;
+    try {
+      setEliminando(true);
+      setErrorEliminar(null);
+      await solicitudesService.remove(solicitudAEliminar.sol_id);
+      setRows((prev) =>
+        prev.filter((r) => r.sol_id !== solicitudAEliminar.sol_id),
+      );
+      setSolicitudAEliminar(null);
+    } catch (error: any) {
+      setErrorEliminar(
+        error?.response?.data?.message ||
+          error?.message ||
+          "No fue posible eliminar la solicitud",
+      );
+    } finally {
+      setEliminando(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
         <div className="max-w-[95rem] mx-auto">
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4">
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-6 border-b border-gray-200">
               <button
                 onClick={() => router.push("/solicitudes")}
                 className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-3"
@@ -438,12 +468,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Volver a solicitudes
               </button>
-              <p className="text-2xl md:text-3xl font-bold text-blue-800 mb-4 leading-tight">
+              <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
                 Listado de solicitudes
               </p>
             </div>
 
-            <div className="px-6 py-4 bg-blue-50/40">
+            <div className="px-6 py-6">
+              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-6" />
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
@@ -857,16 +888,33 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                           {row.sol_forma_pago || "-"}
                         </td>
                         <td className="sticky right-0 z-10 px-4 py-3 text-sm bg-white border-l border-gray-100">
-                          <button
-                            onClick={() =>
-                              router.push(`/solicitudes/${row.sol_id}/detalle`)
-                            }
-                            aria-label="Ver detalle completo"
-                            title="Ver detalle"
-                            className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-700 transition-colors hover:bg-blue-100"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                router.push(`/solicitudes/${row.sol_id}/detalle`)
+                              }
+                              aria-label="Ver detalle completo"
+                              title="Ver detalle"
+                              className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-700 transition-colors hover:bg-blue-100"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            {esAdmin && (
+                              <button
+                                onClick={() =>
+                                  setSolicitudAEliminar({
+                                    sol_id: row.sol_id,
+                                    numero: row.sol_numero_solicitud,
+                                  })
+                                }
+                                aria-label="Eliminar solicitud"
+                                title="Eliminar solicitud"
+                                className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 transition-colors hover:bg-red-100"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -950,6 +998,23 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         </div>
       </div>
 
+      <ConfirmModal
+        isOpen={!!solicitudAEliminar}
+        title="Eliminar solicitud"
+        message={
+          errorEliminar
+            ? errorEliminar
+            : `¿Deseas eliminar la solicitud ${solicitudAEliminar?.numero || ""}? Esta acción no se puede deshacer: se borran también sus documentos e historial, y el cliente deberá iniciar el proceso nuevamente desde cero (quedará como "Cliente Nuevo", no como Ampliación de Cupo).`
+        }
+        confirmText="Eliminar"
+        isDangerous
+        isLoading={eliminando}
+        onConfirm={confirmarEliminar}
+        onCancel={() => {
+          setSolicitudAEliminar(null);
+          setErrorEliminar(null);
+        }}
+      />
     </div>
   );
 }

@@ -1,0 +1,43 @@
+import api from "@/services/core/api";
+
+export interface RemisionClienteResponse {
+  clienteRazonSocial: string;
+  lote: string | null;
+  pedidoDocumento: string | null;
+  numeroDocumento: string;
+  facturaDocumento: string | null;
+  fecha: string;
+  item: number;
+  ordenCompra: string | null;
+  referencia: string;
+  descripcionItem: string;
+  cantidad: number;
+  precioUnitario: number;
+  precioPeso: number;
+  peso: number;
+  volumen: number;
+  estado: string;
+  vehiculo: string | null;
+  nombreConductor: string | null;
+  identificacionConductor: string | null;
+  vendedor: string;
+  ciudad: string | null;
+  ciudadEnvio: string | null;
+  descripcionPuntoEnvio: string | null;
+  valorBruto: number;
+  valorImpuesto: number;
+  valorNeto: number;
+  bodega: string;
+  plan003: string | null;
+  notas: string | null;
+  notasMovimiento: string | null;
+  cdv: string | null;
+  numero: number;
+}
+
+export const remisionesService = {
+  getPorCliente: async (cliId: number): Promise<RemisionClienteResponse[]> => {
+    const res = await api.get(`/remisiones/cliente/${cliId}`);
+    return res.data;
+  },
+};

@@ -60,8 +60,16 @@ export interface MisDocumentosResponse {
 }
 
 export const misDocumentosService = {
-  async getMisDocumentos(): Promise<MisDocumentosResponse> {
-    const response = await api.get("/solicitudes/mis-documentos");
+  /**
+   * `solicitudId` es solo para personal interno (no CLIENTE) gestionando
+   * documentos en nombre de un cliente — ver corregir-formulario-asc. Un
+   * cliente autenticado siempre ve su propia última solicitud, sin importar
+   * qué se pase acá; el backend ignora el parámetro para ese rol.
+   */
+  async getMisDocumentos(solicitudId?: number): Promise<MisDocumentosResponse> {
+    const response = await api.get("/solicitudes/mis-documentos", {
+      params: solicitudId ? { solicitudId } : undefined,
+    });
     return response.data;
   },
 
