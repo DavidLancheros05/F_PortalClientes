@@ -27,6 +27,7 @@ export interface FormularioPregunta {
   seccion_nombre?: string | null;
   seccion_orden?: number | null;
   fp_tabla_columnas?: string | null;
+  fp_codigo?: string | null;
 }
 
 export interface Opcion {
