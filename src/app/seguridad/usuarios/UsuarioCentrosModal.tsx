@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2, Check } from "lucide-react";
 import { usuariosCentrosService, CentroOperacion } from "@/services/usuarios-centros/usuarios-centros.service";
 import { centrosOperacionService } from "@/services/centros-operacion/centros-operacion.service";
+import { ConfirmModal } from "@/components/modals";
 
 interface Centro {
   id: number; // antes co_id
@@ -29,6 +30,7 @@ const UsuarioCentrosModal: React.FC<UsuarioCentrosModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCentro, setSelectedCentro] = useState<string>("");
+  const [showConfirmAssign, setShowConfirmAssign] = useState(false);
 
   // ======================================================
   // ✅ SOLO UNA CARGA INICIAL (cuando abre modal)
@@ -70,12 +72,16 @@ const UsuarioCentrosModal: React.FC<UsuarioCentrosModalProps> = ({
   // ======================================================
   // ASIGNAR
   // ======================================================
-  const handleAssignCentro = async () => {
-    console.log("handleAssignCentro pagina editar usuario:", selectedCentro);
+  const iniciarAsignacion = () => {
     if (!selectedCentro) {
       setError("Selecciona un centro");
       return;
     }
+    setShowConfirmAssign(true);
+  };
+
+  const handleAssignCentro = async () => {
+    console.log("handleAssignCentro pagina editar usuario:", selectedCentro);
 
     try {
       setLoading(true);
@@ -89,10 +95,12 @@ const UsuarioCentrosModal: React.FC<UsuarioCentrosModalProps> = ({
       await usuariosCentrosService.assignCentro(usuarioId, Number(selectedCentro), false);
 
       setSelectedCentro("");
+      setShowConfirmAssign(false);
 
       // 🔥 SOLO refresca asignados
       await refreshAsignados();
     } catch (err: any) {
+      setShowConfirmAssign(false);
       setError(err.message || "Error asignando centro");
     } finally {
       setLoading(false);
@@ -220,7 +228,7 @@ const UsuarioCentrosModal: React.FC<UsuarioCentrosModalProps> = ({
               </select>
 
               <button
-                onClick={handleAssignCentro}
+                onClick={iniciarAsignacion}
                 disabled={loading || !selectedCentro}
               >
                 Asignar
@@ -234,6 +242,20 @@ const UsuarioCentrosModal: React.FC<UsuarioCentrosModalProps> = ({
           <button onClick={onClose}>Cerrar</button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmAssign}
+        title="Confirmar asignación"
+        message={`¿Deseas asignar el centro "${
+          centrosNoAsignados.find((c) => String(c.id) === selectedCentro)
+            ?.nombre || ""
+        }" a este usuario?`}
+        confirmText="Sí, asignar"
+        cancelText="Cancelar"
+        isLoading={loading}
+        onConfirm={handleAssignCentro}
+        onCancel={() => setShowConfirmAssign(false)}
+      />
     </div>
   );
 };

@@ -41,6 +41,14 @@ export type RespuestasState = {
     valor_numero?: number;
     valor_fecha?: string;
     valor_opcion_id?: number | number[] | string;
+    // Código(s) estable(s) (fpo_codigo) de la(s) opción(es) que estaban
+    // seleccionadas — solo viene poblado cuando el origen es la precarga
+    // de Ampliación de Cupo (ver agruparUltimaRespuestaPorPregunta /
+    // usePrefillConfiguracion). Se usa para traducir a valor_opcion_id
+    // vigente cuando el fpo_id guardado es de una versión de formulario
+    // distinta a la activa (fpo_id cambia al clonar versión, fpo_codigo
+    // no).
+    valor_opcion_codigo?: string | string[];
     archivo?: File;
     nombre_archivo?: string;
     vista_previa_url?: string;

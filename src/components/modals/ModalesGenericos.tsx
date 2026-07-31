@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, AlertCircle, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { AlertTriangle, AlertCircle, CheckCircle, XCircle, Loader2, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -263,6 +263,50 @@ export function WarningModal({
               {isLoading ? "Procesando..." : confirmText}
             </button>
           </div>
+        </div>
+      </div>
+    </ModalPortal>
+  );
+}
+
+interface InfoModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  actionText?: string;
+  onClose: () => void;
+}
+
+// Modal informativo genérico — para texto explicativo que antes vivía
+// suelto en la página (ej. detrás de un ícono de información en un header).
+export function InfoModal({
+  isOpen,
+  title,
+  message,
+  actionText = "Entendido",
+  onClose,
+}: InfoModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 animate-in fade-in zoom-in-95">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <Info size={24} className="text-blue-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+          </div>
+
+          <p className="text-gray-600 mb-8 leading-relaxed">{message}</p>
+
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          >
+            {actionText}
+          </button>
         </div>
       </div>
     </ModalPortal>

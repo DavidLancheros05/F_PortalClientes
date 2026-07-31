@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Calendar, Building2, User, FileText, FileSearch, DollarSign, Clock, X } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { cartaPdfVinculacionService } from "@/services/admin/parametrizacion/carta-pdf-vinculacion.service";
+import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ESTADOS } from "@/lib/workflow-labels";
 import html2pdf from "html2pdf.js";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
@@ -31,6 +31,7 @@ interface SolicitudDetalle {
   cliente_direccion?: string;
   sol_telefono?: string;
   sol_consumo_mensual_proyectado?: number;
+  sol_toneladas_proyectadas?: number;
   sol_cupo_aprobado?: number;
   sol_plazo_pago?: number;
   sol_forma_pago?: string;
@@ -145,16 +146,22 @@ export default function DetalleDetailPage() {
 
     setGenerandoPDF(true);
     try {
-      const plantillas = await cartaPdfVinculacionService.getAll();
-      const plantillaActiva = plantillas.find((p) => p.cpv_activo);
+      // Fuente única desde 2026-07-27: la Carta de Vinculación es un
+      // Tipos_documentos con tdo_origen='CARTA_APROBACION' (antes vivía en
+      // param_carta_pdf_vinculacion, tabla aparte que ya no se edita — ver
+      // documentacion/mejoras/rediseno-gestionar-comite-credito.md).
+      const tipos = await documentosService.getAll();
+      const plantillaActiva = tipos.find(
+        (t) => t.origen === "CARTA_APROBACION" && t.estado,
+      );
 
-      if (!plantillaActiva) {
+      if (!plantillaActiva || !plantillaActiva.plantillaContenido) {
         alert("No hay plantilla de carta activa");
         return;
       }
 
       // Reemplazar placeholders con datos reales
-      let contenido = plantillaActiva.cpv_contenido;
+      let contenido = plantillaActiva.plantillaContenido;
 
       const reemplazos: Record<string, string> = {
         "{{cliente_nombre}}": solicitud.cliente_nombre || "-",
@@ -528,6 +535,14 @@ export default function DetalleDetailPage() {
                 <p className="text-xs text-gray-500 uppercase">Consumo Mensual Proyectado</p>
                 <p className="text-sm font-medium text-gray-900">
                   {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Toneladas Mensuales Proyectadas</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {solicitud.sol_toneladas_proyectadas
+                    ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                    : "-"}
                 </p>
               </div>
               <div>

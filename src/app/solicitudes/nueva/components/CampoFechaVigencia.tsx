@@ -27,6 +27,11 @@ interface CampoFechaVigenciaProps {
  * Antes cada uno tenía su propia versión con estilos distintos (una con caja
  * y encabezado "Fecha del documento", otra sin caja) — misma información,
  * se veía diferente según el tipo de pregunta.
+ *
+ * Layout en una sola fila (label + input angosto + resultado como pill) en
+ * vez de tres párrafos apilados: mientras no hay fecha se muestra la regla
+ * ("Vigencia: 90 días"); una vez elegida, el resultado (vigente/vencido) ya
+ * la implica, así que se reemplaza en vez de acumularse debajo.
  */
 export function CampoFechaVigencia({
   fechaInputValue,
@@ -41,13 +46,41 @@ export function CampoFechaVigencia({
   hasError,
   onChange,
 }: CampoFechaVigenciaProps) {
+  const reglaTexto = esReglaAnio
+    ? documento?.tdo_anios_atras_permitidos === 0
+      ? `Debe ser del año ${new Date().getFullYear()}`
+      : `Debe ser de ${new Date().getFullYear() - (documento?.tdo_anios_atras_permitidos ?? 0)} a ${new Date().getFullYear()}`
+    : `Vigencia: ${vigenciaDias} día${vigenciaDias === 1 ? "" : "s"}`;
+
+  const resumenTexto = esReglaAnio
+    ? resumenAnio &&
+      (resumenAnio.valido
+        ? `Vigente — año ${resumenAnio.anioDocumento}`
+        : `Vencido — no es ${
+            resumenAnio.anioMinimo === resumenAnio.anioMaximo
+              ? `del año ${resumenAnio.anioMaximo}`
+              : `de ${resumenAnio.anioMinimo} o ${resumenAnio.anioMaximo}`
+          }`)
+    : resumenVigencia &&
+      (resumenVigencia.diasRestantes >= 0
+        ? `Faltan ${resumenVigencia.diasRestantes} día${
+            resumenVigencia.diasRestantes === 1 ? "" : "s"
+          }`
+        : `Vencido hace ${Math.abs(resumenVigencia.diasRestantes)} día${
+            Math.abs(resumenVigencia.diasRestantes) === 1 ? "" : "s"
+          }`);
+
+  const resumenValido = esReglaAnio
+    ? (resumenAnio?.valido ?? true)
+    : (resumenVigencia?.diasRestantes ?? 0) >= 0;
+
   return (
-    <div className="space-y-1 border-t border-slate-200 pt-1">
-      <label className="flex items-center gap-1 text-xs font-medium text-slate-800">
-        <Calendar className="h-3 w-3" />
+    <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
+      <label className="flex items-center gap-1 text-xs font-medium text-slate-700">
+        <Calendar className="h-3.5 w-3.5 text-slate-400" />
         {preguntaFechaAsociada?.fp_descripcion || "Fecha de emisión"}
         {preguntaFechaAsociada?.fp_requerida && (
-          <span className="text-red-500 ml-0.5">*</span>
+          <span className="text-red-500">*</span>
         )}
       </label>
       <input
@@ -56,56 +89,22 @@ export function CampoFechaVigencia({
         min="1900-01-01"
         max={hoy}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        className={`w-36 flex-shrink-0 border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 ${
           hasError ? "border-red-500" : "border-gray-300"
         } ${readOnly ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
       />
-      {esReglaAnio ? (
-        <>
-          <p className="text-xs text-slate-600">
-            {documento?.tdo_anios_atras_permitidos === 0
-              ? `Debe ser del año ${new Date().getFullYear()}.`
-              : `Debe ser de ${new Date().getFullYear() - (documento?.tdo_anios_atras_permitidos ?? 0)} a ${new Date().getFullYear()}.`}
-          </p>
-          {resumenAnio && (
-            <p
-              className={`text-xs mt-1 font-medium ${
-                resumenAnio.valido ? "text-emerald-700" : "text-red-700"
-              }`}
-            >
-              {resumenAnio.valido
-                ? `Vigente — es del año ${resumenAnio.anioDocumento}.`
-                : `Documento vencido — no es ${
-                    resumenAnio.anioMinimo === resumenAnio.anioMaximo
-                      ? `del año ${resumenAnio.anioMaximo}`
-                      : `de ${resumenAnio.anioMinimo} o ${resumenAnio.anioMaximo}`
-                  }.`}
-            </p>
-          )}
-        </>
+      {resumenTexto ? (
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+            resumenValido
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
+          {resumenTexto}
+        </span>
       ) : (
-        <>
-          <p className="text-xs text-slate-600">
-            Vigencia: {vigenciaDias} día{vigenciaDias === 1 ? "" : "s"}
-          </p>
-          {resumenVigencia && (
-            <p
-              className={`text-xs mt-1 font-medium ${
-                resumenVigencia.diasRestantes >= 0
-                  ? "text-emerald-700"
-                  : "text-red-700"
-              }`}
-            >
-              {resumenVigencia.diasRestantes >= 0
-                ? `Faltan ${resumenVigencia.diasRestantes} día${
-                    resumenVigencia.diasRestantes === 1 ? "" : "s"
-                  } para que venza.`
-                : `Vencido hace ${Math.abs(resumenVigencia.diasRestantes)} día${
-                    Math.abs(resumenVigencia.diasRestantes) === 1 ? "" : "s"
-                  }.`}
-            </p>
-          )}
-        </>
+        <span className="text-[11px] text-slate-500">{reglaTexto}</span>
       )}
     </div>
   );

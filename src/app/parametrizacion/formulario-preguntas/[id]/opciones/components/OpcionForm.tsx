@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createOpcion } from '@/services/parametrizacion/opciones.service';
+import { ConfirmModal } from '@/components/modals';
 
 interface Props {
   fp_id: number;
@@ -11,19 +12,27 @@ interface Props {
 export default function OpcionForm({ fp_id, onSaved }: Props) {
   const [valor, setValor] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!valor.trim()) return;
+    setShowConfirmModal(true);
+  };
 
+  const confirmarCreacion = async () => {
     setSaving(true);
-    await createOpcion(fp_id, {
-      fpo_valor: valor,
-    });
+    try {
+      await createOpcion(fp_id, {
+        fpo_valor: valor,
+      });
 
-    setValor('');
-    setSaving(false);
-    onSaved();
+      setValor('');
+      setShowConfirmModal(false);
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -42,6 +51,17 @@ export default function OpcionForm({ fp_id, onSaved }: Props) {
       >
         Agregar
       </button>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="Confirmar creación"
+        message={`¿Deseas agregar la opción "${valor.trim()}"?`}
+        confirmText="Sí, agregar"
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={confirmarCreacion}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </form>
   );
 }

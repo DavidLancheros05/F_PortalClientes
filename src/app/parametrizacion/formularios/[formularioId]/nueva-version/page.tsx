@@ -24,6 +24,7 @@ export default function NuevaVersionPage() {
   const [notificacion, setNotificacion] = useState<
     { type: "success" | "error"; message: string } | null
   >(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     cargarVersiones();
@@ -44,8 +45,12 @@ export default function NuevaVersionPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmCreate = async () => {
     setLoading(true);
 
     try {
@@ -57,10 +62,12 @@ export default function NuevaVersionPage() {
           usuarioId: 1,
         },
       );
+      setShowConfirmModal(false);
       setNotificacion({ type: "success", message: res.data.message });
     } catch (error: any) {
       console.error("Error creando versión:", error);
       const mensaje = error?.response?.data?.message || "Error al crear la versión";
+      setShowConfirmModal(false);
       setNotificacion({ type: "error", message: mensaje });
     } finally {
       setLoading(false);
@@ -202,6 +209,21 @@ export default function NuevaVersionPage() {
         isDangerous
         onConfirm={() => setNotificacion(null)}
         onCancel={() => setNotificacion(null)}
+      />
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="Confirmar creación de versión"
+        message={
+          copiarDe
+            ? `¿Deseas crear una nueva versión copiando las preguntas de la versión ${copiarDe}?`
+            : "¿Deseas crear una nueva versión vacía (sin preguntas)?"
+        }
+        confirmText="Sí, crear"
+        cancelText="Cancelar"
+        isLoading={loading}
+        onConfirm={handleConfirmCreate}
+        onCancel={() => setShowConfirmModal(false)}
       />
     </div>
   );

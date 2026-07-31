@@ -13,6 +13,7 @@ import {
   CheckCircle,
   FileText,
   DollarSign,
+  Package,
   MessageSquare,
 } from "lucide-react";
 
@@ -48,6 +49,8 @@ interface Solicitud {
 interface RegistroState {
   consumoMensual: number | null;
   consumoMensualDisplay: string;
+  toneladasProyectadas: number | null;
+  toneladasProyectadasDisplay: string;
   observaciones: string;
   guardando: boolean;
 }
@@ -64,13 +67,19 @@ export default function RegistrarConceptoPage() {
   const [registro, setRegistro] = useState<RegistroState>({
     consumoMensual: null,
     consumoMensualDisplay: "",
+    toneladasProyectadas: null,
+    toneladasProyectadasDisplay: "",
     observaciones: "",
     guardando: false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
-    useSolicitudCupoSolicitado(solicitudId);
+  const {
+    loading: loadingCupo,
+    solicitaCredito,
+    montoSolicitadoTexto,
+    formaPagoSolicitada,
+  } = useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -134,6 +143,18 @@ export default function RegistrarConceptoPage() {
     }));
   };
 
+  const handleToneladasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    const formatted = formatNumberWithThousands(input);
+    const numericValue = parseFormattedNumber(formatted);
+
+    setRegistro((prev) => ({
+      ...prev,
+      toneladasProyectadasDisplay: formatted,
+      toneladasProyectadas: numericValue,
+    }));
+  };
+
   const obtenerUsuarioId = () => {
     const directId =
       (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
@@ -166,6 +187,13 @@ export default function RegistrarConceptoPage() {
       return;
     }
 
+    if (!registro.toneladasProyectadas || registro.toneladasProyectadas <= 0) {
+      alert(
+        "Las toneladas mensuales proyectadas son obligatorias y deben ser mayores a 0.",
+      );
+      return;
+    }
+
     if (!registro.observaciones.trim()) {
       alert("Las observaciones son obligatorias.");
       return;
@@ -189,6 +217,7 @@ export default function RegistrarConceptoPage() {
         solicitud.sol_id ?? solicitud.sa_sol_id!,
         {
           consumo_mensual_proyectado: registro.consumoMensual,
+          toneladas_proyectadas: registro.toneladasProyectadas,
           observacionesComercial: registro.observaciones,
           usuario_modifica: usuarioId,
           fecha_real_ejecutivo: ahora,
@@ -226,7 +255,7 @@ export default function RegistrarConceptoPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg md:text-xl font-bold text-white">
-                  Registrar Concepto Ejecutivo
+                  Gestion de Concepto Ejecutivo de Negocios
                 </h1>
                 {solicitud && (
                   <p className="text-xs md:text-sm text-blue-100 truncate">
@@ -324,7 +353,9 @@ export default function RegistrarConceptoPage() {
                   Solicita Cupo de Crédito
                 </p>
               </div>
-              {solicitaCredito ? (
+              {loadingCupo ? (
+                <div className="pl-1 h-5 w-24 bg-gray-200 rounded animate-pulse" />
+              ) : solicitaCredito ? (
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 pl-1">
                   <span className="text-2xl font-bold text-emerald-900">
                     {montoSolicitadoTexto || "Monto no especificado"}
@@ -359,7 +390,7 @@ export default function RegistrarConceptoPage() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                       <DollarSign size={18} className="text-blue-600" />
-                      Consumo Mensual Proyectado (USD) *
+                      Consumo Mensual Proyectado (COP) *
                     </label>
                     <input
                       type="text"
@@ -367,6 +398,22 @@ export default function RegistrarConceptoPage() {
                       value={registro.consumoMensualDisplay}
                       onChange={handleConsumoChange}
                       placeholder="Ej: 5.000.000"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                    />
+                  </div>
+
+                  {/* Toneladas Mensuales Proyectadas */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Package size={18} className="text-blue-600" />
+                      Toneladas Mensuales Proyectadas *
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={registro.toneladasProyectadasDisplay}
+                      onChange={handleToneladasChange}
+                      placeholder="Ej: 500"
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                     />
                   </div>
@@ -397,6 +444,7 @@ export default function RegistrarConceptoPage() {
                       onClick={handleGuardarConcepto}
                       disabled={
                         !registro.consumoMensual ||
+                        !registro.toneladasProyectadas ||
                         !registro.observaciones.trim() ||
                         registro.guardando
                       }
@@ -454,7 +502,7 @@ export default function RegistrarConceptoPage() {
       <ConfirmModal
         isOpen={showConfirmModal}
         title="Confirmar Registro de Concepto"
-        message={`¿Estás seguro de que deseas registrar el concepto con un consumo mensual de $${registro.consumoMensual?.toLocaleString("es-CO")}?`}
+        message={`¿Estás seguro de que deseas registrar el concepto con un consumo mensual de $${registro.consumoMensual?.toLocaleString("es-CO")} y ${registro.toneladasProyectadas?.toLocaleString("es-CO")} toneladas mensuales proyectadas?`}
         confirmText="Sí, Guardar"
         cancelText="Cancelar"
         isLoading={registro.guardando}

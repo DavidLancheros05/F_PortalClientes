@@ -4,12 +4,16 @@ import { formularioRespuestasService } from "@/services/formulario-respuestas.se
 import {
   generarPlantillaDocumentoPdf,
   construirMapaRespuestasPregunta,
+  construirNombreDescargaPdf,
+  descargarPdfBlob,
 } from "@/lib/carta-pdf.util";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
-import { CheckCircle, Download, FileText, Loader2, X } from "lucide-react";
+import { CheckCircle, Download, FileText, Upload, X } from "lucide-react";
+import { LoadingModal } from "@/components/modals";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
@@ -103,23 +107,32 @@ export function DocumentoTablaField({
   const archivoExistente = archivosExistentes[pregunta.fp_id];
 
   const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
-  // Fuerza remount del <input type="file"> nativo al quitar una seleccion:
-  // limpiar el estado de React no borra el nombre que el navegador sigue
-  // mostrando en el input si no se remonta.
-  const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
   // handleInputChange("ARCHIVO") es sincrono, pero dispara un re-render de
   // TODO el formulario (puede tener 90+ preguntas) — sin este indicador la
   // pantalla se sentía "pegada" un instante tras elegir el archivo, sin
-  // ninguna señal de que algo estaba pasando. El setTimeout(0) deja que
-  // React pinte el spinner ANTES de correr el trabajo pesado.
+  // ninguna señal de que algo estaba pasando. Un solo setTimeout(0) no
+  // garantiza que el navegador alcance a pintar el modal antes de que el
+  // trabajo pesado bloquee el hilo principal; esperar dos frames con
+  // requestAnimationFrame sí lo garantiza (ver mismo fix en ArchivoField.tsx)
+  // — PERO eso asume que React ya trató el primer setProcesandoArchivo(true)
+  // como una actualización de alta prioridad. Como el <input type="file">
+  // que dispara esto ahora se crea con document.createElement (para el botón
+  // "Seleccionar archivo PDF" con estilo propio) y nunca se monta en el DOM,
+  // su evento "change" no pasa por el listener delegado de React en la raíz
+  // — React ya no lo distingue como evento discreto y podía agrupar este
+  // setState de baja prioridad junto con el pesado de más abajo en el mismo
+  // commit, dejando el modal sin pintarse nunca antes del freeze. flushSync
+  // fuerza el commit del modal de una vez, sin depender de esa heurística.
   const [procesandoArchivo, setProcesandoArchivo] = useState(false);
   const procesarArchivoSeleccionado = (file: File) => {
-    setProcesandoArchivo(true);
-    setTimeout(() => {
-      handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-      setProcesandoArchivo(false);
-    }, 0);
+    flushSync(() => setProcesandoArchivo(true));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+        setProcesandoArchivo(false);
+      });
+    });
   };
 
   const handleDescargarPlantilla = async () => {
@@ -130,9 +143,11 @@ export function DocumentoTablaField({
       if (documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") {
         if (!solicitudId) return;
         const blob = await solicitudesService.downloadPdf(solicitudId);
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
-        const nombreArchivo = `formato-solicitud-${numeroSolicitud || solicitudId}.pdf`;
+        const nombreArchivo = construirNombreDescargaPdf(
+          tipoDocumentoFijo || documento!.tdo_nombre,
+          clienteInfo?.nombre,
+        );
+        descargarPdfBlob(blob, nombreArchivo);
         const archivo = new File([blob], nombreArchivo, { type: "application/pdf" });
         handleInputChange(pregunta.fp_id, archivo, "ARCHIVO");
       } else {
@@ -178,6 +193,11 @@ export function DocumentoTablaField({
           paginasTotal: documento?.tdo_paginas_total,
           respuestasPregunta,
           revisiones,
+          encabezadoTipo: documento?.tdo_encabezado_tipo,
+          encabezadoImagenUrl: documento?.tdo_encabezado_imagen_url,
+          piePaginaTipo: documento?.tdo_pie_pagina_tipo,
+          piePaginaTexto: documento?.tdo_pie_pagina_texto,
+          piePaginaImagenUrl: documento?.tdo_pie_pagina_imagen_url,
         });
         handleInputChange(pregunta.fp_id, archivo, "ARCHIVO");
       }
@@ -199,73 +219,64 @@ export function DocumentoTablaField({
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-900 leading-tight">
-            {tipoDocumentoFijo || pregunta.fp_descripcion}
-            {pregunta.fp_requerida && (
-              <span className="text-red-500 ml-1">*</span>
-            )}
-          </p>
-          {documento?.tdo_descripcion && (
-            <p className="mt-0.5 text-xs text-slate-600 whitespace-pre-wrap break-words leading-relaxed">
-              {documento.tdo_descripcion}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="inline-flex items-center gap-0.5 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-tight text-blue-700">
-            <FileText className="h-2.5 w-2.5" />
-            PDF
-          </span>
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Columna izquierda: qué documento es */}
+      <div className="min-w-0 space-y-2">
+        <p className="text-sm font-semibold text-slate-900 leading-tight">
+          {tipoDocumentoFijo || pregunta.fp_descripcion}
           {pregunta.fp_requerida && (
-            <span className="rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-              Oblig.
-            </span>
+            <span className="text-red-500 ml-1">*</span>
           )}
-        </div>
+        </p>
+        {documento?.tdo_descripcion && (
+          <p className="text-xs text-slate-500 whitespace-pre-wrap break-words leading-relaxed">
+            {documento.tdo_descripcion}
+          </p>
+        )}
+
+        {documento?.tdo_tiene_plantilla &&
+          (documento?.tdo_plantilla_contenido ||
+            documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
+          <button
+            type="button"
+            onClick={handleDescargarPlantilla}
+            disabled={descargandoPlantilla}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
+          >
+            <Download className="h-3 w-3" />
+            {descargandoPlantilla ? "Generando..." : "Descargar plantilla"}
+          </button>
+        )}
+
+        {!tipoDocumentoFijo && !readOnly && (
+          <div className="space-y-0.5">
+            <label className="text-xs font-semibold uppercase tracking-tight text-slate-600">
+              Tipo de documento
+            </label>
+            <div className="relative">
+              <SearchableSelect
+              options={pregunta.opciones?.map((opcion: any) => ({
+                id: String(opcion.op_id),
+                label: opcion.op_descripcion,
+              })) || []}
+              value={String(respuestas[pregunta.fp_id]?.valor_opcion_id || "")}
+              onChange={(value) =>
+                handleInputChange(
+                  pregunta.fp_id,
+                  Number(value) || value,
+                  "SELECT",
+                )
+              }
+              placeholder="Selecciona una opción"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {documento?.tdo_tiene_plantilla &&
-        (documento?.tdo_plantilla_contenido ||
-          documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
-        <button
-          type="button"
-          onClick={handleDescargarPlantilla}
-          disabled={descargandoPlantilla}
-          className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
-        >
-          <Download className="h-3 w-3" />
-          {descargandoPlantilla ? "Generando..." : "Descargar plantilla"}
-        </button>
-      )}
-
-      {!tipoDocumentoFijo && !readOnly && (
-        <div className="space-y-0.5">
-          <label className="text-xs font-semibold uppercase tracking-tight text-slate-600">
-            Tipo de documento
-          </label>
-          <div className="relative">
-            <SearchableSelect
-            options={pregunta.opciones?.map((opcion: any) => ({
-              id: String(opcion.op_id),
-              label: opcion.op_descripcion,
-            })) || []}
-            value={String(respuestas[pregunta.fp_id]?.valor_opcion_id || "")}
-            onChange={(value) =>
-              handleInputChange(
-                pregunta.fp_id,
-                Number(value) || value,
-                "SELECT",
-              )
-            }
-            placeholder="Selecciona una opción"
-            />
-          </div>
-        </div>
-      )}
-
+      {/* Columna derecha: cargar el archivo y su fecha */}
+      <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
       {archivosExistentes[pregunta.fp_id] && (
         <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
           <div className="flex items-start justify-between gap-1">
@@ -375,7 +386,6 @@ export function DocumentoTablaField({
                     };
                     return next;
                   });
-                  setFileInputResetKey((prev) => prev + 1);
                 }}
                 className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200 flex-shrink-0"
                 title="Quitar archivo seleccionado (aún no se ha guardado)"
@@ -390,33 +400,31 @@ export function DocumentoTablaField({
       {!archivosExistentes[pregunta.fp_id] &&
         !respuestas[pregunta.fp_id]?.nombre_archivo &&
         !readOnly && (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-tight text-slate-600">
-            Cargar archivo
-          </p>
-          {procesandoArchivo ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-blue-700 px-2 py-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Procesando archivo...
-            </div>
-          ) : (
-            <input
-              key={fileInputResetKey}
-              id={`file-input-doc-${pregunta.fp_id}`}
-              type="file"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  procesarArchivoSeleccionado(file);
-                }
-              }}
-              accept=".pdf,application/pdf"
-              className={`w-full border rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-                hasError ? "border-red-500" : "border-blue-200"
-              }`}
-            />
-          )}
-        </div>
+        <button
+          type="button"
+          disabled={procesandoArchivo}
+          onClick={() => {
+            const tempInput = document.createElement("input");
+            tempInput.type = "file";
+            tempInput.accept = ".pdf,application/pdf";
+            tempInput.onchange = (event) => {
+              const target = event.target as HTMLInputElement;
+              const file = target.files?.[0];
+              if (file) {
+                procesarArchivoSeleccionado(file);
+              }
+            };
+            tempInput.click();
+          }}
+          className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+            hasError
+              ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
+              : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
+          }`}
+        >
+          <Upload className="h-3.5 w-3.5 flex-shrink-0" />
+          Seleccionar archivo
+        </button>
       )}
 
       {mostrarCampoFecha && (
@@ -434,6 +442,10 @@ export function DocumentoTablaField({
           onChange={guardarFecha}
         />
       )}
+      </div>
+    </div>
+
+      <LoadingModal isOpen={procesandoArchivo} message="Cargando archivo..." />
     </div>
   );
 }

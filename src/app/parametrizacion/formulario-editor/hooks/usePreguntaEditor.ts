@@ -607,6 +607,9 @@ export function usePreguntaEditor({
                             : undefined,
                         }
                       : {}),
+                    ...(c.tipo === "NUMERO"
+                      ? { minimo: c.minimo, maximo: c.maximo }
+                      : {}),
                   }))
                   .filter((c) => Boolean(c.nombre)),
               )
@@ -811,6 +814,8 @@ export function usePreguntaEditor({
               catalogo_pk_column: col.catalogo_pk_column,
               catalogo_columna_padre: col.catalogo_columna_padre,
               catalogo_columna_filtro: col.catalogo_columna_filtro,
+              minimo: col.minimo,
+              maximo: col.maximo,
             };
           });
         } catch {

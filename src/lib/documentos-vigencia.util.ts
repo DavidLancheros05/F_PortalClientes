@@ -1,6 +1,29 @@
 // Funciones puras de vigencia de documentos, compartidas entre el
 // asistente de solicitud (SolicitudFormContent) y la página "Mis Documentos".
 
+/**
+ * ¿Este tipo de documento exige fecha de emisión? Antes esta regla vivía
+ * duplicada en 5 lugares (SolicitudFormContent::isAnswered,
+ * SolicitudFormContent::validateCurrentSection, useDocumentoVigencia,
+ * DocumentosCargadosSolicitud, mis-documentos/page.tsx) y se desincronizó:
+ * validateCurrentSection —el que de verdad bloquea "Enviar"— solo miraba
+ * tdo_vigencia_dias y omitía tdo_regla_vigencia === "ANIO", así que
+ * documentos con regla ANIO (ej. "Estados GYP", RUT) podían enviarse sin
+ * fecha de emisión aunque el campo apareciera en pantalla como requerido.
+ */
+export function documentoRequiereFechaEmision(
+  documento?: {
+    tdo_vigencia_dias?: number | null;
+    tdo_regla_vigencia?: string | null;
+  } | null,
+): boolean {
+  if (!documento) return false;
+  return (
+    documento.tdo_vigencia_dias != null ||
+    documento.tdo_regla_vigencia === "ANIO"
+  );
+}
+
 export function calcularVigenciaDocumento(
   fechaEmision?: string,
   vigenciaDias?: number | null,

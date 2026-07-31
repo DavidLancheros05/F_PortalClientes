@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
 import { pqrsService } from "@/services/pqrs.service";
+import { ConfirmModal } from "@/components/modals";
 
 interface TipoPQRS {
   pt_id: number;
@@ -19,6 +20,7 @@ export default function NuevaPQRSPage() {
   const [loadingTipos, setLoadingTipos] = useState(true);
   const [tipos, setTipos] = useState<TipoPQRS[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [formData, setFormData] = useState({
     pqrs_pt_id: "",
@@ -44,7 +46,7 @@ export default function NuevaPQRSPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -53,6 +55,10 @@ export default function NuevaPQRSPage() {
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const confirmarCreacion = async () => {
     setLoading(true);
     try {
       const payload = {
@@ -67,6 +73,7 @@ export default function NuevaPQRSPage() {
       router.push(`/pqrs/mis-pqrs`);
     } catch (err: any) {
       console.error("Error creando PQRS:", err);
+      setShowConfirmModal(false);
       setError(err.response?.data?.message || "Error al crear la PQRS");
     } finally {
       setLoading(false);
@@ -194,6 +201,17 @@ export default function NuevaPQRSPage() {
           </form>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="Confirmar creación"
+        message="¿Deseas crear esta PQRS?"
+        confirmText="Sí, crear"
+        cancelText="Cancelar"
+        isLoading={loading}
+        onConfirm={confirmarCreacion}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </div>
   );
 }

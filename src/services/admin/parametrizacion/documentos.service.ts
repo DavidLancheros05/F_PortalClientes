@@ -12,6 +12,11 @@ export const documentosService = {
     return res.data;
   },
 
+  getById: async (id: number): Promise<TipoDocumento> => {
+    const res = await api.get(`/parametrizacion/tipos-documentos/${id}`);
+    return res.data;
+  },
+
   create: async (payload: TipoDocumentoPayload): Promise<TipoDocumento> => {
     const res = await api.post("/parametrizacion/tipos-documentos", payload);
     return res.data;
@@ -70,5 +75,33 @@ export const documentosService = {
     await api.delete(
       `/parametrizacion/tipos-documentos/${tipoDocumentoId}/revisiones/${revisionId}`,
     );
+  },
+
+  subirEncabezadoImagen: async (
+    tipoDocumentoId: number,
+    file: File,
+  ): Promise<TipoDocumento> => {
+    const formData = new FormData();
+    formData.append("archivo", file);
+    const res = await api.post(
+      `/parametrizacion/tipos-documentos/${tipoDocumentoId}/encabezado-imagen`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return res.data;
+  },
+
+  subirPiePaginaImagen: async (
+    tipoDocumentoId: number,
+    file: File,
+  ): Promise<TipoDocumento> => {
+    const formData = new FormData();
+    formData.append("archivo", file);
+    const res = await api.post(
+      `/parametrizacion/tipos-documentos/${tipoDocumentoId}/pie-pagina-imagen`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return res.data;
   },
 };

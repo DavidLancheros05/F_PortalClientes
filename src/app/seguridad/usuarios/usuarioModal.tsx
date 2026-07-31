@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { usuariosService } from "@/services/usuarios/usuarios.service";
+import { ConfirmModal } from "@/components/modals";
 
 interface Rol {
   rol_id: number;
@@ -41,8 +42,9 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
   const [rolId, setRolId] = useState(usuario?.rol?.rol_id || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -77,8 +79,13 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSave = async () => {
     try {
       setLoading(true);
+      setError(null);
 
       if (isNew) {
         await usuariosService.create({
@@ -99,9 +106,11 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
         });
       }
 
+      setShowConfirmModal(false);
       onClose(true);
     } catch (err: any) {
       console.error("Error:", err);
+      setShowConfirmModal(false);
       setError(err.message || "Error procesando usuario");
     } finally {
       setLoading(false);
@@ -248,6 +257,21 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={isNew ? "Confirmar creación" : "Confirmar cambios"}
+        message={
+          isNew
+            ? "¿Deseas crear este usuario?"
+            : "¿Deseas guardar los cambios de este usuario?"
+        }
+        confirmText={isNew ? "Sí, crear" : "Sí, guardar"}
+        cancelText="Cancelar"
+        isLoading={loading}
+        onConfirm={handleConfirmSave}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </div>
   );
 };

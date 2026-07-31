@@ -16,6 +16,51 @@
 // renderizado de HTML.
 import { PDFDocument, PDFFont, PDFImage, PDFPage, rgb } from "pdf-lib";
 
+// ===== Descarga de los PDF generados en el navegador =====
+//
+// Antes se abría el blob con window.open(url, "_blank"): si el usuario
+// guardaba el PDF desde esa pestaña, el navegador sugería como nombre el
+// UUID interno del blob (algo como "550e8400-e29b-....pdf"), nunca el
+// nombre real del documento — un <a download="..."> fuerza la descarga
+// directa con el nombre que se le indique.
+function sanitizarNombreArchivo(texto: string): string {
+  return texto
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** "<nombre del documento> - <cliente> - <fecha y hora>.pdf", saneado para nombre de archivo. */
+export function construirNombreDescargaPdf(
+  nombreDocumento: string,
+  clienteNombre?: string | null,
+): string {
+  const fechaHora = new Date()
+    .toLocaleString("es-CO", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    .replace(",", "")
+    .replace(/[/:]/g, "-");
+  const partes = [nombreDocumento, clienteNombre, fechaHora].filter(Boolean);
+  return `${sanitizarNombreArchivo(partes.join(" - "))}.pdf`;
+}
+
+export function descargarPdfBlob(blob: Blob, nombreArchivo: string) {
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombreArchivo;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ===== Clasificación de texto plano en bloques (subtítulo/párrafo/lista/
 // viñeta) — compartida por generarCartaPdf y generarFormatoOficialPdf =====
 //
@@ -912,6 +957,203 @@ function dibujarEncabezadoOficialPdf(
   );
 }
 
+// ===== Imagen propia de encabezado o pie de página (sin tabla/logo/
+// FORMATO/página/revisión) — mismo criterio visual que ya usa el backend
+// pdfkit para la Carta de Vinculación (CARTA_APROBACION):
+// solicitudes-workflow.service.ts::dibujarEncabezadoImagenCarta, caja fija
+// centrada, manteniendo proporción. Compartida entre encabezado (caja
+// arriba) y pie de página (caja abajo) — solo cambia el ancla vertical y
+// la altura de caja, que decide cada caller. =====
+
+const ENCABEZADO_IMAGEN_ALTURA = 80;
+const PIE_PAGINA_IMAGEN_ALTURA = 50;
+const PIE_PAGINA_TEXTO_ALTURA = 20;
+const PIE_PAGINA_MARGEN_BASE = 50;
+const PIE_PAGINA_GAP = 10;
+
+// `y` es el borde SUPERIOR de la caja (para encabezado, headerTopY; para
+// pie de página, el borde superior de la banda reservada abajo).
+function dibujarImagenEnCajaPdf(
+  page: PDFPage,
+  config: { marginLeft: number; contentWidth: number; y: number; altura: number; image: PDFImage },
+) {
+  const { marginLeft, contentWidth, y, altura, image } = config;
+  const escala = Math.min(contentWidth / image.width, altura / image.height);
+  const anchoDibujo = image.width * escala;
+  const altoDibujo = image.height * escala;
+  page.drawImage(image, {
+    x: marginLeft + (contentWidth - anchoDibujo) / 2,
+    y: y - altura + (altura - altoDibujo) / 2,
+    width: anchoDibujo,
+    height: altoDibujo,
+  });
+}
+
+function dibujarPiePaginaTextoPdf(
+  page: PDFPage,
+  config: {
+    marginLeft: number;
+    contentWidth: number;
+    y: number;
+    texto: string;
+    font: PDFFont;
+  },
+) {
+  const { marginLeft, contentWidth, y, texto, font } = config;
+  const size = 8.5;
+  const width = font.widthOfTextAtSize(texto, size);
+  page.drawText(texto, {
+    x: marginLeft + (contentWidth - width) / 2,
+    y,
+    size,
+    font,
+    color: rgb(0.35, 0.35, 0.35),
+  });
+}
+
+// Los archivos se suben como image/* sin normalizar formato en el backend
+// (tipos-documentos.service.ts::subirEncabezadoImagen /
+// subirPiePaginaImagen), así que hay que intentar los dos formatos que
+// pdf-lib puede embeber directamente.
+async function embedImagenPdf(
+  pdfDoc: PDFDocument,
+  url: string,
+): Promise<PDFImage | null> {
+  try {
+    const bytes = await fetch(url).then((r) => r.arrayBuffer());
+    try {
+      return await pdfDoc.embedJpg(bytes);
+    } catch {
+      return await pdfDoc.embedPng(bytes);
+    }
+  } catch (err) {
+    console.error(
+      "No se pudo cargar la imagen (encabezado o pie de página), se omite para este PDF:",
+      err,
+    );
+    return null;
+  }
+}
+
+interface EncabezadoResuelto {
+  altura: number;
+  dibujar: (
+    page: PDFPage,
+    config: Omit<EncabezadoOficialConfig, "logoImage">,
+    numeroPagina: number,
+    totalPaginas: number,
+  ) => void;
+}
+
+/**
+ * Decide qué se dibuja en la caja de encabezado de cada página — capa
+ * ortogonal al cuerpo (carta simple vs. formato oficial, que sigue
+ * eligiéndose aparte con `paginasTotal`, sin cambios). 'NINGUNO' no reserva
+ * espacio. 'IMAGEN' dibuja solo la imagen subida; si falla la descarga o
+ * pdf-lib no puede embeberla, cae a 'NINGUNO' en vez de romper la
+ * generación del PDF (misma resiliencia que el path pdfkit de
+ * CARTA_APROBACION). 'FORMATO_OFICIAL' (default, incl. valores no
+ * reconocidos) mantiene el comportamiento de siempre: la tabla completa
+ * con el logo fijo /logo.jpg.
+ */
+async function resolverEncabezadoDocumento(
+  pdfDoc: PDFDocument,
+  tipo: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL" | null | undefined,
+  imagenUrl: string | null | undefined,
+): Promise<EncabezadoResuelto> {
+  if (tipo === "NINGUNO") {
+    return { altura: 0, dibujar: () => {} };
+  }
+
+  if (tipo === "IMAGEN") {
+    const image = imagenUrl ? await embedImagenPdf(pdfDoc, imagenUrl) : null;
+    if (!image) {
+      return { altura: 0, dibujar: () => {} };
+    }
+    return {
+      altura: ENCABEZADO_IMAGEN_ALTURA,
+      dibujar: (page, cfg) =>
+        dibujarImagenEnCajaPdf(page, {
+          marginLeft: cfg.marginLeft,
+          contentWidth: cfg.contentWidth,
+          y: cfg.headerTopY,
+          altura: ENCABEZADO_IMAGEN_ALTURA,
+          image,
+        }),
+    };
+  }
+
+  const logoBytes = await fetch("/logo.jpg").then((r) => r.arrayBuffer());
+  const logoImage = await pdfDoc.embedJpg(logoBytes);
+  return {
+    altura: ENCABEZADO_ALTURA,
+    dibujar: (page, cfg, numeroPagina, totalPaginas) =>
+      dibujarEncabezadoOficialPdf(page, { ...cfg, logoImage }, numeroPagina, totalPaginas),
+  };
+}
+
+interface PiePaginaResuelto {
+  altura: number;
+  dibujar: (
+    page: PDFPage,
+    config: { marginLeft: number; contentWidth: number; y: number },
+  ) => void;
+}
+
+/**
+ * Decide qué se dibuja en la banda inferior de cada página — independiente
+ * del encabezado y del cuerpo. 'NINGUNO' (default) no reserva espacio.
+ * 'TEXTO' dibuja una línea centrada con el texto configurado en el
+ * documento. 'IMAGEN' dibuja la imagen subida, en una caja más chica que
+ * la del encabezado (pie de página, no protagonista); si falla la
+ * descarga o el embed, cae a 'NINGUNO' (misma resiliencia que el
+ * encabezado). No confundir con el bloque de "cierre" de una sola vez
+ * (línea divisoria + texto fijo + tabla de revisiones) que ya existe en
+ * `generarCartaPdf` — ese sigue igual, se dibuja una vez al final del
+ * documento dentro del flujo del cuerpo, no en cada página.
+ */
+async function resolverPiePaginaDocumento(
+  pdfDoc: PDFDocument,
+  tipo: "NINGUNO" | "TEXTO" | "IMAGEN" | null | undefined,
+  texto: string | null | undefined,
+  imagenUrl: string | null | undefined,
+  fontTexto: PDFFont,
+): Promise<PiePaginaResuelto> {
+  if (tipo === "TEXTO" && texto) {
+    return {
+      altura: PIE_PAGINA_TEXTO_ALTURA,
+      dibujar: (page, cfg) =>
+        dibujarPiePaginaTextoPdf(page, {
+          marginLeft: cfg.marginLeft,
+          contentWidth: cfg.contentWidth,
+          y: cfg.y - PIE_PAGINA_TEXTO_ALTURA / 2 - 3,
+          texto,
+          font: fontTexto,
+        }),
+    };
+  }
+
+  if (tipo === "IMAGEN") {
+    const image = imagenUrl ? await embedImagenPdf(pdfDoc, imagenUrl) : null;
+    if (!image) {
+      return { altura: 0, dibujar: () => {} };
+    }
+    return {
+      altura: PIE_PAGINA_IMAGEN_ALTURA,
+      dibujar: (page, cfg) =>
+        dibujarImagenEnCajaPdf(page, {
+          marginLeft: cfg.marginLeft,
+          contentWidth: cfg.contentWidth,
+          y: cfg.y,
+          altura: PIE_PAGINA_IMAGEN_ALTURA,
+          image,
+        }),
+    };
+  }
+
+  return { altura: 0, dibujar: () => {} };
+}
+
 // ===== Carta formal simple (encabezado + fecha + destinatario + asunto +
 // cuerpo) — usada por la Carta de Vinculación (botón "Ver Carta") y por
 // cualquier plantilla descargable sin código de FORMATO propio. =====
@@ -936,6 +1178,21 @@ export interface GenerarCartaPdfOpciones {
   /** Historial de revisiones (tabla "CONTROL DE CAMBIOS"), se dibuja una
    * sola vez al final del documento. */
   revisiones?: RevisionDocumentoPdf[];
+  /** Qué se dibuja en el encabezado de cada página — independiente del
+   * cuerpo (que sigue siendo esta "carta simple"). Default
+   * 'FORMATO_OFICIAL' (comportamiento de siempre: tabla + logo fijo). */
+  encabezadoTipo?: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL";
+  /** URL de la imagen de encabezado propia, cuando encabezadoTipo='IMAGEN'. */
+  encabezadoImagenUrl?: string | null;
+  /** Qué se dibuja en el pie de cada página — independiente del
+   * encabezado y del cuerpo. No confundir con el "cierre" de una sola vez
+   * (línea + texto fijo + tabla de revisiones) que sigue igual. Default
+   * 'NINGUNO'. */
+  piePaginaTipo?: "NINGUNO" | "TEXTO" | "IMAGEN";
+  /** Texto del pie de página, cuando piePaginaTipo='TEXTO'. */
+  piePaginaTexto?: string | null;
+  /** URL de la imagen de pie de página, cuando piePaginaTipo='IMAGEN'. */
+  piePaginaImagenUrl?: string | null;
 }
 
 export async function generarCartaPdf({
@@ -948,6 +1205,11 @@ export async function generarCartaPdf({
   formatoCodigoSecundario,
   revision,
   revisiones = [],
+  encabezadoTipo = "FORMATO_OFICIAL",
+  encabezadoImagenUrl,
+  piePaginaTipo = "NINGUNO",
+  piePaginaTexto,
+  piePaginaImagenUrl,
 }: GenerarCartaPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
@@ -960,20 +1222,33 @@ export async function generarCartaPdf({
   const negro = rgb(0.1, 0.1, 0.1);
   const gris = rgb(0.35, 0.35, 0.35);
 
-  const logoBytes = await fetch("/logo.jpg").then((r) => r.arrayBuffer());
-  const logoImage = await pdfDoc.embedJpg(logoBytes);
+  const encabezado = await resolverEncabezadoDocumento(
+    pdfDoc,
+    encabezadoTipo,
+    encabezadoImagenUrl,
+  );
+  const piePagina = await resolverPiePaginaDocumento(
+    pdfDoc,
+    piePaginaTipo,
+    piePaginaTexto,
+    piePaginaImagenUrl,
+    fontRegular,
+  );
 
   const pageWidth = 595;
   const pageHeight = 842;
   const marginLeft = 50;
   const marginRight = 50;
   const marginTop = 50;
-  const marginBottom = 50;
+  const marginBottom =
+    PIE_PAGINA_MARGEN_BASE +
+    (piePagina.altura > 0 ? piePagina.altura + PIE_PAGINA_GAP : 0);
   const contentWidth = pageWidth - marginLeft - marginRight;
   const fontSizeBody = 11.5;
 
   const headerTopY = pageHeight - marginTop;
-  const bodyTopY = headerTopY - ENCABEZADO_ALTURA - 24;
+  const bodyTopY = headerTopY - encabezado.altura - 24;
+  const piePaginaTopY = PIE_PAGINA_MARGEN_BASE + piePagina.altura;
 
   const paginas: PDFPage[] = [];
   const nuevaPagina = (): PDFPage => {
@@ -1107,14 +1382,14 @@ export async function generarCartaPdf({
     revisiones,
   );
 
-  // Encabezado — el mismo componente que generarFormatoOficialPdf, en
-  // todas las páginas, con la paginación real ya conocida.
+  // Encabezado — resuelto arriba según encabezadoTipo (tabla oficial,
+  // imagen propia, o nada), en todas las páginas, con la paginación real
+  // ya conocida.
   const totalPaginas = paginas.length;
-  const encabezadoConfig: EncabezadoOficialConfig = {
+  const encabezadoConfig: Omit<EncabezadoOficialConfig, "logoImage"> = {
     marginLeft,
     contentWidth,
     headerTopY,
-    logoImage,
     fontRegular: helvetica,
     fontBold: helveticaBold,
     razonSocial: membreteRazonSocial,
@@ -1124,13 +1399,15 @@ export async function generarCartaPdf({
     revision,
   };
   paginas.forEach((pagina, idx) => {
-    dibujarEncabezadoOficialPdf(pagina, encabezadoConfig, idx + 1, totalPaginas);
+    encabezado.dibujar(pagina, encabezadoConfig, idx + 1, totalPaginas);
+  });
+  paginas.forEach((pagina) => {
+    piePagina.dibujar(pagina, { marginLeft, contentWidth, y: piePaginaTopY });
   });
 
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  descargarPdfBlob(blob, nombreArchivo);
   return new File([blob], nombreArchivo, { type: "application/pdf" });
 }
 
@@ -1156,6 +1433,19 @@ export interface GenerarFormatoOficialPdfOpciones {
   /** Historial de revisiones (tabla "CONTROL DE CAMBIOS"), se dibuja una
    * sola vez al final del documento. */
   revisiones?: RevisionDocumentoPdf[];
+  /** Qué se dibuja en el encabezado de cada página — independiente del
+   * cuerpo (que sigue siendo este "documento plano"). Default
+   * 'FORMATO_OFICIAL' (comportamiento de siempre: tabla + logo fijo). */
+  encabezadoTipo?: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL";
+  /** URL de la imagen de encabezado propia, cuando encabezadoTipo='IMAGEN'. */
+  encabezadoImagenUrl?: string | null;
+  /** Qué se dibuja en el pie de cada página — independiente del
+   * encabezado y del cuerpo. Default 'NINGUNO'. */
+  piePaginaTipo?: "NINGUNO" | "TEXTO" | "IMAGEN";
+  /** Texto del pie de página, cuando piePaginaTipo='TEXTO'. */
+  piePaginaTexto?: string | null;
+  /** URL de la imagen de pie de página, cuando piePaginaTipo='IMAGEN'. */
+  piePaginaImagenUrl?: string | null;
 }
 
 export async function generarFormatoOficialPdf({
@@ -1167,6 +1457,11 @@ export async function generarFormatoOficialPdf({
   nombreArchivo,
   razonSocial = "CARTONERA NACIONAL S.A.",
   revisiones = [],
+  encabezadoTipo = "FORMATO_OFICIAL",
+  encabezadoImagenUrl,
+  piePaginaTipo = "NINGUNO",
+  piePaginaTexto,
+  piePaginaImagenUrl,
 }: GenerarFormatoOficialPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
@@ -1176,20 +1471,33 @@ export async function generarFormatoOficialPdf({
   const helveticaBold = await pdfDoc.embedFont("Helvetica-Bold");
   const negro = rgb(0.1, 0.1, 0.1);
 
-  const logoBytes = await fetch("/logo.jpg").then((r) => r.arrayBuffer());
-  const logoImage = await pdfDoc.embedJpg(logoBytes);
+  const encabezado = await resolverEncabezadoDocumento(
+    pdfDoc,
+    encabezadoTipo,
+    encabezadoImagenUrl,
+  );
+  const piePagina = await resolverPiePaginaDocumento(
+    pdfDoc,
+    piePaginaTipo,
+    piePaginaTexto,
+    piePaginaImagenUrl,
+    helvetica,
+  );
 
   const pageWidth = 595;
   const pageHeight = 842;
   const marginLeft = 50;
   const marginRight = 50;
   const marginTop = 50;
-  const marginBottom = 50;
+  const marginBottom =
+    PIE_PAGINA_MARGEN_BASE +
+    (piePagina.altura > 0 ? piePagina.altura + PIE_PAGINA_GAP : 0);
   const contentWidth = pageWidth - marginLeft - marginRight;
   const fontSizeBody = 10;
 
   const headerTopY = pageHeight - marginTop;
-  const bodyTopY = headerTopY - ENCABEZADO_ALTURA - 24;
+  const bodyTopY = headerTopY - encabezado.altura - 24;
+  const piePaginaTopY = PIE_PAGINA_MARGEN_BASE + piePagina.altura;
 
   const paginas: PDFPage[] = [];
   const nuevaPagina = (): PDFPage => {
@@ -1230,11 +1538,10 @@ export async function generarFormatoOficialPdf({
   // páginas que ocupó el cuerpo — "PAGINA No. X de N" refleja la
   // paginación real generada, no un valor fijo configurado de antemano.
   const totalPaginas = paginas.length;
-  const encabezadoConfig: EncabezadoOficialConfig = {
+  const encabezadoConfig: Omit<EncabezadoOficialConfig, "logoImage"> = {
     marginLeft,
     contentWidth,
     headerTopY,
-    logoImage,
     fontRegular: helvetica,
     fontBold: helveticaBold,
     razonSocial,
@@ -1244,13 +1551,15 @@ export async function generarFormatoOficialPdf({
     revision,
   };
   paginas.forEach((pagina, idx) => {
-    dibujarEncabezadoOficialPdf(pagina, encabezadoConfig, idx + 1, totalPaginas);
+    encabezado.dibujar(pagina, encabezadoConfig, idx + 1, totalPaginas);
+  });
+  paginas.forEach((pagina) => {
+    piePagina.dibujar(pagina, { marginLeft, contentWidth, y: piePaginaTopY });
   });
 
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  descargarPdfBlob(blob, nombreArchivo);
   return new File([blob], nombreArchivo, { type: "application/pdf" });
 }
 
@@ -1282,6 +1591,19 @@ export interface GenerarPlantillaDocumentoOpciones {
   /** Historial de revisiones (tabla "CONTROL DE CAMBIOS"), se dibuja una
    * sola vez al final del documento. */
   revisiones?: RevisionDocumentoPdf[];
+  /** Qué se dibuja en el encabezado de cada página — independiente de
+   * `paginasTotal` (que solo decide el estilo del cuerpo: carta simple vs.
+   * documento plano). Default 'NINGUNO' si no se especifica. */
+  encabezadoTipo?: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL" | null;
+  /** URL de la imagen de encabezado propia, cuando encabezadoTipo='IMAGEN'. */
+  encabezadoImagenUrl?: string | null;
+  /** Qué se dibuja en el pie de cada página — independiente del
+   * encabezado y de `paginasTotal`. Default 'NINGUNO' si no se especifica. */
+  piePaginaTipo?: "NINGUNO" | "TEXTO" | "IMAGEN" | null;
+  /** Texto del pie de página, cuando piePaginaTipo='TEXTO'. */
+  piePaginaTexto?: string | null;
+  /** URL de la imagen de pie de página, cuando piePaginaTipo='IMAGEN'. */
+  piePaginaImagenUrl?: string | null;
 }
 
 export interface PreguntaRenderizadaParaPlantilla {
@@ -1358,6 +1680,11 @@ export async function generarPlantillaDocumentoPdf({
   paginasTotal,
   respuestasPregunta,
   revisiones = [],
+  encabezadoTipo,
+  encabezadoImagenUrl,
+  piePaginaTipo,
+  piePaginaTexto,
+  piePaginaImagenUrl,
 }: GenerarPlantillaDocumentoOpciones): Promise<File> {
   const reemplazos: Record<string, string> = {
     "{{cliente_nombre}}": clienteNombre || "",
@@ -1406,9 +1733,12 @@ export async function generarPlantillaDocumentoPdf({
     );
   }
 
-  // Solo los documentos configurados con "páginas totales" usan el
-  // encabezado de formato oficial (tabla con logo/código/revisión) — el
-  // resto sigue con la carta simple de siempre, sin cambios.
+  const nombreArchivo = construirNombreDescargaPdf(tdoNombre, clienteNombre);
+
+  // Solo los documentos configurados con "páginas totales" usan el estilo
+  // de cuerpo "documento plano" (formato oficial) — el resto sigue con el
+  // cuerpo de carta simple de siempre, sin cambios. El encabezado (tabla/
+  // imagen/nada) es una elección aparte, independiente de esto.
   if (paginasTotal) {
     return generarFormatoOficialPdf({
       contenido,
@@ -1416,8 +1746,13 @@ export async function generarPlantillaDocumentoPdf({
       formatoCodigo: formatoCodigo || "-",
       formatoCodigoSecundario,
       revision,
-      nombreArchivo: `plantilla-${tdoNombre}.pdf`,
+      nombreArchivo,
       revisiones,
+      encabezadoTipo: encabezadoTipo || undefined,
+      encabezadoImagenUrl,
+      piePaginaTipo: piePaginaTipo || undefined,
+      piePaginaTexto,
+      piePaginaImagenUrl,
     });
   }
 
@@ -1425,7 +1760,12 @@ export async function generarPlantillaDocumentoPdf({
     contenido,
     asunto: tdoNombre,
     destinatarioNombre: clienteNombre || "-",
-    nombreArchivo: `plantilla-${tdoNombre}.pdf`,
+    nombreArchivo,
     revisiones,
+    encabezadoTipo: encabezadoTipo || undefined,
+    encabezadoImagenUrl,
+    piePaginaTipo: piePaginaTipo || undefined,
+    piePaginaTexto,
+    piePaginaImagenUrl,
   });
 }

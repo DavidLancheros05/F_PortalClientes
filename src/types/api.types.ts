@@ -116,6 +116,12 @@ export interface TipoIdentificacionResponse {
 export interface FormularioPreguntaOpcion {
   op_id: number;
   op_descripcion: string;
+  // Identidad estable de la opción entre versiones del formulario — op_id
+  // cambia en cada clonado (IDENTITY), op_codigo no. Usado por la precarga
+  // de Ampliación de Cupo para traducir la opción guardada en una
+  // solicitud aprobada de una versión vieja al id vigente en la versión
+  // activa (ver usePrefillConfiguracion).
+  op_codigo?: string | null;
 }
 
 /**

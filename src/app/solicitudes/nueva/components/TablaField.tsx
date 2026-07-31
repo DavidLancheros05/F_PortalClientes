@@ -70,6 +70,8 @@ type ColumnaTabla = {
   catalogo_pk_column?: string;
   catalogo_columna_padre?: string;
   catalogo_columna_filtro?: string;
+  minimo?: number;
+  maximo?: number;
 };
 
 function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
@@ -98,6 +100,8 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
             catalogo_pk_column: col.catalogo_pk_column,
             catalogo_columna_padre: col.catalogo_columna_padre,
             catalogo_columna_filtro: col.catalogo_columna_filtro,
+            minimo: typeof col.minimo === "number" ? col.minimo : undefined,
+            maximo: typeof col.maximo === "number" ? col.maximo : undefined,
           };
         }
         return null;
@@ -120,6 +124,20 @@ function obtenerDescendientes(
     (acc, nombre) => [...acc, ...obtenerDescendientes(nombre, columnas)],
     directos,
   );
+}
+
+// Para columnas NUMERO con minimo/maximo configurado: valida que el valor
+// de la celda esté dentro del rango. Vacío o no-numérico no es un error de
+// rango (eso ya lo cubre la validación de "campo obligatorio").
+function celdaEnRango(columna: ColumnaTabla, valorCelda: string): boolean {
+  if (columna.tipo !== "NUMERO") return true;
+  const valor = valorCelda.trim();
+  if (valor === "") return true;
+  const numero = Number(valor);
+  if (Number.isNaN(numero)) return true;
+  if (columna.minimo !== undefined && numero < columna.minimo) return false;
+  if (columna.maximo !== undefined && numero > columna.maximo) return false;
+  return true;
 }
 
 function parseFilas(valorTexto: string | undefined): FilaTabla[] {
@@ -279,7 +297,10 @@ export function TablaField({
   const filasVisibles = filas.length > 0 ? filas : [{}];
 
   const todasLasFilasCompletas = filasVisibles.every((fila) =>
-    columnas.every((columna) => (fila[columna.nombre] || "").trim() !== ""),
+    columnas.every((columna) => {
+      const valor = (fila[columna.nombre] || "").trim();
+      return valor !== "" && celdaEnRango(columna, valor);
+    }),
   );
 
   const limiteFilas = useMemo((): number | null => {
@@ -471,19 +492,40 @@ export function TablaField({
                   }
 
                   if (columna.tipo === "NUMERO") {
+                    const valorCelda = fila[columna.nombre] || "";
+                    const enRango = celdaEnRango(columna, valorCelda);
+                    const tieneRango =
+                      columna.minimo !== undefined ||
+                      columna.maximo !== undefined;
                     return (
                       <td key={columna.nombre} className="p-1">
                         <input
                           type="text"
                           inputMode="numeric"
                           disabled={readOnly}
-                          value={fila[columna.nombre] || ""}
+                          value={valorCelda}
                           onChange={(e) => {
                             const soloDigitos = e.target.value.replace(/\D/g, "");
                             actualizarCelda(filaIndex, columna.nombre, soloDigitos);
                           }}
-                          className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                          className={`w-full rounded-lg border bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:bg-white focus:outline-none focus:ring-2 disabled:text-slate-400 ${
+                            enRango
+                              ? "border-transparent focus:border-blue-300 focus:ring-blue-500/40"
+                              : "border-red-300 focus:border-red-400 focus:ring-red-500/40"
+                          }`}
                         />
+                        {!enRango && (
+                          <p className="mt-0.5 text-[10px] text-red-600">
+                            Debe estar entre {columna.minimo ?? "-∞"} y{" "}
+                            {columna.maximo ?? "∞"}
+                          </p>
+                        )}
+                        {enRango && tieneRango && !readOnly && (
+                          <p className="mt-0.5 text-[10px] text-slate-400">
+                            Rango: {columna.minimo ?? "-∞"} a{" "}
+                            {columna.maximo ?? "∞"}
+                          </p>
+                        )}
                       </td>
                     );
                   }

@@ -19,6 +19,8 @@ export default function TipoConsecutivoPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadTipos();
@@ -37,8 +39,13 @@ export default function TipoConsecutivoPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowConfirmSave(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setSaving(true);
     try {
       if (editingId) {
         await tipoConsecutivosService.update(editingId, formData);
@@ -49,12 +56,16 @@ export default function TipoConsecutivoPage() {
       }
 
       setShowForm(false);
+      setShowConfirmSave(false);
       setEditingId(null);
       resetForm();
       loadTipos();
     } catch (error) {
+      setShowConfirmSave(false);
       setErrorMessage('Error guardando tipo de consecutivo');
       console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -340,6 +351,22 @@ export default function TipoConsecutivoPage() {
           setConfirmDelete(null);
         }}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* Confirmación antes de guardar */}
+      <ConfirmModal
+        isOpen={showConfirmSave}
+        title={editingId ? 'Confirmar cambios' : 'Confirmar creación'}
+        message={
+          editingId
+            ? '¿Deseas guardar los cambios de este tipo de consecutivo?'
+            : '¿Deseas crear este tipo de consecutivo?'
+        }
+        confirmText={editingId ? 'Sí, guardar' : 'Sí, crear'}
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={handleConfirmSave}
+        onCancel={() => setShowConfirmSave(false)}
       />
       </div>
     </div>

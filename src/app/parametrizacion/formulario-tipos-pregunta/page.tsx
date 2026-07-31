@@ -6,6 +6,7 @@ import {
   formularioTiposPreguntaService,
   TipoPregunta,
 } from "@/services/parametrizacion/formulario-tipos-pregunta.service";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 export default function FormularioTiposPreguntaPage() {
   const [items, setItems] = useState<TipoPregunta[]>([]);
@@ -26,6 +27,21 @@ export default function FormularioTiposPreguntaPage() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "error" | "success" | "confirm";
+    title: string;
+    message: string;
+    action?: () => void;
+    confirmText?: string;
+    isDangerous?: boolean;
+  }>({
+    isOpen: false,
+    type: "error",
+    title: "",
+    message: "",
+  });
 
   const cargarTipos = async () => {
     setLoading(true);
@@ -76,34 +92,64 @@ export default function FormularioTiposPreguntaPage() {
     setNuevaDescripcion("");
   };
 
-  const crearTipo = async () => {
+  const crearTipo = () => {
     if (!nuevoCodigo.trim()) {
-      alert("El código es obligatorio");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Campos incompletos",
+        message: "El código es obligatorio",
+      });
       return;
     }
 
     if (!nuevaDescripcion.trim()) {
-      alert("La descripción es obligatoria");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Campos incompletos",
+        message: "La descripción es obligatoria",
+      });
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await formularioTiposPreguntaService.create({
-        fti_codigo: nuevoCodigo.trim().toUpperCase(),
-        fti_descripcion: nuevaDescripcion.trim(),
-        fti_estado: true,
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar creación",
+      message: `¿Deseas agregar el tipo de pregunta ${nuevoCodigo.trim().toUpperCase()}?`,
+      confirmText: "Sí, agregar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await formularioTiposPreguntaService.create({
+            fti_codigo: nuevoCodigo.trim().toUpperCase(),
+            fti_descripcion: nuevaDescripcion.trim(),
+            fti_estado: true,
+          });
 
-      setMostrarNuevo(false);
-      limpiarFormulario();
-      await cargarTipos();
-    } catch (error: any) {
-      console.error(error);
-      alert(error?.message || "Error al crear el tipo de pregunta");
-    } finally {
-      setSubmitting(false);
-    }
+          setMostrarNuevo(false);
+          limpiarFormulario();
+          await cargarTipos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Tipo creado",
+            message: "El tipo de pregunta ha sido creado exitosamente",
+          });
+        } catch (error: any) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error?.message || "Error al crear el tipo de pregunta",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const iniciarEdicion = (item: TipoPregunta) => {
@@ -118,50 +164,98 @@ export default function FormularioTiposPreguntaPage() {
     setEditandoDescripcion("");
   };
 
-  const guardarEdicion = async (item: TipoPregunta) => {
+  const guardarEdicion = (item: TipoPregunta) => {
     if (!editandoCodigo.trim()) {
-      alert("El código es obligatorio");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Campos incompletos",
+        message: "El código es obligatorio",
+      });
       return;
     }
 
     if (!editandoDescripcion.trim()) {
-      alert("La descripción es obligatoria");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Campos incompletos",
+        message: "La descripción es obligatoria",
+      });
       return;
     }
 
-    try {
-      await formularioTiposPreguntaService.update(item.fti_id, {
-        fti_codigo: editandoCodigo.trim().toUpperCase(),
-        fti_descripcion: editandoDescripcion.trim(),
-        fti_estado: item.fti_estado,
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar los cambios del tipo ${editandoCodigo.trim().toUpperCase()}?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await formularioTiposPreguntaService.update(item.fti_id, {
+            fti_codigo: editandoCodigo.trim().toUpperCase(),
+            fti_descripcion: editandoDescripcion.trim(),
+            fti_estado: item.fti_estado,
+          });
 
-      cancelarEdicion();
-      await cargarTipos();
-    } catch (error: any) {
-      console.error(error);
-      alert(error?.message || "Error al actualizar");
-    }
+          cancelarEdicion();
+          await cargarTipos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Tipo actualizado",
+            message: "El tipo de pregunta ha sido actualizado exitosamente",
+          });
+        } catch (error: any) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error?.message || "Error al actualizar",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
-  const toggleEstado = async (item: TipoPregunta) => {
-    const confirmar = confirm(
-      `¿Deseas ${item.fti_estado ? "inactivar" : "activar"} este tipo de pregunta?`,
-    );
+  const toggleEstado = (item: TipoPregunta) => {
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: item.fti_estado ? "Inactivar tipo" : "Activar tipo",
+      message: `¿Deseas ${item.fti_estado ? "inactivar" : "activar"} este tipo de pregunta?`,
+      isDangerous: item.fti_estado,
+      confirmText: item.fti_estado ? "Inactivar" : "Activar",
+      action: async () => {
+        try {
+          await formularioTiposPreguntaService.updateStatus(
+            item.fti_id,
+            !item.fti_estado,
+          );
 
-    if (!confirmar) return;
-
-    try {
-      await formularioTiposPreguntaService.updateStatus(
-        item.fti_id,
-        !item.fti_estado,
-      );
-
-      await cargarTipos();
-    } catch (error: any) {
-      console.error(error);
-      alert(error?.message || "Error al cambiar estado");
-    }
+          await cargarTipos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Operación exitosa",
+            message: `El tipo de pregunta ha sido ${item.fti_estado ? "inactivado" : "activado"}`,
+          });
+        } catch (error: any) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error?.message || "Error al cambiar estado",
+          });
+        }
+      },
+    });
   };
 
   const total = items.length;
@@ -491,6 +585,44 @@ export default function FormularioTiposPreguntaPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {modalState.type === "error" && (
+        <ConfirmModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          confirmText="Aceptar"
+          isDangerous={true}
+          onConfirm={() => setModalState({ ...modalState, isOpen: false })}
+          onCancel={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
+
+      {modalState.type === "success" && (
+        <SuccessModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          actionText="Aceptar"
+          onAction={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
+
+      {modalState.type === "confirm" && (
+        <ConfirmModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          confirmText={modalState.confirmText || "Confirmar"}
+          isDangerous={modalState.isDangerous}
+          isLoading={submitting}
+          onConfirm={async () => {
+            if (modalState.action) await modalState.action();
+          }}
+          onCancel={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
     </div>
   );
 }

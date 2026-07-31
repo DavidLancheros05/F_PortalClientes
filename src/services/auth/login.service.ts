@@ -12,12 +12,23 @@ interface LoginResponse {
   modulos?: any[];
 }
 
-console.log("fronted services")
-
 export const loginService = {
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
     const res = await api.post("/auth/login", payload);
-    // console.log("[loginService] login response:", res);
+    return res.data;
+  },
+  forgotPassword: async (payload: {
+    identifier: string;
+    accessType: "cliente" | "usuario";
+  }): Promise<{ ok: boolean; mensaje: string }> => {
+    const res = await api.post("/auth/forgot-password", payload);
+    return res.data;
+  },
+  resetPassword: async (payload: {
+    token: string;
+    newPassword: string;
+  }): Promise<{ ok: boolean; mensaje: string }> => {
+    const res = await api.post("/auth/reset-password", payload);
     return res.data;
   },
 };

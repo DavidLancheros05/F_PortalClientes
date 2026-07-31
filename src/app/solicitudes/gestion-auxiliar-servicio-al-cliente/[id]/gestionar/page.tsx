@@ -26,6 +26,7 @@ interface Solicitud {
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_fecha_real_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
+  sol_toneladas_proyectadas?: number | null;
   sol_observaciones_comercial: string | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
@@ -309,7 +310,7 @@ export default function GestionarSolicitudPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">
-                      Consumo Proyectado (USD)
+                      Consumo Proyectado (COP)
                     </p>
                     <p className="font-medium text-gray-900">
                       {solicitud?.sol_consumo_mensual_proyectado ||
@@ -321,6 +322,16 @@ export default function GestionarSolicitudPage() {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}`
+                        : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">
+                      Toneladas Mensuales Proyectadas
+                    </p>
+                    <p className="font-medium text-gray-900">
+                      {solicitud?.sol_toneladas_proyectadas
+                        ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
                         : "-"}
                     </p>
                   </div>

@@ -1,10 +1,13 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { parametrosService } from "@/services/parametros.service";
+import {
+  motivosRechazoService,
+  type MotivoRechazo,
+} from "@/services/admin/parametrizacion/motivos-rechazo.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -13,10 +16,11 @@ import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import {
   ArrowLeft,
   FileText,
-  CheckCircle,
-  AlertCircle,
+  CheckCircle2,
+  CreditCard,
   MessageSquare,
-  Wallet,
+  Check,
+  X,
 } from "lucide-react";
 
 interface Solicitud {
@@ -34,6 +38,7 @@ interface Solicitud {
   sol_fecha_creacion: string;
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
+  sol_toneladas_proyectadas?: number | null;
   sol_observacion_ejn?: string | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
@@ -52,13 +57,19 @@ interface Solicitud {
 interface RegistroState {
   observacionesCumplimiento: string;
   resultado: "aprobado" | "rechazado" | null;
-  motivoRechazo: string;
+  motivoRechazoId: number | null;
   guardando: boolean;
 }
 
-interface DiasRespuesta {
-  [key: string]: number;
-}
+// Mismos códigos de estado que ESTADOS (workflow-labels.ts), con los
+// tokens de color del sistema visual nuevo (ver design_handoff_portal_rediseños).
+const ESTADO_TOKENS: Record<number, { color: string; bg: string }> = {
+  1: { color: "#b45309", bg: "#fffbeb" }, // Borrador
+  2: { color: "#b45309", bg: "#fffbeb" }, // Pendiente
+  3: { color: "#1d4ed8", bg: "#eff6ff" }, // En revisión (estado normal en esta pantalla)
+  5: { color: "#047857", bg: "#ecfdf5" }, // Aprobada
+  6: { color: "#b91c1c", bg: "#fef2f2" }, // Rechazada
+};
 
 export default function GestionOCPage() {
   const router = useRouter();
@@ -67,16 +78,17 @@ export default function GestionOCPage() {
 
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
-  const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
+  const [motivosRechazo, setMotivosRechazo] = useState<MotivoRechazo[]>([]);
   const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
   const [registro, setRegistro] = useState<RegistroState>({
     observacionesCumplimiento: "",
     resultado: null,
-    motivoRechazo: "",
+    motivoRechazoId: null,
     guardando: false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
     useSolicitudCupoSolicitado(solicitudId);
 
@@ -86,18 +98,8 @@ export default function GestionOCPage() {
 
       try {
         setLoading(true);
-        const [solicitudData, dias] = await Promise.all([
-          solicitudesService.getById(solicitudId),
-          parametrosService.getDiasRespuesta(),
-        ]);
-
-        console.log(
-          "[Gestión OC] Datos de solicitud recibidos:",
-          solicitudData,
-        );
-        console.log("[Gestión OC] Días de respuesta:", dias);
+        const solicitudData = await solicitudesService.getById(solicitudId);
         setSolicitud(solicitudData);
-        setDiasRespuesta(dias);
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -109,24 +111,25 @@ export default function GestionOCPage() {
     cargarDatos();
   }, [solicitudId]);
 
+  useEffect(() => {
+    motivosRechazoService
+      .getActivos()
+      .then(setMotivosRechazo)
+      .catch((error) => {
+        console.error("Error cargando motivos de rechazo:", error);
+        setMotivosRechazo([]);
+      });
+  }, []);
+
+  const observacionesLength = registro.observacionesCumplimiento.trim().length;
+
+  const puedeGuardar =
+    observacionesLength >= 10 &&
+    registro.resultado !== null &&
+    (registro.resultado !== "rechazado" || registro.motivoRechazoId !== null);
+
   const handleGuardarRevision = () => {
-    if (!solicitud) return;
-
-    if (!registro.observacionesCumplimiento.trim()) {
-      alert("Las observaciones de cumplimiento son obligatorias.");
-      return;
-    }
-
-    if (!registro.resultado) {
-      alert("Debes seleccionar si el cumplimiento es aprobado o rechazado.");
-      return;
-    }
-
-    if (registro.resultado === "rechazado" && !registro.motivoRechazo.trim()) {
-      alert("Debes indicar el motivo del rechazo.");
-      return;
-    }
-
+    if (!solicitud || !puedeGuardar) return;
     setShowConfirmModal(true);
   };
 
@@ -137,60 +140,65 @@ export default function GestionOCPage() {
       setRegistro((prev) => ({ ...prev, guardando: true }));
 
       const solicitudId = solicitud.sol_id ?? solicitud.sa_sol_id;
+      const esRechazado = registro.resultado === "rechazado";
+      const motivoSeleccionado = motivosRechazo.find(
+        (m) => m.id === registro.motivoRechazoId
+      );
+      // El backend solo guarda un comentario por transición (historial +
+      // correo al ejecutivo) — el motivo de rechazo se anexa ahí para no
+      // perderlo, además del motivo_rechazo_id real (antes quedaba
+      // hardcodeado a 1 sin importar lo que el oficial seleccionara).
+      const comentario = esRechazado
+        ? `${registro.observacionesCumplimiento}\n\nMotivo de rechazo: ${motivoSeleccionado?.descripcion ?? ""}`
+        : registro.observacionesCumplimiento;
+
       await solicitudesService.guardarRevisionCumplimiento(solicitudId, {
-        comentario: registro.observacionesCumplimiento,
+        comentario,
         aprobado: registro.resultado === "aprobado",
-        motivo_rechazo_id: registro.resultado === "rechazado" ? 1 : null,
+        motivo_rechazo_id: esRechazado ? registro.motivoRechazoId : null,
       });
 
       setShowConfirmModal(false);
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error guardando revisión:", error);
-      alert("Error al guardar la revisión de cumplimiento");
+      setErrorMessage("No se pudo guardar la revisión de cumplimiento. Intenta de nuevo.");
       setShowConfirmModal(false);
     } finally {
       setRegistro((prev) => ({ ...prev, guardando: false }));
     }
   };
 
-  const fechaEstimada =
-    (solicitud as any)?.sol_fecha_estimada_oficial_cumplimiento ||
-    solicitud?.sol_fecha_estimada_respuesta_comercial ||
-    solicitud?.fecha_estimada_respuesta_comercial;
+  const estadoId = solicitud?.sol_estado_id ?? solicitud?.estado_id ?? 1;
+  const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-      <div className="max-w-[90%] mx-auto mt-2 px-2">
-        {/* Main Card */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.back()}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
-              >
-                <ArrowLeft size={16} />
-                Volver
-              </button>
-              <div className="bg-white/20 rounded-full p-2 flex-shrink-0">
-                <FileText className="text-white" size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg md:text-xl font-bold text-white">
-                  Gestión Oficial de Cumplimiento
-                </h1>
-                {solicitud && (
-                  <p className="text-xs md:text-sm text-blue-100 truncate">
-                    Solicitud:{" "}
-                    <span className="font-semibold text-white">
-                      {solicitud.sol_numero_solicitud ||
-                        solicitud.numero_solicitud}
-                    </span>
-                  </p>
-                )}
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a]">
+      <div className="max-w-[1240px] mx-auto px-5 pt-7 pb-[70px]">
+        <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]">
+          {/* Header */}
+          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
+            >
+              <ArrowLeft size={15} strokeWidth={2.3} />
+            </button>
+            <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
+              <FileText size={20} className="text-white" strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">
+                Gestión Oficial de Cumplimiento
+              </h1>
+              {solicitud && (
+                <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
+                  Solicitud{" "}
+                  <span className="font-bold text-white">
+                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -210,340 +218,307 @@ export default function GestionOCPage() {
               <p className="text-gray-600">No se encontró la solicitud</p>
             </div>
           ) : (
-          <>
-          {/* Información de la solicitud */}
-          <div className="px-8 py-6 border-b border-gray-200 bg-white/50">
-            <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
-              Información de la Solicitud
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Cliente
-                </p>
-                <p className="font-semibold text-gray-900">
-                  {solicitud.cliente_nombre}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Centro de Operación
-                </p>
-                <p className="font-semibold text-gray-900">
-                  {solicitud.centro_operacion_nombre}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Estado
-                </p>
-                <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    (solicitud.sol_estado_id ?? solicitud.estado_id) === 1
-                      ? "bg-yellow-100 text-yellow-800"
-                      : (solicitud.sol_estado_id ?? solicitud.estado_id) === 2
-                        ? "bg-blue-100 text-blue-800"
-                        : (solicitud.sol_estado_id ?? solicitud.estado_id) === 3
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] ||
-                    "Desconocido"}
-                </span>
-              </div>
-            </div>
-
-            {/* Solicita Cupo — el dato que más pesa en esta gestión, por
-                eso destacado aparte del grid y no como una celda más */}
-            <div
-              className={`mt-4 rounded-xl border-2 p-4 ${
-                solicitaCredito
-                  ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50/60"
-                  : "border-gray-200 bg-gray-50/60"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <div
-                  className={`rounded-full p-1.5 ${solicitaCredito ? "bg-emerald-100" : "bg-gray-200"}`}
-                >
-                  <Wallet
-                    className={`h-4 w-4 ${solicitaCredito ? "text-emerald-700" : "text-gray-500"}`}
-                  />
-                </div>
-                <p
-                  className={`text-xs font-bold uppercase tracking-wide ${solicitaCredito ? "text-emerald-800" : "text-gray-500"}`}
-                >
-                  Solicita Cupo de Crédito
-                </p>
-              </div>
-              {solicitaCredito ? (
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 pl-1">
-                  <span className="text-2xl font-bold text-emerald-900">
-                    {montoSolicitadoTexto || "Monto no especificado"}
-                  </span>
-                  {formaPagoSolicitada && (
-                    <span className="inline-flex items-center rounded-full bg-white border border-emerald-300 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                      {formaPagoSolicitada}
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <p className="pl-1 text-sm font-medium text-gray-500">No</p>
-              )}
-            </div>
-
-            {/* Concepto del Ejecutivo de Negocios — agrupado aparte para que
-                quede claro que estos dos datos vienen de esa etapa, no de
-                la solicitud en general */}
-            <div className="mt-4 bg-blue-50/60 border border-blue-200 rounded-lg p-4">
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">
-                Concepto del Ejecutivo de Negocios
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                    Consumo Mensual Proyectado
-                  </p>
-                  <p className="font-semibold text-gray-900">
-                    {solicitud.sol_consumo_mensual_proyectado ||
-                    solicitud.consumo_mensual_proyectado
-                      ? `$${(
-                          solicitud.sol_consumo_mensual_proyectado ||
-                          solicitud.consumo_mensual_proyectado
-                        )?.toLocaleString("es-CO", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                    Observaciones
-                  </p>
-                  <p className="text-gray-900 whitespace-pre-wrap">
-                    {solicitud.sol_observacion_ejn || "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contenido en dos columnas: el formulario aprovecha todo el
-              espacio que el historial no está usando (angosto o plegado),
-              en vez de quedar fijo en 2/3 aunque el historial ocupe menos */}
-          <div className="flex gap-6 px-8 py-8">
-            {/* Formulario de revisión - Izquierda */}
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <CheckCircle size={24} className="text-blue-600" />
-                Revisión de Cumplimiento
-              </h2>
-
-              <div className="space-y-6">
-                {/* Ver Formulario */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle
-                      className="text-blue-600 flex-shrink-0 mt-1"
-                      size={20}
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-900 mb-2">
-                        Revisar Formulario Completo
-                      </p>
-                      <p className="text-sm text-blue-700 mb-3">
-                        Accede al formulario de la solicitud para revisar todas
-                        las respuestas y documentos.
-                      </p>
-                      <button
-                        onClick={() =>
-                          router.push(
-                            `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
-                          )
-                        }
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        Ver Formulario Completo →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subsección: lo que corresponde exactamente a esta
-                    gestión (Oficial de Cumplimiento) — separada de la
-                    info general y ubicada antes de documentos/soportes */}
-                <div className="border-2 border-blue-200 bg-blue-50/40 rounded-xl p-5 space-y-6">
-                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
-                    Registrar tu Revisión de Cumplimiento
-                  </p>
-
-                  <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={4} />
-
-                  {/* Observaciones de Cumplimiento */}
+            <>
+              {/* Info block */}
+              <div className="px-7 py-[26px] border-b border-[#eef1f6]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <MessageSquare size={18} className="text-blue-600" />
-                      Observaciones de Cumplimiento *
-                    </label>
-                    <textarea
-                      value={registro.observacionesCumplimiento}
-                      onChange={(e) =>
-                        setRegistro((prev) => ({
-                          ...prev,
-                          observacionesCumplimiento: e.target.value,
-                        }))
-                      }
-                      placeholder="Describe los hallazgos y observaciones de la revisión de cumplimiento..."
-                      rows={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none bg-white"
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Mínimo 10 caracteres requeridos
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Cliente
+                    </p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">
+                      {solicitud.cliente_nombre}
                     </p>
                   </div>
-
-                  {/* Resultado de Cumplimiento */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Resultado de Cumplimiento *
-                    </label>
-                    <div className="space-y-3">
-                      <label
-                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg bg-white hover:bg-green-50 transition-colors"
-                        style={{
-                          borderColor:
-                            registro.resultado === "aprobado"
-                              ? "#22c55e"
-                              : "inherit",
-                          backgroundColor:
-                            registro.resultado === "aprobado"
-                              ? "rgba(34, 197, 94, 0.05)"
-                              : "inherit",
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="resultado"
-                          value="aprobado"
-                          checked={registro.resultado === "aprobado"}
-                          onChange={() =>
-                            setRegistro((prev) => ({
-                              ...prev,
-                              resultado: "aprobado",
-                              motivoRechazo: "",
-                            }))
-                          }
-                          className="w-5 h-5 text-green-600"
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Centro de operación
+                    </p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">
+                      {solicitud.centro_operacion_nombre}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Estado
+                    </p>
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
+                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ background: estadoTokens.color }}
+                      />
+                      {ESTADOS[estadoId] || "Desconocido"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
+                  {/* Solicita cupo de crédito */}
+                  <div
+                    className="rounded-2xl p-5 border"
+                    style={{
+                      borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
+                      background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
+                    }}
+                  >
+                    <div className="flex items-center gap-[9px] mb-2.5">
+                      <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+                        <CreditCard
+                          size={14}
+                          strokeWidth={2.2}
+                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
                         />
-                        <span className="text-sm font-semibold text-gray-900">
-                          ✓ Aprobado - Cumple con todos los requisitos
-                        </span>
-                      </label>
-                      <label
-                        className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-lg bg-white hover:bg-red-50 transition-colors"
-                        style={{
-                          borderColor:
-                            registro.resultado === "rechazado"
-                              ? "#ef4444"
-                              : "inherit",
-                          backgroundColor:
-                            registro.resultado === "rechazado"
-                              ? "rgba(239, 68, 68, 0.05)"
-                              : "inherit",
-                        }}
+                      </div>
+                      <span
+                        className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
+                        style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
                       >
-                        <input
-                          type="radio"
-                          name="resultado"
-                          value="rechazado"
-                          checked={registro.resultado === "rechazado"}
-                          onChange={() =>
-                            setRegistro((prev) => ({
-                              ...prev,
-                              resultado: "rechazado",
-                            }))
-                          }
-                          className="w-5 h-5 text-red-600"
-                        />
-                        <span className="text-sm font-semibold text-gray-900">
-                          ✗ Rechazado - No cumple con los requisitos
-                        </span>
-                      </label>
+                        Solicita cupo de crédito
+                      </span>
                     </div>
+                    {solicitaCredito ? (
+                      <div className="flex items-baseline gap-2.5 flex-wrap">
+                        <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
+                          {montoSolicitadoTexto || "Monto no especificado"}
+                        </span>
+                        {formaPagoSolicitada && (
+                          <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
+                            {formaPagoSolicitada}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
+                    )}
                   </div>
 
-                  {/* Motivo de Rechazo - Solo si está rechazado */}
-                  {registro.resultado === "rechazado" && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <label className="block text-sm font-semibold text-gray-700 mb-3">
-                        Motivo del Rechazo *
+                  {/* Concepto del ejecutivo de negocios */}
+                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
+                    <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] mb-3">
+                      Concepto del ejecutivo de negocios
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">
+                          Consumo mensual proyectado
+                        </p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_consumo_mensual_proyectado ||
+                          solicitud.consumo_mensual_proyectado
+                            ? `$${(
+                                solicitud.sol_consumo_mensual_proyectado ||
+                                solicitud.consumo_mensual_proyectado
+                              )?.toLocaleString("es-CO", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">
+                          Toneladas mensuales Proyectadas 
+                        </p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_toneladas_proyectadas
+                            ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                            : "-"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
+                    <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                      {solicitud.sol_observacion_ejn || "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cuerpo: revisión + historial */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 p-7">
+                <div className="min-w-0">
+                  <h2 className="text-base font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                    <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 size={16} strokeWidth={2.2} className="text-[#003d99]" />
+                    </div>
+                    Revisión de cumplimiento
+                  </h2>
+
+                  <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+                    <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={4} />
+
+                    {/* Observaciones de cumplimiento */}
+                    <div>
+                      <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                        <MessageSquare size={15} strokeWidth={2} className="text-[#003d99]" />
+                        Observaciones del análisis <span className="text-[#dc2626]">*</span>
                       </label>
                       <textarea
-                        value={registro.motivoRechazo}
+                        value={registro.observacionesCumplimiento}
                         onChange={(e) =>
                           setRegistro((prev) => ({
                             ...prev,
-                            motivoRechazo: e.target.value,
+                            observacionesCumplimiento: e.target.value,
                           }))
                         }
-                        placeholder="Describe por qué se rechaza la solicitud..."
-                        rows={4}
-                        className="w-full px-4 py-3 border border-red-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+                        placeholder="Describe los hallazgos y observaciones de la revisión de cumplimiento…"
+                        rows={5}
+                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none resize-none font-sans leading-normal focus:border-[#003d99] focus:ring-[3px] focus:ring-[#003d99]/[0.12]"
                       />
-                      <p className="text-xs text-gray-600 mt-2">
-                        Mínimo 10 caracteres requeridos
+                      <p
+                        className="text-[11.5px] mt-1.5"
+                        style={{
+                          color:
+                            observacionesLength > 0 && observacionesLength < 10
+                              ? "#dc2626"
+                              : "#94a3b8",
+                        }}
+                      >
+                        {observacionesLength >= 10 || observacionesLength === 0
+                          ? "Mínimo 10 caracteres requeridos."
+                          : `Faltan ${10 - observacionesLength} caracteres.`}
                       </p>
                     </div>
-                  )}
 
-                  {/* Botones de acción */}
-                  <div className="flex gap-3">
-                    <button
-                    onClick={handleGuardarRevision}
-                    disabled={
-                      !registro.observacionesCumplimiento.trim() ||
-                      registro.observacionesCumplimiento.length < 10 ||
-                      !registro.resultado ||
-                      (registro.resultado === "rechazado" &&
-                        (!registro.motivoRechazo.trim() ||
-                          registro.motivoRechazo.length < 10)) ||
-                      registro.guardando
-                    }
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {registro.guardando ? "Guardando..." : "Guardar Revisión"}
-                  </button>
-                  <button
-                    onClick={() => router.back()}
-                    disabled={registro.guardando}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancelar
-                  </button>
+                    {/* Resultado de cumplimiento */}
+                    <div>
+                      <label className="block text-[13px] font-bold text-[#374151] mb-[9px]">
+                        Resultado de cumplimiento <span className="text-[#dc2626]">*</span>
+                      </label>
+                      <div className="flex flex-col gap-[9px]">
+                        <label
+                          className="flex items-center gap-3 cursor-pointer px-[15px] py-[13px] rounded-xl border-[1.5px] transition-[border-color,background,box-shadow] duration-150"
+                          style={{
+                            borderColor: registro.resultado === "aprobado" ? "#059669" : "#e5e7eb",
+                            background: registro.resultado === "aprobado" ? "#ecfdf5" : "#fff",
+                            boxShadow:
+                              registro.resultado === "aprobado"
+                                ? "0 4px 12px rgba(5,150,105,0.12)"
+                                : "none",
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="resultado"
+                            checked={registro.resultado === "aprobado"}
+                            onChange={() =>
+                              setRegistro((prev) => ({
+                                ...prev,
+                                resultado: "aprobado",
+                                motivoRechazoId: null,
+                              }))
+                            }
+                            className="w-4 h-4 accent-[#059669]"
+                          />
+                          <div className="w-[26px] h-[26px] rounded-lg bg-[#d1fae5] flex items-center justify-center flex-shrink-0">
+                            <Check size={14} strokeWidth={2.6} className="text-[#059669]" />
+                          </div>
+                          <span className="text-[13.5px] font-semibold text-[#0f172a]">
+                            Aprobado — cumple con todos los requisitos
+                          </span>
+                        </label>
+                        <label
+                          className="flex items-center gap-3 cursor-pointer px-[15px] py-[13px] rounded-xl border-[1.5px] transition-[border-color,background,box-shadow] duration-150"
+                          style={{
+                            borderColor: registro.resultado === "rechazado" ? "#dc2626" : "#e5e7eb",
+                            background: registro.resultado === "rechazado" ? "#fef2f2" : "#fff",
+                            boxShadow:
+                              registro.resultado === "rechazado"
+                                ? "0 4px 12px rgba(220,38,38,0.12)"
+                                : "none",
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="resultado"
+                            checked={registro.resultado === "rechazado"}
+                            onChange={() =>
+                              setRegistro((prev) => ({ ...prev, resultado: "rechazado" }))
+                            }
+                            className="w-4 h-4 accent-[#dc2626]"
+                          />
+                          <div className="w-[26px] h-[26px] rounded-lg bg-[#fee2e2] flex items-center justify-center flex-shrink-0">
+                            <X size={14} strokeWidth={2.6} className="text-[#dc2626]" />
+                          </div>
+                          <span className="text-[13.5px] font-semibold text-[#0f172a]">
+                            Rechazado — no cumple con los requisitos
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {registro.resultado === "rechazado" && (
+                      <div className="border border-[#fecaca] bg-[#fef2f2] rounded-[10px] p-[14px] flex flex-col gap-3">
+                        <div>
+                          <label className="block text-[13px] font-bold text-[#991b1b] mb-2">
+                            Motivo del rechazo <span className="text-[#dc2626]">*</span>
+                          </label>
+                          <select
+                            value={registro.motivoRechazoId ?? ""}
+                            onChange={(e) =>
+                              setRegistro((prev) => ({
+                                ...prev,
+                                motivoRechazoId: e.target.value ? Number(e.target.value) : null,
+                              }))
+                            }
+                            className="w-full border border-[#fca5a5] rounded-[9px] px-3 py-2.5 text-[13px] outline-none font-sans bg-white"
+                          >
+                            <option value="">Selecciona un motivo…</option>
+                            {motivosRechazo.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.descripcion}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={handleGuardarRevision}
+                        disabled={!puedeGuardar || registro.guardando}
+                        className="flex-1 flex items-center justify-center gap-2 bg-[#003d99] hover:bg-[#0047b3] hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      >
+                        {registro.guardando ? "Guardando…" : "Guardar revisión"}
+                      </button>
+                      <button
+                        onClick={() => router.back()}
+                        disabled={registro.guardando}
+                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-[18px]">
+                    <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
                   </div>
                 </div>
 
-                <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+                <div className="min-w-0">
+                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">
+                    Historial de la solicitud
+                  </h2>
+                  <HistorialSolicitud historial={historialWorkflow} />
+                </div>
               </div>
-            </div>
-
-            {/* Historial - Derecha */}
-            <div className="flex-shrink-0">
-              <HistorialSolicitud historial={historialWorkflow} />
-            </div>
-          </div>
-          </>
+            </>
           )}
         </div>
       </div>
 
       <ConfirmModal
         isOpen={showConfirmModal}
-        title="Confirmar Revisión de Cumplimiento"
-        message={`¿Estás seguro de que deseas registrar esta revisión como ${registro.resultado === "aprobado" ? "Aprobado" : "Rechazado"}?`}
-        confirmText="Sí, Guardar"
+        title="Confirmar revisión de cumplimiento"
+        message={`¿Deseas registrar esta revisión como ${
+          registro.resultado === "aprobado" ? "Aprobado" : "Rechazado"
+        }? Esta acción no se puede deshacer.`}
+        confirmText="Sí, guardar"
         cancelText="Cancelar"
         isDangerous={registro.resultado === "rechazado"}
         isLoading={registro.guardando}
@@ -554,11 +529,17 @@ export default function GestionOCPage() {
       <SuccessModal
         isOpen={showSuccessModal}
         title="¡Éxito!"
-        message="La revisión de cumplimiento fue registrada correctamente."
+        message="La revisión de cumplimiento fue registrada correctamente. Serás redirigido a la lista de solicitudes."
         actionText="Aceptar"
-        onAction={() =>
-          router.push("/solicitudes/gestion-oficial-de-cumplimiento")
-        }
+        autoClose={true}
+        autoCloseDelay={3000}
+        onAction={() => router.push("/solicitudes/gestion-oficial-de-cumplimiento")}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
       />
     </div>
   );

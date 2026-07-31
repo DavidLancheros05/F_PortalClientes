@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { usuariosService } from "@/services/usuarios/usuarios.service";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { rolesService } from "@/services/seguridad/roles.service";
+import { ConfirmModal } from "@/components/modals";
 
 type Rol = {
   rol_id: number;
@@ -30,6 +31,7 @@ export default function CrearUsuarioPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [formData, setFormData] = useState({
     cliente_id: "",
@@ -147,13 +149,17 @@ export default function CrearUsuarioPage() {
     );
   }, [formData, isClienteRole]);
 
-  const onSubmit = async (event: FormEvent) => {
+  const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!isValid) {
       setError("Completa correctamente todos los campos");
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const confirmarCreacion = async () => {
     try {
       setSaving(true);
       setError(null);
@@ -173,6 +179,7 @@ export default function CrearUsuarioPage() {
 
       await usuariosService.create(payload);
 
+      setShowConfirmModal(false);
       setSuccess("Usuario creado correctamente");
       setFormData({
         cliente_id: "",
@@ -185,6 +192,7 @@ export default function CrearUsuarioPage() {
         router.push("/usuarios");
       }, 900);
     } catch (err: any) {
+      setShowConfirmModal(false);
       setError(err?.message || "No se pudo crear el usuario");
     } finally {
       setSaving(false);
@@ -334,6 +342,17 @@ export default function CrearUsuarioPage() {
           </Link>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="Confirmar creación"
+        message="¿Deseas crear este usuario?"
+        confirmText="Sí, crear"
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={confirmarCreacion}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </div>
   );
 }

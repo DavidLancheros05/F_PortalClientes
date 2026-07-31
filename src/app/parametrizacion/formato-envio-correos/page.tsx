@@ -8,6 +8,7 @@ import {
 } from "@/services/admin/parametrizacion/notificaciones.service";
 import { EmailPreview } from "@/components/EmailPreview";
 import { HtmlBodyEditor } from "@/components/HtmlBodyEditor";
+import { ConfirmModal } from "@/components/modals";
 import {
   Save,
   Mail,
@@ -55,6 +56,8 @@ export default function NotificacionesParametrizacionPage() {
   const [success, setSuccess] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showConfirmEdit, setShowConfirmEdit] = useState(false);
+  const [showConfirmCreate, setShowConfirmCreate] = useState(false);
   const [newPlantilla, setNewPlantilla] = useState({
     codigo_evento: "",
     nombre: "",
@@ -107,7 +110,12 @@ export default function NotificacionesParametrizacionPage() {
     setPreviewMode(false);
   }, [selectedItem]);
 
-  const guardarCambios = async () => {
+  const guardarCambios = () => {
+    if (!form || !form.codigo_evento) return;
+    setShowConfirmEdit(true);
+  };
+
+  const confirmarGuardarCambios = async () => {
     if (!form || !form.codigo_evento) return;
 
     setSaving(true);
@@ -123,18 +131,20 @@ export default function NotificacionesParametrizacionPage() {
         activa: form.activa,
       });
 
+      setShowConfirmEdit(false);
       setSuccess("Cambios guardados exitosamente");
       await cargarPlantillas();
 
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
+      setShowConfirmEdit(false);
       setError(err?.message || "Error guardando cambios");
     } finally {
       setSaving(false);
     }
   };
 
-  const crearPlantilla = async () => {
+  const crearPlantilla = () => {
     if (!newPlantilla.codigo_evento.trim()) {
       setError("El código del evento es requerido");
       return;
@@ -152,11 +162,16 @@ export default function NotificacionesParametrizacionPage() {
       return;
     }
 
+    setShowConfirmCreate(true);
+  };
+
+  const confirmarCrearPlantilla = async () => {
     setSaving(true);
     setError("");
     setSuccess("");
     try {
       await notificacionesService.create(newPlantilla);
+      setShowConfirmCreate(false);
       setSuccess("Plantilla creada exitosamente");
       setShowCreateModal(false);
       setNewPlantilla({
@@ -171,6 +186,7 @@ export default function NotificacionesParametrizacionPage() {
       await cargarPlantillas();
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
+      setShowConfirmCreate(false);
       setError(err?.message || "Error creando plantilla");
     } finally {
       setSaving(false);
@@ -725,6 +741,28 @@ export default function NotificacionesParametrizacionPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmEdit}
+        title="Confirmar cambios"
+        message="¿Deseas guardar los cambios de esta plantilla?"
+        confirmText="Sí, guardar"
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={confirmarGuardarCambios}
+        onCancel={() => setShowConfirmEdit(false)}
+      />
+
+      <ConfirmModal
+        isOpen={showConfirmCreate}
+        title="Confirmar creación"
+        message={`¿Deseas crear la plantilla "${newPlantilla.nombre.trim()}"?`}
+        confirmText="Sí, crear"
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={confirmarCrearPlantilla}
+        onCancel={() => setShowConfirmCreate(false)}
+      />
     </div>
   );
 }

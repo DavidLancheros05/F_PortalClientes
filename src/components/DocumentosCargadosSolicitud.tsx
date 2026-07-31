@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { Eye, FileText, Pencil, X } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { getArchivoPreviewUrl } from "@/lib/documentos-vigencia.util";
+import {
+  documentoRequiereFechaEmision,
+  getArchivoPreviewUrl,
+} from "@/lib/documentos-vigencia.util";
 
 interface DocumentoCargado {
   sa_id: number;
@@ -109,8 +112,7 @@ export function DocumentosCargadosSolicitud({
   // si el tipo de documento no la pide, mostrar "No informada" sería
   // engañoso, porque nunca se le pidió al cliente.
   const aplicaFechaEmision = (doc: DocumentoCargado) =>
-    Boolean(doc.tdo_permite_vencimiento) &&
-    (doc.tdo_vigencia_dias != null || doc.tdo_regla_vigencia === "ANIO");
+    Boolean(doc.tdo_permite_vencimiento) && documentoRequiereFechaEmision(doc);
 
   // Regla "ANIO" no fija una fecha de vencimiento — valida que el año de
   // emisión esté dentro de tdo_anios_atras_permitidos años atrás del año

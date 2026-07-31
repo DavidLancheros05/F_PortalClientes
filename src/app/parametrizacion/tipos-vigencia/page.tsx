@@ -13,6 +13,7 @@ export default function TiposVigenciaPage() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [editandoNombre, setEditandoNombre] = useState("");
   const [editandoDescripcion, setEditandoDescripcion] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -52,31 +53,43 @@ export default function TiposVigenciaPage() {
     setEditandoDescripcion(item.descripcion || "");
   };
 
-  const guardarEdicion = async () => {
+  const guardarEdicion = () => {
     if (!editandoId || !editandoNombre.trim()) return;
 
-    try {
-      await tiposVigenciaService.update(editandoId, {
-        nombre: editandoNombre.trim(),
-        descripcion: editandoDescripcion.trim(),
-      });
-      setEditandoId(null);
-      await cargarDatos();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Actualizado exitosamente",
-        message: "El tipo de vigencia ha sido actualizado",
-      });
-    } catch (e) {
-      console.error(e);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "Error al actualizar el tipo de vigencia",
-      });
-    }
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar los cambios de "${editandoNombre.trim()}"?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await tiposVigenciaService.update(editandoId, {
+            nombre: editandoNombre.trim(),
+            descripcion: editandoDescripcion.trim(),
+          });
+          setEditandoId(null);
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Actualizado exitosamente",
+            message: "El tipo de vigencia ha sido actualizado",
+          });
+        } catch (e) {
+          console.error(e);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al actualizar el tipo de vigencia",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const toggleEstado = (item: TipoVigencia) => {
@@ -298,9 +311,9 @@ export default function TiposVigenciaPage() {
           message={modalState.message}
           confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
+          isLoading={submitting}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();
-            setModalState({ ...modalState, isOpen: false });
           }}
           onCancel={() => setModalState({ ...modalState, isOpen: false })}
         />

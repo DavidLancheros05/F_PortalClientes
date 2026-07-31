@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { navigate } from "./navigation";
+import Cookies from "js-cookie";
 import { transformSnakeToCamel } from "@/lib/case-transformers";
 
 function getCookie(name: string): string | null {
@@ -36,7 +36,17 @@ export const setupInterceptors = (api: AxiosInstance) => {
       );
 
       if (error.response?.status === 401) {
-        navigate("/login");
+        // Limpiar credenciales inválidas antes de redirigir — si no, el
+        // interceptor de request sigue reenviando el token vencido en cada
+        // llamada siguiente, generando 401 repetidos hasta un login manual.
+        // Recarga completa (no router.push) por la misma razón que el
+        // logout explícito en Header.tsx: garantiza que la siguiente
+        // petición pase de nuevo por proxy.ts en vez de arriesgarse a
+        // servir una página protegida ya cacheada del lado del cliente.
+        localStorage.clear();
+        Cookies.remove("pc_token");
+        Cookies.remove("token");
+        window.location.href = "/login";
       }
       return Promise.reject(error);
     }

@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Edit2, Eye } from "lucide-react";
 import { LoadingModal } from "@/components/modals";
+import { TablePagination } from "@/components/tables/TablePagination";
+import { ExportExcelButton } from "@/components/tables/ExportExcelButton";
 
 interface Solicitud {
   sol_id: number;
@@ -54,7 +56,7 @@ export default function CorregirFormularioASCPage() {
   const [numeroFiltro, setNumeroFiltro] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
-  const itemsPorPagina = 5;
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     async function cargarCentros() {
@@ -131,10 +133,54 @@ export default function CorregirFormularioASCPage() {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   };
 
-  const totalPaginas = Math.ceil(solicitudes.length / itemsPorPagina);
-  const indiceInicio = (paginaActual - 1) * itemsPorPagina;
-  const indiceFin = indiceInicio + itemsPorPagina;
+  const indiceInicio = (paginaActual - 1) * pageSize;
+  const indiceFin = indiceInicio + pageSize;
   const solicitudesActuales = solicitudes.slice(indiceInicio, indiceFin);
+
+  const cambiarPageSize = (size: number) => {
+    setPageSize(size);
+    setPaginaActual(1);
+  };
+
+  async function exportarExcel() {
+    if (solicitudes.length === 0) return;
+
+    const XLSX = await import("xlsx");
+    const header = [
+      "Numero Solicitud",
+      "Centro de Operacion",
+      "Cliente",
+      "Estado",
+      "Etapa Actual",
+      "Resultado Etapa",
+      "Consumo Proyectado (COP)",
+      "Observaciones Ejecutivo",
+      "Fecha Creación",
+    ];
+    const data = solicitudes.map((s) => [
+      s.sol_numero_solicitud || s.numero_solicitud || "-",
+      s.centro_operacion_nombre || "-",
+      s.cliente_nombre || "-",
+      ESTADOS[s.sol_estado_id ?? s.estado_id] || "Desconocido",
+      s.etapa_nombre || "-",
+      s.resultado_nombre || "-",
+      s.consumo_mensual_proyectado
+        ? `$${s.consumo_mensual_proyectado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : "-",
+      s.observacionesComercial || "-",
+      s.fecha_creacion
+        ? new Date(s.fecha_creacion).toLocaleDateString("es-CO")
+        : "-",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Corregir ASC");
+    XLSX.writeFile(
+      wb,
+      `solicitudes-corregir-asc-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
+  }
 
   if (loadingCentros) {
     return <LoadingModal isOpen message="Cargando centros..." />;
@@ -317,6 +363,14 @@ export default function CorregirFormularioASCPage() {
         ) : (
           <>
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-gray-600">
+                  Mostrando{" "}
+                  <span className="font-semibold">{solicitudes.length}</span>{" "}
+                  solicitud(es)
+                </p>
+                <ExportExcelButton onClick={exportarExcel} />
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -340,7 +394,7 @@ export default function CorregirFormularioASCPage() {
                         Resultado Etapa
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Consumo Proyectado (USD)
+                        Consumo Proyectado (COP)
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                         Observaciones Ejecutivo
@@ -455,46 +509,14 @@ export default function CorregirFormularioASCPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-            <div className="mt-6 flex items-center justify-between text-sm text-gray-600">
-              <div>
-                Mostrando {indiceInicio + 1} -{" "}
-                {Math.min(indiceFin, solicitudes.length)} de{" "}
-                {solicitudes.length} solicitudes
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
-                  disabled={paginaActual === 1}
-                  className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                >
-                  Anterior
-                </button>
-                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => setPaginaActual(page)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                        paginaActual === page
-                          ? "bg-blue-600 text-white"
-                          : "border border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
-                <button
-                  onClick={() =>
-                    setPaginaActual(Math.min(totalPaginas, paginaActual + 1))
-                  }
-                  disabled={paginaActual === totalPaginas}
-                  className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                >
-                  Siguiente
-                </button>
-              </div>
+
+              <TablePagination
+                page={paginaActual}
+                pageSize={pageSize}
+                totalItems={solicitudes.length}
+                onPageChange={setPaginaActual}
+                onPageSizeChange={cambiarPageSize}
+              />
             </div>
           </>
         )}

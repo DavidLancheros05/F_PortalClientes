@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FormularioPregunta, formularioPreguntasService } from "@/services/parametrizacion/formulario-preguntas.service";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 interface Props {
   editItem?: FormularioPregunta;
@@ -18,6 +19,8 @@ export default function FormularioPreguntaForm({
   const [tipo, setTipo] = useState("TEXTO");
   const [orden, setOrden] = useState<number>(1);
   const [saving, setSaving] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (editItem) {
@@ -31,14 +34,18 @@ export default function FormularioPreguntaForm({
     }
   }, [editItem]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!descripcion.trim()) {
-      alert("La descripción es requerida");
+      setErrorMessage("La descripción es requerida");
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const confirmarGuardado = async () => {
     setSaving(true);
     try {
       if (editItem) {
@@ -56,10 +63,12 @@ export default function FormularioPreguntaForm({
         });
       }
 
+      setShowConfirmModal(false);
       onSaved();
     } catch (err) {
       console.error(err);
-      alert("Error al guardar");
+      setShowConfirmModal(false);
+      setErrorMessage("Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -139,6 +148,27 @@ export default function FormularioPreguntaForm({
           </button>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={editItem ? "Confirmar cambios" : "Confirmar creación"}
+        message={
+          editItem
+            ? "¿Deseas guardar los cambios de esta pregunta?"
+            : "¿Deseas crear esta pregunta?"
+        }
+        confirmText={editItem ? "Sí, guardar" : "Sí, crear"}
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={confirmarGuardado}
+        onCancel={() => setShowConfirmModal(false)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage}
+        onAction={() => setErrorMessage("")}
+      />
     </form>
   );
 }

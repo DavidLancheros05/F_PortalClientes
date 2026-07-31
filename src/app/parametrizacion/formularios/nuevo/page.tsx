@@ -4,19 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { formulariosService } from "@/services/parametrizacion/formularios.service";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 export default function NuevoFormularioPage() {
   const router = useRouter();
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const crearFormulario = async () => {
+  const iniciarCreacion = () => {
     if (!nombre.trim()) {
-      alert("El nombre del formulario es requerido");
+      setErrorMessage("El nombre del formulario es requerido");
       return;
     }
+    setShowConfirmModal(true);
+  };
 
+  const crearFormulario = async () => {
     setSubmitting(true);
     try {
       const data = await formulariosService.create({
@@ -26,7 +32,10 @@ export default function NuevoFormularioPage() {
 
       const nuevoId = Number(data?.frm_id);
       if (!Number.isFinite(nuevoId) || nuevoId <= 0) {
-        alert("Se creó el formulario, pero no fue posible abrir el editor");
+        setShowConfirmModal(false);
+        setErrorMessage(
+          "Se creó el formulario, pero no fue posible abrir el editor",
+        );
         router.push("/parametrizacion/formularios");
         return;
       }
@@ -36,7 +45,8 @@ export default function NuevoFormularioPage() {
       );
     } catch (error: any) {
       console.error("Error creando formulario:", error);
-      alert(error?.message || "Error al crear el formulario");
+      setShowConfirmModal(false);
+      setErrorMessage(error?.message || "Error al crear el formulario");
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +70,7 @@ export default function NuevoFormularioPage() {
                 Nuevo formulario
               </p>
               <button
-                onClick={crearFormulario}
+                onClick={iniciarCreacion}
                 disabled={submitting || !nombre.trim()}
                 className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
                   submitting || !nombre.trim()
@@ -111,7 +121,7 @@ export default function NuevoFormularioPage() {
               </div>
 
               <button
-                onClick={crearFormulario}
+                onClick={iniciarCreacion}
                 disabled={submitting || !nombre.trim()}
                 className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
                   submitting || !nombre.trim()
@@ -126,6 +136,23 @@ export default function NuevoFormularioPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="Confirmar creación"
+        message={`¿Deseas crear el formulario "${nombre.trim()}"?`}
+        confirmText="Sí, crear"
+        cancelText="Cancelar"
+        isLoading={submitting}
+        onConfirm={crearFormulario}
+        onCancel={() => setShowConfirmModal(false)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage}
+        onAction={() => setErrorMessage("")}
+      />
     </div>
   );
 }

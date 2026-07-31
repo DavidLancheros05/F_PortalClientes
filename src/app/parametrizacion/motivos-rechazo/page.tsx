@@ -6,6 +6,7 @@ import {
   motivosRechazoService,
   MotivoRechazo,
 } from "@/services/admin/parametrizacion/motivos-rechazo.service";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 export default function MotivosRechazoPage() {
   const [motivos, setMotivos] = useState<MotivoRechazo[]>([]);
@@ -20,6 +21,21 @@ export default function MotivosRechazoPage() {
   const [editandoDescripcion, setEditandoDescripcion] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "error" | "success" | "confirm";
+    title: string;
+    message: string;
+    action?: () => void;
+    confirmText?: string;
+    isDangerous?: boolean;
+  }>({
+    isOpen: false,
+    type: "error",
+    title: "",
+    message: "",
+  });
 
   const cargarMotivos = async () => {
     setLoading(true);
@@ -40,24 +56,49 @@ export default function MotivosRechazoPage() {
     cargarMotivos();
   }, []);
 
-  const crearMotivo = async () => {
+  const crearMotivo = () => {
     if (!descripcion.trim()) {
-      alert("Por favor ingresa una descripción para el motivo");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Campos incompletos",
+        message: "Por favor ingresa una descripción para el motivo",
+      });
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await motivosRechazoService.create(descripcion);
-      setDescripcion("");
-      setMostrarNuevo(false);
-      await cargarMotivos();
-    } catch (error) {
-      console.error(error);
-      alert("Error al crear el motivo. Por favor, intenta nuevamente.");
-    } finally {
-      setSubmitting(false);
-    }
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar creación",
+      message: `¿Deseas agregar el motivo "${descripcion.trim()}"?`,
+      confirmText: "Sí, agregar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await motivosRechazoService.create(descripcion);
+          setDescripcion("");
+          setMostrarNuevo(false);
+          await cargarMotivos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Motivo creado",
+            message: "El motivo ha sido creado exitosamente",
+          });
+        } catch (error) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al crear el motivo. Por favor, intenta nuevamente.",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const iniciarEdicion = (motivo: MotivoRechazo) => {
@@ -70,37 +111,80 @@ export default function MotivosRechazoPage() {
     setEditandoDescripcion("");
   };
 
-  const guardarEdicion = async (id: number) => {
+  const guardarEdicion = (id: number) => {
     if (!editandoDescripcion.trim()) {
-      alert("La descripción no puede estar vacía");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Campos incompletos",
+        message: "La descripción no puede estar vacía",
+      });
       return;
     }
 
-    try {
-      await motivosRechazoService.update(id, editandoDescripcion);
-      setEditandoId(null);
-      setEditandoDescripcion("");
-      await cargarMotivos();
-    } catch (error) {
-      console.error(error);
-      alert("Error al actualizar el motivo. Por favor, intenta nuevamente.");
-    }
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar el motivo como "${editandoDescripcion.trim()}"?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await motivosRechazoService.update(id, editandoDescripcion);
+          setEditandoId(null);
+          setEditandoDescripcion("");
+          await cargarMotivos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Motivo actualizado",
+            message: "El motivo ha sido actualizado exitosamente",
+          });
+        } catch (error) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al actualizar el motivo. Por favor, intenta nuevamente.",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
-  const toggleActivo = async (motivo: MotivoRechazo) => {
-    if (
-      confirm(
-        `¿Estás seguro de ${motivo.activo ? "inactivar" : "activar"} este motivo?`,
-      )
-    ) {
-      try {
-        await motivosRechazoService.toggleActivo(motivo.id, !motivo.activo);
-        await cargarMotivos();
-      } catch (error) {
-        console.error(error);
-        alert("Error al cambiar el estado del motivo.");
-      }
-    }
+  const toggleActivo = (motivo: MotivoRechazo) => {
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: motivo.activo ? "Inactivar motivo" : "Activar motivo",
+      message: `¿Estás seguro de ${motivo.activo ? "inactivar" : "activar"} este motivo?`,
+      isDangerous: motivo.activo,
+      confirmText: motivo.activo ? "Inactivar" : "Activar",
+      action: async () => {
+        try {
+          await motivosRechazoService.toggleActivo(motivo.id, !motivo.activo);
+          await cargarMotivos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Operación exitosa",
+            message: `El motivo ha sido ${motivo.activo ? "inactivado" : "activado"}`,
+          });
+        } catch (error) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al cambiar el estado del motivo.",
+          });
+        }
+      },
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent, action: () => void) => {
@@ -452,6 +536,44 @@ export default function MotivosRechazoPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {modalState.type === "error" && (
+        <ConfirmModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          confirmText="Aceptar"
+          isDangerous={true}
+          onConfirm={() => setModalState({ ...modalState, isOpen: false })}
+          onCancel={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
+
+      {modalState.type === "success" && (
+        <SuccessModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          actionText="Aceptar"
+          onAction={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
+
+      {modalState.type === "confirm" && (
+        <ConfirmModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          confirmText={modalState.confirmText || "Confirmar"}
+          isDangerous={modalState.isDangerous}
+          isLoading={submitting}
+          onConfirm={async () => {
+            if (modalState.action) await modalState.action();
+          }}
+          onCancel={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
     </div>
   );
 }

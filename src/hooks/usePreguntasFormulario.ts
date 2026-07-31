@@ -28,6 +28,11 @@ export interface DocumentoCatalogo {
   tdo_formato_codigo_secundario?: string | null;
   tdo_revision?: string | null;
   tdo_paginas_total?: number | null;
+  tdo_encabezado_tipo?: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL" | null;
+  tdo_encabezado_imagen_url?: string | null;
+  tdo_pie_pagina_tipo?: "NINGUNO" | "TEXTO" | "IMAGEN" | null;
+  tdo_pie_pagina_texto?: string | null;
+  tdo_pie_pagina_imagen_url?: string | null;
 }
 
 interface UsePreguntasFormularioProps {
@@ -253,6 +258,20 @@ export function usePreguntasFormulario({
               tdo_revision: item?.tdo_revision ?? item?.revision ?? null,
               tdo_paginas_total:
                 item?.tdo_paginas_total ?? item?.paginasTotal ?? null,
+              tdo_encabezado_tipo:
+                item?.tdo_encabezado_tipo ?? item?.encabezadoTipo ?? "NINGUNO",
+              tdo_encabezado_imagen_url:
+                item?.tdo_encabezado_imagen_url ??
+                item?.encabezadoImagenUrl ??
+                null,
+              tdo_pie_pagina_tipo:
+                item?.tdo_pie_pagina_tipo ?? item?.piePaginaTipo ?? "NINGUNO",
+              tdo_pie_pagina_texto:
+                item?.tdo_pie_pagina_texto ?? item?.piePaginaTexto ?? null,
+              tdo_pie_pagina_imagen_url:
+                item?.tdo_pie_pagina_imagen_url ??
+                item?.piePaginaImagenUrl ??
+                null,
             };
           }
         });

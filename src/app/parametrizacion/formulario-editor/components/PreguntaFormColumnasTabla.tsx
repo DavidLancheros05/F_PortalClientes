@@ -326,6 +326,57 @@ export function PreguntaFormColumnasTabla({
                       )}
                     </div>
                   )}
+
+                  {columna.tipo === "NUMERO" && (
+                    <div className="flex items-center gap-2 rounded border border-emerald-200 bg-emerald-50 p-1.5">
+                      <label className="flex items-center gap-1 text-xs text-emerald-800">
+                        Mínimo
+                        <input
+                          type="number"
+                          value={columna.minimo ?? ""}
+                          onChange={(e) => {
+                            const nuevas = [...formPregunta.tabla_columnas];
+                            nuevas[index] = {
+                              ...nuevas[index],
+                              minimo:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value),
+                            };
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_columnas: nuevas,
+                            });
+                          }}
+                          placeholder="Sin mínimo"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </label>
+                      <label className="flex items-center gap-1 text-xs text-emerald-800">
+                        Máximo
+                        <input
+                          type="number"
+                          value={columna.maximo ?? ""}
+                          onChange={(e) => {
+                            const nuevas = [...formPregunta.tabla_columnas];
+                            nuevas[index] = {
+                              ...nuevas[index],
+                              maximo:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value),
+                            };
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_columnas: nuevas,
+                            });
+                          }}
+                          placeholder="Sin máximo"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
               ),
             )}

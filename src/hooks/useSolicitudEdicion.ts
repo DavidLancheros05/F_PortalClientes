@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
+import { agruparUltimaRespuestaPorPregunta } from "@/lib/agruparUltimaRespuestaPorPregunta";
 
 type RespuestasState = {
   [fp_id: number]: {
@@ -139,77 +140,12 @@ export function useSolicitudEdicion({
         // Procesar datos de respuestas
         const respuestasDataArray = respuestasData || [];
         if (Array.isArray(respuestasDataArray)) {
-          // guardarRespuesta guarda una fila por opción marcada en preguntas
-          // MULTISELECT, y el historial puede traer guardados anteriores. Agrupamos
-          // por pregunta y nos quedamos solo con el guardado más reciente (incluyendo
-          // TODAS sus filas, para no perder opciones al armar el arreglo).
-          const filasPorPregunta = new Map<number, any[]>();
-          respuestasDataArray.forEach((respuesta: any) => {
-            const lista = filasPorPregunta.get(respuesta.fr_fp_id) ?? [];
-            lista.push(respuesta);
-            filasPorPregunta.set(respuesta.fr_fp_id, lista);
-          });
-
-          const respuestasMap: RespuestasState = {};
-
-          filasPorPregunta.forEach((filas, fpId) => {
-            const conFecha = filas.map((f) => ({
-              fila: f,
-              tiempo: new Date(f.fr_created_at ?? 0).getTime(),
-            }));
-            const maxTiempo = Math.max(...conFecha.map((f) => f.tiempo));
-            // Tolerancia de 2s: las opciones de un mismo guardado MULTISELECT se
-            // insertan en un loop, cada una con su propio GETDATE(), a milisegundos
-            // de diferencia entre sí.
-            const filasDelUltimoGuardado = conFecha
-              .filter((f) => maxTiempo - f.tiempo < 2000)
-              .map((f) => f.fila);
-
-            const opcionesIds = filasDelUltimoGuardado
-              .map((f) => f.fr_valor_opcion_id)
-              .filter((id: any) => id !== null && id !== undefined);
-
-            // Usamos la fila más reciente como base para texto/número/fecha.
-            const respuesta = filasDelUltimoGuardado.reduce((latest, f) =>
-              new Date(f.fr_created_at ?? 0).getTime() >
-              new Date(latest.fr_created_at ?? 0).getTime()
-                ? f
-                : latest,
-            );
-
-            const valorFechaNormalizado =
-              typeof respuesta.fr_valor_fecha === "string" &&
-              respuesta.fr_valor_fecha.trim() !== ""
-                ? respuesta.fr_valor_fecha.slice(0, 10)
-                : undefined;
-
-            const valorOpcionCatalogo =
-              respuesta.fr_valor_catalogo_id !== null &&
-              respuesta.fr_valor_catalogo_id !== undefined
-                ? Number(respuesta.fr_valor_catalogo_id)
-                : undefined;
-
-            // Para MULTISELECT el valor siempre debe quedar como arreglo, aunque
-            // se haya marcado una sola opcion (isAnswered() y el checklist de
-            // la UI solo reconocen un MULTISELECT como respondido si es
-            // Array.isArray) -- antes se colapsaba a un numero suelto cuando
-            // opcionesIds.length era 1, y esas preguntas quedaban contadas
-            // como sin responder pese a tener una opcion guardada.
-            const valor_opcion = multiselectFpIds.has(fpId)
-              ? opcionesIds
-              : opcionesIds.length > 1
-                ? opcionesIds
-                : (opcionesIds[0] ?? valorOpcionCatalogo);
-
-            respuestasMap[fpId] = {
-              valor_texto: respuesta.fr_valor_texto || undefined,
-              valor_numero: respuesta.fr_valor_numero || undefined,
-              valor_fecha: valorFechaNormalizado,
-              valor_opcion_id: valor_opcion || undefined,
-            };
-          });
-
-          setRespuestas(respuestasMap);
+          setRespuestas(
+            agruparUltimaRespuestaPorPregunta(
+              respuestasDataArray,
+              multiselectFpIds,
+            ),
+          );
         }
       })
       .catch((err) => {

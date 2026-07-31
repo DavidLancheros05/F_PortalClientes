@@ -38,4 +38,10 @@ export const pedidosService = {
     const res = await api.get(`/pedidos/cliente/${cliId}`);
     return res.data;
   },
+  getPorEjecutivo: async (
+    ejngId: number,
+  ): Promise<PedidoClienteResponse[]> => {
+    const res = await api.get(`/pedidos/ejecutivo/${ejngId}`);
+    return res.data;
+  },
 };

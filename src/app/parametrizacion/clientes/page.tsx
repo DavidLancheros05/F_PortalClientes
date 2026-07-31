@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { clientesService } from "@/services/clientes/clientes.service";
-import * as XLSX from "xlsx";
 
 import {
   Building,
@@ -152,11 +151,13 @@ export default function ClientesPage() {
     setCurrentPage(1);
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     if (filteredClientes.length === 0) {
       setModalOpen(true);
       return;
     }
+
+    const XLSX = await import("xlsx");
 
     const datos = filteredClientes.map((cliente) => ({
       ID: cliente.cli_id,

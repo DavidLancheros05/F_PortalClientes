@@ -33,6 +33,17 @@ const RolesPage = () => {
   const [currentRol, setCurrentRol] = useState<Rol | null>(null);
   const [isNew, setIsNew] = useState(false);
 
+  // Confirmación antes de guardar
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingRolData, setPendingRolData] = useState<{
+    rolId?: number;
+    rolNombre: string;
+    rolDescripcion?: string;
+    rolCodigo?: string;
+    rolActivo?: boolean;
+    modulos?: any[];
+  } | null>(null);
+
   // ✅ Cargar roles con useFetch
   const { data: roles = [], loading, error, execute: loadRoles } = useFetch(
     () => rolesService.getAll(),
@@ -74,8 +85,14 @@ const RolesPage = () => {
         setSuccessMessage(isNew ? "Rol creado" : "Rol actualizado");
         loadRoles();
         closeModal();
+        setShowConfirmModal(false);
+        setPendingRolData(null);
       },
-      onError: (err) => setErrorMessage(err.message),
+      onError: (err) => {
+        setErrorMessage(err.message);
+        setShowConfirmModal(false);
+        setPendingRolData(null);
+      },
     },
   );
 
@@ -218,7 +235,7 @@ const RolesPage = () => {
     return `${modulosConPermisos} módulo${modulosConPermisos !== 1 ? "s" : ""} · ${totalPermisos} permiso${totalPermisos !== 1 ? "s" : ""}`;
   };
 
-  const handleModalSave = async (rolData: {
+  const handleModalSave = (rolData: {
     rolId?: number;
     rolNombre: string;
     rolDescripcion?: string;
@@ -226,8 +243,14 @@ const RolesPage = () => {
     rolActivo?: boolean;
     modulos?: any[];
   }) => {
+    setPendingRolData(rolData);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!pendingRolData) return;
     try {
-      await saveRol(rolData);
+      await saveRol(pendingRolData);
     } catch (err) {
       // El error ya se mostró en la notificación
     }
@@ -434,6 +457,25 @@ const RolesPage = () => {
           onSave={handleModalSave}
         />
       )}
+
+      {/* Confirmación antes de guardar */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={isNew ? "Confirmar creación" : "Confirmar cambios"}
+        message={
+          isNew
+            ? "¿Estás seguro de que deseas crear este rol?"
+            : "¿Estás seguro de que deseas guardar los cambios de este rol?"
+        }
+        confirmText={isNew ? "Sí, crear" : "Sí, guardar"}
+        cancelText="Cancelar"
+        isLoading={isSaving}
+        onConfirm={handleConfirmSave}
+        onCancel={() => {
+          setShowConfirmModal(false);
+          setPendingRolData(null);
+        }}
+      />
 
       {/* Success Modal */}
       <SuccessModal

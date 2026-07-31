@@ -53,7 +53,7 @@ export default function EstadosPage() {
     cargarEstados();
   }, []);
 
-  const crearEstado = async () => {
+  const crearEstado = () => {
     if (!codigo.trim() || !descripcion.trim() || orden === "") {
       setModalState({
         isOpen: true,
@@ -64,34 +64,43 @@ export default function EstadosPage() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await estadosService.create({
-        codigo: codigo.trim().toUpperCase(),
-        descripcion: descripcion.trim(),
-        orden: Number(orden),
-      });
-      setCodigo("");
-      setDescripcion("");
-      setOrden("");
-      await cargarEstados();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Estado creado",
-        message: "El estado ha sido creado exitosamente",
-      });
-    } catch (error) {
-      console.error(error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "Error al crear el estado",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar creación",
+      message: `¿Deseas agregar el estado ${codigo.trim().toUpperCase()}?`,
+      confirmText: "Sí, agregar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await estadosService.create({
+            codigo: codigo.trim().toUpperCase(),
+            descripcion: descripcion.trim(),
+            orden: Number(orden),
+          });
+          setCodigo("");
+          setDescripcion("");
+          setOrden("");
+          await cargarEstados();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Estado creado",
+            message: "El estado ha sido creado exitosamente",
+          });
+        } catch (error) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al crear el estado",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const iniciarEdicion = (estado: Estado) => {
@@ -108,7 +117,7 @@ export default function EstadosPage() {
     setEditandoOrden("");
   };
 
-  const guardarEdicion = async (estadoId: number) => {
+  const guardarEdicion = (estadoId: number) => {
     if (
       !editandoCodigo.trim() ||
       !editandoDescripcion.trim() ||
@@ -123,29 +132,41 @@ export default function EstadosPage() {
       return;
     }
 
-    try {
-      await estadosService.update(estadoId, {
-        codigo: editandoCodigo.trim().toUpperCase(),
-        descripcion: editandoDescripcion.trim(),
-        orden: Number(editandoOrden),
-      });
-      cancelarEdicion();
-      await cargarEstados();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Estado actualizado",
-        message: "El estado ha sido actualizado exitosamente",
-      });
-    } catch (error) {
-      console.error(error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "Error al actualizar el estado",
-      });
-    }
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar los cambios del estado ${editandoCodigo.trim().toUpperCase()}?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await estadosService.update(estadoId, {
+            codigo: editandoCodigo.trim().toUpperCase(),
+            descripcion: editandoDescripcion.trim(),
+            orden: Number(editandoOrden),
+          });
+          cancelarEdicion();
+          await cargarEstados();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Estado actualizado",
+            message: "El estado ha sido actualizado exitosamente",
+          });
+        } catch (error) {
+          console.error(error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al actualizar el estado",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const eliminarEstado = (estado: Estado) => {
@@ -437,9 +458,9 @@ export default function EstadosPage() {
           message={modalState.message}
           confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
+          isLoading={submitting}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();
-            setModalState({ ...modalState, isOpen: false });
           }}
           onCancel={() => setModalState({ ...modalState, isOpen: false })}
         />

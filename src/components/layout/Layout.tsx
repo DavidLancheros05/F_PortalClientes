@@ -51,8 +51,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // No mostrar header/layout en login
-  const isLoginPage = pathname === "/login";
+  // No mostrar header/layout en páginas públicas (sin sesión requerida)
+  const PAGINAS_PUBLICAS = ["/login", "/forgot-password", "/reset-password"];
+  const isPaginaPublica = PAGINAS_PUBLICAS.includes(pathname);
   const isInicioPage = pathname === "/inicio";
 
   useEffect(() => {
@@ -76,8 +77,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </div>
     );
 
-  // Si es página de login, renderizar sin header
-  if (isLoginPage) {
+  // Si es una página pública, renderizar sin header
+  if (isPaginaPublica) {
     return <>{children}</>;
   }
 

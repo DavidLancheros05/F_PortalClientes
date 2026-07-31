@@ -1,9 +1,11 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { AlertTriangle, CheckCircle, FileText, Loader2, X } from "lucide-react";
+import { LoadingModal } from "@/components/modals";
+import { AlertTriangle, CheckCircle, FileText, Upload, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
 
@@ -92,211 +94,195 @@ export function ArchivoField({
     calcularEstadoAnioDocumento,
   });
 
-  // Fuerza remount del <input type="file"> nativo al quitar una seleccion:
-  // limpiar el estado de React no borra el nombre que el navegador sigue
-  // mostrando en el input si no se remonta.
-  const [fileInputResetKey, setFileInputResetKey] = useState(0);
-
   // handleInputChange("ARCHIVO") es sincrono, pero dispara un re-render de
   // TODO el formulario (puede tener 90+ preguntas) — sin este indicador la
   // pantalla se sentía "pegada" un instante tras elegir el archivo, sin
-  // ninguna señal de que algo estaba pasando. El setTimeout(0) deja que
-  // React pinte el spinner ANTES de correr el trabajo pesado.
+  // ninguna señal de que algo estaba pasando. flushSync fuerza el commit del
+  // modal de inmediato (no depende de que React trate el evento de origen
+  // como "discreto"); esperar dos frames con requestAnimationFrame garantiza
+  // que ese commit ya se pintó antes de que el trabajo pesado bloquee el
+  // hilo principal (ver mismo fix en DocumentoTablaField.tsx).
   const [procesandoArchivo, setProcesandoArchivo] = useState(false);
   const procesarArchivoSeleccionado = (file: File) => {
-    setProcesandoArchivo(true);
-    setTimeout(() => {
-      handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-      setProcesandoArchivo(false);
-    }, 0);
+    flushSync(() => setProcesandoArchivo(true));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+        setProcesandoArchivo(false);
+      });
+    });
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
-      <div className="flex items-center justify-between gap-1 rounded-lg border border-blue-100 bg-white/80 px-2 py-1">
-        <p className="text-xs font-semibold text-blue-900">Documento y fecha</p>
-        <span className="text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-1.5 py-0.5">
-          Mismo
-        </span>
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Columna izquierda: qué documento es */}
+      <div className="min-w-0 space-y-2">
+        <p className="text-sm font-semibold text-slate-900 leading-tight">
+          {pregunta.fp_descripcion}
+          {pregunta.fp_requerida && (
+            <span className="text-red-500 ml-1">*</span>
+          )}
+        </p>
+        {documento?.tdo_descripcion && (
+          <p className="text-xs text-slate-500 whitespace-pre-wrap break-words leading-relaxed">
+            {documento.tdo_descripcion}
+          </p>
+        )}
       </div>
 
+      {/* Columna derecha: cargar el archivo y su fecha */}
+      <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
       {archivosExistentes[pregunta.fp_id] && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-2 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-tight text-blue-700">
-            Documento cargado
-          </p>
+        <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
           <div className="flex items-start justify-between gap-1">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-1">
-                <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
-                <p className="text-xs font-medium text-blue-900 break-words">
-                  {archivosExistentes[pregunta.fp_id].sa_nombre_original}
-                </p>
-              </div>
-              <p className="text-xs text-blue-700 mt-0.5">
-                {(
-                  archivosExistentes[pregunta.fp_id].sa_tamaño_bytes / 1024
-                ).toFixed(2)}{" "}
-                KB
+            <div className="flex items-start gap-1 min-w-0">
+              <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
+              <p className="text-xs font-medium text-blue-900 break-words">
+                {archivosExistentes[pregunta.fp_id].sa_nombre_original}
               </p>
             </div>
-          </div>
-          <div className="flex gap-1 pt-1 border-t border-blue-200">
-            {(() => {
-              const archivoExistente = archivosExistentes[pregunta.fp_id];
-              const rutaArchivo = getArchivoPreviewUrl(archivoExistente);
+            <div className="flex gap-1 flex-shrink-0">
+              {(() => {
+                const rutaArchivo = getArchivoPreviewUrl(
+                  archivosExistentes[pregunta.fp_id],
+                );
+                if (!rutaArchivo) return null;
+                return (
+                  <a
+                    href={rutaArchivo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200"
+                  >
+                    Ver
+                  </a>
+                );
+              })()}
+              {!readOnly && (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm("¿Eliminar archivo? No podrás recuperarlo."))
+                        return;
 
-              if (!rutaArchivo) return null;
-
-              return (
-                <a
-                  href={rutaArchivo}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200"
-                >
-                  Ver
-                </a>
-              );
-            })()}
-            {!readOnly && (
-              <>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!confirm("¿Eliminar archivo? No podrás recuperarlo."))
-                      return;
-
-                    try {
-                      await formularioRespuestasService.eliminarArchivoRespuesta(
-                        solicitudId!,
-                        archivosExistentes[pregunta.fp_id].sa_id,
-                      );
-                      setArchivosExistentes((prev) => {
-                        const newMap = { ...prev };
-                        delete newMap[pregunta.fp_id];
-                        return newMap;
-                      });
-                      setSuccessMessage("Archivo eliminado");
-                      setTimeout(() => setSuccessMessage(""), 3000);
-                    } catch (err) {
-                      console.error("Error eliminando archivo:", err);
-                      setErrorMessage("Error eliminando archivo");
-                      setTimeout(() => setErrorMessage(""), 3000);
-                    }
-                  }}
-                  className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
-                >
-                  Eliminar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const tempInput = document.createElement("input");
-                    tempInput.type = "file";
-                    tempInput.accept =
-                      ".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls";
-                    tempInput.onchange = (event) => {
-                      const target = event.target as HTMLInputElement;
-                      const file = target.files?.[0];
-                      if (file) {
-                        procesarArchivoSeleccionado(file);
+                      try {
+                        await formularioRespuestasService.eliminarArchivoRespuesta(
+                          solicitudId!,
+                          archivosExistentes[pregunta.fp_id].sa_id,
+                        );
+                        setArchivosExistentes((prev) => {
+                          const newMap = { ...prev };
+                          delete newMap[pregunta.fp_id];
+                          return newMap;
+                        });
+                        setSuccessMessage("Archivo eliminado");
+                        setTimeout(() => setSuccessMessage(""), 3000);
+                      } catch (err) {
+                        console.error("Error eliminando archivo:", err);
+                        setErrorMessage("Error eliminando archivo");
+                        setTimeout(() => setErrorMessage(""), 3000);
                       }
-                    };
-                    tempInput.click();
-                  }}
-                  disabled={procesandoArchivo}
-                  className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60"
-                >
-                  Cambiar
-                </button>
-              </>
-            )}
+                    }}
+                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
+                  >
+                    Eliminar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tempInput = document.createElement("input");
+                      tempInput.type = "file";
+                      tempInput.accept =
+                        ".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls";
+                      tempInput.onchange = (event) => {
+                        const target = event.target as HTMLInputElement;
+                        const file = target.files?.[0];
+                        if (file) {
+                          handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+                        }
+                      };
+                      tempInput.click();
+                    }}
+                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                  >
+                    Cambiar
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {respuestas[pregunta.fp_id]?.nombre_archivo &&
         !archivosExistentes[pregunta.fp_id] && (
-          <div className="flex items-center justify-between gap-1 p-2 bg-emerald-50/80 border border-emerald-200 rounded-lg text-emerald-800 text-xs">
+          <div className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
             <div className="flex items-center gap-1 min-w-0">
               <CheckCircle className="h-3 w-3 flex-shrink-0" />
               <span className="break-words font-medium">
                 {respuestas[pregunta.fp_id]?.nombre_archivo}
               </span>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {respuestas[pregunta.fp_id]?.vista_previa_url && (
-                <a
-                  href={respuestas[pregunta.fp_id]?.vista_previa_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors font-semibold border border-emerald-200"
-                >
-                  Ver
-                </a>
-              )}
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const vistaPreviaUrl =
-                      respuestas[pregunta.fp_id]?.vista_previa_url;
-                    if (vistaPreviaUrl) {
-                      URL.revokeObjectURL(vistaPreviaUrl);
-                    }
-                    setRespuestas((prev) => {
-                      const next = { ...prev };
-                      next[pregunta.fp_id] = {
-                        ...next[pregunta.fp_id],
-                        archivo: undefined,
-                        nombre_archivo: undefined,
-                        vista_previa_url: undefined,
-                      };
-                      return next;
-                    });
-                    setFileInputResetKey((prev) => prev + 1);
-                  }}
-                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-semibold border border-red-200"
-                  title="Quitar archivo seleccionado (aún no se ha guardado)"
-                >
-                  <X className="h-3 w-3" />
-                  Quitar
-                </button>
-              )}
-            </div>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => {
+                  const vistaPreviaUrl =
+                    respuestas[pregunta.fp_id]?.vista_previa_url;
+                  if (vistaPreviaUrl) {
+                    URL.revokeObjectURL(vistaPreviaUrl);
+                  }
+                  setRespuestas((prev) => {
+                    const next = { ...prev };
+                    next[pregunta.fp_id] = {
+                      ...next[pregunta.fp_id],
+                      archivo: undefined,
+                      nombre_archivo: undefined,
+                      vista_previa_url: undefined,
+                    };
+                    return next;
+                  });
+                }}
+                className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200 flex-shrink-0"
+                title="Quitar archivo seleccionado (aún no se ha guardado)"
+              >
+                <X className="h-3 w-3" />
+                Quitar
+              </button>
+            )}
           </div>
         )}
 
       {!archivosExistentes[pregunta.fp_id] &&
-        !respuestas[pregunta.fp_id]?.nombre_archivo && (
-        <div className="rounded-lg border border-dashed border-blue-200 bg-white p-2">
-          <p className="text-xs font-semibold uppercase tracking-tight text-blue-700 mb-1">
-            Cargar documento
-          </p>
-          {procesandoArchivo ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-blue-700 px-2 py-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Procesando archivo...
-            </div>
-          ) : (
-            <input
-              key={fileInputResetKey}
-              id={`file-input-${pregunta.fp_id}`}
-              type="file"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  procesarArchivoSeleccionado(file);
-                }
-              }}
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls"
-              className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-                hasError ? "border-red-500" : "border-blue-200"
-              }`}
-            />
-          )}
-        </div>
+        !respuestas[pregunta.fp_id]?.nombre_archivo &&
+        !readOnly && (
+        <button
+          type="button"
+          disabled={procesandoArchivo}
+          onClick={() => {
+            const tempInput = document.createElement("input");
+            tempInput.type = "file";
+            tempInput.accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls";
+            tempInput.onchange = (event) => {
+              const target = event.target as HTMLInputElement;
+              const file = target.files?.[0];
+              if (file) {
+                procesarArchivoSeleccionado(file);
+              }
+            };
+            tempInput.click();
+          }}
+          className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+            hasError
+              ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
+              : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
+          }`}
+        >
+          <Upload className="h-3.5 w-3.5 flex-shrink-0" />
+          Seleccionar archivo
+        </button>
       )}
 
       {mostrarCampoFecha && (
@@ -330,6 +316,10 @@ export function ArchivoField({
           )}
         </>
       )}
+      </div>
+    </div>
+
+      <LoadingModal isOpen={procesandoArchivo} message="Cargando archivo..." />
     </div>
   );
 }

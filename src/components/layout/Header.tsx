@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
-import Cookies from "js-cookie";
+import { AuthContext } from "@/context/AuthContext";
+import { LoadingModal } from "@/components/modals";
 
 // Interfaz para los permisos
 interface Permisos {
@@ -36,7 +36,7 @@ interface Props {
 }
 
 export default function Header({ modulos, rol, nombreUsuario }: Props) {
-  const router = useRouter();
+  const { logout: logoutSesion } = useContext(AuthContext);
 
   modulos.forEach((m) => {
     if (m.subModulos?.length) {
@@ -48,24 +48,33 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       });
     }
   });
+  const [loggingOut, setLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSubMenu, setActiveSubMenu] = useState<number | null>(null);
   const [activeNestedSubMenu, setActiveNestedSubMenu] = useState<number | null>(
     null,
   );
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const isAdmin = ["ADMIN", "ADMINISTRACION", "ADMINISTRACIÓN"].includes(
     String(rol || "")
       .trim()
       .toUpperCase(),
   );
-  const isCliente = String(rol || "").trim().toUpperCase() === "CLIENTE";
-
   const logout = () => {
-    localStorage.clear();
-    Cookies.remove("pc_token");
-    Cookies.remove("token");
-    router.push("/login");
+    // Se muestra antes de tocar nada más: bloquea la UI de inmediato para
+    // que no se pueda navegar a otra parte mientras la recarga a /login
+    // está en curso (antes, sin feedback visual, el usuario alcanzaba a
+    // hacer clic en el menú y entraba a una página protegida con la sesión
+    // a medio cerrar).
+    setLoggingOut(true);
+    logoutSesion();
+    // Recarga completa (no router.push): limpia cualquier estado en memoria
+    // y cache de navegación del cliente, y garantiza que la siguiente
+    // petición pase de nuevo por proxy.ts en vez de arriesgarse a servir
+    // una página protegida ya cacheada con el AuthContext en null.
+    window.location.href = "/login";
   };
 
   const toggleSubMenu = (id: number) => {
@@ -75,6 +84,15 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
 
   const toggleNestedSubMenu = (id: number) =>
     setActiveNestedSubMenu(activeNestedSubMenu === id ? null : id);
+
+  const iniciales =
+    String(nombreUsuario || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "U";
 
   const normalizeText = (value: string) =>
     String(value || "")
@@ -295,6 +313,12 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
         setActiveSubMenu(null);
         setActiveNestedSubMenu(null);
       }
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setUserMenuOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -302,7 +326,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
   }, []);
   return (
     <header className="bg-[#003d99] shadow-md sticky top-0 z-50">
-      <div className="max-w-full px-4 py-3 flex items-center justify-between">
+      <div className="max-w-full h-15 px-4 flex items-center justify-between">
         {/* Logo + Nombre */}
         <div className="flex items-center space-x-4 min-w-0">
           <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
@@ -330,14 +354,22 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                 <>
                   <button
                     onClick={() => toggleSubMenu(m.mod_id)}
-                    className="flex items-center px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-[#0052cc] hover:to-[#0052cc] text-white transition"
+                    className={`flex items-center px-3 py-2 rounded-lg text-white transition-colors ${
+                      activeSubMenu === m.mod_id
+                        ? "bg-white/14 hover:bg-white/20"
+                        : "hover:bg-white/14"
+                    }`}
                   >
                     {m.mod_nombre}
-                    <ChevronDown className="ml-1 w-4 h-4" />
+                    <ChevronDown
+                      className={`ml-1 w-4 h-4 transition-transform ${
+                        activeSubMenu === m.mod_id ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
 
                   <div
-                    className={`absolute top-full left-0 mt-2 w-60 md:w-72 max-h-96 overflow-y-auto overflow-hidden bg-gradient-to-b from-[#0052cc] to-[#0052cc] border border-white/15 rounded-xl shadow-2xl transition-all ${
+                    className={`absolute top-full left-0 mt-2 w-60 md:w-72 max-h-96 overflow-y-auto bg-white border border-[#e5e7eb] rounded-xl shadow-[0_12px_32px_rgba(15,23,42,0.16)] transition-all ${
                       activeSubMenu === m.mod_id ? "block" : "hidden"
                     }`}
                   >
@@ -352,11 +384,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                             <>
                               <button
                                 onClick={() => toggleNestedSubMenu(sub.mod_id)}
-                                className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-white/12 text-white transition"
+                                className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-[#f1f5f9] text-[#0f172a] transition-colors"
                               >
                                 <span>{sub.mod_nombre}</span>
                                 <ChevronDown
-                                  className={`w-4 h-4 transition-transform ${
+                                  className={`w-4 h-4 text-[#64748b] transition-transform ${
                                     activeNestedSubMenu === sub.mod_id
                                       ? "rotate-180"
                                       : ""
@@ -364,7 +396,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                 />
                               </button>
                               {activeNestedSubMenu === sub.mod_id && (
-                                <div className="mx-2 mb-2 rounded-lg border border-white/20 bg-white/10 p-1">
+                                <div className="ml-2.5 mr-2 mb-2 border-l-2 border-[#eef1f6] pl-2.25">
                                   {sortModulosByOrden(sub.subModulos || [])
                                     ?.filter((n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)))
                                     .map((nested, nIdx) => {
@@ -378,12 +410,12 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                             setActiveSubMenu(null);
                                             setActiveNestedSubMenu(null);
                                           }}
-                                          className="block rounded-md px-3 py-2 text-sm hover:bg-white/12 text-white transition"
+                                          className="block rounded-md px-3 py-2 text-sm hover:bg-[#f1f5f9] text-[#0f172a] transition-colors"
                                         >
                                           {nested.mod_nombre}
                                         </Link>
                                       ) : (
-                                        <span key={`${nested.mod_id}-${nIdx}`} className="block rounded-md px-3 py-2 text-sm text-white">
+                                        <span key={`${nested.mod_id}-${nIdx}`} className="block rounded-md px-3 py-2 text-sm text-[#0f172a]">
                                           {nested.mod_nombre}
                                         </span>
                                       );
@@ -400,12 +432,12 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                 setActiveSubMenu(null);
                                 setActiveNestedSubMenu(null);
                               }}
-                              className="block px-4 py-2.5 text-sm hover:bg-white/12 text-white transition"
+                              className="block px-4 py-2.5 text-sm hover:bg-[#f1f5f9] text-[#0f172a] transition-colors"
                             >
                               {sub.mod_nombre}
                             </Link>
                           ) : (
-                            <span className="block px-4 py-2.5 text-sm text-white">
+                            <span className="block px-4 py-2.5 text-sm text-[#0f172a]">
                               {sub.mod_nombre}
                             </span>
                           )}
@@ -416,7 +448,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
               ) : resolveModuloRoute(m) ? (
                 <Link
                   href={resolveModuloRoute(m)!}
-                  className="px-2 py-1 rounded-lg hover:bg-gradient-to-r hover:from-[#0052cc] hover:to-[#0052cc] text-white transition text-sm"
+                  className="px-2 py-1 rounded-lg hover:bg-white/14 text-white transition-colors text-sm"
                 >
                   {m.mod_nombre}
                 </Link>
@@ -432,23 +464,52 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
 
         {/* Usuario, botón cerrar y menú móvil */}
         <div className="flex items-center space-x-4">
-          <span className="hidden md:block text-white text-sm font-medium">
-            {nombreUsuario}
-          </span>
-          {isCliente && (
-            <Link
-              href="/perfil"
-              className="hidden md:block px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-semibold transition-all"
+          <div className="hidden md:block relative" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen((v) => !v)}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
+                userMenuOpen ? "bg-white/14 hover:bg-white/20" : "hover:bg-white/14"
+              }`}
             >
-              Mi Perfil
-            </Link>
-          )}
-          <button
-            onClick={logout}
-            className="hidden md:block px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-semibold transition-all"
-          >
-            Cerrar sesión
-          </button>
+              <span className="w-8 h-8 rounded-full bg-white text-[#003d99] font-bold text-xs flex items-center justify-center shrink-0">
+                {iniciales}
+              </span>
+              <span className="text-white text-sm font-medium max-w-40 truncate">
+                {nombreUsuario}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-white transition-transform ${
+                  userMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute top-full right-0 mt-2 w-60 bg-white border border-[#e5e7eb] rounded-xl shadow-[0_12px_32px_rgba(15,23,42,0.16)] overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-[#eef1f6]">
+                  <p className="text-sm font-bold text-[#0f172a] truncate">
+                    {nombreUsuario}
+                  </p>
+                  <p className="text-xs text-[#64748b] mt-0.5">
+                    {rol || "Usuario"}
+                  </p>
+                </div>
+                <Link
+                  href="/perfil"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-[#0f172a] hover:bg-[#f1f5f9] transition-colors"
+                >
+                  Mi perfil
+                </Link>
+                <button
+                  onClick={logout}
+                  className="block w-full text-left px-4 py-2.5 text-sm text-[#0f172a] hover:bg-[#f1f5f9] transition-colors"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={logout}
             className="md:hidden px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs font-semibold transition-all"
@@ -579,15 +640,13 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
             </div>
           ))}
 
-          {isCliente && (
-            <Link
-              href="/perfil"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block w-full px-3 py-2 mt-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all text-center"
-            >
-              Mi Perfil
-            </Link>
-          )}
+          <Link
+            href="/perfil"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block w-full px-3 py-2 mt-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all text-center"
+          >
+            Mi Perfil
+          </Link>
 
           <button
             onClick={logout}
@@ -597,6 +656,8 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
           </button>
         </div>
       )}
+
+      <LoadingModal isOpen={loggingOut} message="Cerrando sesión..." />
     </header>
   );
 }

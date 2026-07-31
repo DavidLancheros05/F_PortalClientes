@@ -12,6 +12,15 @@ export const motivosRechazoService = {
     return res.data;
   },
 
+  // Solo los activos, para poblar selects de "motivo de rechazo" en las
+  // pantallas de gestión (OFC, CC2, etc.) — no requiere permisos de admin.
+  // El backend mapea la entidad (columnas mrs_*) a {id,descripcion,activo}
+  // vía MotivoRechazoResponseDto antes de responder.
+  getActivos: async (): Promise<MotivoRechazo[]> => {
+    const res = await api.get("/motivos-rechazo/activos");
+    return res.data;
+  },
+
   create: async (descripcion: string): Promise<MotivoRechazo> => {
     const res = await api.post("/motivos-rechazo", { descripcion });
     return res.data;

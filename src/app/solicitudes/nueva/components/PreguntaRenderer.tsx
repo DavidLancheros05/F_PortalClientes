@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { useCallback } from "react";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { ArchivoField } from "./ArchivoField";
 import { ImagenField } from "./ImagenField";
@@ -105,6 +106,20 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     numeroSolicitud,
   } = props;
 
+  // Crece con el contenido en vez de quedar de una sola línea — útil para
+  // respuestas cortas que a veces son largas (direcciones, por ejemplo).
+  // useCallback con deps vacías mantiene la misma referencia entre renders
+  // de esta instancia, así el ref solo corre al montar (tamaño inicial de
+  // un valor precargado), no en cada render de TODO el formulario.
+  const ajustarAlturaTextoLibre = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    },
+    [],
+  );
+
   const preguntaPadre = pregunta.fp_pregunta_padre_id
     ? preguntas.find((p) => p.fp_id === pregunta.fp_pregunta_padre_id)
     : null;
@@ -139,7 +154,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           : undefined
       }
     >
-      {!["NOTA", "FECHA_HORA_ACTUAL"].includes(
+      {!["NOTA", "FECHA_HORA_ACTUAL", "DOCUMENTOS_TABLA", "ARCHIVO"].includes(
         pregunta.fp_tipo,
       ) && (
         <>
@@ -150,7 +165,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             )}
           </label>
           {pregunta.fp_descripcion_adicional?.trim() &&
-            !["SELECT_CONDICIONAL", "DOCUMENTOS_TABLA"].includes(pregunta.fp_tipo) && (
+            pregunta.fp_tipo !== "SELECT_CONDICIONAL" && (
               <p className="mb-1 text-xs text-slate-600 leading-relaxed">
                 {pregunta.fp_descripcion_adicional.trim()}
               </p>
@@ -215,15 +230,23 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       )}
 
       {pregunta.fp_tipo === "TEXTO" && pregunta.fp_subtipo !== "PARRAFO" && (
-        <input
-          type="text"
+        <textarea
+          ref={ajustarAlturaTextoLibre}
+          rows={1}
           disabled={readOnly || isLockedPrefillField}
           value={respuestas[pregunta.fp_id]?.valor_texto || ""}
-          onChange={(e) =>
-            handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")
-          }
+          onChange={(e) => {
+            handleInputChange(pregunta.fp_id, e.target.value, "TEXTO");
+            ajustarAlturaTextoLibre(e.target);
+          }}
+          onKeyDown={(e) => {
+            // Sigue siendo una respuesta de una sola línea (como el <input>
+            // que reemplaza) — el textarea solo se usa para que crezca con
+            // el ancho disponible, no para permitir saltos de línea manuales.
+            if (e.key === "Enter") e.preventDefault();
+          }}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-2 py-1 text-sm resize-none overflow-hidden leading-normal focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           } ${isLockedPrefillField ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
         />

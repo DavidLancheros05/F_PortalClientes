@@ -8,6 +8,7 @@ import type { ClienteListResponse, ClienteDetailResponse } from "@/types/api.typ
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ampliacionCupoService } from "@/services/ampliacion-cupo/ampliacion-cupo.service";
 import { ArrowLeft, Search, X } from "lucide-react";
+import { ConfirmModal } from "@/components/modals";
 
 interface UltimaSolicitud {
   sol_id: number;
@@ -48,6 +49,7 @@ export default function AmpliacionCupoPage() {
   const [searchInput, setSearchInput] = useState("");
   const [showClientesList, setShowClientesList] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [mensaje, setMensaje] = useState<{
     tipo: "exito" | "error";
     texto: string;
@@ -151,7 +153,7 @@ export default function AmpliacionCupoPage() {
     setMensaje(null);
   };
 
-  const handleGuardar = async () => {
+  const handleGuardar = () => {
     if (!selectedCliente?.cli_id) {
       setMensaje({ tipo: "error", texto: "Debes seleccionar un cliente" });
       return;
@@ -172,6 +174,12 @@ export default function AmpliacionCupoPage() {
       return;
     }
 
+    setShowConfirmModal(true);
+  };
+
+  const confirmarGuardar = async () => {
+    if (!selectedCliente?.cli_id) return;
+
     try {
       setGuardando(true);
 
@@ -182,6 +190,7 @@ export default function AmpliacionCupoPage() {
         solicitudAnteriorId: ultimaSolicitud?.sol_id,
       });
 
+      setShowConfirmModal(false);
       setMensaje({
         tipo: "exito",
         texto: "Ampliación de cupo registrada exitosamente"
@@ -193,6 +202,7 @@ export default function AmpliacionCupoPage() {
       }, 2000);
     } catch (error) {
       console.error("Error guardando ampliación de cupo:", error);
+      setShowConfirmModal(false);
       setMensaje({
         tipo: "error",
         texto: "Error al guardar ampliación de cupo"
@@ -433,6 +443,17 @@ export default function AmpliacionCupoPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="Confirmar ampliación de cupo"
+        message="¿Deseas registrar esta solicitud de ampliación de cupo?"
+        confirmText="Sí, registrar"
+        cancelText="Cancelar"
+        isLoading={guardando}
+        onConfirm={confirmarGuardar}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </div>
   );
 }

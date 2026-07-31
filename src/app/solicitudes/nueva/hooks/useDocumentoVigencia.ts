@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { documentoRequiereFechaEmision } from "@/lib/documentos-vigencia.util";
 
 interface UseDocumentoVigenciaParams {
   pregunta: any;
@@ -85,7 +86,7 @@ export function useDocumentoVigencia({
 
   const mostrarCampoFecha =
     Boolean(preguntaFechaAsociada || documento?.tdo_permite_vencimiento) &&
-    (vigenciaDias !== null || esReglaAnio);
+    documentoRequiereFechaEmision(documento);
 
   const guardarFecha = (fechaSeleccionada: string) => {
     setFechaInputValue(fechaSeleccionada);

@@ -77,35 +77,44 @@ export default function CorreosPorRolPage() {
     cargarDatos();
   }, []);
 
-  const crear = async () => {
+  const crear = () => {
     if (!isFormValid) return;
 
-    setSubmitting(true);
-    try {
-      await correosRolService.create({
-        rol_id: rolId,
-        email: email.trim(),
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar creación",
+      message: `¿Deseas agregar el correo ${email.trim()} para este rol?`,
+      confirmText: "Sí, agregar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await correosRolService.create({
+            rol_id: rolId,
+            email: email.trim(),
+          });
 
-      setRolId("");
-      setEmail("");
-      await cargarDatos();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Correo creado",
-        message: "El correo por rol ha sido creado exitosamente",
-      });
-    } catch (error: any) {
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: error.message || "Error al crear",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+          setRolId("");
+          setEmail("");
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Correo creado",
+            message: "El correo por rol ha sido creado exitosamente",
+          });
+        } catch (error: any) {
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error.message || "Error al crear",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const iniciarEdicion = (item: CorreoPorRol) => {
@@ -113,31 +122,43 @@ export default function CorreosPorRolPage() {
     setEditingEmail(item.email);
   };
 
-  const guardarEdicion = async () => {
+  const guardarEdicion = () => {
     if (!editingId || !emailRegex.test(editingEmail.trim())) return;
 
-    try {
-      await correosRolService.update(editingId, {
-        email: editingEmail.trim(),
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar el correo ${editingEmail.trim()}?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await correosRolService.update(editingId, {
+            email: editingEmail.trim(),
+          });
 
-      setEditingId(null);
-      setEditingEmail("");
-      await cargarDatos();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Correo actualizado",
-        message: "El correo ha sido actualizado exitosamente",
-      });
-    } catch (error: any) {
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: error.message || "Error al actualizar",
-      });
-    }
+          setEditingId(null);
+          setEditingEmail("");
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Correo actualizado",
+            message: "El correo ha sido actualizado exitosamente",
+          });
+        } catch (error: any) {
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error.message || "Error al actualizar",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const toggleEstado = (item: CorreoPorRol) => {
@@ -310,9 +331,9 @@ export default function CorreosPorRolPage() {
           message={modalState.message}
           confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
+          isLoading={submitting}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();
-            setModalState({ ...modalState, isOpen: false });
           }}
           onCancel={() => setModalState({ ...modalState, isOpen: false })}
         />

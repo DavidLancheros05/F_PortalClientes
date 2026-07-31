@@ -21,6 +21,8 @@ export default function ConsecutivosPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadConsecutivos();
@@ -39,8 +41,13 @@ export default function ConsecutivosPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowConfirmSave(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setSaving(true);
     try {
       const submitData = {
         ...formData,
@@ -56,12 +63,16 @@ export default function ConsecutivosPage() {
       }
 
       setShowForm(false);
+      setShowConfirmSave(false);
       setEditingId(null);
       resetForm();
       loadConsecutivos();
     } catch (error) {
+      setShowConfirmSave(false);
       setErrorMessage('Error guardando consecutivo');
       console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -348,6 +359,22 @@ export default function ConsecutivosPage() {
           setConfirmDelete(null);
         }}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* Confirmación antes de guardar */}
+      <ConfirmModal
+        isOpen={showConfirmSave}
+        title={editingId ? 'Confirmar cambios' : 'Confirmar creación'}
+        message={
+          editingId
+            ? '¿Deseas guardar los cambios de este consecutivo?'
+            : '¿Deseas crear este consecutivo?'
+        }
+        confirmText={editingId ? 'Sí, guardar' : 'Sí, crear'}
+        cancelText="Cancelar"
+        isLoading={saving}
+        onConfirm={handleConfirmSave}
+        onCancel={() => setShowConfirmSave(false)}
       />
       </div>
     </div>

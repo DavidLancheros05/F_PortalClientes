@@ -5,6 +5,7 @@ import {
   formularioSeccionesService,
   type FormularioSeccion,
 } from "@/services/parametrizacion/formulario-secciones.service";
+import { ConfirmModal, SuccessModal } from "@/components/modals";
 
 export default function FormularioSeccionesPage() {
   const [secciones, setSecciones] = useState<FormularioSeccion[]>([]);
@@ -19,6 +20,21 @@ export default function FormularioSeccionesPage() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "error" | "success" | "confirm";
+    title: string;
+    message: string;
+    action?: () => void;
+    confirmText?: string;
+    isDangerous?: boolean;
+  }>({
+    isOpen: false,
+    type: "error",
+    title: "",
+    message: "",
+  });
 
   const isFormValid = nombre.trim().length > 0 && orden > 0;
 
@@ -39,27 +55,47 @@ export default function FormularioSeccionesPage() {
     cargarDatos();
   }, []);
 
-  const crear = async () => {
+  const crear = () => {
     if (!isFormValid) return;
 
-    setSubmitting(true);
-    try {
-      await formularioSeccionesService.create({
-        formulario_id: 0,
-        fse_nombre: nombre.trim(),
-        fse_descripcion: descripcion.trim() || undefined,
-        fse_orden: orden,
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar creación",
+      message: `¿Deseas agregar la sección "${nombre.trim()}"?`,
+      confirmText: "Sí, agregar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await formularioSeccionesService.create({
+            formulario_id: 0,
+            fse_nombre: nombre.trim(),
+            fse_descripcion: descripcion.trim() || undefined,
+            fse_orden: orden,
+          });
 
-      setNombre("");
-      setDescripcion("");
-      setOrden(1);
-      await cargarDatos();
-    } catch (error: any) {
-      alert(error.message || "Error al crear");
-    } finally {
-      setSubmitting(false);
-    }
+          setNombre("");
+          setDescripcion("");
+          setOrden(1);
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Sección creada",
+            message: "La sección ha sido creada exitosamente",
+          });
+        } catch (error: any) {
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error.message || "Error al crear",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const iniciarEdicion = (seccion: FormularioSeccion) => {
@@ -69,40 +105,78 @@ export default function FormularioSeccionesPage() {
     setEditingOrden(seccion.fse_orden);
   };
 
-  const guardarEdicion = async () => {
+  const guardarEdicion = () => {
     if (!editingId || editingNombre.trim().length === 0 || editingOrden <= 0)
       return;
 
-    try {
-      await formularioSeccionesService.update(editingId, {
-        fse_nombre: editingNombre.trim(),
-        fse_descripcion: editingDescripcion.trim() || "",
-        fse_orden: editingOrden,
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar los cambios de la sección "${editingNombre.trim()}"?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await formularioSeccionesService.update(editingId, {
+            fse_nombre: editingNombre.trim(),
+            fse_descripcion: editingDescripcion.trim() || "",
+            fse_orden: editingOrden,
+          });
 
-      setEditingId(null);
-      await cargarDatos();
-    } catch (error: any) {
-      alert(error.message || "Error al actualizar");
-    }
+          setEditingId(null);
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Sección actualizada",
+            message: "La sección ha sido actualizada exitosamente",
+          });
+        } catch (error: any) {
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error.message || "Error al actualizar",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
-  const toggleEstado = async (seccion: FormularioSeccion) => {
-    const confirmar = confirm(
-      `¿Deseas ${seccion.fse_estado ? "inactivar" : "activar"} esta sección?`,
-    );
-
-    if (!confirmar) return;
-
-    try {
-      await formularioSeccionesService.toggleEstado(
-        seccion.fse_id,
-        !seccion.fse_estado,
-      );
-      await cargarDatos();
-    } catch (error: any) {
-      alert(error.message || "Error al actualizar estado");
-    }
+  const toggleEstado = (seccion: FormularioSeccion) => {
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: seccion.fse_estado ? "Inactivar sección" : "Activar sección",
+      message: `¿Deseas ${seccion.fse_estado ? "inactivar" : "activar"} esta sección?`,
+      isDangerous: seccion.fse_estado,
+      confirmText: seccion.fse_estado ? "Inactivar" : "Activar",
+      action: async () => {
+        try {
+          await formularioSeccionesService.toggleEstado(
+            seccion.fse_id,
+            !seccion.fse_estado,
+          );
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Operación exitosa",
+            message: `La sección ha sido ${seccion.fse_estado ? "inactivada" : "activada"}`,
+          });
+        } catch (error: any) {
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: error.message || "Error al actualizar estado",
+          });
+        }
+      },
+    });
   };
 
   return (
@@ -233,6 +307,44 @@ export default function FormularioSeccionesPage() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Modals */}
+      {modalState.type === "error" && (
+        <ConfirmModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          confirmText="Aceptar"
+          isDangerous={true}
+          onConfirm={() => setModalState({ ...modalState, isOpen: false })}
+          onCancel={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
+
+      {modalState.type === "success" && (
+        <SuccessModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          actionText="Aceptar"
+          onAction={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      )}
+
+      {modalState.type === "confirm" && (
+        <ConfirmModal
+          isOpen={modalState.isOpen}
+          title={modalState.title}
+          message={modalState.message}
+          confirmText={modalState.confirmText || "Confirmar"}
+          isDangerous={modalState.isDangerous}
+          isLoading={submitting}
+          onConfirm={async () => {
+            if (modalState.action) await modalState.action();
+          }}
+          onCancel={() => setModalState({ ...modalState, isOpen: false })}
+        />
       )}
     </div>
   );

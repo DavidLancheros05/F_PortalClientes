@@ -109,6 +109,27 @@ export const solicitudesService = {
       throw error;
     }
   },
+
+  // Bandeja del ejecutivo: solicitudes rechazadas de forma definitiva por
+  // Oficial de Cumplimiento o Comité de Crédito 2, pendientes de que él
+  // gestione el seguimiento con el cliente por fuera del sistema.
+  async getRechazadasParaEjecutivo(ejecutivoId: number) {
+    const response = await api.get(
+      `/solicitudes/ejecutivo/${ejecutivoId}/rechazadas`,
+    );
+    return response.data;
+  },
+  async getRechazoEjecutivoDetalle(id: number) {
+    const response = await api.get(`/solicitudes/${id}/rechazo-ejecutivo`);
+    return response.data;
+  },
+  async finalizarGestionRechazo(id: number) {
+    const response = await api.patch(
+      `/solicitudes/${id}/gestion-rechazo/finalizar`,
+    );
+    return response.data;
+  },
+
   async getSolicitudesPendientes() {
     try {
       const response = await api.get(`/solicitudes/pendientes`);
@@ -206,6 +227,7 @@ export const solicitudesService = {
     id: number,
     data: {
       consumo_mensual_proyectado?: number | null;
+      toneladas_proyectadas?: number | null;
       observacionesComercial?: string;
       usuario_modifica?: number;
       fecha_real_ejecutivo?: string;
@@ -411,6 +433,15 @@ export const solicitudesService = {
     return response.data;
   },
 
+  // Obtener última solicitud APROBADA del cliente con respuestas — usado
+  // para decidir "Ampliación de Cupo" y precargar el formulario
+  async getUltimaSolicitudAprobada(clienteId: number) {
+    const response = await api.get(
+      `/solicitudes/cliente/${clienteId}/ultima-aprobada`,
+    );
+    return response.data;
+  },
+
   // Obtener última solicitud con respuestas de un cliente
   async getUltimaSolicitudRespuestas(clienteId: number) {
     const response = await api.get(
@@ -438,6 +469,7 @@ export const solicitudesService = {
     accion: AccionSolicitud,
     hasValorEnRespuesta?: (r: any) => boolean,
     options?: { isCorrecionASC?: boolean },
+    archivosExistentes?: Record<number, any>,
   ) {
     let targetSolicitudId =
       solicitudId && !isNaN(solicitudId) ? solicitudId : null;
@@ -506,6 +538,7 @@ export const solicitudesService = {
         preguntas,
         soloConValor,
         hasValorEnRespuesta: soloConValor ? hasValorEnRespuesta : undefined,
+        archivosExistentes,
       });
 
     // Si es corrección ASC, actualizar resultado a PENDIENTE (1)
@@ -535,6 +568,7 @@ export const solicitudesService = {
     clienteId: number,
     usuarioId: number | null,
     options?: { isCorrecionASC?: boolean },
+    archivosExistentes?: Record<number, any>,
   ) {
     return this.guardarSolicitud(
       solicitudId,
@@ -545,6 +579,7 @@ export const solicitudesService = {
       AccionSolicitud.ENVIAR,
       undefined,
       options,
+      archivosExistentes,
     );
   },
 
@@ -556,6 +591,7 @@ export const solicitudesService = {
     clienteId: number,
     usuarioId: number,
     hasValorEnRespuesta: (r: any) => boolean,
+    archivosExistentes?: Record<number, any>,
   ) {
     return this.guardarSolicitud(
       solicitudId,
@@ -565,6 +601,8 @@ export const solicitudesService = {
       usuarioId,
       AccionSolicitud.BORRADOR,
       hasValorEnRespuesta,
+      undefined,
+      archivosExistentes,
     );
   },
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface PreguntaLite {
   fp_tipo: string;
@@ -37,6 +38,30 @@ export function SeccionesSidebar({
   shouldShowQuestionForCurrentUser,
   seccionProgress,
 }: SeccionesSidebarProps) {
+  // La lista de secciones tiene su propio scroll (puede haber más secciones
+  // de las que entran en el panel) — si el usuario la desplaza con el mouse
+  // para mirar otra sección (sin hacer click, así que seccionSeleccionada NO
+  // cambia) y luego sigue respondiendo preguntas de la sección activa, esta
+  // se queda fuera de vista en el panel. Por eso el trigger no puede ser solo
+  // "cambió seccionSeleccionada" — hace falta detectar que el usuario retomó
+  // una pregunta (foco en cualquier campo) y, en ese momento, volver a traer
+  // la sección activa a la vista sin forzar el scroll si ya es visible.
+  const refsSecciones = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  const mostrarSeccionActiva = () => {
+    if (seccionSeleccionada == null) return;
+    refsSecciones.current
+      .get(seccionSeleccionada)
+      ?.scrollIntoView({ block: "nearest" });
+  };
+
+  useEffect(() => {
+    mostrarSeccionActiva();
+    document.addEventListener("focusin", mostrarSeccionActiva);
+    return () => document.removeEventListener("focusin", mostrarSeccionActiva);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seccionSeleccionada]);
+
   return (
     <div className="w-[23%] bg-white rounded-lg shadow p-2 flex flex-col min-h-0">
       <h2 className="text-base font-bold mb-2">Secciones</h2>
@@ -57,6 +82,10 @@ export function SeccionesSidebar({
           return (
             <div
               key={seccion.seccion_id}
+              ref={(el) => {
+                if (el) refsSecciones.current.set(seccion.seccion_id, el);
+                else refsSecciones.current.delete(seccion.seccion_id);
+              }}
               className={`p-2 border rounded cursor-pointer transition-all ${
                 seccion.seccion_id === seccionSeleccionada
                   ? "bg-blue-50 border-blue-500 shadow-sm"

@@ -8,12 +8,14 @@ export const formularioRespuestasService = {
     preguntas,
     soloConValor = false,
     hasValorEnRespuesta,
+    archivosExistentes = {},
   }: {
     solicitudId: number;
     respuestas: any;
     preguntas: any[];
     soloConValor?: boolean;
     hasValorEnRespuesta?: (r: any) => boolean;
+    archivosExistentes?: Record<number, any>;
   }) {
     // Cada campo se guarda de forma independiente (su propio archivo y/o
     // valor), así que se lanzan todos en paralelo en vez de uno por uno:
@@ -52,6 +54,20 @@ export const formularioRespuestasService = {
             // Si no hay hija, buscar en la misma respuesta
             if (!fechaEmision) {
               fechaEmision = (respuesta as any).valor_fecha;
+            }
+            // Si tampoco hay una fecha recién digitada, conservar la que ya
+            // tenía el archivo anterior — de lo contrario, reemplazar un
+            // documento (botón "Cambiar") sin volver a tocar la fecha borra
+            // silenciosamente sa_fecha_emision en el archivo nuevo, aunque
+            // el documento ya estuviera vigente antes del cambio.
+            if (!fechaEmision) {
+              const fechaGuardada = archivosExistentes[fpId]?.sd_fecha_emision;
+              if (fechaGuardada) {
+                fechaEmision =
+                  typeof fechaGuardada === "string" && fechaGuardada.includes("T")
+                    ? fechaGuardada.split("T")[0]
+                    : fechaGuardada;
+              }
             }
           }
 

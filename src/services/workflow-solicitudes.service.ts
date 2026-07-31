@@ -1,5 +1,6 @@
 // Servicio especializado en workflow de solicitudes
 import api from "@/services/core/api";
+import { cachedRequest } from "@/services/core/requestCache";
 
 export const workflowSolicitudesService = {
   // Guardar concepto del ejecutivo
@@ -7,6 +8,7 @@ export const workflowSolicitudesService = {
     id: number,
     data: {
       consumo_mensual_proyectado?: number | null;
+      toneladas_proyectadas?: number | null;
       observacionesComercial?: string;
       usuario_modifica?: number;
       fecha_real_ejecutivo?: string;
@@ -112,11 +114,15 @@ export const workflowSolicitudesService = {
     }
   },
 
-  // Obtener lista de etapas
+  // Obtener lista de etapas — catálogo casi-estático, se cachea por sesión
+  // (mismo patrón que centros-operacion/tipos-identificacion) para no
+  // repetir la llamada en cada página/re-render que la necesita.
   async getEtapas() {
     try {
-      const response = await api.get("/solicitudes/workflow/etapas");
-      return response.data;
+      return await cachedRequest("workflow-etapas", async () => {
+        const response = await api.get("/solicitudes/workflow/etapas");
+        return response.data;
+      });
     } catch (error) {
       console.error(
         "[workflowSolicitudesService] Error obteniendo etapas:",
@@ -126,11 +132,13 @@ export const workflowSolicitudesService = {
     }
   },
 
-  // Obtener lista de resultados
+  // Obtener lista de resultados — mismo criterio de cacheo que getEtapas.
   async getResultados() {
     try {
-      const response = await api.get("/solicitudes/workflow/resultados");
-      return response.data;
+      return await cachedRequest("workflow-resultados", async () => {
+        const response = await api.get("/solicitudes/workflow/resultados");
+        return response.data;
+      });
     } catch (error) {
       console.error(
         "[workflowSolicitudesService] Error obteniendo resultados:",

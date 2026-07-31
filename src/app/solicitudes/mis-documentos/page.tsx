@@ -13,20 +13,29 @@ import { formularioRespuestasService } from "@/services/formulario-respuestas.se
 import {
   calcularVigenciaDocumento,
   calcularEstadoAnioDocumento,
+  documentoRequiereFechaEmision,
   getArchivoPreviewUrl,
 } from "@/lib/documentos-vigencia.util";
 import {
   generarPlantillaDocumentoPdf,
   construirMapaRespuestasPregunta,
+  construirNombreDescargaPdf,
+  descargarPdfBlob,
 } from "@/lib/carta-pdf.util";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ConfirmModal, LoadingModal, SuccessModal } from "@/components/modals";
 
-async function abrirPdfSolicitud(solicitudId: number) {
+async function abrirPdfSolicitud(
+  solicitudId: number,
+  nombreDocumento: string,
+  clienteNombre?: string | null,
+) {
   const blob = await solicitudesService.downloadPdf(solicitudId);
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  descargarPdfBlob(
+    blob,
+    construirNombreDescargaPdf(nombreDocumento, clienteNombre),
+  );
 }
 
 function formatDate(value?: string | null) {
@@ -38,7 +47,7 @@ function formatDate(value?: string | null) {
 }
 
 function requiereFecha(doc: MiDocumento) {
-  return doc.tdo_vigencia_dias != null || doc.tdo_regla_vigencia === "ANIO";
+  return documentoRequiereFechaEmision(doc);
 }
 
 function getEstadoVigencia(doc: MiDocumento) {
@@ -296,7 +305,11 @@ export default function MisDocumentosPage() {
     try {
       setGenerandoPlantillaId(doc.sa_id);
       if (doc.tdo_tipo_plantilla === "PDF_SOLICITUD") {
-        await abrirPdfSolicitud(solicitud.sol_id);
+        await abrirPdfSolicitud(
+          solicitud.sol_id,
+          doc.tdo_nombre || doc.sa_nombre_original,
+          solicitud.cliente_nombre,
+        );
       } else {
         const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
         let respuestasPregunta: Record<string, string> | undefined;
@@ -322,6 +335,11 @@ export default function MisDocumentosPage() {
           paginasTotal: doc.tdo_paginas_total,
           respuestasPregunta,
           revisiones: await obtenerRevisionesPdf(doc.tdo_id),
+          encabezadoTipo: doc.tdo_encabezado_tipo,
+          encabezadoImagenUrl: doc.tdo_encabezado_imagen_url,
+          piePaginaTipo: doc.tdo_pie_pagina_tipo,
+          piePaginaTexto: doc.tdo_pie_pagina_texto,
+          piePaginaImagenUrl: doc.tdo_pie_pagina_imagen_url,
         });
       }
     } catch (error) {
@@ -409,7 +427,11 @@ export default function MisDocumentosPage() {
     try {
       setGenerandoPlantillaId(doc.tdo_id);
       if (doc.tdo_tipo_plantilla === "PDF_SOLICITUD") {
-        await abrirPdfSolicitud(solicitud.sol_id);
+        await abrirPdfSolicitud(
+          solicitud.sol_id,
+          doc.tdo_nombre,
+          solicitud.cliente_nombre,
+        );
       } else {
         const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
         let respuestasPregunta: Record<string, string> | undefined;
@@ -435,6 +457,11 @@ export default function MisDocumentosPage() {
           paginasTotal: doc.tdo_paginas_total,
           respuestasPregunta,
           revisiones: await obtenerRevisionesPdf(doc.tdo_id),
+          encabezadoTipo: doc.tdo_encabezado_tipo,
+          encabezadoImagenUrl: doc.tdo_encabezado_imagen_url,
+          piePaginaTipo: doc.tdo_pie_pagina_tipo,
+          piePaginaTexto: doc.tdo_pie_pagina_texto,
+          piePaginaImagenUrl: doc.tdo_pie_pagina_imagen_url,
         });
       }
     } catch (error) {
@@ -649,12 +676,12 @@ export default function MisDocumentosPage() {
                             {doc.tdo_nombre}
                           </p>
                           <p
-                            className={`text-xs font-medium mt-1 ${listo ? "text-emerald-700" : "text-red-600"}`}
+                            className={`text-xs font-medium mt-1 break-words ${listo ? "text-emerald-700" : "text-red-600"}`}
                           >
                             {subiendo
                               ? "Subiendo..."
                               : listo
-                                ? "✓ Ya subido anteriormente"
+                                ? `✓ ${doc.sa_nombre_original || "Ya subido anteriormente"}`
                                 : "Pendiente: falta generar y subir"}
                           </p>
                         </div>

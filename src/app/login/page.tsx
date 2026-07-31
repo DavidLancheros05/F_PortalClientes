@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useContext } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useContext } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AuthContext } from "@/context/AuthContext";
 import { loginService } from "@/services/auth/login.service";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
 type AccessType = "cliente" | "usuario";
 
-export default function LoginPage() {
+// Solo se acepta un "next" que sea una ruta interna (empieza en "/" y no en
+// "//") — evita que alguien arme un link de login con ?next=https://sitio-malicioso
+// y lo use como open redirect tras autenticarse.
+function destinoSeguro(next: string | null): string | null {
+  if (!next) return null;
+  if (!next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useContext(AuthContext);
 
   const [accessType, setAccessType] = useState<AccessType>("cliente");
@@ -94,7 +105,8 @@ export default function LoginPage() {
         console.log("[LoginPage] Sin módulos en response:", data);
       }
 
-      router.replace("/inicio");
+      const next = destinoSeguro(searchParams.get("next"));
+      router.replace(next || "/inicio");
     } catch (err: any) {
       const errorMessage =
         err?.response?.data?.message ||
@@ -189,9 +201,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#003366] mb-2">
-              Contraseña
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-[#003366]">
+                Contraseña
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-[#0072C6] hover:text-[#003366]"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -238,5 +258,13 @@ export default function LoginPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

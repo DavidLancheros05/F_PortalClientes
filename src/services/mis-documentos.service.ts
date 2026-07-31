@@ -26,6 +26,11 @@ export interface MiDocumento {
   tdo_formato_codigo_secundario?: string | null;
   tdo_revision?: string | null;
   tdo_paginas_total?: number | null;
+  tdo_encabezado_tipo?: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL" | null;
+  tdo_encabezado_imagen_url?: string | null;
+  tdo_pie_pagina_tipo?: "NINGUNO" | "TEXTO" | "IMAGEN" | null;
+  tdo_pie_pagina_texto?: string | null;
+  tdo_pie_pagina_imagen_url?: string | null;
 }
 
 export interface DocumentoDiferidoPendiente {
@@ -37,12 +42,18 @@ export interface DocumentoDiferidoPendiente {
   tdo_formato_codigo_secundario?: string | null;
   tdo_revision?: string | null;
   tdo_paginas_total?: number | null;
+  tdo_encabezado_tipo?: "NINGUNO" | "IMAGEN" | "FORMATO_OFICIAL" | null;
+  tdo_encabezado_imagen_url?: string | null;
+  tdo_pie_pagina_tipo?: "NINGUNO" | "TEXTO" | "IMAGEN" | null;
+  tdo_pie_pagina_texto?: string | null;
+  tdo_pie_pagina_imagen_url?: string | null;
   fp_id: number;
 }
 
 export interface DocumentoDiferido extends DocumentoDiferidoPendiente {
   yaSubido: boolean;
   sa_id: number | null;
+  sa_nombre_original: string | null;
 }
 
 export interface MisDocumentosResponse {

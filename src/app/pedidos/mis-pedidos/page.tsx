@@ -41,19 +41,25 @@ export default function MisPedidosPage() {
   const [error, setError] = useState(false);
 
   const [filtroNumero, setFiltroNumero] = useState("");
+  const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroDescripcion, setFiltroDescripcion] = useState("");
+  const [filtroNumeroPedido, setFiltroNumeroPedido] = useState("");
+  const [filtroOrdenCompra, setFiltroOrdenCompra] = useState("");
+  const [filtroReferencia, setFiltroReferencia] = useState("");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
 
   useEffect(() => {
-    if (!user?.cliente_id) return;
+    if (!user?.cliente_id && !user?.ejng_id) return;
 
     async function cargarPedidos() {
       try {
         setLoading(true);
         setError(false);
-        const data = await pedidosService.getPorCliente(user!.cliente_id!);
+        const data = user!.cliente_id
+          ? await pedidosService.getPorCliente(user!.cliente_id!)
+          : await pedidosService.getPorEjecutivo(user!.ejng_id!);
         setPedidos(data);
       } catch (err) {
         console.error("Error cargando pedidos:", err);
@@ -64,19 +70,34 @@ export default function MisPedidosPage() {
     }
 
     cargarPedidos();
-  }, [user?.cliente_id]);
+  }, [user?.cliente_id, user?.ejng_id]);
 
   const limpiarFiltros = () => {
     setFiltroNumero("");
+    setFiltroCliente("");
     setFiltroEstado("");
     setFiltroDescripcion("");
+    setFiltroNumeroPedido("");
+    setFiltroOrdenCompra("");
+    setFiltroReferencia("");
     setFiltroFechaDesde("");
     setFiltroFechaHasta("");
   };
 
+  const clientesDisponibles = useMemo(() => {
+    const nombres = new Set<string>();
+    pedidos.forEach((pedido) => {
+      if (pedido.clienteRazonSocial) nombres.add(pedido.clienteRazonSocial);
+    });
+    return Array.from(nombres).sort((a, b) => a.localeCompare(b));
+  }, [pedidos]);
+
   const pedidosFiltrados = useMemo(() => {
     const numeroBuscado = filtroNumero.trim().toLowerCase();
     const descripcionBuscada = filtroDescripcion.trim().toLowerCase();
+    const numeroPedidoBuscado = filtroNumeroPedido.trim().toLowerCase();
+    const ordenCompraBuscada = filtroOrdenCompra.trim().toLowerCase();
+    const referenciaBuscada = filtroReferencia.trim().toLowerCase();
     const desde = filtroFechaDesde ? new Date(filtroFechaDesde) : null;
     const hasta = filtroFechaHasta ? new Date(filtroFechaHasta) : null;
 
@@ -88,14 +109,40 @@ export default function MisPedidosPage() {
         return false;
       }
 
+      if (filtroCliente && pedido.clienteRazonSocial !== filtroCliente) {
+        return false;
+      }
+
       if (filtroEstado && pedido.estado !== filtroEstado) {
         return false;
       }
 
       if (
         descripcionBuscada &&
-        !pedido.descripcionItem?.toLowerCase().includes(descripcionBuscada) &&
-        !pedido.referencia?.toLowerCase().includes(descripcionBuscada)
+        !pedido.descripcionItem?.toLowerCase().includes(descripcionBuscada)
+      ) {
+        return false;
+      }
+
+      if (
+        numeroPedidoBuscado &&
+        !String(pedido.numero ?? "")
+          .toLowerCase()
+          .includes(numeroPedidoBuscado)
+      ) {
+        return false;
+      }
+
+      if (
+        ordenCompraBuscada &&
+        !pedido.ordenCompra?.toLowerCase().includes(ordenCompraBuscada)
+      ) {
+        return false;
+      }
+
+      if (
+        referenciaBuscada &&
+        !pedido.referencia?.toLowerCase().includes(referenciaBuscada)
       ) {
         return false;
       }
@@ -117,8 +164,12 @@ export default function MisPedidosPage() {
   }, [
     pedidos,
     filtroNumero,
+    filtroCliente,
     filtroEstado,
     filtroDescripcion,
+    filtroNumeroPedido,
+    filtroOrdenCompra,
+    filtroReferencia,
     filtroFechaDesde,
     filtroFechaHasta,
   ]);
@@ -133,14 +184,14 @@ export default function MisPedidosPage() {
           >
             ← Volver a pedidos
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Mis pedidos</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Listado de pedidos</h1>
           <p className="text-gray-600 mt-2">
             Consulta y seguimiento de los pedidos asociados a tu usuario.
           </p>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Número de documento
@@ -152,6 +203,23 @@ export default function MisPedidosPage() {
                 placeholder="Ej: PV-00259993"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cliente
+              </label>
+              <select
+                value={filtroCliente}
+                onChange={(e) => setFiltroCliente(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos los clientes</option>
+                {clientesDisponibles.map((cliente) => (
+                  <option key={cliente} value={cliente}>
+                    {cliente}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -172,13 +240,49 @@ export default function MisPedidosPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Referencia o descripción
+                Descripción
               </label>
               <input
                 type="text"
                 value={filtroDescripcion}
                 onChange={(e) => setFiltroDescripcion(e.target.value)}
                 placeholder="Ej: CAJA CJ 3550"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Número de pedido
+              </label>
+              <input
+                type="text"
+                value={filtroNumeroPedido}
+                onChange={(e) => setFiltroNumeroPedido(e.target.value)}
+                placeholder="Ej: 259993"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Orden de compra
+              </label>
+              <input
+                type="text"
+                value={filtroOrdenCompra}
+                onChange={(e) => setFiltroOrdenCompra(e.target.value)}
+                placeholder="Ej: 19078"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Referencia
+              </label>
+              <input
+                type="text"
+                value={filtroReferencia}
+                onChange={(e) => setFiltroReferencia(e.target.value)}
+                placeholder="Ej: BAR00002571571"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -217,7 +321,7 @@ export default function MisPedidosPage() {
 
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Mis pedidos</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Listado de pedidos</h2>
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
               {pedidosFiltrados.length} de {pedidos.length} registros
             </span>

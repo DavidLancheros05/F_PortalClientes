@@ -5,6 +5,7 @@ import { usePreguntasFormulario } from "@/hooks/usePreguntasFormulario";
 import { usePrefillConfiguracion } from "@/hooks/usePrefillConfiguracion";
 import { useClienteData } from "@/hooks/useClienteData";
 import { useUltimaSolicitud } from "@/hooks/useUltimaSolicitud";
+import { useUltimaSolicitudAprobada } from "@/hooks/useUltimaSolicitudAprobada";
 import { useSolicitudEdicion } from "@/hooks/useSolicitudEdicion";
 import { useRespuestasFormulario } from "@/hooks/useRespuestasFormulario";
 
@@ -26,7 +27,12 @@ import type {
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
-import { ErrorModal, LoadingModal, SuccessModal } from "@/components/modals";
+import {
+  ConfirmModal,
+  ErrorModal,
+  LoadingModal,
+  SuccessModal,
+} from "@/components/modals";
 import { solicitudesService } from "@/services/solicitudes.service";
 import {
   maestrosService,
@@ -39,6 +45,7 @@ import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
 import {
   calcularVigenciaDocumento,
   calcularEstadoAnioDocumento,
+  documentoRequiereFechaEmision,
   getArchivoPreviewUrl as getArchivoPreviewUrlUtil,
 } from "@/lib/documentos-vigencia.util";
 import { AlertCircle, ArrowLeft } from "lucide-react";
@@ -82,6 +89,11 @@ export default function SolicitudFormContent({
   );
   const isGuardandoRef = useRef(false);
   const lastSavedResponses = useRef<any>({});
+  const [showConfirmGuardar, setShowConfirmGuardar] = useState(false);
+  const pendingGuardarParamsRef = useRef<{
+    usuarioId: number | null;
+    isReturningToAsc: boolean;
+  } | null>(null);
 
   // Estados para datos maestros
   const [paises, setPaises] = useState<Pais[]>([]);
@@ -187,18 +199,36 @@ export default function SolicitudFormContent({
     enabled: !solicitudId && !!user?.cliente_id,
   });
 
-  const tieneSolicitudesPrevias = ultimaSolicitud !== null;
+  // Candidato a "Ampliación de Cupo" y fuente de precarga: la última
+  // solicitud APROBADA del cliente (no cualquier solicitud previa — una
+  // rechazada/cancelada/en trámite no cuenta ni debe precargar datos
+  // viejos que no llegaron a aprobarse).
+  const { ultimaSolicitudAprobada } = useUltimaSolicitudAprobada({
+    clienteId: user?.cliente_id,
+    enabled: !solicitudId && !!user?.cliente_id,
+    preguntas,
+  });
+
+  const tieneSolicitudesPrevias = ultimaSolicitudAprobada !== null;
 
   // IMPORTANTE: Memoizar respuestasUltima para evitar loops infinitos en usePrefillConfiguracion
   const respuestasUltima = useMemo(() => {
-    return ultimaSolicitud?.respuestas || {};
-  }, [ultimaSolicitud?.respuestas]);
+    return ultimaSolicitudAprobada?.respuestas || {};
+  }, [ultimaSolicitudAprobada?.respuestas]);
+
+  // Misma última solicitud aprobada, indexada por fp_codigo — sigue
+  // funcionando aunque la versión activa del formulario haya cambiado
+  // desde que se aprobó (ver usePrefillConfiguracion).
+  const respuestasUltimaPorCodigo = useMemo(() => {
+    return ultimaSolicitudAprobada?.respuestasPorCodigo || {};
+  }, [ultimaSolicitudAprobada?.respuestasPorCodigo]);
 
   // Precarga basada en configuración de formulario
   const { respuestasPrecargadas } = usePrefillConfiguracion({
     preguntas,
     datosCliente: clienteData || {},
     respuestasUltimaFormulario: respuestasUltima,
+    respuestasUltimaPorCodigo,
     enabled: !solicitudId && preguntas.length > 0,
   });
   useEffect(() => {
@@ -316,7 +346,7 @@ export default function SolicitudFormContent({
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preguntas, ultimaSolicitud, solicitudId]);
+  }, [preguntas, ultimaSolicitudAprobada, solicitudId]);
 
   // EFECTO: Autocompletar con la fecha actual las preguntas tipo FECHA
   // marcadas con fp_subtipo = "ACTUAL" (solo al crear, no al editar una
@@ -745,7 +775,7 @@ export default function SolicitudFormContent({
         const documento = pregunta.fp_tipo_documento_id
           ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
           : null;
-        const requiereFecha = documento?.tdo_vigencia_dias != null;
+        const requiereFecha = documentoRequiereFechaEmision(documento);
 
         if (requiereFecha) {
           const preguntaFechaHija = preguntas.find(
@@ -1090,9 +1120,7 @@ export default function SolicitudFormContent({
       const documento = pregunta.fp_tipo_documento_id
         ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
         : null;
-      const requiereFecha =
-        documento?.tdo_vigencia_dias != null ||
-        documento?.tdo_regla_vigencia === "ANIO";
+      const requiereFecha = documentoRequiereFechaEmision(documento);
 
       // Buscar fecha en la pregunta hija, en la misma respuesta, o en archivo existente
       let fechaEmisionValor: string | undefined = respuesta.valor_fecha;
@@ -1150,34 +1178,57 @@ export default function SolicitudFormContent({
         const filas = JSON.parse(respuesta.valor_texto);
         if (!Array.isArray(filas)) return false;
 
-        let nombresColumnas: string[] = [];
+        type ColumnaTablaMin = {
+          nombre: string;
+          tipo?: string;
+          minimo?: number;
+          maximo?: number;
+        };
+        let columnasTabla: ColumnaTablaMin[] = [];
         try {
           const parsedColumnas = JSON.parse(pregunta.fp_tabla_columnas || "[]");
-          nombresColumnas = Array.isArray(parsedColumnas)
+          columnasTabla = Array.isArray(parsedColumnas)
             ? parsedColumnas
-                .map((c: unknown) =>
+                .map((c: unknown): ColumnaTablaMin | null =>
                   typeof c === "string"
-                    ? c
-                    : (c as { nombre?: string })?.nombre,
+                    ? { nombre: c }
+                    : typeof (c as ColumnaTablaMin)?.nombre === "string"
+                      ? (c as ColumnaTablaMin)
+                      : null,
                 )
-                .filter((n): n is string => typeof n === "string")
+                .filter((c): c is ColumnaTablaMin => c !== null)
             : [];
         } catch {
-          nombresColumnas = [];
+          columnasTabla = [];
         }
-        if (nombresColumnas.length === 0 || filas.length === 0) return false;
+        if (columnasTabla.length === 0 || filas.length === 0) return false;
 
         // Se considera respondida solo si TODAS las filas están completas
-        // (todas sus columnas tienen valor); una fila a medias invalida la pregunta.
+        // (todas sus columnas tienen valor, y si la columna es NUMERO con
+        // mínimo/máximo configurado, el valor está dentro del rango) — una
+        // fila a medias o fuera de rango invalida la pregunta.
         return filas.every(
           (fila) =>
             fila &&
             typeof fila === "object" &&
-            nombresColumnas.every(
-              (columna) =>
-                typeof fila[columna] === "string" &&
-                fila[columna].trim() !== "",
-            ),
+            columnasTabla.every((columna) => {
+              const valor = fila[columna.nombre];
+              if (typeof valor !== "string" || valor.trim() === "") {
+                return false;
+              }
+              if (columna.tipo === "NUMERO") {
+                const numero = Number(valor);
+                if (!Number.isNaN(numero)) {
+                  if (columna.minimo !== undefined && numero < columna.minimo) {
+                    return false;
+                  }
+                  if (columna.maximo !== undefined && numero > columna.maximo) {
+                    return false;
+                  }
+                }
+              }
+              return true;
+            }),
         );
       } catch {
         return false;
@@ -1570,11 +1621,23 @@ export default function SolicitudFormContent({
       // overallDisplayProgress.percent < 100 (arriba) ya impide guardar.
     }
 
-    setIsSavingFinal(true);
-    // console.log('📤 [FRONTEND] Llamando a guardarSolicitudCompleta...');
-
     // Si es cliente, pasar NULL como usuarioId. Si es admin/ejecutivo, pasar usr_id
     const usuarioId = isClienteUser ? null : user.usr_id;
+    const isReturningToAsc = Boolean(
+      returnTo?.includes("corregir-formulario-asc"),
+    );
+
+    pendingGuardarParamsRef.current = { usuarioId, isReturningToAsc };
+    setShowConfirmGuardar(true);
+  };
+
+  const confirmarGuardar = async () => {
+    const params = pendingGuardarParamsRef.current;
+    if (!params) return;
+    const { usuarioId, isReturningToAsc } = params;
+
+    setIsSavingFinal(true);
+    // console.log('📤 [FRONTEND] Llamando a guardarSolicitudCompleta...');
 
     // console.log('📤 [FRONTEND] Datos:', {
     //   clienteId: getClienteIdForSolicitud(),
@@ -1583,7 +1646,6 @@ export default function SolicitudFormContent({
     //   user: user,
     // });
     try {
-      const isReturningToAsc = returnTo?.includes("corregir-formulario-asc");
       const result = await solicitudesService.guardarSolicitudCompleta(
         solicitudId || null,
         respuestas,
@@ -1591,6 +1653,7 @@ export default function SolicitudFormContent({
         getClienteIdForSolicitud(),
         usuarioId,
         isReturningToAsc ? { isCorrecionASC: true } : undefined,
+        archivosExistentes,
       );
 
       const documentosDiferidosFaltantes =
@@ -1665,6 +1728,7 @@ export default function SolicitudFormContent({
       setErrorMessage(`Error: ${errorMsg}`);
     } finally {
       setIsSavingFinal(false);
+      setShowConfirmGuardar(false);
       isGuardandoRef.current = false;
     }
   };
@@ -1712,6 +1776,7 @@ export default function SolicitudFormContent({
         getClienteIdForSolicitud(),
         user.usr_id,
         hasValorEnRespuesta,
+        archivosExistentes,
       );
 
       setBorradorGuardadoMessage(
@@ -1910,8 +1975,23 @@ export default function SolicitudFormContent({
         />
 
         <LoadingModal
-          isOpen={isSavingFinal}
+          isOpen={isSavingFinal && !showConfirmGuardar}
           message="Guardando y enviando tu solicitud..."
+        />
+
+        <ConfirmModal
+          isOpen={showConfirmGuardar}
+          title="Confirmar envío"
+          message="¿Estás seguro de que deseas guardar y enviar esta solicitud?"
+          confirmText="Sí, enviar"
+          cancelText="Cancelar"
+          isLoading={isSavingFinal}
+          onConfirm={confirmarGuardar}
+          onCancel={() => {
+            setShowConfirmGuardar(false);
+            pendingGuardarParamsRef.current = null;
+            isGuardandoRef.current = false;
+          }}
         />
 
         {cargandoFormulario ? (
@@ -1970,7 +2050,7 @@ export default function SolicitudFormContent({
 
                 {/* Preguntas */}
                 <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {seccionActual.preguntas
                       .filter(shouldShowQuestionForCurrentUser)
                       .map((pregunta) => (

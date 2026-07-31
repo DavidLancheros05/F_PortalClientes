@@ -101,6 +101,9 @@ export type ColumnaTabla = {
   // Cascada: esta columna depende de otra columna de la MISMA fila (ej: Departamento depende de Pais)
   catalogo_columna_padre?: string; // nombre de la columna padre (ej: "Pais")
   catalogo_columna_filtro?: string; // columna FK en ESTA tabla que referencia al padre (ej: "pai_id")
+  // Solo aplica cuando tipo === "NUMERO"
+  minimo?: number;
+  maximo?: number;
 };
 
 export type ReglaLimiteTabla = {

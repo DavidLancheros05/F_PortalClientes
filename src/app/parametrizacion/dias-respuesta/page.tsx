@@ -84,7 +84,7 @@ export default function DiasRespuestaPage() {
     loadAreas();
   }, []);
 
-  const crear = async () => {
+  const crear = () => {
     if (dias <= 0) {
       setModalState({
         isOpen: true,
@@ -95,35 +95,44 @@ export default function DiasRespuestaPage() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await diasRespuestaService.create({
-        pdr_area: area,
-        pdr_dias: dias,
-        pdr_estado: true,
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar creación",
+      message: `¿Deseas agregar ${dias} día${dias !== 1 ? "s" : ""} de respuesta para el área ${area}?`,
+      confirmText: "Sí, agregar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await diasRespuestaService.create({
+            pdr_area: area,
+            pdr_dias: dias,
+            pdr_estado: true,
+          });
 
-      setDias(1);
-      setArea("COMERCIAL");
-      setMostrarNuevo(false);
-      await cargarDatos();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Creado exitosamente",
-        message: "El parámetro de días de respuesta ha sido creado",
-      });
-    } catch (e) {
-      console.error(e);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "Error al crear el parámetro",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+          setDias(1);
+          setArea("COMERCIAL");
+          setMostrarNuevo(false);
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Creado exitosamente",
+            message: "El parámetro de días de respuesta ha sido creado",
+          });
+        } catch (e) {
+          console.error(e);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al crear el parámetro",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const iniciarEdicion = (item: DiaRespuesta) => {
@@ -131,30 +140,42 @@ export default function DiasRespuestaPage() {
     setEditandoDias(item.pdr_dias);
   };
 
-  const guardarEdicion = async () => {
+  const guardarEdicion = () => {
     if (!editandoId || editandoDias <= 0) return;
 
-    try {
-      await diasRespuestaService.update(editandoId, {
-        pdr_dias: editandoDias,
-      });
-      setEditandoId(null);
-      await cargarDatos();
-      setModalState({
-        isOpen: true,
-        type: "success",
-        title: "Actualizado exitosamente",
-        message: "El parámetro ha sido actualizado",
-      });
-    } catch (e) {
-      console.error(e);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "Error al actualizar el parámetro",
-      });
-    }
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar cambios",
+      message: `¿Deseas guardar ${editandoDias} día${editandoDias !== 1 ? "s" : ""} de respuesta para este parámetro?`,
+      confirmText: "Sí, guardar",
+      action: async () => {
+        setSubmitting(true);
+        try {
+          await diasRespuestaService.update(editandoId, {
+            pdr_dias: editandoDias,
+          });
+          setEditandoId(null);
+          await cargarDatos();
+          setModalState({
+            isOpen: true,
+            type: "success",
+            title: "Actualizado exitosamente",
+            message: "El parámetro ha sido actualizado",
+          });
+        } catch (e) {
+          console.error(e);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Error",
+            message: "Error al actualizar el parámetro",
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const toggleEstado = (item: DiaRespuesta) => {
@@ -613,9 +634,9 @@ export default function DiasRespuestaPage() {
           message={modalState.message}
           confirmText={modalState.confirmText || "Confirmar"}
           isDangerous={modalState.isDangerous}
+          isLoading={submitting}
           onConfirm={async () => {
             if (modalState.action) await modalState.action();
-            setModalState({ ...modalState, isOpen: false });
           }}
           onCancel={() => setModalState({ ...modalState, isOpen: false })}
         />

@@ -39,10 +39,10 @@ export default function PedidosPage() {
               Submódulo
             </p>
             <h2 className="text-xl font-bold text-gray-900 mt-1">
-              Mis pedidos
+              Listado de pedidos
             </h2>
             <p className="text-gray-600 mt-2 text-sm">
-              Consulta el historial y estado de tus pedidos.
+              Consulta el historial y estado de los pedidos.
             </p>
           </button>
         </div>

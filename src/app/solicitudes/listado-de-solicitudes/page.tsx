@@ -5,14 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
 import { getTodayBogota } from "@/lib/date-utils";
 import { useSearching } from "@/context/SearchingContext";
-import * as XLSX from "xlsx";
+import { cachedRequest } from "@/services/core/requestCache";
 
 import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Download,
+  ClipboardList,
   Eye,
+  PackageOpen,
   Search,
   Trash2,
   X,
@@ -25,8 +23,11 @@ import { clientesService } from "@/services/clientes/clientes.service";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import { ConfirmModal } from "@/components/modals";
-
-const PAGE_SIZE = 10;
+import { TablePagination } from "@/components/tables/TablePagination";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 
 interface Cliente {
   cli_id: number;
@@ -112,6 +113,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const { user, loading: authLoading } = useContext(AuthContext);
   const { startSearching, stopSearching } = useSearching();
   const esAdmin = user?.rol?.nombre === "ADMIN";
+  const esEjecutivo = user?.rol?.nombre === "EJECUTIVO";
 
   const hoy = getTodayBogota();
 
@@ -127,6 +129,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   >([]);
   const [rows, setRows] = useState<SolicitudListado[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [hasSearched, setHasSearched] = useState(false);
   const [solicitudAEliminar, setSolicitudAEliminar] = useState<{
     sol_id: number;
@@ -147,6 +150,12 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const [resultadoId, setResultadoId] = useState("");
 
   useEffect(() => {
+    // Esperar a que se resuelva el usuario antes de restaurar filtros desde
+    // la URL — así "esEjecutivo" ya es confiable y un ejecutivo no alcanza
+    // a disparar una búsqueda con un ejecutivo_id ajeno tomado de una URL
+    // manipulada o de una sesión anterior.
+    if (authLoading) return;
+
     const params = new URLSearchParams(searchParams.toString());
     const hasParams = params.size > 0;
 
@@ -158,8 +167,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       setCentroOperacionId(params.get("co_id") || "");
     if (params.has("cliente_id"))
       setClienteId(params.get("cliente_id") || "");
-    if (params.has("ejecutivo_id"))
+    if (esEjecutivo && user?.ejng_id) {
+      params.set("ejecutivo_id", String(user.ejng_id));
+      setEjecutivoId(String(user.ejng_id));
+      setEjecutivoBusqueda(user.nombre || "");
+    } else if (params.has("ejecutivo_id")) {
       setEjecutivoId(params.get("ejecutivo_id") || "");
+    }
     if (params.has("estado_id"))
       setEstadoId(params.get("estado_id") || "");
     if (params.has("etapa_id"))
@@ -173,7 +187,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     if (hasParams && wasSearched) {
       ejecutarBusquedaConUrlParams(params);
     }
-  }, [searchParams]);
+  }, [searchParams, authLoading, esEjecutivo, user]);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -181,7 +195,12 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         const [centrosData, clientesData, etapasData, resultadosData] =
           await Promise.all([
             centrosOperacionService.getAll(),
-            clientesService.getAll(),
+            // Solo se usa como picklist de filtro en esta página — se
+            // cachea por sesión para no repetir la carga completa de
+            // clientes (la más pesada de las 4) cada vez que se visita.
+            cachedRequest("listado-solicitudes-clientes", () =>
+              clientesService.getAll(),
+            ),
             solicitudesService.getEtapas(),
             solicitudesService.getResultados(),
           ]);
@@ -214,6 +233,15 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       loadInitialData();
     }
   }, [authLoading]);
+
+  // Un ejecutivo solo puede ver sus propias solicitudes — el filtro de
+  // Ejecutivo se precarga con su propio ejng_id y queda bloqueado (ver
+  // input deshabilitado más abajo) para que no pueda buscar las de otro.
+  useEffect(() => {
+    if (!esEjecutivo || !user?.ejng_id) return;
+    setEjecutivoId(String(user.ejng_id));
+    setEjecutivoBusqueda(user.nombre || "");
+  }, [esEjecutivo, user]);
 
   async function ejecutarBusquedaConUrlParams(
     urlParams: URLSearchParams,
@@ -275,18 +303,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     return true;
   }, [fechaDesde, fechaHasta]);
 
-  const totalPages = useMemo(() => {
-    if (rows.length === 0) return 1;
-    return Math.ceil(rows.length / PAGE_SIZE);
-  }, [rows.length]);
-
   const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return rows.slice(start, start + PAGE_SIZE);
-  }, [rows, currentPage]);
-
-  const startRow = rows.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const endRow = Math.min(currentPage * PAGE_SIZE, rows.length);
+    const start = (currentPage - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, currentPage, pageSize]);
 
   async function buscar() {
     console.log("🔴 [FRONTEND] Iniciando búsqueda con filtros:", {
@@ -363,8 +383,11 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     setCentroOperacionId("");
     setClienteId("");
     setClienteBusqueda("");
-    setEjecutivoId("");
-    setEjecutivoBusqueda("");
+    // Un ejecutivo no puede limpiar su propio filtro — solo ve lo suyo.
+    if (!esEjecutivo) {
+      setEjecutivoId("");
+      setEjecutivoBusqueda("");
+    }
     setEstadoId("");
     setEtapaId("");
     setResultadoId("");
@@ -374,8 +397,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     window.history.replaceState(null, "", "?");
   }
 
-  function exportarExcelCsv() {
+  async function exportarExcelCsv() {
     if (rows.length === 0) return;
+
+    const XLSX = await import("xlsx");
 
     const header = [
       "No. solicitud",
@@ -456,25 +481,14 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-[95rem] mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4">
-            <div className="px-6 py-6 border-b border-gray-200">
-              <button
-                onClick={() => router.push("/solicitudes")}
-                className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-3"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Volver a solicitudes
-              </button>
-              <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
-                Listado de solicitudes
-              </p>
-            </div>
-
-            <div className="px-6 py-6">
-              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-6" />
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc,#eef1f7)] p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[115rem] mx-auto">
+        <PageHeaderCard
+          icon={ClipboardList}
+          eyebrow="Solicitudes"
+          title="Listado de solicitudes"
+          onBack={() => router.push("/solicitudes")}
+        >
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
@@ -549,9 +563,15 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                     placeholder="Buscar ejecutivo..."
                     value={ejecutivoBusqueda}
                     onChange={(event) => setEjecutivoBusqueda(event.target.value)}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={esEjecutivo}
+                    title={
+                      esEjecutivo
+                        ? "Solo puedes ver tus propias solicitudes"
+                        : undefined
+                    }
+                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
                   />
-                  {ejecutivoBusqueda && (
+                  {!esEjecutivo && ejecutivoBusqueda && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
                       <div
                         onClick={() => {
@@ -706,37 +726,26 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   Buscar
                 </button>
               </div>
-            </div>
-          </div>
+        </PageHeaderCard>
 
           {!hasSearched ? (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl text-gray-400">🔍</span>
-              </div>
-              <p className="text-gray-600">
-                Selecciona los filtros y haz clic en "Buscar" para ver los
-                resultados.
-              </p>
-            </div>
+            <EmptyStateCard
+              icon={Search}
+              title='Selecciona los filtros y haz clic en "Buscar" para ver los resultados.'
+            />
           ) : rows.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl text-gray-400">📭</span>
-              </div>
-              <p className="text-gray-600">
-                No hay resultados para los filtros seleccionados.
-              </p>
-            </div>
+            <EmptyStateCard
+              icon={PackageOpen}
+              title="No hay resultados para los filtros seleccionados."
+            />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
-                
-                <p className="text-sm text-slate-500 mt-0.5">
-                  {rows.length} solicitud{rows.length !== 1 ? "es" : ""}{" "}
-                  encontrada{rows.length !== 1 ? "s" : ""}
-                </p>
-              </div>
+              <ResultsToolbar
+                count={rows.length}
+                label="solicitud(es) encontrada(s)"
+                onExport={exportarExcelCsv}
+              />
+              <TableContainer>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-blue-100">
                   <thead className="bg-blue-100 sticky top-0 z-20">
@@ -801,7 +810,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         Forma Pago
                       </th>
-                      <th className="sticky right-0 z-10 px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200 bg-blue-100">
+                      <th className="sticky right-0 z-10 px-4 py-3 text-right text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200 bg-blue-100">
                         Detalle Solicitud
                       </th>
                     </tr>
@@ -888,7 +897,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                           {row.sol_forma_pago || "-"}
                         </td>
                         <td className="sticky right-0 z-10 px-4 py-3 text-sm bg-white border-l border-gray-100">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() =>
                                 router.push(`/solicitudes/${row.sol_id}/detalle`)
@@ -921,49 +930,18 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   </tbody>
                 </table>
               </div>
+              </TableContainer>
 
-              <div className="px-6 py-4 border-t border-gray-200 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <p className="text-sm text-gray-600">
-                  Mostrando {startRow} - {endRow} de {rows.length} resultados
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(prev - 1, 1))
-                    }
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Anterior
-                  </button>
-                  <span className="text-sm font-semibold text-gray-700 px-2">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Siguiente
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="px-6 py-4 border-t border-gray-200 bg-slate-50 flex justify-end">
-                <button
-                  onClick={exportarExcelCsv}
-                  disabled={rows.length === 0}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  <Download className="h-4 w-4" />
-                  Exportar a Excel
-                </button>
-              </div>
+              <TablePagination
+                page={currentPage}
+                pageSize={pageSize}
+                totalItems={rows.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+              />
             </div>
           )}
 
@@ -995,7 +973,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
               </div>
             </div>
           )}
-        </div>
       </div>
 
       <ConfirmModal

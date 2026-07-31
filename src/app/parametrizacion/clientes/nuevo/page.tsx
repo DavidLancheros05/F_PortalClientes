@@ -9,7 +9,7 @@ import {
   type Departamento,
   type Ciudad,
 } from "@/services/maestros/maestros.service";
-import { SuccessModal, ErrorModal } from "@/components/modals";
+import { SuccessModal, ErrorModal, ConfirmModal } from "@/components/modals";
 import {
   Building,
   FileText,
@@ -56,6 +56,7 @@ export default function NuevoClientePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -135,28 +136,31 @@ export default function NuevoClientePage() {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     if (!tipoIdentificacion || tipoIdentificacion <= 0) {
       setError("Debe seleccionar un tipo de identificación válido");
-      setLoading(false);
       return;
     }
 
     if (!ejecutivoId || ejecutivoId <= 0) {
       setError("Debe seleccionar un ejecutivo asignado");
-      setLoading(false);
       return;
     }
 
     if (!paisId || !departamentoId || !ciudadId) {
       setError("Debe seleccionar país, departamento y ciudad");
-      setLoading(false);
       return;
     }
+
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmCreate = async () => {
+    setLoading(true);
+    setError(null);
 
     try {
       await clientesService.create({
@@ -173,8 +177,10 @@ export default function NuevoClientePage() {
         centro_operacion_ids,
       });
 
+      setShowConfirmModal(false);
       setSuccess(true);
     } catch (err: any) {
+      setShowConfirmModal(false);
       setError(
         err?.response?.data?.message ||
           err?.message ||
@@ -243,6 +249,17 @@ export default function NuevoClientePage() {
             isOpen={!!error}
             message={error || ""}
             onAction={() => setError(null)}
+          />
+
+          <ConfirmModal
+            isOpen={showConfirmModal}
+            title="Confirmar creación"
+            message="¿Estás seguro de que deseas crear este cliente?"
+            confirmText="Sí, crear"
+            cancelText="Cancelar"
+            isLoading={loading}
+            onConfirm={handleConfirmCreate}
+            onCancel={() => setShowConfirmModal(false)}
           />
 
           {/* Form */}

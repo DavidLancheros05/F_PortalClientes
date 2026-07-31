@@ -12,7 +12,8 @@ export function useAuth(requiredRoles?: number | number[]) {
     const userStr = localStorage.getItem("user");
 
     if (!token || !userStr) {
-      router.push("/login");
+      const destino = `${window.location.pathname}${window.location.search}`;
+      router.push(`/login?next=${encodeURIComponent(destino)}`);
       return;
     }
 

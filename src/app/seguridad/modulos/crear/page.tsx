@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { modulosManagementService } from "@/services/modulos.service";
+import { ConfirmModal } from "@/components/modals";
 
 interface SubModulo {
   nombre: string;
@@ -31,6 +32,7 @@ const CrearModuloPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleAddSubModulo = () => {
     setSubModulos([...subModulos, { nombre: "", ruta: "" }]);
@@ -52,8 +54,13 @@ const CrearModuloPage = () => {
     setPermisos({ ...permisos, [perm]: !permisos[perm] });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmCreate = async () => {
     setLoading(true);
     setError(null);
 
@@ -68,6 +75,7 @@ const CrearModuloPage = () => {
 
       router.push("/modulos");
     } catch (err: any) {
+      setShowConfirmModal(false);
       setError(err.message || "Error desconocido");
     } finally {
       setLoading(false);
@@ -175,6 +183,17 @@ const CrearModuloPage = () => {
             {loading ? "Creando..." : "Crear Módulo"}
           </button>
         </form>
+
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          title="Confirmar creación"
+          message={`¿Deseas crear el módulo "${nombre.trim()}"?`}
+          confirmText="Sí, crear"
+          cancelText="Cancelar"
+          isLoading={loading}
+          onConfirm={handleConfirmCreate}
+          onCancel={() => setShowConfirmModal(false)}
+        />
       </div>
     </div>
   );
