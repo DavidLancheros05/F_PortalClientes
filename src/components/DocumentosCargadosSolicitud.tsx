@@ -25,6 +25,8 @@ interface DocumentoCargado {
   fecha_carga?: string;
   sd_fecha_emision?: string | null;
   sd_fecha_vencimiento?: string | null;
+  /** "cliente_archivo" cuando el documento no vive en esta solicitud sino que se heredó del archivo consolidado del cliente (Camino 2 de Ampliación de Cupo). */
+  sa_origen?: string;
 }
 
 interface DocumentosCargadosSolicitudProps {
@@ -166,6 +168,13 @@ export function DocumentosCargadosSolicitud({
         </p>
       ) : (
         <div className="border border-gray-200 rounded-lg overflow-x-auto">
+          {documentos[0]?.sa_origen === "cliente_archivo" && (
+            <p className="text-xs text-blue-700 bg-blue-50 border-b border-blue-100 px-4 py-2">
+              Esta solicitud no pidió nuevos documentos — se muestran los
+              vigentes del archivo del cliente (de una solicitud aprobada
+              anterior).
+            </p>
+          )}
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wide">

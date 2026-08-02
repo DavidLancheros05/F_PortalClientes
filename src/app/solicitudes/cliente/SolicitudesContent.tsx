@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { ESTADOS as ESTADOS_MAP } from "@/lib/workflow-labels";
 import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
+import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
+import { WORKFLOW_RESULTADO } from "@/constants/workflow-resultados";
 import { ConfirmModal, LoadingModal } from "@/components/modals";
 
 const formatearFecha = (fecha?: string | null, conHora = false): string => {
@@ -501,9 +503,12 @@ export default function SolicitudesContent() {
                             </div>
                           </td>
                           <td className="px-4 sm:px-6 py-3 min-w-xs">
-                            {solicitud.sol_estado_id === 2 &&
-                            solicitud.sol_etapa_actual_id === 3 &&
-                            solicitud.sol_resultado_etapa_id === 3 ? (
+                            {solicitud.sol_estado_id ===
+                              ESTADO_SOLICITUD.PENDIENTE.id &&
+                            solicitud.sol_etapa_actual_id ===
+                              WORKFLOW_ETAPA.ASC.id &&
+                            solicitud.sol_resultado_etapa_id ===
+                              WORKFLOW_RESULTADO.RECHAZADO.id ? (
                               <button
                                 onClick={() =>
                                   router.push("/solicitudes/mis-documentos")
@@ -512,9 +517,12 @@ export default function SolicitudesContent() {
                               >
                                 Corrija los documentos
                               </button>
-                            ) : solicitud.sol_estado_id === 2 &&
-                              solicitud.sol_etapa_actual_id === 1 &&
-                              solicitud.sol_resultado_etapa_id === 5 ? (
+                            ) : solicitud.sol_estado_id ===
+                                ESTADO_SOLICITUD.PENDIENTE.id &&
+                              solicitud.sol_etapa_actual_id ===
+                                WORKFLOW_ETAPA.CLI.id &&
+                              solicitud.sol_resultado_etapa_id ===
+                                WORKFLOW_RESULTADO.PEND_DOCS.id ? (
                               <button
                                 onClick={() =>
                                   router.push("/solicitudes/mis-documentos")
@@ -531,32 +539,38 @@ export default function SolicitudesContent() {
                               <span className="text-sm text-gray-700">
                                 {solicitud.sol_observacion_cliente}
                               </span>
-                            ) : solicitud.sol_estado_id === 2 ? (
+                            ) : solicitud.sol_estado_id ===
+                              ESTADO_SOLICITUD.PENDIENTE.id ? (
                               <span className="text-sm text-emerald-700">
                                 Formulario y documentos cargados
                                 correctamente. Puedes editar hasta que
                                 Cartonera revise tu solicitud.
                               </span>
-                            ) : solicitud.sol_estado_id === 6 ? (
+                            ) : solicitud.sol_estado_id ===
+                              ESTADO_SOLICITUD.RECHAZADA.id ? (
                               <span className="text-sm text-red-700">
                                 Solicitud rechazada de forma definitiva
-                                {solicitud.sol_etapa_actual_id === 4
+                                {solicitud.sol_etapa_actual_id ===
+                                WORKFLOW_ETAPA.OFC.id
                                   ? " por Cumplimiento"
                                   : ""}
                                 . Revisa el correo enviado para más detalle.
                               </span>
-                            ) : solicitud.sol_estado_id === 3 ? (
+                            ) : solicitud.sol_estado_id ===
+                              ESTADO_SOLICITUD.REVISION.id ? (
                               <span className="text-sm text-blue-700">
                                 Tu solicitud está en revisión.
                                 Te avisaremos por correo cuando haya una
                                 decisión.
                               </span>
-                            ) : solicitud.sol_estado_id === 5 ? (
+                            ) : solicitud.sol_estado_id ===
+                              ESTADO_SOLICITUD.APROBADA.id ? (
                               <span className="text-sm text-emerald-700">
                                 ¡Tu solicitud fue aprobada! Ya puedes operar
                                 con el cupo asignado.
                               </span>
-                            ) : solicitud.sol_estado_id === 1 ? (
+                            ) : solicitud.sol_estado_id ===
+                              ESTADO_SOLICITUD.BORRADOR.id ? (
                               <span className="text-sm text-yellow-700">
                                 Aún no has enviado tu solicitud. Complétala
                                 y envíala cuando estés listo.
@@ -578,11 +592,17 @@ export default function SolicitudesContent() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              {[1, 2].includes(solicitud.sol_estado_id) &&
+                              {[
+                                ESTADO_SOLICITUD.BORRADOR.id,
+                                ESTADO_SOLICITUD.PENDIENTE.id,
+                              ].includes(solicitud.sol_estado_id) &&
                                 !(
-                                  solicitud.sol_estado_id === 2 &&
-                                  solicitud.sol_etapa_actual_id === 3 &&
-                                  solicitud.sol_resultado_etapa_id === 3
+                                  solicitud.sol_estado_id ===
+                                    ESTADO_SOLICITUD.PENDIENTE.id &&
+                                  solicitud.sol_etapa_actual_id ===
+                                    WORKFLOW_ETAPA.ASC.id &&
+                                  solicitud.sol_resultado_etapa_id ===
+                                    WORKFLOW_RESULTADO.RECHAZADO.id
                                 ) && (
                                   <button
                                     onClick={() =>
@@ -686,19 +706,25 @@ export default function SolicitudesContent() {
               },
               {
                 title: "Pendientes",
-                count: solicitudes.filter((s) => s.sol_estado_id === 1).length,
+                count: solicitudes.filter(
+                  (s) => s.sol_estado_id === ESTADO_SOLICITUD.PENDIENTE.id,
+                ).length,
                 icon: Clock,
                 color: "text-yellow-500",
               },
               {
                 title: "Aprobadas",
-                count: solicitudes.filter((s) => s.sol_estado_id === 3).length,
+                count: solicitudes.filter(
+                  (s) => s.sol_estado_id === ESTADO_SOLICITUD.APROBADA.id,
+                ).length,
                 icon: CheckCircle,
                 color: "text-green-500",
               },
               {
                 title: "Rechazadas",
-                count: solicitudes.filter((s) => s.sol_estado_id === 4).length,
+                count: solicitudes.filter(
+                  (s) => s.sol_estado_id === ESTADO_SOLICITUD.RECHAZADA.id,
+                ).length,
                 icon: XCircle,
                 color: "text-red-500",
               },

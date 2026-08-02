@@ -7,8 +7,11 @@ import {
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
+import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
+import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
+import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
@@ -40,6 +43,9 @@ interface Solicitud {
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
   sol_observacion_ejn?: string | null;
+  sol_cupo_solicitado?: number | null;
+  sol_justificacion_ampliacion?: string | null;
+  sol_cupo_actual_referencia?: number | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
@@ -60,16 +66,6 @@ interface RegistroState {
   motivoRechazoId: number | null;
   guardando: boolean;
 }
-
-// Mismos códigos de estado que ESTADOS (workflow-labels.ts), con los
-// tokens de color del sistema visual nuevo (ver design_handoff_portal_rediseños).
-const ESTADO_TOKENS: Record<number, { color: string; bg: string }> = {
-  1: { color: "#b45309", bg: "#fffbeb" }, // Borrador
-  2: { color: "#b45309", bg: "#fffbeb" }, // Pendiente
-  3: { color: "#1d4ed8", bg: "#eff6ff" }, // En revisión (estado normal en esta pantalla)
-  5: { color: "#047857", bg: "#ecfdf5" }, // Aprobada
-  6: { color: "#b91c1c", bg: "#fef2f2" }, // Rechazada
-};
 
 export default function GestionOCPage() {
   const router = useRouter();
@@ -255,6 +251,17 @@ export default function GestionOCPage() {
                   </div>
                 </div>
 
+                {solicitud.sol_cupo_solicitado ? (
+                  <div className="mt-[22px]">
+                    <AmpliacionCupoResumen
+                      cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
+                      cupoSolicitado={solicitud.sol_cupo_solicitado}
+                      justificacion={solicitud.sol_justificacion_ampliacion}
+                      consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
+                      toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
+                    />
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
                   {/* Solicita cupo de crédito */}
                   <div
@@ -320,7 +327,7 @@ export default function GestionOCPage() {
                       </div>
                       <div>
                         <p className="text-[11px] text-[#94a3b8] mb-0.5">
-                          Toneladas mensuales Proyectadas 
+                          Toneladas mensuales Proyectadas
                         </p>
                         <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
                           {solicitud.sol_toneladas_proyectadas
@@ -335,6 +342,7 @@ export default function GestionOCPage() {
                     </p>
                   </div>
                 </div>
+                )}
               </div>
 
               {/* Cuerpo: revisión + historial */}
@@ -348,7 +356,10 @@ export default function GestionOCPage() {
                   </h2>
 
                   <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-                    <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={4} />
+                    <SoportesAnalisis
+                      solicitudId={solicitud.sol_id}
+                      wetId={WORKFLOW_ETAPA.OFC.id}
+                    />
 
                     {/* Observaciones de cumplimiento */}
                     <div>

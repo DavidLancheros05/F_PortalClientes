@@ -3,6 +3,10 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { ArrowLeft, Package } from "lucide-react";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
 import {
   pedidosService,
   type PedidoClienteResponse,
@@ -50,6 +54,9 @@ export default function MisPedidosPage() {
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   useEffect(() => {
     if (!user?.cliente_id && !user?.ejng_id) return;
 
@@ -71,6 +78,20 @@ export default function MisPedidosPage() {
 
     cargarPedidos();
   }, [user?.cliente_id, user?.ejng_id]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    filtroNumero,
+    filtroCliente,
+    filtroEstado,
+    filtroDescripcion,
+    filtroNumeroPedido,
+    filtroOrdenCompra,
+    filtroReferencia,
+    filtroFechaDesde,
+    filtroFechaHasta,
+  ]);
 
   const limpiarFiltros = () => {
     setFiltroNumero("");
@@ -174,23 +195,116 @@ export default function MisPedidosPage() {
     filtroFechaHasta,
   ]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-full mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push("/pedidos")}
-            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            ← Volver a pedidos
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Listado de pedidos</h1>
-          <p className="text-gray-600 mt-2">
-            Consulta y seguimiento de los pedidos asociados a tu usuario.
-          </p>
-        </div>
+  const pedidosPaginados = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return pedidosFiltrados.slice(start, start + pageSize);
+  }, [pedidosFiltrados, currentPage, pageSize]);
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+  async function exportarExcel() {
+    if (pedidosFiltrados.length === 0) return;
+
+    const XLSX = await import("xlsx");
+
+    const header = [
+      "Documento",
+      "Número",
+      "Cliente",
+      "NIT",
+      "Estado",
+      "Fecha creación",
+      "Fecha entrega",
+      "Orden de compra",
+      "Ítem",
+      "Referencia",
+      "Descripción",
+      "Cant. pedida",
+      "Cant. disponible",
+      "Cant. remisionada",
+      "Cant. pendiente",
+      "Peso pendiente",
+      "Volumen pendiente",
+      "Ciudad",
+      "Precio unitario",
+      "Precio por peso",
+      "Plan",
+      "Vlr. pendiente subtotal",
+      "Vlr. pendiente",
+      "Dirección",
+      "Vendedor",
+      "Valor neto",
+      "Valor bruto local",
+      "Peso pedida",
+      "CDV",
+      "Notas",
+    ];
+
+    const data = pedidosFiltrados.map((pedido) => [
+      pedido.numeroDocumento,
+      pedido.numero,
+      pedido.clienteRazonSocial,
+      pedido.nit,
+      pedido.estado,
+      formatFecha(pedido.fechaCreacion),
+      formatFecha(pedido.fechaEntrega),
+      pedido.ordenCompra || "-",
+      pedido.item,
+      pedido.referencia,
+      pedido.descripcionItem,
+      formatNumero(pedido.cantidadPedida),
+      formatNumero(pedido.cantidadDisponibleInsumo),
+      formatNumero(pedido.cantidadRemisionada),
+      formatNumero(pedido.cantidadPendiente),
+      formatNumero(pedido.pesoPendiente),
+      formatNumero(pedido.volumenPendiente),
+      pedido.ciudad,
+      formatNumero(pedido.precioUnitario),
+      formatNumero(pedido.precioPeso),
+      pedido.plan003 || "-",
+      formatNumero(pedido.valorPendienteSubtotal),
+      formatNumero(pedido.valorPendiente),
+      pedido.direccion,
+      pedido.vendedor,
+      formatNumero(pedido.valorNeto),
+      formatNumero(pedido.valorBrutoLocal),
+      formatNumero(pedido.pesoPedida),
+      pedido.cdv || "-",
+      pedido.notas || "-",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pedidos");
+
+    XLSX.writeFile(wb, `mis-pedidos-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
+      <div className="max-w-[90%] mx-auto mt-2 px-2">
+        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
+          {/* Header Section */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push("/pedidos")}
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
+              >
+                <ArrowLeft size={16} />
+                Volver
+              </button>
+              <div className="bg-white/20 rounded-full p-2 flex-shrink-0">
+                <Package className="text-white" size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg md:text-xl font-bold text-white">Listado de pedidos</h1>
+                <p className="text-xs md:text-sm text-blue-100 truncate">
+                  Consulta y seguimiento de los pedidos asociados a tu usuario.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 border-b border-gray-200 bg-white/50">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -317,15 +431,13 @@ export default function MisPedidosPage() {
               Limpiar filtros
             </button>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Listado de pedidos</h2>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-              {pedidosFiltrados.length} de {pedidos.length} registros
-            </span>
           </div>
+
+          <ResultsToolbar
+            count={pedidosFiltrados.length}
+            label={`de ${pedidos.length} pedido(s)`}
+            onExport={exportarExcel}
+          />
 
           {loading ? (
             <div className="p-8 text-center text-gray-600">
@@ -344,6 +456,7 @@ export default function MisPedidosPage() {
               Ningún pedido coincide con los filtros aplicados.
             </div>
           ) : (
+            <TableContainer>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -381,7 +494,7 @@ export default function MisPedidosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {pedidosFiltrados.map((pedido, index) => (
+                  {pedidosPaginados.map((pedido, index) => (
                     <tr
                       key={`${pedido.numeroDocumento}-${pedido.item}-${index}`}
                       className="hover:bg-gray-50"
@@ -436,6 +549,20 @@ export default function MisPedidosPage() {
                 </tbody>
               </table>
             </div>
+            </TableContainer>
+          )}
+
+          {!loading && !error && pedidosFiltrados.length > 0 && (
+            <TablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={pedidosFiltrados.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
           )}
         </div>
       </div>

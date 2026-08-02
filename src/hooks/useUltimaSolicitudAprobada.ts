@@ -9,6 +9,9 @@ export interface UltimaSolicitudAprobada {
   sol_estado_id: number;
   sol_fecha_creacion: string;
   sol_fecha_envio: string | null;
+  // Cupo vigente hoy (lo que ya tiene aprobado) — usado para validar que
+  // una Ampliación de Cupo pida un monto mayor, no el mismo o uno menor.
+  sol_cupo_aprobado: number | null;
   // Indexadas por fp_id de la versión en que se respondieron — solo sirve
   // como precarga directa si esa versión coincide con la activa.
   respuestas: RespuestasState;

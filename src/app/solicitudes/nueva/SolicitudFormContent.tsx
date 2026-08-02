@@ -211,6 +211,12 @@ export default function SolicitudFormContent({
 
   const tieneSolicitudesPrevias = ultimaSolicitudAprobada !== null;
 
+  // Cupo que el cliente ya tiene aprobado — sirve para exigir que una
+  // Ampliación de Cupo pida un monto mayor (ver getValidationRules /
+  // PreguntaRenderer, pregunta CUPO_SOLICITADO). null para Cliente Nuevo,
+  // que no tiene con qué comparar.
+  const cupoActualAprobado = ultimaSolicitudAprobada?.sol_cupo_aprobado ?? null;
+
   // IMPORTANTE: Memoizar respuestasUltima para evitar loops infinitos en usePrefillConfiguracion
   const respuestasUltima = useMemo(() => {
     return ultimaSolicitudAprobada?.respuestas || {};
@@ -649,6 +655,29 @@ export default function SolicitudFormContent({
 
     if (pregunta.fp_tipo === "FECHA") {
       rules.type = "date";
+    }
+
+    // Ampliación de Cupo: el nuevo cupo pedido no puede ser menor (ni
+    // igual) al que el cliente ya tiene aprobado — de lo contrario no es
+    // una "ampliación". cupoActualAprobado es null en Cliente Nuevo (no
+    // hay con qué comparar), así que ahí esta regla no aplica.
+    if (pregunta.fp_codigo === "CUPO_SOLICITADO" && cupoActualAprobado) {
+      const customPrevio = rules.custom;
+      rules.custom = (value) => {
+        if (customPrevio) {
+          const errorPrevio = customPrevio(value);
+          if (errorPrevio) return errorPrevio;
+        }
+        if (
+          value !== undefined &&
+          value !== null &&
+          value !== "" &&
+          Number(value) < cupoActualAprobado
+        ) {
+          return `El nuevo cupo solicitado no puede ser menor al cupo actual ($${cupoActualAprobado.toLocaleString("es-CO")})`;
+        }
+        return null;
+      };
     }
 
     return rules;
@@ -2096,6 +2125,7 @@ export default function SolicitudFormContent({
                           representanteLegal={representanteLegal}
                           clienteInfo={clienteInfo}
                           numeroSolicitud={numeroSolicitud}
+                          cupoActualAprobado={cupoActualAprobado}
                         />
                       ))}
                   </div>

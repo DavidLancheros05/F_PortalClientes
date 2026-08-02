@@ -62,14 +62,18 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       .trim()
       .toUpperCase(),
   );
-  const logout = () => {
+  const logout = async () => {
     // Se muestra antes de tocar nada más: bloquea la UI de inmediato para
-    // que no se pueda navegar a otra parte mientras la recarga a /login
-    // está en curso (antes, sin feedback visual, el usuario alcanzaba a
-    // hacer clic en el menú y entraba a una página protegida con la sesión
-    // a medio cerrar).
+    // que no se pueda navegar a otra parte mientras el logout está en
+    // curso (antes, sin feedback visual, el usuario alcanzaba a hacer clic
+    // en el menú y entraba a una página protegida con la sesión a medio
+    // cerrar).
     setLoggingOut(true);
-    logoutSesion();
+    // Espera a que termine (llamada al backend + limpieza local) antes de
+    // navegar — la cookie httpOnly solo se borra cuando llega la respuesta
+    // de /auth/logout; si se navega antes, el navegador puede abortar esa
+    // petición a mitad de camino y la cookie queda sin limpiar.
+    await logoutSesion();
     // Recarga completa (no router.push): limpia cualquier estado en memoria
     // y cache de navegación del cliente, y garantiza que la siguiente
     // petición pase de nuevo por proxy.ts en vez de arriesgarse a servir

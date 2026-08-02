@@ -76,7 +76,7 @@ export default function NuevoClientePage() {
         const tipos = Array.isArray(tiposData) ? tiposData : [];
         setCentros(
           Array.isArray(centrosData)
-            ? centrosData.map((c: any) => ({ id: c.cop_id, nombre: c.cop_nombre }))
+            ? centrosData.map((c) => ({ id: c.cop_id, nombre: c.cop_nombre }))
             : [],
         );
         setEjecutivos(Array.isArray(ejecutivosData) ? ejecutivosData : []);

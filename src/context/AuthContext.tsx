@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useEffect, useRef, useState, ReactNode } from "react";
-import Cookies from "js-cookie";
 import { usuariosService } from "@/services/usuarios/usuarios.service";
 import api from "@/services/core/api";
 
@@ -40,14 +39,14 @@ interface AuthContextProps {
   user: User | null;
   loading: boolean;
   login: (token: string, userData: any) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
   user: null,
   loading: true,
   login: () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -55,75 +54,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sesionCambiadaEnOtraPestana, setSesionCambiadaEnOtraPestana] =
     useState(false);
-  // Recuerda el token que ESTA pestaña cree tener activo, para poder
-  // comparar contra localStorage cuando otra pestaña lo cambia.
-  const tokenRef = useRef<string | null>(null);
+  // Recuerda el JSON de `user` que ESTA pestaña cree tener activo, para
+  // poder comparar contra localStorage cuando otra pestaña lo cambia. Ya no
+  // hay `token` en localStorage (Fase 2 de la migración de auth — el JWT
+  // real vive solo en la cookie httpOnly pc_token, invisible a JS por
+  // diseño), así que `user` es ahora la única señal de "hay sesión".
+  const userRef = useRef<string | null>(null);
 
-  // Cargar usuario desde localStorage al inicio
+  // Cargar usuario desde localStorage al inicio. No hay token que revisar
+  // acá: la credencial real es la cookie httpOnly, que el navegador ya
+  // manda sola en cada request (api.ts::withCredentials); si no es válida,
+  // el backend responde 401 y el interceptor de respuesta se encarga. Este
+  // efecto solo restaura el perfil cacheado para pintar la UI sin esperar
+  // una llamada al backend.
   useEffect(() => {
     let mounted = true;
 
     async function fetchUser() {
-      const token = localStorage.getItem("token");
-      tokenRef.current = token;
-      if (!token) {
+      const storedUser = localStorage.getItem("user");
+      userRef.current = storedUser;
+      if (!storedUser) {
         if (mounted) setLoading(false);
         return;
       }
 
-      // 🔹 Primero revisar localStorage
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        const normalizedUser: User = {
-          ...parsedUser,
-          rol:
-            typeof parsedUser.rol === "string"
-              ? {
-                  nombre: parsedUser.rol.toUpperCase(),
-                  rol_id:
-                    typeof parsedUser.rol_id === "number"
-                      ? parsedUser.rol_id
-                      : null,
-                  descripcion: "",
-                }
-              : parsedUser.rol,
-          rol_id:
-            typeof parsedUser.rol_id === "number"
-              ? parsedUser.rol_id
-              : (parsedUser.rol?.rol_id ?? null),
-          cliente_id: parsedUser.cliente_id ?? parsedUser.cli_id ?? null,
-          ejng_id: parsedUser.ejng_id ?? null,
-        };
-
-        if (mounted) {
-          setUser(normalizedUser);
-          localStorage.setItem("user", JSON.stringify(normalizedUser));
-          setLoading(false);
-        }
-        return;
-      }
-
-      // 🔹 Si tenemos token pero no user, confiamos en que el token es válido
-      // No hacemos getMe() porque puede fallar y limpiar el token válido
-      // console.log("[AuthContext] Token encontrado pero sin user en localStorage. Asumiendo token válido.");
+      const parsedUser = JSON.parse(storedUser);
+      const normalizedUser: User = {
+        ...parsedUser,
+        rol:
+          typeof parsedUser.rol === "string"
+            ? {
+                nombre: parsedUser.rol.toUpperCase(),
+                rol_id:
+                  typeof parsedUser.rol_id === "number"
+                    ? parsedUser.rol_id
+                    : null,
+                descripcion: "",
+              }
+            : parsedUser.rol,
+        rol_id:
+          typeof parsedUser.rol_id === "number"
+            ? parsedUser.rol_id
+            : (parsedUser.rol?.rol_id ?? null),
+        cliente_id: parsedUser.cliente_id ?? parsedUser.cli_id ?? null,
+        ejng_id: parsedUser.ejng_id ?? null,
+      };
 
       if (mounted) {
-        // Crear un user placeholder para permitir que el interceptor haga su trabajo
-        const placeholderUser: User = {
-          usr_id: 0,
-          nombre: "Usuario",
-          email: "",
-          activo: true,
-          rol: {
-            rol_id: null,
-            nombre: "USER",
-            descripcion: "",
-          },
-          cliente_id: null,
-        };
-        setUser(placeholderUser);
-        localStorage.setItem("user", JSON.stringify(placeholderUser));
+        setUser(normalizedUser);
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
         setLoading(false);
       }
     }
@@ -136,20 +115,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Detecta si otra pestaña de este navegador inició sesión con otra cuenta
-  // o cerró sesión (localStorage/cookies se comparten por origen, no por
-  // pestaña). Sin esto, esta pestaña seguía mostrando al usuario viejo en
-  // pantalla mientras el interceptor de axios (services/core/interceptors.ts)
-  // ya mandaba el token nuevo en cada request — es decir, actuaba en
-  // silencio como la cuenta de la otra pestaña. El evento "storage" solo se
-  // dispara en las pestañas QUE NO hicieron el cambio, así que es la señal
-  // correcta para avisarle a esta.
+  // o cerró sesión (localStorage se comparte por origen, no por pestaña).
+  // Sin esto, esta pestaña seguía mostrando al usuario viejo en pantalla
+  // mientras la cookie httpOnly ya era la de la otra cuenta — es decir,
+  // actuaba en silencio como la cuenta de la otra pestaña. El evento
+  // "storage" solo se dispara en las pestañas QUE NO hicieron el cambio,
+  // así que es la señal correcta para avisarle a esta.
   useEffect(() => {
     function handleStorageChange(e: StorageEvent) {
       // key === null ocurre con localStorage.clear() (ver logout más abajo).
-      if (e.key !== "token" && e.key !== null) return;
+      if (e.key !== "user" && e.key !== null) return;
 
-      const tokenActual = localStorage.getItem("token");
-      if (tokenActual !== tokenRef.current) {
+      const userActual = localStorage.getItem("user");
+      if (userActual !== userRef.current) {
         setSesionCambiadaEnOtraPestana(true);
       }
     }
@@ -158,16 +136,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Login: guardar token y usuario
-  const login = (token: string, userData: any) => {
-    // console.log("[AuthContext] login", userData);
-
-    localStorage.setItem("token", token);
-    tokenRef.current = token;
-    // Nombre propio del portal: las cookies de localhost no distinguen
-    // puerto, y otra app local con una cookie "token" la sobrescribiría
-    Cookies.set("pc_token", token, { expires: 7 });
-
+  // Login: guardar el perfil del usuario. El JWT ya no se guarda acá — el
+  // backend lo manda como cookie httpOnly en la misma respuesta de
+  // /auth/login (Fase 1 de documentacion/migracion-auth-httponly.md en
+  // B_PortalClientes); `token` se mantiene en la firma solo por
+  // compatibilidad con quien llama (login/page.tsx), sin usarlo.
+  const login = (_token: string, userData: any) => {
     const normalizedUser: User = {
       ...userData,
       rol:
@@ -188,25 +162,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     setUser(normalizedUser);
-    localStorage.setItem("user", JSON.stringify(normalizedUser));
+    const userJson = JSON.stringify(normalizedUser);
+    localStorage.setItem("user", userJson);
+    userRef.current = userJson;
   };
 
   // Logout: revoca la sesión del lado del servidor (invalida cualquier
-  // JWT ya emitido, no solo este) y limpia todo el estado local. Es la
-  // única implementación de logout de la app — antes había una segunda
-  // copia en Header.tsx que solo limpiaba el navegador sin avisarle al
-  // backend, dejando el JWT viejo utilizable hasta su expiración.
-  const logout = () => {
-    api.post("/auth/logout").catch(() => {
-      // Best-effort: si falla (token ya vencido, red caída, etc.) igual
+  // JWT ya emitido, no solo este — vía token_version) y le pide al backend
+  // que limpie la cookie httpOnly (Set-Cookie con Max-Age=0), además de
+  // limpiar el estado local. Es la única implementación de logout de la
+  // app — antes había una segunda copia en Header.tsx que solo limpiaba el
+  // navegador sin avisarle al backend, dejando el JWT viejo utilizable
+  // hasta su expiración.
+  //
+  // `async`/`await` a propósito (antes era fire-and-forget): la cookie
+  // httpOnly solo la puede borrar el backend vía Set-Cookie en la
+  // respuesta — antes de este cambio, la limpieza síncrona del lado del
+  // cliente (Cookies.remove) cubría el caso de que la página navegara a
+  // /login antes de que la petición terminara; ahora, si el caller
+  // (Header.tsx) navega sin esperar esta promesa, el navegador puede
+  // abortar la petición a mitad de camino y la cookie queda sin limpiar
+  // (verificado en vivo con Playwright: pasaba exactamente eso).
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Best-effort: si falla (sesión ya vencida, red caída, etc.) igual
       // se limpia la sesión local — no debe bloquear el logout del usuario.
-    });
+    }
 
     setUser(null);
     localStorage.clear();
-    tokenRef.current = null;
-    Cookies.remove("pc_token");
-    Cookies.remove("token");
+    userRef.current = null;
   };
 
   return (

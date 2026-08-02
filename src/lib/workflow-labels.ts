@@ -1,14 +1,29 @@
 // Centralized workflow labels to replace 8 hardcoded ESTADOS maps
 
-// Estado visible al cliente
+import { ESTADO_SOLICITUD_POR_ID } from "@/constants/estado-solicitud";
+
+// Textos que este archivo mostraba distinto al label "canónico" de
+// constants/estado-solicitud.ts (que usa "En revisión") — se preservan acá
+// para no cambiar el texto visible en las páginas que ya usan ESTADOS.
+const LABEL_OVERRIDES: Partial<Record<number, string>> = {
+  3: "Revisión",
+};
+
+// Estado visible al cliente — deriva del catálogo real
+// (constants/estado-solicitud.ts, que sí coincide con la tabla
+// `solicitud_estados`) en vez de mantener una segunda copia hardcodeada de
+// los mismos IDs que podía desincronizarse (ver
+// documentacion/auditoria-valores-quemados-hardcodeados.md). El "0: Sin
+// iniciar" no existe en el catálogo real, se mantiene como caso de UI
+// aparte (defensivo, ningún sol_estado_id real es 0).
 export const ESTADOS: Record<number, string> = {
   0: "Sin iniciar",
-  1: "Borrador",
-  2: "Pendiente",
-  3: "Revisión",
-  4: "Completada",
-  5: "Aprobada",
-  6: "Rechazada",
+  ...Object.fromEntries(
+    Object.values(ESTADO_SOLICITUD_POR_ID).map((estado) => [
+      estado.id,
+      LABEL_OVERRIDES[estado.id] ?? estado.label,
+    ]),
+  ),
 };
 
 // Etapas del workflow

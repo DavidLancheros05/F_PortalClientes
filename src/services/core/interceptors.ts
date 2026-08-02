@@ -1,24 +1,14 @@
 import { AxiosInstance } from "axios";
-import Cookies from "js-cookie";
 import { transformSnakeToCamel } from "@/lib/case-transformers";
 
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-  return null;
-}
-
 export const setupInterceptors = (api: AxiosInstance) => {
-  api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token") || getCookie("pc_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-
+  // Ya no arma el header Authorization a mano: la cookie httpOnly pc_token
+  // (Fase 1/2 de la migración de auth) viaja sola en cada request gracias a
+  // `withCredentials: true` en api.ts — el navegador la manda, y como es
+  // httpOnly, JS no puede leerla de todos modos (por diseño, para que un
+  // XSS no la robe). El backend (JwtAuthGuard) sigue aceptando también
+  // `Authorization: Bearer` para scripts/consumidores que no son este
+  // frontend (mint-jwt.mjs, curl, etc.).
   api.interceptors.response.use(
     (response) => {
       // Mantener snake_case consistente de la API
@@ -36,16 +26,16 @@ export const setupInterceptors = (api: AxiosInstance) => {
       );
 
       if (error.response?.status === 401) {
-        // Limpiar credenciales inválidas antes de redirigir — si no, el
-        // interceptor de request sigue reenviando el token vencido en cada
-        // llamada siguiente, generando 401 repetidos hasta un login manual.
-        // Recarga completa (no router.push) por la misma razón que el
-        // logout explícito en Header.tsx: garantiza que la siguiente
-        // petición pase de nuevo por proxy.ts en vez de arriesgarse a
-        // servir una página protegida ya cacheada del lado del cliente.
+        // Limpiar el perfil cacheado antes de redirigir. La cookie
+        // pc_token (httpOnly) no se puede borrar desde JS — no hace falta:
+        // si el backend ya la rechazó (vencida/revocada), seguirá
+        // rechazándola en cada request hasta que un login nuevo la
+        // sobreescriba con un Set-Cookie fresco; no es un problema de
+        // seguridad, solo queda "colgada" sin efecto. Recarga completa (no
+        // router.push) para que la siguiente petición pase de nuevo por
+        // proxy.ts en vez de arriesgarse a servir una página protegida ya
+        // cacheada del lado del cliente.
         localStorage.clear();
-        Cookies.remove("pc_token");
-        Cookies.remove("token");
         window.location.href = "/login";
       }
       return Promise.reject(error);

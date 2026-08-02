@@ -18,6 +18,33 @@ import type {
   Seccion,
 } from "./types";
 
+// Arreglos tipados explícitamente como Pregunta["fp_tipo"][]: sin la
+// anotación, TS infiere el tipo unión angosto de los literales listados y
+// .includes() rechaza cualquier valor del tipo completo (más amplio) que no
+// esté en esa lista puntual — de ahí salían los `as any` de más abajo.
+const TIPOS_CON_OPCIONES_FIJAS: Pregunta["fp_tipo"][] = [
+  TIPOS_PREGUNTA.SELECT,
+  TIPOS_PREGUNTA.MULTISELECT,
+  TIPOS_PREGUNTA.SELECT_CONDICIONAL,
+];
+const TIPOS_CATALOGO_DOCUMENTOS: Pregunta["fp_tipo"][] = [
+  TIPOS_PREGUNTA.ARCHIVO,
+  TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
+];
+const TIPOS_SIN_REQUERIDA: Pregunta["fp_tipo"][] = [
+  TIPOS_PREGUNTA.NOTA,
+  TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
+];
+const TIPOS_CON_SINCRONIZACION_OPCIONES: Pregunta["fp_tipo"][] = [
+  TIPOS_PREGUNTA.SELECT,
+  TIPOS_PREGUNTA.MULTISELECT,
+  TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
+];
+const TIPOS_SELECT_MULTISELECT: Pregunta["fp_tipo"][] = [
+  TIPOS_PREGUNTA.SELECT,
+  TIPOS_PREGUNTA.MULTISELECT,
+];
+
 const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   descripcion: "",
   codigo: undefined,
@@ -229,11 +256,9 @@ export function usePreguntaEditor({
     const preguntaPadre = preguntas.find(
       (p) => p.fp_id === formPregunta.dependencia_pregunta_id,
     );
-    const esDeOpciones = [
-      TIPOS_PREGUNTA.SELECT,
-      TIPOS_PREGUNTA.MULTISELECT,
-      TIPOS_PREGUNTA.SELECT_CONDICIONAL,
-    ].includes(preguntaPadre?.fp_tipo as any);
+    const esDeOpciones = Boolean(
+      preguntaPadre && TIPOS_CON_OPCIONES_FIJAS.includes(preguntaPadre.fp_tipo),
+    );
     if (!esDeOpciones) {
       setOpcionesPreguntaPadre([]);
       return;
@@ -283,9 +308,7 @@ export function usePreguntaEditor({
 
   useEffect(() => {
     if (
-      ![TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA].includes(
-        formPregunta.tipo as any,
-      ) ||
+      !TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo) ||
       (!nuevaPregunta && !editandoPregunta)
     ) {
       return;
@@ -393,7 +416,7 @@ export function usePreguntaEditor({
   const puedeGuardarPregunta = useMemo(() => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
     const requiereDescripcion =
-      (formPregunta.tipo as any) !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
+      formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
     if ((requiereDescripcion && !descripcionNormalizada) || !targetSeccionId) {
@@ -444,7 +467,7 @@ export function usePreguntaEditor({
   const guardarPregunta = async () => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
     const requiereDescripcion =
-      (formPregunta.tipo as any) !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
+      formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
     if ((requiereDescripcion && !descripcionNormalizada) || !targetSeccionId) {
@@ -536,10 +559,7 @@ export function usePreguntaEditor({
         fp_descripcion: descripcionPersistida,
         fp_tipo: formPregunta.tipo,
         fp_estado: true,
-        fp_requerida: [
-          TIPOS_PREGUNTA.NOTA,
-          TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-        ].includes(formPregunta.tipo as any)
+        fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo)
           ? false
           : formPregunta.requerida,
         fp_orden: ordenFinal,
@@ -570,10 +590,9 @@ export function usePreguntaEditor({
             : formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA
               ? "tdo_id"
               : null,
-        fp_tipo_documento_id: [
-          TIPOS_PREGUNTA.ARCHIVO,
-          TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-        ].includes(formPregunta.tipo as any)
+        fp_tipo_documento_id: TIPOS_CATALOGO_DOCUMENTOS.includes(
+          formPregunta.tipo,
+        )
           ? formPregunta.tipo_documento_id
           : null,
         fp_pregunta_padre_id: formPregunta.dependiente
@@ -704,10 +723,7 @@ export function usePreguntaEditor({
             fp_descripcion: `${descripcionPersistida} - Fecha de emisión`,
             fp_tipo: TIPOS_PREGUNTA.FECHA,
             fp_estado: true,
-            fp_requerida: [
-              TIPOS_PREGUNTA.NOTA,
-              TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-            ].includes(formPregunta.tipo as any)
+            fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo)
               ? false
               : formPregunta.requerida,
             fp_orden: nuevoOrden + 1,
@@ -722,11 +738,7 @@ export function usePreguntaEditor({
 
         if (
           creada?.fp_id &&
-          [
-            TIPOS_PREGUNTA.SELECT,
-            TIPOS_PREGUNTA.MULTISELECT,
-            TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-          ].includes(formPregunta.tipo as any)
+          TIPOS_CON_SINCRONIZACION_OPCIONES.includes(formPregunta.tipo)
         ) {
           await formularioPreguntasService.syncOpciones(
             creada.fp_id,
@@ -871,9 +883,7 @@ export function usePreguntaEditor({
     setFiltroLlave(pregunta.fp_catalogo_pk_column ?? "");
 
     if (
-      [TIPOS_PREGUNTA.SELECT, TIPOS_PREGUNTA.MULTISELECT].includes(
-        pregunta.fp_tipo as any,
-      ) &&
+      TIPOS_SELECT_MULTISELECT.includes(pregunta.fp_tipo) &&
       Array.isArray(pregunta.opciones)
     ) {
       // El listado de preguntas ya trae las opciones precargadas (endpoint
@@ -887,11 +897,7 @@ export function usePreguntaEditor({
           ),
       );
     } else if (
-      [
-        TIPOS_PREGUNTA.SELECT,
-        TIPOS_PREGUNTA.MULTISELECT,
-        TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-      ].includes(pregunta.fp_tipo as any) &&
+      TIPOS_CON_SINCRONIZACION_OPCIONES.includes(pregunta.fp_tipo) &&
       !readonly
     ) {
       try {
@@ -1017,7 +1023,7 @@ export function usePreguntaEditor({
             dependientes.map((p) =>
               formularioPreguntasService.update(p.fp_id, {
                 fp_valor_padre_disparador: valorNuevo,
-              } as any),
+              }),
             ),
           );
           // Actualizar el estado local en lugar de recargar todo
@@ -1116,7 +1122,7 @@ export function usePreguntaEditor({
             fp_orden: pregunta.fp_orden,
             seccion_id: pregunta.seccion_id,
             fp_estado: pregunta.fp_estado,
-          } as any),
+          }),
         ),
       );
     } catch (error) {
@@ -1177,14 +1183,14 @@ export function usePreguntaEditor({
           fp_orden: preguntaSwap.fp_orden,
           seccion_id: preguntaActual.seccion_id,
           fp_estado: preguntaActual.fp_estado,
-        } as any),
+        }),
         formularioPreguntasService.update(preguntaSwap.fp_id, {
           fp_descripcion: preguntaSwap.fp_descripcion,
           fp_tipo: preguntaSwap.fp_tipo,
           fp_orden: preguntaActual.fp_orden,
           seccion_id: preguntaSwap.seccion_id,
           fp_estado: preguntaSwap.fp_estado,
-        } as any),
+        }),
       ]);
       // Actualizar el estado local intercambiando órdenes
       setPreguntas((prev) =>

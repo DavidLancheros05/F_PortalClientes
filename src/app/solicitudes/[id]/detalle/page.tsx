@@ -11,6 +11,7 @@ import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSoli
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
+import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -43,6 +44,8 @@ interface SolicitudDetalle {
   sol_estado_llenado?: string;
   sol_formulario_progreso_porcentaje?: number;
   sol_cupo_solicitado?: number;
+  sol_justificacion_ampliacion?: string | null;
+  sol_cupo_actual_referencia?: number | null;
 }
 
 function formatDate(value?: string | null) {
@@ -530,6 +533,15 @@ export default function DetalleDetailPage() {
                 Información Comercial
               </h2>
             </div>
+            {solicitud.sol_cupo_solicitado ? (
+              <AmpliacionCupoResumen
+                cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
+                cupoSolicitado={solicitud.sol_cupo_solicitado}
+                justificacion={solicitud.sol_justificacion_ampliacion}
+                consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
+                toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
+              />
+            ) : (
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-gray-500 uppercase">Consumo Mensual Proyectado</p>
@@ -554,6 +566,7 @@ export default function DetalleDetailPage() {
                 </p>
               </div>
             </div>
+            )}
           </div>
 
           {/* Condiciones Financieras */}

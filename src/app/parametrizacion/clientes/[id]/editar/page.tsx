@@ -1,6 +1,7 @@
 "use client";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { centrosOperacionService } from "@/services/centros-operacion/centros-operacion.service";
+import type { TipoIdentificacionResponse } from "@/types/api.types";
 import {
   maestrosService,
   type Pais,
@@ -85,7 +86,7 @@ export default function EditarClientePage() {
             maestrosService.getPaises(),
           ]);
 
-        let tiposData: any[] = [];
+        let tiposData: TipoIdentificacionResponse[] = [];
         try {
           tiposData = await clientesService.getTiposIdentificacion();
         } catch (err) {
@@ -105,17 +106,17 @@ export default function EditarClientePage() {
         setHabilitaAcceso(Boolean(clienteData.cli_acceso_portal_clientes));
         setCentroOperacionIds(
           Array.isArray(clienteCentrosData)
-            ? clienteCentrosData.map((c: any) => c.cop_id || c.id)
+            ? clienteCentrosData.map((c) => c.cop_id)
             : [],
         );
         setCentros(
           Array.isArray(centrosData)
-            ? centrosData.map((c: any) => ({ id: c.cop_id, nombre: c.cop_nombre }))
+            ? centrosData.map((c) => ({ id: c.cop_id, nombre: c.cop_nombre }))
             : [],
         );
         setEjecutivos(
           Array.isArray(ejecutivosData)
-            ? ejecutivosData.map((e: any) => ({
+            ? ejecutivosData.map((e) => ({
                 id: e.ejng_id,
                 nombre: e.ejng_nombre,
               }))

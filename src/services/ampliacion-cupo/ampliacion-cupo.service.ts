@@ -4,7 +4,10 @@ export interface AmpliacionCupoPayload {
   clienteId: number;
   nuevoCupo: number;
   justificacion: string;
+  consumoMensualProyectado: number;
+  toneladasProyectadas: number;
   solicitudAnteriorId?: number;
+  cupoActualReferencia?: number;
 }
 
 export interface AmpliacionCupo {

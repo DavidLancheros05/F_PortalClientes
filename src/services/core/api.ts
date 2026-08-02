@@ -9,6 +9,11 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  // Necesario para que el navegador guarde/mande la cookie httpOnly pc_token
+  // que pone el backend (Fase 1 de documentacion/migracion-auth-httponly.md
+  // en B_PortalClientes) — sin esto, al ser cross-site (vercel.app ↔
+  // onrender.com), el navegador ignora el Set-Cookie de la respuesta.
+  withCredentials: true,
 });
 
 setupInterceptors(api);

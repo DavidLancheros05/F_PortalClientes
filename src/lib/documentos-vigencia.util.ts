@@ -126,8 +126,15 @@ export function getArchivoPreviewUrl(
 ): string | null {
   if (!archivo) return null;
 
+  // Documentos heredados del archivo consolidado del cliente (Cliente_archivo
+  // — ver flujo-ampliacion-de-cupo.md, Camino 2) no son un Solicitud_archivo
+  // de ESTA solicitud: su sa_id es en realidad un ca_id, y el endpoint
+  // GET /solicitudes/:id/respuestas/archivo/:saId exige sa_sol_id = :id, así
+  // que armar esa URL daría 404. Van directo a sa_ruta_almacenamiento.
+  const esDeArchivoCliente = archivo.sa_origen === "cliente_archivo";
+
   // Prioridad 1: Usar el API endpoint si tenemos sa_id
-  if (solicitudId && archivo.sa_id) {
+  if (!esDeArchivoCliente && solicitudId && archivo.sa_id) {
     return `/api/solicitudes/${solicitudId}/respuestas/archivo/${archivo.sa_id}`;
   }
 

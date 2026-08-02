@@ -4,27 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { correosRolService } from "@/services/parametrizacion/correos-rol.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
-
-type RolBasico = {
-  rol_id: number;
-  rol_nombre: string;
-  rol_codigo: string;
-};
-
-type CorreoPorRol = {
-  correo_id: number;
-  rol_id: number;
-  rol_nombre: string;
-  rol_codigo: string;
-  email: string;
-  activo: boolean;
-};
+import type { RolResponse, CorreoPorRolResponse } from "@/types/api.types";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function CorreosPorRolPage() {
-  const [roles, setRoles] = useState<RolBasico[]>([]);
-  const [items, setItems] = useState<CorreoPorRol[]>([]);
+  const [roles, setRoles] = useState<RolResponse[]>([]);
+  const [items, setItems] = useState<CorreoPorRolResponse[]>([]);
   const [rolId, setRolId] = useState<number | "">("");
   const [email, setEmail] = useState("");
 
@@ -43,7 +29,7 @@ export default function CorreosPorRolPage() {
     action?: () => void;
     confirmText?: string;
     isDangerous?: boolean;
-    item?: CorreoPorRol;
+    item?: CorreoPorRolResponse;
   }>({
     isOpen: false,
     type: "error",
@@ -117,7 +103,7 @@ export default function CorreosPorRolPage() {
     });
   };
 
-  const iniciarEdicion = (item: CorreoPorRol) => {
+  const iniciarEdicion = (item: CorreoPorRolResponse) => {
     setEditingId(item.correo_id);
     setEditingEmail(item.email);
   };
@@ -161,7 +147,7 @@ export default function CorreosPorRolPage() {
     });
   };
 
-  const toggleEstado = (item: CorreoPorRol) => {
+  const toggleEstado = (item: CorreoPorRolResponse) => {
     setModalState({
       isOpen: true,
       type: "confirm",

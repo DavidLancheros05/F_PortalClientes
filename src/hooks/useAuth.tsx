@@ -6,12 +6,13 @@ export function useAuth(requiredRoles?: number | number[]) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-
-    console.log("hooks useAuth")
-    const token = localStorage.getItem("token");
+    // Ya no hay `token` en localStorage (Fase 2 de la migración de auth —
+    // el JWT real vive en la cookie httpOnly pc_token, invisible a JS). La
+    // señal de "hay sesión" pasa a ser la sola presencia de `user`; la
+    // credencial real la valida el backend en cada request via la cookie.
     const userStr = localStorage.getItem("user");
 
-    if (!token || !userStr) {
+    if (!userStr) {
       const destino = `${window.location.pathname}${window.location.search}`;
       router.push(`/login?next=${encodeURIComponent(destino)}`);
       return;
@@ -39,7 +40,6 @@ export function useAuth(requiredRoles?: number | number[]) {
   }, [router, requiredRoles]);
 
   const logout = () => {
-    localStorage.removeItem("token");
     localStorage.removeItem("user");
     router.push("/login");
   };

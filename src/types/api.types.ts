@@ -148,7 +148,8 @@ export interface FormularioPreguntaResponse {
     | "SELECT_CONDICIONAL"
     | "ARCHIVO"
     | "TABLA"
-    | "IMAGEN";
+    | "IMAGEN"
+    | "ESPACIO_FIRMA";
   fp_estado: boolean;
   fp_orden: number;
   fp_version: number;

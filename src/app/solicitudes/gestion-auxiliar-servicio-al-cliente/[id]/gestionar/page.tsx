@@ -4,6 +4,7 @@ import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,9 @@ interface Solicitud {
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
   sol_observaciones_comercial: string | null;
+  sol_cupo_solicitado?: number | null;
+  sol_justificacion_ampliacion?: string | null;
+  sol_cupo_actual_referencia?: number | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
@@ -349,6 +353,17 @@ export default function GestionarSolicitudPage() {
 
                 {/* Solicita Cupo — el dato que más pesa en esta gestión, por
                     eso destacado aparte del grid y no como una celda más */}
+                {solicitud.sol_cupo_solicitado ? (
+                  <div className="mt-4">
+                    <AmpliacionCupoResumen
+                      cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
+                      cupoSolicitado={solicitud.sol_cupo_solicitado}
+                      justificacion={solicitud.sol_justificacion_ampliacion}
+                      consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
+                      toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
+                    />
+                  </div>
+                ) : (
                 <div
                   className={`mt-4 rounded-xl border-2 p-4 ${
                     solicitaCredito
@@ -387,6 +402,7 @@ export default function GestionarSolicitudPage() {
                     </p>
                   )}
                 </div>
+                )}
                 {solicitud.observacionesComercial && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-600 mb-2">

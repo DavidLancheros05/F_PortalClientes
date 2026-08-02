@@ -32,6 +32,10 @@ interface PreguntaRendererProps {
   departamentos: any[];
   ciudades: any[];
   fechaHoraActualFormateada: string;
+  // Cupo ya aprobado del cliente — se muestra como referencia junto a la
+  // pregunta CUPO_SOLICITADO en una Ampliación de Cupo. null si no aplica
+  // (ej. Cliente Nuevo).
+  cupoActualAprobado?: number | null;
   setRespuestas: Dispatch<SetStateAction<RespuestasState>>;
   setArchivosExistentes: Dispatch<SetStateAction<Record<number, any>>>;
   setSuccessMessage: (value: string) => void;
@@ -104,6 +108,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     representanteLegal,
     clienteInfo,
     numeroSolicitud,
+    cupoActualAprobado,
   } = props;
 
   // Crece con el contenido en vez de quedar de una sola línea — útil para
@@ -170,6 +175,12 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                 {pregunta.fp_descripcion_adicional.trim()}
               </p>
             )}
+          {pregunta.fp_codigo === "CUPO_SOLICITADO" && cupoActualAprobado && (
+            <p className="mb-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              Cupo actual: ${cupoActualAprobado.toLocaleString("es-CO")} — el
+              nuevo cupo debe ser mayor a este valor.
+            </p>
+          )}
         </>
       )}
 

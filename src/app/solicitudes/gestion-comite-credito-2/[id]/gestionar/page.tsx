@@ -8,8 +8,11 @@ import {
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
+import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
+import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
+import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +45,9 @@ interface Solicitud {
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
   sol_observacion_ejn?: string | null;
+  sol_cupo_solicitado?: number | null;
+  sol_justificacion_ampliacion?: string | null;
+  sol_cupo_actual_referencia?: number | null;
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
@@ -73,16 +79,6 @@ interface DiasRespuesta {
   [key: string]: number;
 }
 
-// Mismos códigos de estado que ESTADOS (workflow-labels.ts), con los
-// tokens de color del sistema visual nuevo (ver design_handoff_portal_rediseños).
-const ESTADO_TOKENS: Record<number, { color: string; bg: string }> = {
-  1: { color: "#b45309", bg: "#fffbeb" }, // Borrador
-  2: { color: "#b45309", bg: "#fffbeb" }, // Pendiente
-  3: { color: "#1d4ed8", bg: "#eff6ff" }, // En revisión (estado normal en esta pantalla)
-  5: { color: "#047857", bg: "#ecfdf5" }, // Aprobada
-  6: { color: "#b91c1c", bg: "#fef2f2" }, // Rechazada
-};
-
 export default function GestionComiteCredito2Page() {
   const router = useRouter();
   const params = useParams();
@@ -99,8 +95,16 @@ export default function GestionComiteCredito2Page() {
   // El concepto del Ejecutivo de Negocios se muestra en su propia
   // subsección (consumo + observación), por eso no se repite aquí.
   const etapasPrevias = [
-    { codigo: "OFC", wetId: 4, nombre: "Oficial de Cumplimiento" },
-    { codigo: "CC1", wetId: 5, nombre: "Comité de Crédito 1" },
+    {
+      codigo: WORKFLOW_ETAPA.OFC.codigo,
+      wetId: WORKFLOW_ETAPA.OFC.id,
+      nombre: "Oficial de Cumplimiento",
+    },
+    {
+      codigo: WORKFLOW_ETAPA.CC1.codigo,
+      wetId: WORKFLOW_ETAPA.CC1.id,
+      nombre: "Comité de Crédito 1",
+    },
   ];
   const [registro, setRegistro] = useState<RegistroState>({
     recomendacion: "",
@@ -294,6 +298,17 @@ export default function GestionComiteCredito2Page() {
                   </div>
                 </div>
 
+                {solicitud.sol_cupo_solicitado ? (
+                  <div className="mt-[22px]">
+                    <AmpliacionCupoResumen
+                      cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
+                      cupoSolicitado={solicitud.sol_cupo_solicitado}
+                      justificacion={solicitud.sol_justificacion_ampliacion}
+                      consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
+                      toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
+                    />
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-4 mt-[22px]">
                   {/* Solicita cupo de crédito */}
                   <div
@@ -372,6 +387,7 @@ export default function GestionComiteCredito2Page() {
                     </p>
                   </div>
                 </div>
+                )}
 
                 {/* Conceptos de etapas previas (OFC, CC1) — contexto de
                     solo lectura, se mantienen con su color azul distintivo

@@ -118,10 +118,13 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    // Ya no hay `token` en localStorage (Fase 2 de la migración de auth —
+    // el JWT real vive en la cookie httpOnly pc_token). `user` es la única
+    // señal local de "hay sesión"; la credencial real la valida el backend
+    // en cada request vía la cookie.
     const savedUser = localStorage.getItem("user");
 
-    if (!token || !savedUser) {
+    if (!savedUser) {
       router.replace("/login");
       return;
     }
