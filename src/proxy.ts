@@ -57,6 +57,14 @@ export async function proxy(req: NextRequest) {
   const token = req.cookies.get("pc_token")?.value;
 
   if (!token) {
+    // Log temporal para diagnosticar el bloqueo de cookies de terceros
+    // (ver documentacion/migracion-auth-httponly.md en B_PortalClientes):
+    // si el navegador nunca guardó/mandó pc_token, este es el caso que
+    // dispara — distingue "no llegó ninguna cookie" de "llegó pero es
+    // inválida" (más abajo) o "rol rechazado".
+    console.warn(
+      `[proxy] Sin cookie pc_token → redirigiendo a /login. path=${pathname} cookies_presentes=${req.cookies.getAll().map((c) => c.name).join(",") || "ninguna"}`,
+    );
     return redirectToLogin(req);
   }
 
@@ -68,6 +76,9 @@ export async function proxy(req: NextRequest) {
 
     // 4️⃣ Rechazar roles fuera de la whitelist, aunque la firma sea válida
     if (!ROLES_PERMITIDOS.includes(String(payload.rol))) {
+      console.warn(
+        `[proxy] Rol "${payload.rol}" fuera de la whitelist → redirigiendo a /login. path=${pathname}`,
+      );
       const response = redirectToLogin(req);
       response.cookies.delete("pc_token");
       return response;
@@ -76,7 +87,9 @@ export async function proxy(req: NextRequest) {
     // 5️⃣ Continuar si es válido
     return NextResponse.next();
   } catch (error: any) {
-    console.error("JWT inválido:", error?.message || error);
+    console.error(
+      `[proxy] JWT inválido → redirigiendo a /login. path=${pathname} error=${error?.message || error}`,
+    );
 
     const response = redirectToLogin(req);
     response.cookies.delete("pc_token");

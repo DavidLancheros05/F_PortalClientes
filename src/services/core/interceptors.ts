@@ -26,6 +26,20 @@ export const setupInterceptors = (api: AxiosInstance) => {
       );
 
       if (error.response?.status === 401) {
+        // Log temporal para diagnosticar el bloqueo de cookies de terceros
+        // (ver documentacion/migracion-auth-httponly.md en B_PortalClientes):
+        // si esto se dispara justo después de un login exitoso, es señal de
+        // que el navegador nunca guardó/mandó la cookie httpOnly cross-site
+        // pc_token (ej. Safari ITP, o "bloquear cookies de terceros" en
+        // Chrome/Edge) — el login se ve exitoso en los logs del backend pero
+        // la sesión nunca queda activa en el navegador. No se puede leer
+        // pc_token desde document.cookie para confirmarlo (es httpOnly, por
+        // diseño) — este log solo marca CUÁNDO pasa, hay que cruzarlo con
+        // la pestaña Application/Cookies del navegador para confirmar si la
+        // cookie llegó a guardarse o no.
+        console.warn(
+          `[interceptor] 401 en ${method} ${url} → limpiando sesión y redirigiendo a /login.`,
+        );
         // Limpiar el perfil cacheado antes de redirigir. La cookie
         // pc_token (httpOnly) no se puede borrar desde JS — no hace falta:
         // si el backend ya la rechazó (vencida/revocada), seguirá
