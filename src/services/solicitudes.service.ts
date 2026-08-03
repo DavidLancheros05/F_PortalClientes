@@ -589,7 +589,10 @@ export const solicitudesService = {
     respuestas: any,
     preguntas: any[],
     clienteId: number,
-    usuarioId: number,
+    // null cuando lo guarda un cliente (sol_usuario_crea/usuario_modifica
+    // solo tiene sentido para personal interno — ver comentario en el
+    // caller, SolicitudFormContent.tsx::handleGuardarParcial).
+    usuarioId: number | null,
     hasValorEnRespuesta: (r: any) => boolean,
     archivosExistentes?: Record<number, any>,
   ) {

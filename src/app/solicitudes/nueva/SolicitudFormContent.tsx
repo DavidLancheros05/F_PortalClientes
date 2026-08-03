@@ -1803,7 +1803,14 @@ export default function SolicitudFormContent({
         respuestasCambiadas,
         preguntas,
         getClienteIdForSolicitud(),
-        user.usr_id,
+        // Mismo criterio que handleGuardarFinal/confirmarGuardar (línea
+        // ~1654): para un cliente, user.usr_id en realidad guarda su
+        // cli_id (payload del JWT overloaded — ver AuthService.loginCliente
+        // en el backend), no un usuarios.usr_id real. Mandarlo tal cual
+        // rompía sol_usuario_crea (FK a Usuarios) para cualquier cliente
+        // que usara "Guardar Borrador" — el flujo de "Enviar" ya tenía
+        // este chequeo, este no.
+        isClienteUser ? null : user.usr_id,
         hasValorEnRespuesta,
         archivosExistentes,
       );

@@ -1,6 +1,7 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
+import { ESTADOS } from "@/lib/workflow-labels";
+import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
@@ -8,8 +9,9 @@ import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoRe
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import { ArrowLeft, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, Wallet } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
@@ -64,8 +66,8 @@ export default function GestionarSolicitudPage() {
   const solicitudId = params?.id ? Number(params.id) : null;
 
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
-  const [historial, setHistorial] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
   const [gestion, setGestion] = useState<GestionState>({
     aprobado: undefined,
     modo_solucion: null,
@@ -109,20 +111,7 @@ export default function GestionarSolicitudPage() {
       try {
         setLoading(true);
         const solicitudData = await solicitudesService.getById(solicitudId);
-
-        // console.log("[Gestionar] Datos de solicitud recibidos:", solicitudData);
         setSolicitud(solicitudData);
-
-        // Cargar historial de forma independiente (opcional)
-        try {
-          const historialData =
-            await solicitudesService.obtenerHistorialWorkflow(solicitudId);
-          // console.log("[Gestionar] Historial recibido:", historialData);
-          setHistorial(historialData);
-        } catch (historialError) {
-          // console.wakrn("[Gestionar] Error cargando historial (continuando sin él):", historialError);
-          setHistorial(null);
-        }
       } catch (error) {
         console.error("Error cargando datos:", error);
         alert("Error al cargar la solicitud");
@@ -210,140 +199,88 @@ export default function GestionarSolicitudPage() {
     (solicitud as any)?.sol_fecha_estimada_auxiliar_servicio_cliente ||
     (solicitud as any)?.fecha_estimada_auxiliar_servicio_cliente;
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-[90%] mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Aprobar o Rechazar Formulario de Solicitud
-          </h1>
-          {loading ? (
-            <div className="h-5 bg-gray-200 rounded w-64 animate-pulse" />
-          ) : solicitud ? (
-            <p className="text-gray-600">
-              Aprueba o rechaza la solicitud:{" "}
-              <span className="font-semibold">
-                {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
-              </span>
-            </p>
-          ) : null}
-        </div>
+  const estadoId = solicitud?.sol_estado_id ?? solicitud?.estado_id ?? 1;
+  const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
 
-        {loading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse">
-            <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-1/3" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="h-12 bg-gray-100 rounded" />
-                <div className="h-12 bg-gray-100 rounded" />
-                <div className="h-12 bg-gray-100 rounded" />
-                <div className="h-12 bg-gray-100 rounded" />
-              </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a]">
+      <div className="max-w-[1240px] mx-auto px-5 pt-7 pb-[70px]">
+        <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]">
+          {/* Header */}
+          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
+            >
+              <ArrowLeft size={15} strokeWidth={2.3} />
+            </button>
+            <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
+              <FileText size={20} className="text-white" strokeWidth={2} />
             </div>
-            <div className="lg:col-span-1 space-y-6">
-              <div className="h-40 bg-white rounded-lg border border-gray-200" />
+            <div className="min-w-0">
+              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">
+                Gestión Auxiliar Servicio al Cliente
+              </h1>
+              {solicitud && (
+                <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
+                  Solicitud{" "}
+                  <span className="font-bold text-white">
+                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
-        ) : !solicitud ? (
-          <div className="max-w-2xl">
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+
+          {loading ? (
+            <div className="px-8 py-6 animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="h-48 bg-gray-100 rounded" />
+            </div>
+          ) : !solicitud ? (
+            <div className="p-8 text-center">
               <p className="text-gray-600">No se encontró la solicitud</p>
             </div>
-          </div>
-        ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Formulario de Gestión - Columna Izquierda (2/3) */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              {/* Información de la solicitud */}
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Información de la Solicitud
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ) : (
+            <>
+              {/* Info block */}
+              <div className="px-7 py-[26px] border-b border-[#eef1f6]">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Numero Solicitud
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Cliente
                     </p>
-                    <p className="font-medium text-gray-900">
-                      {solicitud.sol_numero_solicitud ||
-                        solicitud.numero_solicitud}
-                    </p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Cliente</p>
-                    <p className="font-medium text-gray-900">
-                      {solicitud.cliente_nombre}
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Centro de operación
                     </p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.centro_operacion_nombre}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Centro de Operación
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Estado
                     </p>
-                    <p className="font-medium text-gray-900">
-                      {solicitud.centro_operacion_nombre}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Estado</p>
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                        (solicitud.sol_estado_id ?? solicitud.estado_id) === 1
-                          ? "bg-yellow-100 text-yellow-800"
-                          : (solicitud.sol_estado_id ?? solicitud.estado_id) ===
-                              2
-                            ? "bg-blue-100 text-blue-800"
-                            : (solicitud.sol_estado_id ??
-                                  solicitud.estado_id) === 3
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                      }`}
+                      className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
+                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}
                     >
-                      {ESTADOS[
-                        solicitud.sol_estado_id ?? solicitud.estado_id
-                      ] || "Desconocido"}
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
+                      {ESTADOS[estadoId] || "Desconocido"}
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Consumo Proyectado (COP)
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Fecha estimada respuesta
                     </p>
-                    <p className="font-medium text-gray-900">
-                      {solicitud?.sol_consumo_mensual_proyectado ||
-                      solicitud?.consumo_mensual_proyectado
-                        ? `$${(
-                            solicitud?.sol_consumo_mensual_proyectado ||
-                            solicitud?.consumo_mensual_proyectado
-                          )?.toLocaleString("es-CO", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}`
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Toneladas Mensuales Proyectadas
-                    </p>
-                    <p className="font-medium text-gray-900">
-                      {solicitud?.sol_toneladas_proyectadas
-                        ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                        : "-"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">
-                      Fecha Estimada Respuesta
-                    </p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-sm font-bold text-[#0f172a] m-0">
                       {fechaEstimada
                         ? new Date(fechaEstimada).toLocaleDateString("es-CO")
                         : "-"}
@@ -354,7 +291,7 @@ export default function GestionarSolicitudPage() {
                 {/* Solicita Cupo — el dato que más pesa en esta gestión, por
                     eso destacado aparte del grid y no como una celda más */}
                 {solicitud.sol_cupo_solicitado ? (
-                  <div className="mt-4">
+                  <div className="mt-[22px]">
                     <AmpliacionCupoResumen
                       cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
                       cupoSolicitado={solicitud.sol_cupo_solicitado}
@@ -364,237 +301,240 @@ export default function GestionarSolicitudPage() {
                     />
                   </div>
                 ) : (
-                <div
-                  className={`mt-4 rounded-xl border-2 p-4 ${
-                    solicitaCredito
-                      ? "border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50/60"
-                      : "border-gray-200 bg-gray-50/60"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
+                    {/* Solicita cupo de crédito */}
                     <div
-                      className={`rounded-full p-1.5 ${solicitaCredito ? "bg-emerald-100" : "bg-gray-200"}`}
+                      className="rounded-2xl p-5 border"
+                      style={{
+                        borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
+                        background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
+                      }}
                     >
-                      <Wallet
-                        className={`h-4 w-4 ${solicitaCredito ? "text-emerald-700" : "text-gray-500"}`}
-                      />
-                    </div>
-                    <p
-                      className={`text-xs font-bold uppercase tracking-wide ${solicitaCredito ? "text-emerald-800" : "text-gray-500"}`}
-                    >
-                      Solicita Cupo de Crédito
-                    </p>
-                  </div>
-                  {solicitaCredito ? (
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 pl-1">
-                      <span className="text-2xl font-bold text-emerald-900">
-                        {montoSolicitadoTexto || "Monto no especificado"}
-                      </span>
-                      {formaPagoSolicitada && (
-                        <span className="inline-flex items-center rounded-full bg-white border border-emerald-300 px-2.5 py-1 text-xs font-semibold text-emerald-800">
-                          {formaPagoSolicitada}
+                      <div className="flex items-center gap-[9px] mb-2.5">
+                        <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+                          <Wallet
+                            size={14}
+                            strokeWidth={2.2}
+                            style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
+                          />
+                        </div>
+                        <span
+                          className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
+                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
+                        >
+                          Solicita cupo de crédito
                         </span>
+                      </div>
+                      {solicitaCredito ? (
+                        <div className="flex items-baseline gap-2.5 flex-wrap">
+                          <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
+                            {montoSolicitadoTexto || "Monto no especificado"}
+                          </span>
+                          {formaPagoSolicitada && (
+                            <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
+                              {formaPagoSolicitada}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
                       )}
                     </div>
-                  ) : (
-                    <p className="pl-1 text-sm font-medium text-gray-500">
-                      No
-                    </p>
-                  )}
-                </div>
-                )}
-                {solicitud.observacionesComercial && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">
-                      Observaciones Ejecutivo
-                    </p>
-                    <p className="text-gray-900 bg-gray-50 p-3 rounded">
-                      {solicitud.observacionesComercial}
-                    </p>
-                  </div>
-                )}
-              </div>
 
-              {/* Documentos cargados — se revisan antes de decidir */}
-              {solicitud && (
-                <div className="p-6 border-b border-gray-200">
-                  <DocumentosCargadosSolicitud
-                    solicitudId={solicitud.sol_id}
-                    editable
-                    documentosMarcados={gestion.documentos_faltantes}
-                    onToggleMarcado={(tdoId) =>
-                      setGestion((prev) => ({
-                        ...prev,
-                        documentos_faltantes:
-                          prev.documentos_faltantes.includes(tdoId)
-                            ? prev.documentos_faltantes.filter(
-                                (id) => id !== tdoId,
-                              )
-                            : [...prev.documentos_faltantes, tdoId],
-                      }))
-                    }
-                    onEstadoDocumentos={({ hayVencidos }) =>
-                      setHayDocumentosVencidos(hayVencidos)
-                    }
-                  />
-                </div>
-              )}
-
-              {/* Formulario de decisión */}
-              <div className="p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                  Registrar Decisión
-                </h2>
-
-                {hayDocumentosVencidos && !hayDocumentosMarcados && (
-                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
-                    Hay documentos vencidos. Marca los que correspondan con
-                    "Solicitar cambio" en la tabla de arriba para poder
-                    rechazar la solicitud.
-                  </p>
-                )}
-                {hayDocumentosMarcados && (
-                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
-                    Hay documentos marcados con "Solicitar cambio" — no se
-                    puede aprobar hasta resolverlos.
-                  </p>
-                )}
-
-                {/* Botones Aprobar/Rechazar */}
-                <div className="mb-6">
-                  <p className="text-sm font-medium text-gray-700 mb-3">
-                    Decisión *
-                  </p>
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() =>
-                        setGestion((prev) => ({
-                          ...prev,
-                          aprobado: true,
-                          modo_solucion: null,
-                        }))
-                      }
-                      disabled={hayProblemasDocumentos}
-                      title={
-                        hayProblemasDocumentos
-                          ? "Hay documentos vencidos o marcados como no corresponde"
-                          : undefined
-                      }
-                      className={`px-6 py-3 rounded-lg font-medium border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        gestion.aprobado === true
-                          ? "bg-green-600 text-white border-green-600"
-                          : "border-green-300 text-green-700 hover:bg-green-50"
-                      }`}
-                    >
-                      ✓ Aprobar
-                    </button>
-                    <button
-                      onClick={() =>
-                        setGestion((prev) => ({
-                          ...prev,
-                          aprobado: false,
-                        }))
-                      }
-                      disabled={!hayDocumentosMarcados}
-                      title={
-                        !hayDocumentosMarcados
-                          ? "Marca al menos un documento con \"Solicitar cambio\" antes de rechazar"
-                          : undefined
-                      }
-                      className={`px-6 py-3 rounded-lg font-medium border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        gestion.aprobado === false
-                          ? "bg-red-600 text-white border-red-600"
-                          : "border-red-300 text-red-700 hover:bg-red-50"
-                      }`}
-                    >
-                      ✗ Rechazar
-                    </button>
-                  </div>
-                </div>
-
-                {/* Modo de solución (si está rechazada) */}
-                {gestion.aprobado === false && (
-                  <>
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Modo de Solución *
-                      </label>
-                      <select
-                        value={gestion.modo_solucion || ""}
-                        onChange={(e) =>
-                          setGestion((prev) => ({
-                            ...prev,
-                            modo_solucion: e.target.value || null,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">
-                          Selecciona un modo de solución...
-                        </option>
-                        <option value="cliente_actualiza">
-                          Cliente Actualiza
-                        </option>
-                        <option value="auxiliar_actualiza">
-                          Auxiliar Actualiza
-                        </option>
-                      </select>
+                    {/* Concepto del ejecutivo de negocios */}
+                    <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
+                      <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] mb-3">
+                        Concepto del ejecutivo de negocios
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo mensual proyectado</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
+                              ? `$${(
+                                  solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
+                                )?.toLocaleString("es-CO", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
+                              : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas mensuales Proyectadas</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.sol_toneladas_proyectadas
+                              ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                              : "-"}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
+                      <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                        {solicitud.observacionesComercial || solicitud.sol_observaciones_comercial || "-"}
+                      </p>
                     </div>
-                  </>
+                  </div>
                 )}
+              </div>
 
-                {/* Botones de acción */}
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleGuardarDecision}
-                    disabled={
-                      gestion.aprobado === undefined || gestion.guardando
-                    }
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {gestion.guardando ? "Guardando..." : "Guardar Decisión"}
-                  </button>
-                  <button
-                    onClick={() => router.back()}
-                    disabled={gestion.guardando}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancelar
-                  </button>
+              {/* Cuerpo: documentos + decisión | historial */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 p-7">
+                <div className="min-w-0">
+                  <h2 className="text-base font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                    <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 size={16} strokeWidth={2.2} className="text-[#003d99]" />
+                    </div>
+                    Revisión de documentos
+                  </h2>
+
+                  <div className="mb-[18px]">
+                    <DocumentosCargadosSolicitud
+                      solicitudId={solicitud.sol_id}
+                      editable
+                      documentosMarcados={gestion.documentos_faltantes}
+                      onToggleMarcado={(tdoId) =>
+                        setGestion((prev) => ({
+                          ...prev,
+                          documentos_faltantes:
+                            prev.documentos_faltantes.includes(tdoId)
+                              ? prev.documentos_faltantes.filter(
+                                  (id) => id !== tdoId,
+                                )
+                              : [...prev.documentos_faltantes, tdoId],
+                        }))
+                      }
+                      onEstadoDocumentos={({ hayVencidos }) =>
+                        setHayDocumentosVencidos(hayVencidos)
+                      }
+                    />
+                  </div>
+
+                  <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+                    {hayDocumentosVencidos && !hayDocumentosMarcados && (
+                      <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 m-0">
+                        Hay documentos vencidos. Marca los que correspondan
+                        con "Solicitar cambio" en la tabla de arriba para
+                        poder rechazar la solicitud.
+                      </p>
+                    )}
+                    {hayDocumentosMarcados && (
+                      <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 m-0">
+                        Hay documentos marcados con "Solicitar cambio" — no
+                        se puede aprobar hasta resolverlos.
+                      </p>
+                    )}
+
+                    {/* Botones Aprobar/Rechazar */}
+                    <div>
+                      <label className="block text-[13px] font-bold text-[#374151] mb-2">
+                        Decisión <span className="text-[#dc2626]">*</span>
+                      </label>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() =>
+                            setGestion((prev) => ({
+                              ...prev,
+                              aprobado: true,
+                              modo_solucion: null,
+                            }))
+                          }
+                          disabled={hayProblemasDocumentos}
+                          title={
+                            hayProblemasDocumentos
+                              ? "Hay documentos vencidos o marcados como no corresponde"
+                              : undefined
+                          }
+                          className={`flex-1 px-5 py-3 rounded-[11px] text-[13.5px] font-bold border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                            gestion.aprobado === true
+                              ? "bg-[#059669] text-white border-[#059669]"
+                              : "border-[#a7f3d0] text-[#059669] hover:bg-emerald-50"
+                          }`}
+                        >
+                          ✓ Aprobar
+                        </button>
+                        <button
+                          onClick={() =>
+                            setGestion((prev) => ({
+                              ...prev,
+                              aprobado: false,
+                            }))
+                          }
+                          disabled={!hayDocumentosMarcados}
+                          title={
+                            !hayDocumentosMarcados
+                              ? "Marca al menos un documento con \"Solicitar cambio\" antes de rechazar"
+                              : undefined
+                          }
+                          className={`flex-1 px-5 py-3 rounded-[11px] text-[13.5px] font-bold border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                            gestion.aprobado === false
+                              ? "bg-[#dc2626] text-white border-[#dc2626]"
+                              : "border-red-300 text-red-700 hover:bg-red-50"
+                          }`}
+                        >
+                          ✗ Rechazar
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Modo de solución (si está rechazada) */}
+                    {gestion.aprobado === false && (
+                      <div>
+                        <label className="block text-[13px] font-bold text-[#374151] mb-2">
+                          Modo de solución <span className="text-[#dc2626]">*</span>
+                        </label>
+                        <select
+                          value={gestion.modo_solucion || ""}
+                          onChange={(e) =>
+                            setGestion((prev) => ({
+                              ...prev,
+                              modo_solucion: e.target.value || null,
+                            }))
+                          }
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-[#003d99] focus:ring-[3px] focus:ring-[#003d99]/[0.12]"
+                        >
+                          <option value="">
+                            Selecciona un modo de solución...
+                          </option>
+                          <option value="cliente_actualiza">
+                            Cliente Actualiza
+                          </option>
+                          <option value="auxiliar_actualiza">
+                            Auxiliar Actualiza
+                          </option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={handleGuardarDecision}
+                        disabled={
+                          gestion.aprobado === undefined || gestion.guardando
+                        }
+                        className="flex-1 flex items-center justify-center gap-2 bg-[#003d99] hover:bg-[#0047b3] hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      >
+                        {gestion.guardando ? "Guardando..." : "Guardar Decisión"}
+                      </button>
+                      <button
+                        onClick={() => router.back()}
+                        disabled={gestion.guardando}
+                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">Historial de la solicitud</h2>
+                  <HistorialSolicitud historial={historialWorkflow} />
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Historial - Columna Derecha (1/3) */}
-          <div className="lg:col-span-1 space-y-6">
-            {solicitud && historial && (
-              <HistorialSolicitud
-                historial={(historial?.historial || []).map(
-                  (item: any, index: number) => ({
-                    historialId: item.historial_id || item.historialId || index,
-                    etapaNombre:
-                      item.etapa_nombre ||
-                      item.etapaNombre ||
-                      "Etapa desconocida",
-                    resultadoNombre:
-                      item.resultado_nombre || item.resultadoNombre,
-                    estadoNombre: item.estado_nombre || item.estadoNombre,
-                    fecha: item.fecha,
-                    fechaEstimadaInicio:
-                      item.fecha_estimada_inicio || item.fechaEstimadaInicio,
-                    fechaEstimadaEtapaAnterior:
-                      item.fecha_estimada_etapa_anterior ||
-                      item.fechaEstimadaEtapaAnterior,
-                    usuarioNombre:
-                      item.usuarioNombre || item.nombre || item.usuario_nombre,
-                  }),
-                )}
-              />
-            )}
-          </div>
+            </>
+          )}
         </div>
-        )}
       </div>
 
       <ConfirmModal
