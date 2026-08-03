@@ -350,6 +350,7 @@ export default function ListadoDocumentosPage() {
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 mb-4">
             <div className="mb-6">
               <button
+                // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
                 onClick={() => router.push("/solicitudes")}
                 className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4"
               >

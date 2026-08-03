@@ -411,6 +411,25 @@ export const solicitudesService = {
     };
   },
 
+  // Versión liviana de getFormularioRenderizable: resuelve solo las
+  // preguntas pedidas por fp_codigo, sin renderizar el formulario completo
+  // (~85-100 preguntas). Usado por useSolicitudCupoSolicitado, que antes
+  // pagaba el costo del render completo solo para leer 4 valores — era la
+  // causa real de que ese bloque tardara mucho más que el resto de la
+  // página en aparecer.
+  async getRespuestasPorCodigo(id: number, codigos: string[]) {
+    const params = new URLSearchParams();
+    codigos.forEach((codigo) => params.append("codigo", codigo));
+    const response = await api.get(
+      `/solicitudes/${id}/respuestas-por-codigo?${params.toString()}`,
+    );
+    return response.data as Array<{
+      fp_codigo: string;
+      valor_resuelto: string;
+      tiene_respuesta: boolean;
+    }>;
+  },
+
   // Obtener última solicitud pendiente de un cliente
   async getUltimaSolicitudPendiente(clienteId: number) {
     const response = await api.get(

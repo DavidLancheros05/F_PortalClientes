@@ -117,6 +117,34 @@ export const formularioRespuestasService = {
     const resultados = await Promise.all(tareas.map((tarea) => tarea()));
     let respuestasGuardadas = resultados.reduce((sum, n) => sum + n, 0);
 
+    // Documentos que el usuario confirmó reutilizar desde su archivo
+    // consolidado (Cliente_archivo, ver botón "Usar este documento" en
+    // DocumentoTablaField) — marcados localmente con
+    // sa_origen="cliente_archivo_pendiente" en archivosExistentes, sin
+    // fp_id propio en `respuestas` (no hay un File que subir). Se resuelven
+    // aparte del loop de arriba porque no vienen como respuesta nueva.
+    const documentosAReutilizar = Object.entries(archivosExistentes).filter(
+      ([, archivo]) =>
+        (archivo as any)?.sa_origen === "cliente_archivo_pendiente" &&
+        (archivo as any)?.ca_id,
+    );
+    if (documentosAReutilizar.length > 0) {
+      const resultadosReutilizar = await Promise.all(
+        documentosAReutilizar.map(async ([fpId, archivo]) => {
+          await this.reutilizarArchivoRespuesta(
+            solicitudId,
+            parseInt(fpId),
+            (archivo as any).ca_id,
+          );
+          return 1;
+        }),
+      );
+      respuestasGuardadas += resultadosReutilizar.reduce(
+        (sum, n) => sum + n,
+        0,
+      );
+    }
+
     // Procesar documentos existentes que tengan fechas nuevas
     // (cuando el archivo ya existe pero se seleccionó una fecha nueva)
     const documentosConFecha = preguntas.filter(
@@ -215,6 +243,24 @@ export const formularioRespuestasService = {
       },
     );
     // console.log("✅ [FRONTEND] Respuesta recibida:", response.data);
+    return response.data;
+  },
+
+  // Reutilizar un documento del archivo consolidado del cliente
+  // (Cliente_archivo) como archivo de esta pregunta en la solicitud actual
+  async reutilizarArchivoRespuesta(
+    solicitudId: number,
+    fp_id: number,
+    ca_id: number,
+  ) {
+    if (!solicitudId || isNaN(solicitudId)) {
+      throw new Error("sa_sol_id inválido o no proporcionado");
+    }
+    const response = await api.post("/solicitudes/respuestas/archivo/reutilizar", {
+      sa_sol_id: solicitudId,
+      fp_id,
+      ca_id,
+    });
     return response.data;
   },
 

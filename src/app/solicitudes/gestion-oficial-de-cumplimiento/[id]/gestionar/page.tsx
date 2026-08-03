@@ -85,8 +85,13 @@ export default function GestionOCPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
-    useSolicitudCupoSolicitado(solicitudId);
+  const {
+    loading: loadingCupo,
+    solicitaCredito,
+    montoSolicitadoTexto,
+    formaPagoSolicitada,
+    tipoSolicitud,
+  } = useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -248,6 +253,28 @@ export default function GestionOCPage() {
                       />
                       {ESTADOS[estadoId] || "Desconocido"}
                     </span>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Tipo de Solicitud
+                    </p>
+                    {solicitud.sol_cupo_solicitado ? (
+                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full text-emerald-800 bg-emerald-100">
+                        Ampliación de Cupo
+                      </span>
+                    ) : loadingCupo ? (
+                      <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full ${
+                          tipoSolicitud === "Ampliación de Cupo"
+                            ? "text-emerald-800 bg-emerald-100"
+                            : "text-blue-800 bg-blue-100"
+                        }`}
+                      >
+                        {tipoSolicitud || "Cliente Nuevo"}
+                      </span>
+                    )}
                   </div>
                 </div>
 

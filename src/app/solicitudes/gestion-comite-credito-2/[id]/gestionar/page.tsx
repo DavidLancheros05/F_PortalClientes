@@ -120,8 +120,21 @@ export default function GestionComiteCredito2Page() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
-    useSolicitudCupoSolicitado(solicitudId);
+  // Documentos que no se pudieron copiar hacia el archivo consolidado del
+  // cliente (Cliente_archivo) al aprobar — la aprobación en sí sí se
+  // completa igual; esto solo avisa que ese documento puntual no quedará
+  // disponible para reutilizar en la próxima solicitud del cliente, para
+  // que quien aprobó pueda darle seguimiento manual si hace falta.
+  const [documentosArchivoConError, setDocumentosArchivoConError] = useState<
+    { tdo_id: number; tdo_nombre: string; error: string }[]
+  >([]);
+  const {
+    loading: loadingCupo,
+    solicitaCredito,
+    montoSolicitadoTexto,
+    formaPagoSolicitada,
+    tipoSolicitud,
+  } = useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
     async function cargarDatos() {
@@ -196,11 +209,14 @@ export default function GestionComiteCredito2Page() {
         payloadComite.formaPago = registro.formaPago || undefined;
       }
 
-      await solicitudesService.guardarConceptoComiteCredito2(
+      const resultado = await solicitudesService.guardarConceptoComiteCredito2(
         solicitud.sol_id,
         payloadComite,
       );
 
+      setDocumentosArchivoConError(
+        (resultado as any)?.documentosArchivoConError || [],
+      );
       setShowConfirmModal(false);
       setShowSuccessModal(true);
     } catch (error) {
@@ -295,6 +311,28 @@ export default function GestionComiteCredito2Page() {
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
                       {ESTADOS[estadoId] || "Desconocido"}
                     </span>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                      Tipo de Solicitud
+                    </p>
+                    {solicitud.sol_cupo_solicitado ? (
+                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full text-emerald-800 bg-emerald-100">
+                        Ampliación de Cupo
+                      </span>
+                    ) : loadingCupo ? (
+                      <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full ${
+                          tipoSolicitud === "Ampliación de Cupo"
+                            ? "text-emerald-800 bg-emerald-100"
+                            : "text-blue-800 bg-blue-100"
+                        }`}
+                      >
+                        {tipoSolicitud || "Cliente Nuevo"}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -618,10 +656,18 @@ export default function GestionComiteCredito2Page() {
       <SuccessModal
         isOpen={showSuccessModal}
         title="¡Éxito!"
-        message="La decisión del Comité Crédito 2 fue registrada correctamente. Serás redirigido a la lista de solicitudes."
+        message={
+          documentosArchivoConError.length > 0
+            ? `La decisión del Comité Crédito 2 fue registrada correctamente. Aviso: no se pudo archivar para reutilización futura: ${documentosArchivoConError
+                .map((d) => d.tdo_nombre)
+                .join(
+                  ", ",
+                )}. El documento sigue disponible en esta solicitud, pero el cliente tendrá que volver a subirlo si crea una solicitud nueva.`
+            : "La decisión del Comité Crédito 2 fue registrada correctamente. Serás redirigido a la lista de solicitudes."
+        }
         actionText="Aceptar"
         autoClose={true}
-        autoCloseDelay={3000}
+        autoCloseDelay={documentosArchivoConError.length > 0 ? 8000 : 3000}
         onAction={() => router.push("/solicitudes/gestion-comite-credito-2")}
       />
 

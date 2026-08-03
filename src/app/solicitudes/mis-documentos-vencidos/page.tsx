@@ -73,6 +73,7 @@ export default function MisDocumentosVencidosPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <button
+            // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
             onClick={() => router.push("/solicitudes")}
             className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
           >

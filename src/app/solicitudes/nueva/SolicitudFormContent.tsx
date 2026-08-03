@@ -34,6 +34,7 @@ import {
   SuccessModal,
 } from "@/components/modals";
 import { solicitudesService } from "@/services/solicitudes.service";
+import { clienteArchivoService } from "@/services/cliente-archivo.service";
 import {
   maestrosService,
   type Pais,
@@ -83,6 +84,14 @@ export default function SolicitudFormContent({
   >({});
   const [documentosCatalogoMap, setDocumentosCatalogoMap] = useState<
     Record<number, DocumentoCatalogo>
+  >({});
+  // Documentos que el cliente ya tiene en su archivo consolidado
+  // (Cliente_archivo), indexados por tdo_id — ofrecidos para reutilizar en
+  // vez de volver a subirlos (ver DocumentoTablaField). Solo tiene sentido
+  // en una solicitud nueva: si ya se está editando una, archivosExistentes
+  // ya refleja lo que esa solicitud tiene guardado.
+  const [documentosClienteMap, setDocumentosClienteMap] = useState<
+    Record<number, any>
   >({});
   const [estadoIdSolicitud, setEstadoIdSolicitud] = useState<number | null>(
     null,
@@ -245,6 +254,40 @@ export default function SolicitudFormContent({
     setDocumentosCatalogoMap(documentosCatalogoMapFromHook || {});
   }, [documentosCatalogoMapFromHook]);
   useEffect(() => {}, [seccionSeleccionada]);
+
+  // Solo en solicitud nueva: ofrecer reutilizar documentos que el cliente
+  // ya tiene en su archivo consolidado (Cliente_archivo) — ver
+  // "Usar este documento" en DocumentoTablaField.
+  useEffect(() => {
+    if (solicitudId || !user?.cliente_id) {
+      return;
+    }
+    clienteArchivoService
+      .obtenerArchivoCliente(user.cliente_id)
+      .then((documentos) => {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        const mapa: Record<number, any> = {};
+        documentos.forEach((doc) => {
+          // No ofrecer reutilizar un documento ya vencido — mismo criterio
+          // que ClienteArchivoService.tieneDocumentosVencidos en el
+          // backend. Sin fecha de vencimiento (documento sin regla de
+          // vigencia) siempre se puede reutilizar.
+          const vencimiento = doc.ca_fecha_vencimiento
+            ? new Date(doc.ca_fecha_vencimiento)
+            : null;
+          if (vencimiento && vencimiento < hoy) {
+            return;
+          }
+          mapa[doc.ca_tdo_id] = doc;
+        });
+        setDocumentosClienteMap(mapa);
+      })
+      .catch((err) => {
+        console.error("Error cargando archivo del cliente:", err);
+      });
+  }, [solicitudId, user?.cliente_id]);
 
   const { bloqueadoPorRechazoAuxiliar } = useSolicitudEdicion({
     solicitudId,
@@ -1544,6 +1587,30 @@ export default function SolicitudFormContent({
     router.push("/solicitudes/cliente");
   };
 
+  // Tras un guardado exitoso, los documentos marcados localmente como
+  // "cliente_archivo_pendiente" (ver DocumentoTablaField, botón "Usar este
+  // documento") ya quedaron duplicados en Solicitud_archivo del lado del
+  // servidor (formulario-respuestas.service.ts::guardarRespuestasYArchivos).
+  // Sin este paso, si el usuario sigue en la misma página (ej. "Guardar
+  // Borrador" sobre una solicitud que ya tenía id) y vuelve a guardar, se
+  // reutilizaría el mismo documento una segunda vez.
+  const marcarDocumentosReutilizadosComoGuardados = () => {
+    setArchivosExistentes((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      Object.entries(next).forEach(([fpId, archivo]) => {
+        if ((archivo as any)?.sa_origen === "cliente_archivo_pendiente") {
+          next[Number(fpId)] = {
+            ...archivo,
+            sa_origen: "cliente_archivo_reutilizado",
+          };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  };
+
   const handleGuardar = async () => {
     // Evitar doble submit
     if (isGuardandoRef.current) {
@@ -1685,6 +1752,8 @@ export default function SolicitudFormContent({
         archivosExistentes,
       );
 
+      marcarDocumentosReutilizadosComoGuardados();
+
       const documentosDiferidosFaltantes =
         (result as any)?.documentosDiferidosFaltantes || [];
 
@@ -1820,6 +1889,8 @@ export default function SolicitudFormContent({
           ? `Borrador actualizado con ${result.respuestasGuardadas} respuestas.`
           : `Borrador guardado con ${result.respuestasGuardadas} respuestas.`,
       );
+
+      marcarDocumentosReutilizadosComoGuardados();
 
       // Guardar el estado de respuestas y resetear el flag de cambios
       lastSavedResponses.current = JSON.parse(JSON.stringify(respuestas));
@@ -2103,6 +2174,7 @@ export default function SolicitudFormContent({
                           }
                           solicitudId={solicitudId}
                           archivosExistentes={archivosExistentes}
+                          documentosClienteMap={documentosClienteMap}
                           maestroPreguntaIds={maestroPreguntaIds}
                           paises={paises}
                           departamentos={departamentos}

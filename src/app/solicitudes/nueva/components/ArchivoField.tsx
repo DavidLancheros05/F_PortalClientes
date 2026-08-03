@@ -14,6 +14,11 @@ interface ArchivoFieldProps {
   respuestas: Record<number, any>;
   archivosExistentes: Record<number, any>;
   documentosCatalogoMap: Record<number, any>;
+  // Documento vigente que el cliente ya tiene en su archivo consolidado
+  // (Cliente_archivo) para este tipo de documento, si existe — ofrece
+  // reutilizarlo en vez de volver a subirlo. Solo llega poblado en
+  // solicitud nueva (ver SolicitudFormContent).
+  documentoClienteDisponible?: any;
   errors: Record<number, string>;
   readOnly: boolean;
   solicitudId?: number;
@@ -48,6 +53,7 @@ export function ArchivoField({
   respuestas,
   archivosExistentes,
   documentosCatalogoMap,
+  documentoClienteDisponible,
   errors,
   readOnly,
   solicitudId,
@@ -102,6 +108,16 @@ export function ArchivoField({
   // como "discreto"); esperar dos frames con requestAnimationFrame garantiza
   // que ese commit ya se pintó antes de que el trabajo pesado bloquee el
   // hilo principal (ver mismo fix en DocumentoTablaField.tsx).
+  const archivoExistente = archivosExistentes[pregunta.fp_id];
+  // Mismo criterio que DocumentoTablaField: un documento reutilizado desde
+  // Cliente_archivo (ver botón "Usar este documento" abajo) no tiene
+  // sa_id real hasta guardar — Eliminar/Cambiar asumen uno.
+  const esDocumentoReutilizado =
+    archivoExistente?.sa_origen === "cliente_archivo_pendiente" ||
+    archivoExistente?.sa_origen === "cliente_archivo_reutilizado";
+  const [ofrecerReutilizarOmitido, setOfrecerReutilizarOmitido] =
+    useState(false);
+
   const [procesandoArchivo, setProcesandoArchivo] = useState(false);
   const procesarArchivoSeleccionado = (file: File) => {
     flushSync(() => setProcesandoArchivo(true));
@@ -140,6 +156,11 @@ export function ArchivoField({
               <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
               <p className="text-xs font-medium text-blue-900 break-words">
                 {archivosExistentes[pregunta.fp_id].sa_nombre_original}
+                {esDocumentoReutilizado && (
+                  <span className="ml-1 font-normal text-blue-600">
+                    (de tu archivo)
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex gap-1 flex-shrink-0">
@@ -159,7 +180,23 @@ export function ArchivoField({
                   </a>
                 );
               })()}
-              {!readOnly && (
+              {!readOnly && esDocumentoReutilizado && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArchivosExistentes((prev) => {
+                      const newMap = { ...prev };
+                      delete newMap[pregunta.fp_id];
+                      return newMap;
+                    });
+                  }}
+                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                  title="Elegir un archivo distinto en vez de este"
+                >
+                  Quitar
+                </button>
+              )}
+              {!readOnly && !esDocumentoReutilizado && (
                 <>
                   <button
                     type="button"
@@ -257,7 +294,65 @@ export function ArchivoField({
 
       {!archivosExistentes[pregunta.fp_id] &&
         !respuestas[pregunta.fp_id]?.nombre_archivo &&
-        !readOnly && (
+        !readOnly &&
+        documentoClienteDisponible &&
+        !ofrecerReutilizarOmitido && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 space-y-1.5">
+            <p className="text-xs text-amber-900">
+              Ya tienes{" "}
+              <span className="font-medium break-words">
+                {documentoClienteDisponible.ca_nombre_original}
+              </span>{" "}
+              en tu archivo
+              {documentoClienteDisponible.ca_fecha_emision && (
+                <>
+                  {" "}
+                  (subido el{" "}
+                  {new Date(
+                    `${String(documentoClienteDisponible.ca_fecha_emision).split("T")[0]}T00:00:00`,
+                  ).toLocaleDateString("es-CO")}
+                  )
+                </>
+              )}
+              .
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setArchivosExistentes((prev) => ({
+                    ...prev,
+                    [pregunta.fp_id]: {
+                      sa_nombre_original:
+                        documentoClienteDisponible.ca_nombre_original,
+                      sa_ruta_almacenamiento:
+                        documentoClienteDisponible.ca_ruta_almacenamiento,
+                      sd_fecha_emision:
+                        documentoClienteDisponible.ca_fecha_emision,
+                      sa_origen: "cliente_archivo_pendiente",
+                      ca_id: documentoClienteDisponible.ca_id,
+                    },
+                  }));
+                }}
+                className="inline-flex items-center text-xs px-2 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium"
+              >
+                Usar este documento
+              </button>
+              <button
+                type="button"
+                onClick={() => setOfrecerReutilizarOmitido(true)}
+                className="inline-flex items-center text-xs px-2 py-1 bg-white text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200"
+              >
+                Subir uno nuevo
+              </button>
+            </div>
+          </div>
+        )}
+
+      {!archivosExistentes[pregunta.fp_id] &&
+        !respuestas[pregunta.fp_id]?.nombre_archivo &&
+        !readOnly &&
+        (!documentoClienteDisponible || ofrecerReutilizarOmitido) && (
         <button
           type="button"
           disabled={procesandoArchivo}

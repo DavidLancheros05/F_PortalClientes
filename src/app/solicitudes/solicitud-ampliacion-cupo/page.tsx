@@ -197,6 +197,8 @@ export default function AmpliacionCupoPage() {
   };
 
   const handleCancelar = () => {
+    // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir
+    // destino real (probablemente /solicitudes/listado-de-solicitudes).
     router.push("/solicitudes");
   };
 
@@ -314,6 +316,7 @@ export default function AmpliacionCupoPage() {
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <div className="flex items-center gap-3">
               <button
+                // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
                 onClick={() => router.push("/solicitudes")}
                 className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
               >

@@ -186,6 +186,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
         <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)] mb-6">
           <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
             <button
+              // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
               onClick={() => router.push("/solicitudes")}
               className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
             >

@@ -84,6 +84,7 @@ export default function RegistrarConceptoPage() {
     solicitaCredito,
     montoSolicitadoTexto,
     formaPagoSolicitada,
+    tipoSolicitud,
   } = useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
@@ -332,6 +333,28 @@ export default function RegistrarConceptoPage() {
                   {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] ||
                     "Desconocido"}
                 </span>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                  Tipo de Solicitud
+                </p>
+                {solicitud.sol_cupo_solicitado ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                    Ampliación de Cupo
+                  </span>
+                ) : loadingCupo ? (
+                  <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
+                ) : (
+                  <span
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      tipoSolicitud === "Ampliación de Cupo"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {tipoSolicitud || "Cliente Nuevo"}
+                  </span>
+                )}
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
 import { getTodayBogota } from "@/lib/date-utils";
@@ -143,8 +143,12 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const [centroOperacionId, setCentroOperacionId] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [clienteBusqueda, setClienteBusqueda] = useState("");
+  const [mostrarClienteLista, setMostrarClienteLista] = useState(false);
+  const clienteContainerRef = useRef<HTMLDivElement>(null);
   const [ejecutivoId, setEjecutivoId] = useState("");
   const [ejecutivoBusqueda, setEjecutivoBusqueda] = useState("");
+  const [mostrarEjecutivoLista, setMostrarEjecutivoLista] = useState(false);
+  const ejecutivoContainerRef = useRef<HTMLDivElement>(null);
   const [estadoId, setEstadoId] = useState("");
   const [etapaId, setEtapaId] = useState("");
   const [resultadoId, setResultadoId] = useState("");
@@ -295,6 +299,34 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         .includes(ejecutivoBusqueda.toLowerCase())
     );
   }, [ejecutivos, ejecutivoBusqueda]);
+
+  // Cierra los desplegables de Cliente/Ejecutivo al hacer clic afuera. No basta
+  // con `onBlur` del input: el clic sobre un ítem de la lista dispara blur
+  // antes que el click, y el ítem nunca llega a seleccionarse.
+  useEffect(() => {
+    if (!mostrarClienteLista && !mostrarEjecutivoLista) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        mostrarClienteLista &&
+        clienteContainerRef.current &&
+        !clienteContainerRef.current.contains(target)
+      ) {
+        setMostrarClienteLista(false);
+      }
+      if (
+        mostrarEjecutivoLista &&
+        ejecutivoContainerRef.current &&
+        !ejecutivoContainerRef.current.contains(target)
+      ) {
+        setMostrarEjecutivoLista(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarClienteLista, mostrarEjecutivoLista]);
 
   const canSearch = useMemo(() => {
     if (fechaDesde && fechaHasta) {
@@ -487,6 +519,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           icon={ClipboardList}
           eyebrow="Solicitudes"
           title="Listado de solicitudes"
+          // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
           onBack={() => router.push("/solicitudes")}
         >
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -510,7 +543,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   </select>
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={clienteContainerRef}>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
                     Cliente
                   </label>
@@ -518,15 +551,20 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                     type="text"
                     placeholder="Buscar cliente..."
                     value={clienteBusqueda}
-                    onChange={(event) => setClienteBusqueda(event.target.value)}
+                    onFocus={() => setMostrarClienteLista(true)}
+                    onChange={(event) => {
+                      setClienteBusqueda(event.target.value);
+                      setMostrarClienteLista(true);
+                    }}
                     className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  {clienteBusqueda && (
+                  {mostrarClienteLista && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
                       <div
                         onClick={() => {
                           setClienteId("");
                           setClienteBusqueda("");
+                          setMostrarClienteLista(false);
                         }}
                         className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200"
                       >
@@ -543,6 +581,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                             onClick={() => {
                               setClienteId(String(cliente.cli_id));
                               setClienteBusqueda(cliente.cli_razon_social);
+                              setMostrarClienteLista(false);
                             }}
                             className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
                           >
@@ -554,7 +593,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   )}
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={ejecutivoContainerRef}>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
                     Ejecutivo
                   </label>
@@ -562,7 +601,11 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                     type="text"
                     placeholder="Buscar ejecutivo..."
                     value={ejecutivoBusqueda}
-                    onChange={(event) => setEjecutivoBusqueda(event.target.value)}
+                    onFocus={() => setMostrarEjecutivoLista(true)}
+                    onChange={(event) => {
+                      setEjecutivoBusqueda(event.target.value);
+                      setMostrarEjecutivoLista(true);
+                    }}
                     disabled={esEjecutivo}
                     title={
                       esEjecutivo
@@ -571,12 +614,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                     }
                     className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
                   />
-                  {!esEjecutivo && ejecutivoBusqueda && (
+                  {!esEjecutivo && mostrarEjecutivoLista && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
                       <div
                         onClick={() => {
                           setEjecutivoId("");
                           setEjecutivoBusqueda("");
+                          setMostrarEjecutivoLista(false);
                         }}
                         className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200"
                       >
@@ -593,6 +637,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                             onClick={() => {
                               setEjecutivoId(String(ejecutivo.ejecutivo_id));
                               setEjecutivoBusqueda(ejecutivo.ejecutivo_nombre);
+                              setMostrarEjecutivoLista(false);
                             }}
                             className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
                           >
@@ -946,29 +991,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           )}
 
           {hasSearched && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 gap-4 mt-6">
               <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
                 <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
                   Total resultados
                 </p>
                 <p className="text-2xl font-semibold text-slate-800 mt-1">
                   {rows.length}
-                </p>
-              </div>
-              <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-[11px] uppercase tracking-wider text-emerald-600 font-semibold">
-                  Con cliente
-                </p>
-                <p className="text-2xl font-semibold text-emerald-700 mt-1">
-                  {rows.filter((row) => !!row.cliente_nombre).length}
-                </p>
-              </div>
-              <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                  Con ejecutivo
-                </p>
-                <p className="text-2xl font-semibold text-slate-700 mt-1">
-                  {rows.filter((row) => !!row.ejecutivo_nombre).length}
                 </p>
               </div>
             </div>

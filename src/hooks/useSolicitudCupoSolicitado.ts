@@ -9,6 +9,13 @@ export interface SolicitudCupoSolicitado {
   // usa el PDF de la solicitud para preguntas NUMERO/MONEDA.
   montoSolicitadoTexto: string | null;
   formaPagoSolicitada: string | null;
+  // "Cliente Nuevo" | "Ampliación de Cupo" | null (pregunta TIPO_SOLICITUD
+  // sin responder — no debería pasar en la práctica, ver
+  // documentacion/flujo-ampliacion-de-cupo.md). Solo cubre el Camino 1
+  // (cliente auto-detectado); el Camino 2 (Ejecutivo) no pasa por el
+  // formulario dinámico y se identifica en el propio objeto `solicitud`
+  // por `sol_cupo_solicitado != null` — ver quien consume este hook.
+  tipoSolicitud: string | null;
 }
 
 export function useSolicitudCupoSolicitado(
@@ -24,12 +31,14 @@ export function useSolicitudCupoSolicitado(
   const [formaPagoSolicitada, setFormaPagoSolicitada] = useState<
     string | null
   >(null);
+  const [tipoSolicitud, setTipoSolicitud] = useState<string | null>(null);
 
   useEffect(() => {
     if (!solicitudId) {
       setSolicitaCredito(null);
       setMontoSolicitadoTexto(null);
       setFormaPagoSolicitada(null);
+      setTipoSolicitud(null);
       setLoading(false);
       return;
     }
@@ -37,18 +46,33 @@ export function useSolicitudCupoSolicitado(
     let cancelado = false;
     setLoading(true);
 
-    // Resuelto vía formulario-renderizable (por fp_codigo, no fp_id fijo):
-    // ese endpoint ya filtra por la VERSION real con la que se respondió
-    // esta solicitud puntual, a diferencia de fp_id hardcodeados que solo
-    // existían en la versión 9 — cualquier solicitud diligenciada contra
-    // una versión más nueva quedaba con solicitaCredito=null, y el render
-    // (`solicitaCredito ? ... : "No"`) lo mostraba como "No" aunque el
-    // cliente hubiera respondido "Sí" (ver Registrar Concepto Ejecutivo).
+    // Resuelto por fp_codigo (no fp_id fijo): sigue funcionando sin importar
+    // la VERSION real con la que se respondió esta solicitud puntual, igual
+    // que antes cuando esto salía de formulario-renderizable — pero ese
+    // endpoint resuelve las ~85-100 preguntas del formulario completo, y
+    // este hook solo necesita 4. getRespuestasPorCodigo pide exactamente
+    // esas 4 en una sola query filtrada — era la causa real de que este
+    // bloque tardara mucho más que el resto de la página en aparecer.
     solicitudesService
-      .getFormularioRenderizable(solicitudId)
-      .then((renderizable) => {
+      .getRespuestasPorCodigo(solicitudId, [
+        "TIPO_SOLICITUD",
+        "SOLICITA_CREDITO",
+        "CUPO_SOLICITADO",
+        "FORMA_PAGO_SOLICITADA",
+      ])
+      .then((respuestas) => {
         if (cancelado) return;
-        const preguntas = renderizable?.preguntas || [];
+        const preguntas = respuestas || [];
+
+        const pTipo = preguntas.find((p) => p.fp_codigo === "TIPO_SOLICITUD");
+        const textoTipo = (pTipo?.valor_resuelto || "").trim().toLowerCase();
+        setTipoSolicitud(
+          !pTipo?.tiene_respuesta
+            ? null
+            : textoTipo.includes("ampliacion") || textoTipo.includes("ampliación")
+              ? "Ampliación de Cupo"
+              : "Cliente Nuevo",
+        );
 
         const pSolicita = preguntas.find(
           (p) => p.fp_codigo === "SOLICITA_CREDITO",
@@ -97,5 +121,6 @@ export function useSolicitudCupoSolicitado(
     solicitaCredito,
     montoSolicitadoTexto,
     formaPagoSolicitada,
+    tipoSolicitud,
   };
 }

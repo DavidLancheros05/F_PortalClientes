@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Users,
   Download,
+  ShieldCheck,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals";
 
@@ -291,6 +292,13 @@ export default function ClientesPage() {
               >
                 <RefreshCw className="w-5 h-5 mr-2" />
                 Actualizar
+              </button>
+              <button
+                onClick={() => router.push("/parametrizacion/clientes/acceso")}
+                className="flex items-center px-4 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 shadow border border-gray-200 transition"
+              >
+                <ShieldCheck className="w-5 h-5 mr-2" />
+                Gestionar Acceso
               </button>
               <button
                 onClick={() => router.push("/parametrizacion/clientes/nuevo")}

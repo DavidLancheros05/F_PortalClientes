@@ -285,6 +285,7 @@ export default function ConceptoEjecutivoPage() {
           icon={FileText}
           eyebrow="Solicitudes"
           title="Pendientes — Concepto Ejecutivo de Negocios"
+          // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
           onBack={() => router.push("/solicitudes")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">

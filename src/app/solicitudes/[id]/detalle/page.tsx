@@ -125,10 +125,15 @@ export default function DetalleDetailPage() {
   const { historial } = useHistorialWorkflow(
     Number.isFinite(solicitudId) ? solicitudId : null,
   );
-  const { solicitaCredito, montoSolicitadoTexto, formaPagoSolicitada } =
-    useSolicitudCupoSolicitado(
-      Number.isFinite(solicitudId) ? solicitudId : null,
-    );
+  const {
+    loading: loadingCupo,
+    solicitaCredito,
+    montoSolicitadoTexto,
+    formaPagoSolicitada,
+    tipoSolicitud,
+  } = useSolicitudCupoSolicitado(
+    Number.isFinite(solicitudId) ? solicitudId : null,
+  );
 
   const abrirPdfFormulario = async () => {
     try {
@@ -408,6 +413,26 @@ export default function DetalleDetailPage() {
               </h2>
             </div>
             <div className="space-y-3">
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Tipo de Solicitud</p>
+                {solicitud.sol_cupo_solicitado ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                    Ampliación de Cupo
+                  </span>
+                ) : loadingCupo ? (
+                  <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                ) : (
+                  <span
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      tipoSolicitud === "Ampliación de Cupo"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {tipoSolicitud || "Cliente Nuevo"}
+                  </span>
+                )}
+              </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase">Fecha de Creación</p>
                 <p className="text-sm font-medium text-gray-900">

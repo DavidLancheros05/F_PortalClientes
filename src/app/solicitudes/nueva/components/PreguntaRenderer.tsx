@@ -23,6 +23,7 @@ interface PreguntaRendererProps {
   prefillSourceByFieldId?: Record<number, "cliente" | "ultimoFormulario">;
   documentosCatalogoMap: Record<number, any>;
   archivosExistentes: Record<number, any>;
+  documentosClienteMap: Record<number, any>;
   maestroPreguntaIds: {
     paisId?: number;
     departamentoId?: number;
@@ -85,6 +86,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     prefilledFieldIds = {},
     prefillSourceByFieldId = {},
     archivosExistentes,
+    documentosClienteMap = {},
     maestroPreguntaIds,
     paises,
     departamentos,
@@ -359,6 +361,11 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             respuestas={respuestas}
             archivosExistentes={archivosExistentes}
             documentosCatalogoMap={documentosCatalogoMap}
+            documentoClienteDisponible={
+              pregunta.fp_tipo_documento_id
+                ? documentosClienteMap[pregunta.fp_tipo_documento_id]
+                : undefined
+            }
             readOnly={readOnly}
             solicitudId={solicitudId}
             hasError={hasError}
@@ -498,6 +505,11 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           respuestas={respuestas}
           archivosExistentes={archivosExistentes}
           documentosCatalogoMap={documentosCatalogoMap}
+          documentoClienteDisponible={
+            pregunta.fp_tipo_documento_id
+              ? documentosClienteMap[pregunta.fp_tipo_documento_id]
+              : undefined
+          }
           errors={errors}
           readOnly={readOnly}
           solicitudId={solicitudId}
