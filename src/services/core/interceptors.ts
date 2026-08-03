@@ -25,7 +25,16 @@ export const setupInterceptors = (api: AxiosInstance) => {
         error.response?.data ?? error.message,
       );
 
-      if (error.response?.status === 401) {
+      // Un 401 en el propio intento de login es una respuesta normal
+      // (usuario/cliente inexistente, contraseña incorrecta) que la página
+      // de login ya maneja mostrando el mensaje (login/page.tsx::setLoginError)
+      // — no una sesión vencida. Sin este chequeo, el bloque de abajo forzaba
+      // window.location.href="/login" (recarga completa) en CUALQUIER 401,
+      // incluido este, tapando el mensaje de error antes de que el usuario
+      // llegara a leerlo.
+      const esIntentoDeLogin = url?.includes("/auth/login");
+
+      if (error.response?.status === 401 && !esIntentoDeLogin) {
         // Log temporal para diagnosticar el bloqueo de cookies de terceros
         // (ver documentacion/migracion-auth-httponly.md en B_PortalClientes):
         // si esto se dispara justo después de un login exitoso, es señal de
