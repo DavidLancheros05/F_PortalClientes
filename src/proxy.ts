@@ -29,12 +29,19 @@ const ROLES_PERMITIDOS = [
 // Preserva a dónde iba el usuario (ej. un link de correo a una solicitud
 // puntual) en un ?next= para que login/page.tsx pueda regresarlo ahí tras
 // autenticarse, en vez del fijo "/inicio" de siempre.
-function redirectToLogin(req: NextRequest) {
+//
+// `debug`: motivo del rechazo, visible en la URL de redirect (pestaña
+// Network/barra de direcciones) — temporal, para diagnosticar el bloqueo de
+// cookies de terceros sin depender de los Runtime Logs de Vercel (no
+// accesibles desde acá). Quitar junto con el resto de logs de diagnóstico
+// una vez resuelto (ver documentacion/migracion-auth-httponly.md).
+function redirectToLogin(req: NextRequest, debug: string) {
   const loginUrl = new URL("/login", req.url);
   const destino = `${req.nextUrl.pathname}${req.nextUrl.search}`;
   if (destino && destino !== "/") {
     loginUrl.searchParams.set("next", destino);
   }
+  loginUrl.searchParams.set("debug", debug);
   return NextResponse.redirect(loginUrl);
 }
 
@@ -50,7 +57,7 @@ export async function proxy(req: NextRequest) {
     console.error(
       "JWT_SECRET no configurado en el frontend — rechazando todas las rutas protegidas.",
     );
-    return redirectToLogin(req);
+    return redirectToLogin(req, "no-secret");
   }
 
   // 2️⃣ Obtener token
@@ -65,7 +72,7 @@ export async function proxy(req: NextRequest) {
     console.warn(
       `[proxy] Sin cookie pc_token → redirigiendo a /login. path=${pathname} cookies_presentes=${req.cookies.getAll().map((c) => c.name).join(",") || "ninguna"}`,
     );
-    return redirectToLogin(req);
+    return redirectToLogin(req, "no-cookie");
   }
 
   try {
@@ -79,7 +86,7 @@ export async function proxy(req: NextRequest) {
       console.warn(
         `[proxy] Rol "${payload.rol}" fuera de la whitelist → redirigiendo a /login. path=${pathname}`,
       );
-      const response = redirectToLogin(req);
+      const response = redirectToLogin(req, `rol-rechazado-${payload.rol}`);
       response.cookies.delete("pc_token");
       return response;
     }
@@ -91,7 +98,10 @@ export async function proxy(req: NextRequest) {
       `[proxy] JWT inválido → redirigiendo a /login. path=${pathname} error=${error?.message || error}`,
     );
 
-    const response = redirectToLogin(req);
+    const response = redirectToLogin(
+      req,
+      `jwt-invalido-${error?.code || error?.name || "desconocido"}`,
+    );
     response.cookies.delete("pc_token");
     return response;
   }
