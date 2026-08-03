@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Calendar, Building2, User, FileText, FileSearch, DollarSign, Clock, X } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, FileSearch, DollarSign, Clock } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ESTADOS } from "@/lib/workflow-labels";
@@ -12,6 +12,7 @@ import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
+import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -95,21 +96,6 @@ function construirHtmlContenidoCarta(contenido: string): string {
       return `<p>${bloque.trim().replace(/\n/g, "<br/>")}</p>`;
     })
     .join("");
-}
-
-function getEstadoBadgeClass(estadoId: number) {
-  switch (estadoId) {
-    case 1: // BORRADOR
-      return "bg-gray-100 text-gray-800 border-gray-300";
-    case 2: // PENDIENTE
-      return "bg-yellow-100 text-yellow-800 border-yellow-300";
-    case 3: // APROBADA
-      return "bg-green-100 text-green-800 border-green-300";
-    case 4: // RECHAZADA
-      return "bg-red-100 text-red-800 border-red-300";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-300";
-  }
 }
 
 export default function DetalleDetailPage() {
@@ -325,51 +311,114 @@ export default function DetalleDetailPage() {
     }
   }, [solicitudId]);
 
+  const estadoTokens = ESTADO_TOKENS[solicitud?.sol_estado_id ?? 1] || ESTADO_TOKENS[1];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </button>
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            {loading ? (
-              <div className="animate-pulse flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="h-3 w-20 bg-gray-200 rounded" />
-                  <div className="h-8 w-32 bg-gray-200 rounded" />
-                </div>
-                <div className="h-9 w-28 bg-gray-200 rounded-lg" />
-              </div>
-            ) : error || !solicitud ? (
-              <p className="text-red-600">
-                {error || "No se encontró la solicitud"}
-              </p>
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Solicitud</p>
-                  <h1 className="text-3xl font-bold text-blue-800">
+    <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[1240px] mx-auto">
+        <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]">
+          {/* Header */}
+          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
+            >
+              <ArrowLeft size={15} strokeWidth={2.3} />
+            </button>
+            <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
+              <FileText size={20} className="text-white" strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">
+                Detalle de Solicitud
+              </h1>
+              {solicitud && (
+                <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
+                  Solicitud{" "}
+                  <span className="font-bold text-white">
                     {solicitud.sol_numero_solicitud}
-                  </h1>
-                </div>
-                <div className="flex flex-col items-start sm:items-end gap-2">
-                  <span
-                    className={`inline-block px-4 py-2 rounded-lg font-semibold border text-center ${getEstadoBadgeClass(
-                      solicitud.sol_estado_id
-                    )}`}
-                  >
-                    {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
                   </span>
-                  <div className="flex flex-wrap gap-2">
+                </p>
+              )}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="px-8 py-6 animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+                <div className="h-10 bg-gray-100 rounded" />
+              </div>
+              <div className="h-48 bg-gray-100 rounded" />
+            </div>
+          ) : error || !solicitud ? (
+            <div className="p-8 text-center">
+              <p className="text-red-600">{error || "No se encontró la solicitud"}</p>
+            </div>
+          ) : (
+            <>
+              {/* Info block */}
+              <div className="px-7 py-[26px] border-b border-[#eef1f6]">
+                <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 flex-1 min-w-[280px]">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                        Tipo de Solicitud
+                      </p>
+                      {solicitud.sol_cupo_solicitado ? (
+                        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full text-emerald-800 bg-emerald-100">
+                          Ampliación de Cupo
+                        </span>
+                      ) : loadingCupo ? (
+                        <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full ${
+                            tipoSolicitud === "Ampliación de Cupo"
+                              ? "text-emerald-800 bg-emerald-100"
+                              : "text-blue-800 bg-blue-100"
+                          }`}
+                        >
+                          {tipoSolicitud || "Cliente Nuevo"}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                        Estado
+                      </p>
+                      <span
+                        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
+                        style={{ color: estadoTokens.color, background: estadoTokens.bg }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
+                        {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                        Fecha de Creación
+                      </p>
+                      <p className="text-sm font-bold text-[#0f172a] m-0">
+                        {formatDate(solicitud.sol_fecha_creacion)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
+                        Centro de Operación
+                      </p>
+                      <p className="text-sm font-bold text-[#0f172a] m-0">
+                        {solicitud.centro_operacion_nombre || "-"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
                     <button
                       onClick={() => router.push(`/solicitudes/${solicitud.sol_id}`)}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 transition-colors"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-xl hover:bg-cyan-100 transition-colors"
                     >
                       <FileText className="h-4 w-4" />
                       Ver Formulario
@@ -377,289 +426,234 @@ export default function DetalleDetailPage() {
                     <button
                       onClick={abrirPdfFormulario}
                       disabled={descargandoPdfFormulario}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FileSearch className="h-4 w-4" />
                       {descargandoPdfFormulario ? "Generando..." : "Ver PDF Formulario"}
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 h-40 animate-pulse"
-              />
-            ))}
-          </div>
-        )}
-
-        {!loading && !error && solicitud && (
-        <>
-        {/* Grid de secciones */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Información General */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Información General
-              </h2>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Tipo de Solicitud</p>
                 {solicitud.sol_cupo_solicitado ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                    Ampliación de Cupo
-                  </span>
-                ) : loadingCupo ? (
-                  <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                  <AmpliacionCupoResumen
+                    cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
+                    cupoSolicitado={solicitud.sol_cupo_solicitado}
+                    justificacion={solicitud.sol_justificacion_ampliacion}
+                    consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
+                    toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
+                  />
                 ) : (
-                  <span
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      tipoSolicitud === "Ampliación de Cupo"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {tipoSolicitud || "Cliente Nuevo"}
-                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl border border-[#eef1f6] bg-[#fafbfd] p-5">
+                    <div>
+                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo Mensual Proyectado</p>
+                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                        {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas Mensuales Proyectadas</p>
+                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                        {solicitud.sol_toneladas_proyectadas
+                          ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                          : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Solicita Cupo</p>
+                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                        {solicitaCredito
+                          ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
+                          : "No"}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Fecha de Creación</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {formatDate(solicitud.sol_fecha_creacion)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Centro de Operación</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.centro_operacion_nombre || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Versión Formulario</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_formulario_version || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Zona Franca</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_es_zona_franca ? "Sí" : "No"}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          {/* Etapa y Resultado */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-purple-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Workflow
-              </h2>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Etapa Actual</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.etapa_nombre || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Resultado Etapa</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.resultado_nombre || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Fecha Est. Respuesta Comercial</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {formatDate(solicitud.sol_fecha_estimada_respuesta_comercial)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Fecha Real Respuesta Comercial</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {formatDate(solicitud.sol_fecha_real_respuesta_comercial)}
-                </p>
-              </div>
-            </div>
-          </div>
+              {/* Cuerpo: secciones de información */}
+              <div className="p-7">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Información General */}
+                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                        <FileText size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                      </div>
+                      Información General
+                    </h2>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Versión Formulario</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_formulario_version || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Zona Franca</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_es_zona_franca ? "Sí" : "No"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Datos del Cliente */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Building2 className="h-5 w-5 text-green-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Datos del Cliente
-              </h2>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Razón Social</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_razon_social || solicitud.cliente_nombre || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">NIT/Documento</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_nit_documento || solicitud.cliente_nit || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Dirección</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_direccion || solicitud.cliente_direccion || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Teléfono</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_telefono || "-"}
-                </p>
-              </div>
-            </div>
-          </div>
+                  {/* Workflow */}
+                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                        <Clock size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                      </div>
+                      Workflow
+                    </h2>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Etapa Actual</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.etapa_nombre || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Resultado Etapa</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.resultado_nombre || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Fecha Est. Respuesta Comercial</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {formatDate(solicitud.sol_fecha_estimada_respuesta_comercial)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Fecha Real Respuesta Comercial</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {formatDate(solicitud.sol_fecha_real_respuesta_comercial)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Contactos */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="h-5 w-5 text-orange-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Contactos
-              </h2>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Ejecutivo de Negocios</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.ejecutivo_nombre || "-"}
-                </p>
-              </div>
-            </div>
-          </div>
+                  {/* Datos del Cliente */}
+                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                        <Building2 size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                      </div>
+                      Datos del Cliente
+                    </h2>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Razón Social</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_razon_social || solicitud.cliente_nombre || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">NIT/Documento</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_nit_documento || solicitud.cliente_nit || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Dirección</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_direccion || solicitud.cliente_direccion || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Teléfono</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.sol_telefono || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Información Comercial */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex items-center gap-2 mb-4">
-              <DollarSign className="h-5 w-5 text-emerald-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Información Comercial
-              </h2>
-            </div>
-            {solicitud.sol_cupo_solicitado ? (
-              <AmpliacionCupoResumen
-                cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
-                cupoSolicitado={solicitud.sol_cupo_solicitado}
-                justificacion={solicitud.sol_justificacion_ampliacion}
-                consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
-                toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
-              />
-            ) : (
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Consumo Mensual Proyectado</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Toneladas Mensuales Proyectadas</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitud.sol_toneladas_proyectadas
-                    ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                    : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase">Solicita Cupo</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {solicitaCredito
-                    ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
-                    : "No"}
-                </p>
-              </div>
-            </div>
-            )}
-          </div>
-
-          {/* Condiciones Financieras */}
-          {solicitud.sol_cupo_aprobado && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 lg:col-span-2 bg-gradient-to-br from-green-50 to-emerald-50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Condiciones Financieras Aprobadas
-                  </h2>
+                  {/* Contactos */}
+                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                        <User size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                      </div>
+                      Contactos
+                    </h2>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Ejecutivo de Negocios</p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitud.ejecutivo_nombre || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Condiciones Financieras Aprobadas */}
+                {solicitud.sol_cupo_aprobado && (
+                  <div className="mt-4 rounded-2xl p-5 border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50">
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                      <h2 className="text-[13.5px] font-extrabold text-[#0f172a] flex items-center gap-[9px] tracking-[-0.01em]">
+                        <div className="w-[30px] h-[30px] rounded-[9px] bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <DollarSign size={15} strokeWidth={2.2} className="text-emerald-700" />
+                        </div>
+                        Condiciones Financieras Aprobadas
+                      </h2>
+                      <button
+                        onClick={abrirCartaPDF}
+                        disabled={generandoPDF}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-[12.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {generandoPDF ? "Generando..." : "Ver Carta PDF"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white rounded-xl p-4 border border-emerald-200">
+                        <p className="text-[11px] text-[#94a3b8] uppercase mb-1">Cupo Aprobado</p>
+                        <p className="text-xl font-extrabold text-emerald-700">
+                          {formatCurrency(solicitud.sol_cupo_aprobado)}
+                        </p>
+                      </div>
+                      <div className="bg-white rounded-xl p-4 border border-emerald-200">
+                        <p className="text-[11px] text-[#94a3b8] uppercase mb-1">Plazo de Pago</p>
+                        <p className="text-xl font-extrabold text-emerald-700">
+                          {solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-"}
+                        </p>
+                      </div>
+                      <div className="bg-white rounded-xl p-4 border border-emerald-200">
+                        <p className="text-[11px] text-[#94a3b8] uppercase mb-1">Forma de Pago</p>
+                        <p className="text-lg font-extrabold text-emerald-700">
+                          {solicitud.sol_forma_pago || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Documentos y respuestas por etapa */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+                  <div className="lg:col-span-2 rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                    <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+                  </div>
+                  <div className="lg:col-span-1">
+                    <HistorialSolicitud historial={historial} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-7 py-5 border-t border-[#eef1f6] flex justify-end">
                 <button
-                  onClick={abrirCartaPDF}
-                  disabled={generandoPDF}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => router.back()}
+                  className="px-5 py-2.5 text-[13px] font-bold text-[#374151] bg-white border border-[#e5e7eb] rounded-xl hover:bg-gray-50 transition-colors"
                 >
-                  <FileText className="h-4 w-4" />
-                  {generandoPDF ? "Generando..." : "Ver Carta PDF"}
+                  Cerrar
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-4 border border-green-200">
-                  <p className="text-xs text-gray-500 uppercase mb-1">Cupo Aprobado</p>
-                  <p className="text-2xl font-bold text-green-700">
-                    {formatCurrency(solicitud.sol_cupo_aprobado)}
-                  </p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-green-200">
-                  <p className="text-xs text-gray-500 uppercase mb-1">Plazo de Pago</p>
-                  <p className="text-2xl font-bold text-green-700">
-                    {solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-"}
-                  </p>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-green-200">
-                  <p className="text-xs text-gray-500 uppercase mb-1">Forma de Pago</p>
-                  <p className="text-lg font-bold text-green-700">
-                    {solicitud.sol_forma_pago || "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
+            </>
           )}
         </div>
-
-        {/* Documentos y respuestas por etapa */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-          </div>
-          <div className="lg:col-span-1">
-            <HistorialSolicitud historial={historial} />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end">
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cerrar
-          </button>
-        </div>
-        </>
-        )}
       </div>
-
     </div>
   );
 }
