@@ -1124,7 +1124,8 @@ export default function MisDocumentosPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-3">
-                          {doc.tdo_tiene_plantilla &&
+                          {editable &&
+                            doc.tdo_tiene_plantilla &&
                             (doc.tdo_plantilla_contenido ||
                               doc.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
                             <button

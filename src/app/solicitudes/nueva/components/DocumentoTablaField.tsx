@@ -406,33 +406,45 @@ export function DocumentoTablaField({
                 {respuestas[pregunta.fp_id]?.nombre_archivo}
               </span>
             </div>
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() => {
-                  const vistaPreviaUrl =
-                    respuestas[pregunta.fp_id]?.vista_previa_url;
-                  if (vistaPreviaUrl) {
-                    URL.revokeObjectURL(vistaPreviaUrl);
-                  }
-                  setRespuestas((prev) => {
-                    const next = { ...prev };
-                    next[pregunta.fp_id] = {
-                      ...next[pregunta.fp_id],
-                      archivo: undefined,
-                      nombre_archivo: undefined,
-                      vista_previa_url: undefined,
-                    };
-                    return next;
-                  });
-                }}
-                className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200 flex-shrink-0"
-                title="Quitar archivo seleccionado (aún no se ha guardado)"
-              >
-                <X className="h-3 w-3" />
-                Quitar
-              </button>
-            )}
+            <div className="flex gap-1 flex-shrink-0">
+              {respuestas[pregunta.fp_id]?.vista_previa_url && (
+                <a
+                  href={respuestas[pregunta.fp_id]?.vista_previa_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors font-medium border border-emerald-200"
+                >
+                  Ver
+                </a>
+              )}
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const vistaPreviaUrl =
+                      respuestas[pregunta.fp_id]?.vista_previa_url;
+                    if (vistaPreviaUrl) {
+                      URL.revokeObjectURL(vistaPreviaUrl);
+                    }
+                    setRespuestas((prev) => {
+                      const next = { ...prev };
+                      next[pregunta.fp_id] = {
+                        ...next[pregunta.fp_id],
+                        archivo: undefined,
+                        nombre_archivo: undefined,
+                        vista_previa_url: undefined,
+                      };
+                      return next;
+                    });
+                  }}
+                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
+                  title="Quitar archivo seleccionado (aún no se ha guardado)"
+                >
+                  <X className="h-3 w-3" />
+                  Quitar
+                </button>
+              )}
+            </div>
           </div>
         )}
 
