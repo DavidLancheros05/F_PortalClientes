@@ -39,8 +39,19 @@ export const formularioRespuestasService = {
 
         let guardadas = 0;
 
-        // Manejar archivos
-        if (esArchivo && (respuesta as any).archivo) {
+        // Manejar archivos — la mayoría de preguntas ARCHIVO tienen un solo
+        // archivo pendiente en `respuesta.archivo`; las que admiten varios
+        // (fp_maximo > 1, ver ArchivoMultipleField) lo traen en
+        // `respuesta.archivos` (array). Se suben todos en paralelo.
+        const archivosPendientes: File[] = Array.isArray(
+          (respuesta as any).archivos,
+        )
+          ? (respuesta as any).archivos
+          : (respuesta as any).archivo
+            ? [(respuesta as any).archivo]
+            : [];
+
+        if (esArchivo && archivosPendientes.length > 0) {
           let fechaEmision: string | undefined;
 
           if (esDocumentoTabla) {
@@ -71,11 +82,15 @@ export const formularioRespuestasService = {
             }
           }
 
-          await this.guardarArchivoRespuesta(
-            solicitudId,
-            fpId,
-            (respuesta as any).archivo,
-            fechaEmision,
+          await Promise.all(
+            archivosPendientes.map((archivo) =>
+              this.guardarArchivoRespuesta(
+                solicitudId,
+                fpId,
+                archivo,
+                fechaEmision,
+              ),
+            ),
           );
           guardadas++;
         }

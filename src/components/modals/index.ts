@@ -5,4 +5,5 @@ export {
   ErrorModal,
   WarningModal,
   InfoModal,
+  ModalPortal,
 } from "./ModalesGenericos";

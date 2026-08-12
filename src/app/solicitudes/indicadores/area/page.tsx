@@ -8,10 +8,6 @@ import {
   type SolicitudDetalle,
 } from "@/services/indicadores/indicadores.service";
 import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
-import {
   CheckCircle,
   XCircle,
   Clock,
@@ -38,12 +34,10 @@ function DiferenciaBadge({ diferencia }: { diferencia: number }) {
 
 export default function IndicadoresAreaPage() {
   const { loading: authLoading } = useContext(AuthContext);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [areas, setAreas] = useState<AreaKPI[]>([]);
   const [areaSeleccionada, setAreaSeleccionada] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
-  const [coId, setCoId] = useState("");
   const [solicitudes, setSolicitudes] = useState<SolicitudDetalle[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingAreas, setLoadingAreas] = useState(false);
@@ -55,10 +49,6 @@ export default function IndicadoresAreaPage() {
   useEffect(() => {
     if (authLoading) return;
     cargarAreas();
-    centrosOperacionService
-      .getAll()
-      .then(setCentros)
-      .catch(() => {});
   }, [authLoading]);
 
   async function cargarAreas() {
@@ -67,7 +57,6 @@ export default function IndicadoresAreaPage() {
       const params: Record<string, string> = {};
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
-      if (coId) params.co_id = coId;
       const data = await indicadoresService.getDashboard(params);
       const areasConDatos = data.por_area.filter((a) => a.total > 0);
       setAreas(areasConDatos);
@@ -93,7 +82,6 @@ export default function IndicadoresAreaPage() {
       const params: Record<string, string> = { area: areaSeleccionada };
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
-      if (coId) params.co_id = coId;
       const res = await indicadoresService.getDetalleArea(params as any);
       setSolicitudes(res);
     } catch {
@@ -136,7 +124,7 @@ export default function IndicadoresAreaPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Área
@@ -175,23 +163,6 @@ export default function IndicadoresAreaPage() {
                 onChange={(e) => setFechaHasta(e.target.value)}
                 className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Centro de operación
-              </label>
-              <select
-                value={coId}
-                onChange={(e) => setCoId(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 bg-white"
-              >
-                <option value="">Todos</option>
-                {centros.map((c) => (
-                  <option key={c.cop_id} value={String(c.cop_id)}>
-                    {c.cop_nombre}
-                  </option>
-                ))}
-              </select>
             </div>
             <div className="flex gap-2">
               <button

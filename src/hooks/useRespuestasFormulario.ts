@@ -14,6 +14,7 @@ type RespuestasState = {
     valor_fecha?: string;
     valor_opcion_id?: number | number[] | string;
     archivo?: File;
+    archivos?: File[];
     nombre_archivo?: string;
     vista_previa_url?: string;
   };

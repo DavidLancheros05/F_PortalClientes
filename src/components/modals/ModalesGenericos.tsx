@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 // proyecto). Renderizar en un portal a document.body lo evita sin importar
 // dónde se monte el modal. El check de `mounted` es necesario porque
 // document no existe durante el render en servidor.
-function ModalPortal({ children }: { children: React.ReactNode }) {
+export function ModalPortal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;

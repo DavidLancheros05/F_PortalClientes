@@ -58,20 +58,20 @@ export function ColumnaCatalogoPicker({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-sky-900">
+        <p className="text-xs font-semibold text-gray-800">
           🗄️ ¿De qué tabla depende esta columna?
         </p>
         <button
           type="button"
           onClick={onCerrar}
-          className="text-xs text-sky-700 underline hover:text-sky-900"
+          className="text-xs text-gray-700 underline hover:text-gray-900"
         >
           listo
         </button>
       </div>
 
       <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-sky-900 leading-tight">
+        <label className="block text-xs font-semibold text-gray-800 leading-tight">
           Base de datos
         </label>
         <input
@@ -79,11 +79,11 @@ export function ColumnaCatalogoPicker({
           placeholder="Escribe para filtrar (ej: cli)..."
           value={filtroBaseDatos}
           onChange={(e) => setFiltroBaseDatos(e.target.value)}
-          className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         {(!columna.catalogo_base_datos ||
           filtroBaseDatos !== columna.catalogo_base_datos) && (
-          <div className="max-h-28 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+          <div className="max-h-28 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
             {loadingCatalogoBases && (
               <p className="px-2 py-1 text-xs text-gray-500">Cargando bases...</p>
             )}
@@ -110,7 +110,7 @@ export function ColumnaCatalogoPicker({
                     setFiltroColumna("");
                     cargarTablasCatalogo(base);
                   }}
-                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
                 >
                   {base}
                 </button>
@@ -125,7 +125,7 @@ export function ColumnaCatalogoPicker({
       </div>
 
       <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-sky-900 leading-tight">
+        <label className="block text-xs font-semibold text-gray-800 leading-tight">
           Tabla <span className="text-red-500">*</span>
         </label>
         <input
@@ -133,10 +133,10 @@ export function ColumnaCatalogoPicker({
           placeholder="Escribe para filtrar (ej: pais)..."
           value={filtroTabla}
           onChange={(e) => setFiltroTabla(e.target.value)}
-          className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         {(!columna.catalogo_tabla || filtroTabla !== columna.catalogo_tabla) && (
-          <div className="max-h-28 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+          <div className="max-h-28 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
             {loadingCatalogoTablas && (
               <p className="px-2 py-1 text-xs text-gray-500">Cargando tablas...</p>
             )}
@@ -158,7 +158,7 @@ export function ColumnaCatalogoPicker({
                     setFiltroColumna("");
                     cargarColumnasCatalogo(columna.catalogo_base_datos || "", tabla);
                   }}
-                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
                 >
                   {tabla}
                 </button>
@@ -166,14 +166,14 @@ export function ColumnaCatalogoPicker({
           </div>
         )}
         {columna.catalogo_tabla && (
-          <p className="text-xs text-sky-700">
+          <p className="text-xs text-gray-600">
             Seleccionada: <strong>{columna.catalogo_tabla}</strong>
           </p>
         )}
       </div>
 
       <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-sky-900 leading-tight">
+        <label className="block text-xs font-semibold text-gray-800 leading-tight">
           Columna (valores a mostrar) <span className="text-red-500">*</span>
         </label>
         <input
@@ -182,11 +182,11 @@ export function ColumnaCatalogoPicker({
           value={filtroColumna}
           onChange={(e) => setFiltroColumna(e.target.value)}
           disabled={!columna.catalogo_tabla}
-          className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white disabled:bg-gray-100"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100"
         />
         {(!columna.catalogo_columna ||
           filtroColumna !== columna.catalogo_columna) && (
-          <div className="max-h-28 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+          <div className="max-h-28 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
             {loadingCatalogoColumnas && (
               <p className="px-2 py-1 text-xs text-gray-500">Cargando columnas...</p>
             )}
@@ -206,7 +206,7 @@ export function ColumnaCatalogoPicker({
                     onChange({ catalogo_columna: col });
                     setFiltroColumna(col);
                   }}
-                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
                 >
                   {col}
                 </button>
@@ -214,14 +214,14 @@ export function ColumnaCatalogoPicker({
           </div>
         )}
         {columna.catalogo_columna && (
-          <p className="text-xs text-sky-700">
+          <p className="text-xs text-gray-600">
             Seleccionada: <strong>{columna.catalogo_columna}</strong>
           </p>
         )}
       </div>
 
       <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-sky-900 leading-tight">
+        <label className="block text-xs font-semibold text-gray-800 leading-tight">
           Llave (ID) <span className="text-red-500">*</span>
         </label>
         <input
@@ -230,11 +230,11 @@ export function ColumnaCatalogoPicker({
           value={filtroLlave}
           onChange={(e) => setFiltroLlave(e.target.value)}
           disabled={!columna.catalogo_tabla}
-          className="w-full border border-sky-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white disabled:bg-gray-100"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100"
         />
         {(!columna.catalogo_pk_column ||
           filtroLlave !== columna.catalogo_pk_column) && (
-          <div className="max-h-28 overflow-y-auto border border-sky-200 rounded bg-white divide-y divide-sky-50">
+          <div className="max-h-28 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
             {loadingCatalogoColumnas && (
               <p className="px-2 py-1 text-xs text-gray-500">Cargando columnas...</p>
             )}
@@ -254,7 +254,7 @@ export function ColumnaCatalogoPicker({
                     onChange({ catalogo_pk_column: col });
                     setFiltroLlave(col);
                   }}
-                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-sky-50"
+                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
                 >
                   {col}
                 </button>
@@ -262,15 +262,15 @@ export function ColumnaCatalogoPicker({
           </div>
         )}
         {columna.catalogo_pk_column && (
-          <p className="text-xs text-sky-700">
+          <p className="text-xs text-gray-600">
             Seleccionada: <strong>{columna.catalogo_pk_column}</strong>
           </p>
         )}
       </div>
 
       {columnasCatalogoDisponibles.length > 0 && (
-        <div className="space-y-0.5 border-t border-sky-200 pt-1.5">
-          <label className="block text-xs font-semibold text-sky-900 leading-tight">
+        <div className="space-y-0.5 border-t border-gray-200 pt-1.5">
+          <label className="block text-xs font-semibold text-gray-800 leading-tight">
             ¿Depende de otra columna de esta tabla? (opcional)
           </label>
           <select
@@ -283,7 +283,7 @@ export function ColumnaCatalogoPicker({
                   : undefined,
               })
             }
-            className="w-full border border-sky-200 rounded px-2 py-1 text-xs bg-white"
+            className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs bg-white"
           >
             <option value="">No depende de otra columna</option>
             {columnasCatalogoDisponibles.map((nombre) => (
@@ -295,7 +295,7 @@ export function ColumnaCatalogoPicker({
 
           {columna.catalogo_columna_padre && (
             <>
-              <label className="block text-xs font-semibold text-sky-900 leading-tight mt-1">
+              <label className="block text-xs font-semibold text-gray-800 leading-tight mt-1">
                 Columna que relaciona con "{columna.catalogo_columna_padre}"{" "}
                 <span className="text-red-500">*</span>
               </label>
@@ -305,7 +305,7 @@ export function ColumnaCatalogoPicker({
                   onChange({ catalogo_columna_filtro: e.target.value || undefined })
                 }
                 disabled={!columna.catalogo_tabla}
-                className="w-full border border-sky-200 rounded px-2 py-1 text-xs bg-white disabled:bg-gray-100"
+                className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs bg-white disabled:bg-gray-100"
               >
                 <option value="">
                   Selecciona la columna FK en "{columna.catalogo_tabla || "..."}"
@@ -325,6 +325,51 @@ export function ColumnaCatalogoPicker({
           )}
         </div>
       )}
+
+      <div className="space-y-0.5 border-t border-gray-200 pt-1.5">
+        <label className="block text-xs font-semibold text-gray-800 leading-tight">
+          Condición fija (opcional)
+        </label>
+        <select
+          value={columna.catalogo_columna_condicion || ""}
+          onChange={(e) =>
+            onChange({
+              catalogo_columna_condicion: e.target.value || undefined,
+            })
+          }
+          disabled={!columna.catalogo_tabla}
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs bg-white disabled:bg-gray-100"
+        >
+          <option value="">Detectar automáticamente (columna de estado)</option>
+          {catalogoColumnas.map((col) => (
+            <option key={col} value={col}>
+              {col}
+            </option>
+          ))}
+        </select>
+
+        <label className="block text-xs font-semibold text-gray-800 leading-tight mt-1">
+          Valor requerido (obligatorio si eliges columna arriba)
+        </label>
+        <input
+          type="text"
+          placeholder="Ej: A, ACTIVE, URBANA..."
+          value={columna.catalogo_valor_condicion || ""}
+          onChange={(e) =>
+            onChange({
+              catalogo_valor_condicion: e.target.value || undefined,
+            })
+          }
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs bg-white"
+        />
+        <p className="text-xs text-gray-500">
+          Solo se muestran filas donde esa columna tenga exactamente ese
+          valor — sirve para cualquier condición fija, no solo activo/inactivo
+          (ej: tipo = 'URBANA'). Si dejas ambos vacíos, se detecta la columna
+          de estado por convención de nombre y se acepta
+          'A'/'ACTIVO'/'SI'/'S'/true.
+        </p>
+      </div>
     </div>
   );
 }

@@ -237,12 +237,13 @@ export function ArchivoField({
                         const target = event.target as HTMLInputElement;
                         const file = target.files?.[0];
                         if (file) {
-                          handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+                          procesarArchivoSeleccionado(file);
                         }
                       };
                       tempInput.click();
                     }}
-                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                    disabled={procesandoArchivo}
+                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60"
                   >
                     Cambiar
                   </button>

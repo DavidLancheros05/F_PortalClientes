@@ -24,6 +24,29 @@ export function documentoRequiereFechaEmision(
   );
 }
 
+/**
+ * ¿Esta respuesta local (aún no guardada) tiene un archivo pendiente de
+ * subir? Igual que documentoRequiereFechaEmision arriba, esta condición
+ * vivía duplicada en 3 lugares de SolicitudFormContent (hasValorEnRespuesta,
+ * isAnswered, validateCurrentSection) — se consolida acá para que agregar
+ * `archivos` (preguntas ARCHIVO que admiten más de un archivo, ver
+ * fp_maximo) no obligue a tocar los 3 en sincronía.
+ */
+export function respuestaTieneArchivoNuevo(
+  respuesta?: {
+    archivo?: File;
+    nombre_archivo?: string;
+    archivos?: File[];
+  } | null,
+): boolean {
+  if (!respuesta) return false;
+  return (
+    respuesta.archivo instanceof File ||
+    Boolean(respuesta.nombre_archivo?.trim()) ||
+    (Array.isArray(respuesta.archivos) && respuesta.archivos.length > 0)
+  );
+}
+
 export function calcularVigenciaDocumento(
   fechaEmision?: string,
   vigenciaDias?: number | null,

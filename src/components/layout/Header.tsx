@@ -340,7 +340,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
               className="w-full h-full object-contain"
             />
           </div>
-          <div className="hidden sm:block font-black text-sm uppercase tracking-tighter text-white truncate">
+          <div className="hidden sm:block font-black text-xs uppercase tracking-tighter text-white truncate">
             Cartonera Nacional S.A.
           </div>
         </div>
@@ -358,7 +358,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                 <>
                   <button
                     onClick={() => toggleSubMenu(m.mod_id)}
-                    className={`flex items-center px-3 py-2 rounded-lg text-white transition-colors ${
+                    className={`flex items-center px-3 py-2 rounded-lg text-white text-sm transition-colors ${
                       activeSubMenu === m.mod_id
                         ? "bg-white/14 hover:bg-white/20"
                         : "hover:bg-white/14"

@@ -44,7 +44,7 @@ export function PanelPreguntas(props: PanelPreguntasProps) {
   return (
     <>
       {/* PANEL DERECHO - PREGUNTAS */}
-      <div className="w-2/3 min-h-0 bg-white rounded-xl shadow-lg p-3 flex flex-col overflow-hidden border-2 border-gray-100 hover:border-gray-200 transition-all duration-200">
+      <div className="w-2/3 min-h-0 bg-white rounded-lg shadow-sm p-2 flex flex-col overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1">
             <button
@@ -59,7 +59,7 @@ export function PanelPreguntas(props: PanelPreguntasProps) {
             >
               <ChevronLeft className="h-4 w-4 text-gray-600" />
             </button>
-            <h2 className="text-xs font-medium text-gray-700">
+            <h2 className="text-[11px] font-medium text-gray-700">
               {seccionActual?.fs_nombre ||
                 seccionActual?.seccion_nombre ||
                 "Selecciona una sección"}
@@ -99,13 +99,13 @@ export function PanelPreguntas(props: PanelPreguntasProps) {
         </div>
 
         {seccionActual?.seccion_descripcion && (
-          <p className="text-xs text-gray-600 mb-1">
+          <p className="text-[11px] text-gray-600 mb-1">
             {seccionActual.seccion_descripcion}
           </p>
         )}
 
         {!loading && preguntas.length === 0 && (
-          <div className="mb-2 rounded-lg border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-xs text-amber-900 font-medium">
+          <div className="mb-2 rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-[11px] text-amber-900 font-medium">
             ⚠️ Esta versión (v{version || "1"}) no tiene preguntas
             registradas. Las secciones son globales, pero las preguntas se
             guardan por versión.

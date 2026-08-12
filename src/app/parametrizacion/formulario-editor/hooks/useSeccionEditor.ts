@@ -29,12 +29,23 @@ export function useSeccionEditor({
     ocultaEnFormulario: false,
   });
   const [seccionAEliminar, setSeccionAEliminar] = useState<number | null>(null);
+  const [guardandoSeccion, setGuardandoSeccion] = useState(false);
+  const [mostrarConfirmarGuardarSeccion, setMostrarConfirmarGuardarSeccion] =
+    useState(false);
+  const [successMessageSeccion, setSuccessMessageSeccion] = useState<
+    "creada" | "editada" | null
+  >(null);
 
-  const guardarSeccion = async () => {
+  const guardarSeccion = () => {
     if (!formSeccion.nombre.trim()) {
       alert("El nombre es requerido");
       return;
     }
+    setMostrarConfirmarGuardarSeccion(true);
+  };
+
+  const confirmarGuardarSeccion = async () => {
+    setGuardandoSeccion(true);
     try {
       if (editandoSeccion) {
         await api.put(`/parametrizacion/formulario-secciones/${editandoSeccion}`, {
@@ -42,6 +53,7 @@ export function useSeccionEditor({
           seccion_descripcion: formSeccion.descripcion,
           seccion_oculta_en_formulario: formSeccion.ocultaEnFormulario,
         });
+        setSuccessMessageSeccion("editada");
       } else {
         const nuevoOrden =
           secciones.length > 0 ? Math.max(...secciones.map((s) => (s.fs_orden || s.seccion_orden || 0))) + 1 : 1;
@@ -51,14 +63,19 @@ export function useSeccionEditor({
           seccion_orden: nuevoOrden,
           seccion_oculta_en_formulario: formSeccion.ocultaEnFormulario,
         });
+        setSuccessMessageSeccion("creada");
       }
       setFormSeccion({ nombre: "", descripcion: "", ocultaEnFormulario: false });
       setEditandoSeccion(null);
       setNuevaSeccion(false);
+      setMostrarConfirmarGuardarSeccion(false);
       await cargarDatos();
     } catch (error) {
       console.error("Error guardando sección:", error);
       alert("Error al guardar la sección");
+      setMostrarConfirmarGuardarSeccion(false);
+    } finally {
+      setGuardandoSeccion(false);
     }
   };
 
@@ -169,6 +186,12 @@ export function useSeccionEditor({
     formSeccion,
     setFormSeccion,
     guardarSeccion,
+    confirmarGuardarSeccion,
+    guardandoSeccion,
+    mostrarConfirmarGuardarSeccion,
+    setMostrarConfirmarGuardarSeccion,
+    successMessageSeccion,
+    setSuccessMessageSeccion,
     iniciarEdicionSeccion,
     eliminarSeccion,
     confirmarEliminarSeccion,

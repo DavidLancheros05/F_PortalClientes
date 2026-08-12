@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, User, FileText, FileSearch, DollarSign, Clock } from "lucide-react";
+import { ArrowLeft, Building2, FileText, FileSearch, DollarSign, Clock } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ESTADOS } from "@/lib/workflow-labels";
-import html2pdf from "html2pdf.js";
+import { generarPlantillaDocumentoPdf } from "@/lib/carta-pdf.util";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
+import { SoportesAnalisis } from "@/components/SoportesAnalisis";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 import { ESTADO_TOKENS } from "@/constants/estado-tokens";
+import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -37,6 +39,7 @@ interface SolicitudDetalle {
   sol_cupo_aprobado?: number;
   sol_plazo_pago?: number;
   sol_forma_pago?: string;
+  sol_observacion_ejn?: string | null;
   sol_es_zona_franca?: boolean;
   sol_formulario_version?: number;
   sol_fecha_estimada_respuesta_comercial?: string;
@@ -72,31 +75,6 @@ function formatCurrency(value?: number | null) {
   }).format(value);
 }
 
-function construirHtmlContenidoCarta(contenido: string): string {
-  const escapado = contenido.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  return escapado
-    .split("\n\n")
-    .map((bloque) => {
-      const lineas = bloque
-        .split("\n")
-        .map((linea) => linea.trim())
-        .filter(Boolean);
-      const items = lineas.filter((linea) => linea.startsWith("- "));
-      const titulo = lineas.find((linea) => !linea.startsWith("- "));
-
-      if (items.length > 0) {
-        const tituloHtml = titulo ? `<p class="cpv-list-title">${titulo}</p>` : "";
-        const itemsHtml = items
-          .map((item) => `<li>${item.replace(/^- /, "")}</li>`)
-          .join("");
-        return `${tituloHtml}<ul class="cpv-list">${itemsHtml}</ul>`;
-      }
-
-      return `<p>${bloque.trim().replace(/\n/g, "<br/>")}</p>`;
-    })
-    .join("");
-}
 
 export default function DetalleDetailPage() {
   const router = useRouter();
@@ -154,137 +132,35 @@ export default function DetalleDetailPage() {
         return;
       }
 
-      // Reemplazar placeholders con datos reales
-      let contenido = plantillaActiva.plantillaContenido;
-
-      const reemplazos: Record<string, string> = {
-        "{{cliente_nombre}}": solicitud.cliente_nombre || "-",
-        "{{cupo_aprobado}}": formatCurrency(solicitud.sol_cupo_aprobado),
-        "{{forma_pago}}": solicitud.sol_forma_pago || "-",
-        "{{plazo}}": solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-",
-        "{{fecha_aprobacion}}": formatDate(solicitud.sol_fecha_real_respuesta_comercial),
-        "{{numero_solicitud}}": solicitud.sol_numero_solicitud || "-",
-        "{{tasa_interes}}": "-",
-      };
-
-      Object.entries(reemplazos).forEach(([placeholder, valor]) => {
-        contenido = contenido.replace(new RegExp(placeholder, "g"), valor);
+      // Mismo motor pdf-lib (generarPlantillaDocumentoPdf -> generarCartaPdf,
+      // carta-pdf.util.ts) que usa el resto del sistema para plantillas, y su
+      // réplica en el backend (common/utils/carta-pdf.util.ts) para el correo
+      // real que se envía al aprobar CC2 — antes esta vista previa se armaba
+      // a mano con html2pdf.js y quedaba con un formato distinto al de la
+      // carta real. Ver "Documentos Cartonera/documentacion/mejoras/
+      // unificacion-carta-vinculacion-tipos-documentos.md".
+      await generarPlantillaDocumentoPdf({
+        tdoNombre: `Aprobación de solicitud de vinculación comercial No. ${solicitud.sol_numero_solicitud}`,
+        tdoPlantillaContenido: plantillaActiva.plantillaContenido,
+        clienteNombre: solicitud.cliente_nombre,
+        numeroSolicitud: solicitud.sol_numero_solicitud,
+        encabezadoTipo: plantillaActiva.encabezadoTipo,
+        encabezadoImagenUrl: plantillaActiva.encabezadoImagenUrl,
+        piePaginaTipo: plantillaActiva.piePaginaTipo,
+        piePaginaTexto: plantillaActiva.piePaginaTexto,
+        piePaginaImagenUrl: plantillaActiva.piePaginaImagenUrl,
+        reemplazosExtra: {
+          "{{cupo_aprobado}}": formatCurrency(solicitud.sol_cupo_aprobado),
+          "{{forma_pago}}": solicitud.sol_forma_pago || "-",
+          "{{plazo}}": solicitud.sol_plazo_pago
+            ? `${solicitud.sol_plazo_pago} días`
+            : "-",
+          "{{fecha_aprobacion}}": formatDate(
+            solicitud.sol_fecha_real_respuesta_comercial,
+          ),
+          "{{tasa_interes}}": "-",
+        },
       });
-
-      // Crear el contenido como elemento DOM real: html2pdf().from(string) pasa por
-      // DOMPurify internamente, que descarta por completo <head>/<style> (están en su
-      // DEFAULT_FORBID_CONTENTS), así que un string con <style> pierde todo el CSS
-      // silenciosamente. Pasar un elemento evita ese saneamiento.
-      const container = document.createElement("div");
-      container.innerHTML = `
-        <style>
-          .cpv-container {
-            font-family: 'Arial', 'Helvetica', sans-serif;
-            line-height: 1.8;
-            color: #333;
-            padding: 40px;
-            background: white;
-            font-size: 14px;
-            max-width: 800px;
-            margin: 0 auto;
-          }
-          .cpv-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #0066cc;
-          }
-          .cpv-header h1 {
-            color: #0066cc;
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            font-weight: bold;
-          }
-          .cpv-header p {
-            margin: 5px 0;
-            font-size: 13px;
-            color: #666;
-          }
-          .cpv-content {
-            word-wrap: break-word;
-            font-family: 'Georgia', serif;
-            line-height: 1.9;
-            text-align: justify;
-            margin: 30px 0;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 4px;
-          }
-          .cpv-content p {
-            margin: 15px 0;
-            text-indent: 40px;
-          }
-          .cpv-content p:first-child {
-            text-indent: 0;
-          }
-          .cpv-list {
-            list-style: disc;
-            text-align: left;
-            margin: 6px 0 20px 0;
-            padding-left: 40px;
-          }
-          .cpv-list li {
-            margin: 4px 0;
-          }
-          .cpv-list-title {
-            text-indent: 0;
-            font-weight: bold;
-            margin: 15px 0 5px 0;
-          }
-          .cpv-footer {
-            margin-top: 50px;
-            padding-top: 20px;
-            text-align: center;
-            font-size: 11px;
-            color: #999;
-            border-top: 1px solid #ddd;
-          }
-        </style>
-        <div class="cpv-container">
-          <div class="cpv-header">
-            <h1>Carta de Vinculación Comercial</h1>
-            <p>Solicitud: ${solicitud.sol_numero_solicitud}</p>
-            <p>Fecha: ${new Date().toLocaleDateString("es-CO")}</p>
-          </div>
-          <div class="cpv-content">${construirHtmlContenidoCarta(contenido)}</div>
-          <div class="cpv-footer">
-            <p>Documento generado automáticamente el ${new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-            <p>Sistema de Vinculación Comercial - CARTONERA</p>
-          </div>
-        </div>
-      `;
-
-      // Generar PDF y abrir en nueva pestaña
-      const opt = {
-        margin: 10,
-        filename: `carta-vinculacion-${solicitud.sol_numero_solicitud}.pdf`,
-        image: { type: "png" as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: "portrait" as const, unit: "mm" as const, format: "a4" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] as any },
-      };
-
-      // Generar el PDF y convertirlo a Blob
-      const pdf = html2pdf().set(opt).from(container);
-
-      // Obtener el PDF como Blob y abrirlo en una nueva pestaña
-      pdf
-        .toPdf()
-        .get("pdf")
-        .then((pdfObj: any) => {
-          const blob = pdfObj.output("blob");
-          const url = URL.createObjectURL(blob);
-          window.open(url, "_blank");
-        })
-        .catch((err: unknown) => {
-          console.error("Error generando el PDF de la carta:", err);
-          alert("Error al generar el PDF");
-        });
     } catch (err) {
       console.error("Error generando PDF:", err);
       alert("Error al generar el PDF");
@@ -312,6 +188,23 @@ export default function DetalleDetailPage() {
   }, [solicitudId]);
 
   const estadoTokens = ESTADO_TOKENS[solicitud?.sol_estado_id ?? 1] || ESTADO_TOKENS[1];
+
+  // Comentario más reciente que dejó cada área en el historial de workflow.
+  // `historial` viene ordenado ascendente por fecha (obtenerHistorial en el
+  // backend: ORDER BY swh_fecha ASC) y un mismo etapaCodigo puede repetirse
+  // más de una vez (ej. Comité de Crédito 2 aprueba, se rechaza, se vuelve a
+  // decidir) — hay que quedarse con la ÚLTIMA entrada de esa etapa, no la
+  // primera, para mostrar la decisión vigente y no una vieja. Se usa también
+  // para decidir si esa área ya fue alcanzada (sin comentario, la tarjeta de
+  // esa área no se muestra).
+  const comentarioPorEtapa = (codigo: string) => {
+    const entradas = historial.filter((h) => h.etapaCodigo === codigo);
+    return entradas.length > 0 ? entradas[entradas.length - 1].comentario : undefined;
+  };
+  const comentarioASC = comentarioPorEtapa("ASC");
+  const comentarioOFC = comentarioPorEtapa("OFC");
+  const comentarioCC1 = comentarioPorEtapa("CC1");
+  const comentarioCC2 = comentarioPorEtapa("CC2");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
@@ -443,29 +336,13 @@ export default function DetalleDetailPage() {
                     toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
                   />
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-2xl border border-[#eef1f6] bg-[#fafbfd] p-5">
-                    <div>
-                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo Mensual Proyectado</p>
-                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                        {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas Mensuales Proyectadas</p>
-                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                        {solicitud.sol_toneladas_proyectadas
-                          ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                          : "-"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Solicita Cupo</p>
-                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                        {solicitaCredito
-                          ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
-                          : "No"}
-                      </p>
-                    </div>
+                  <div className="rounded-2xl border border-[#eef1f6] bg-[#fafbfd] p-5">
+                    <p className="text-[11px] text-[#94a3b8] mb-0.5">Solicita Cupo</p>
+                    <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                      {solicitaCredito
+                        ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
+                        : "No"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -492,42 +369,6 @@ export default function DetalleDetailPage() {
                         <p className="text-[11px] text-[#94a3b8] mb-0.5">Zona Franca</p>
                         <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
                           {solicitud.sol_es_zona_franca ? "Sí" : "No"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Workflow */}
-                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
-                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <Clock size={15} strokeWidth={2.2} className="text-[#003d99]" />
-                      </div>
-                      Workflow
-                    </h2>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Etapa Actual</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.etapa_nombre || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Resultado Etapa</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.resultado_nombre || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Fecha Est. Respuesta Comercial</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {formatDate(solicitud.sol_fecha_estimada_respuesta_comercial)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Fecha Real Respuesta Comercial</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {formatDate(solicitud.sol_fecha_real_respuesta_comercial)}
                         </p>
                       </div>
                     </div>
@@ -569,24 +410,125 @@ export default function DetalleDetailPage() {
                     </div>
                   </div>
 
-                  {/* Contactos */}
-                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                </div>
+
+                {/* Gestión por Área — el detalle real de lo que hizo cada
+                    área en su etapa, no solo el estado genérico actual. Cada
+                    tarjeta solo se muestra si esa área ya fue alcanzada
+                    (comentario existente en el historial, o sol_observacion_ejn
+                    para el Ejecutivo). Mismo mecanismo que ya usa
+                    gestion-comite-credito-2 para "Concepto de etapas previas". */}
+                {(solicitud.sol_observacion_ejn ||
+                  solicitud.sol_consumo_mensual_proyectado ||
+                  solicitud.sol_toneladas_proyectadas ||
+                  comentarioASC ||
+                  comentarioOFC ||
+                  comentarioCC1 ||
+                  comentarioCC2) && (
+                  <div className="mt-4">
                     <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                       <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <User size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                        <Clock size={15} strokeWidth={2.2} className="text-[#003d99]" />
                       </div>
-                      Contactos
+                      Gestión por Área
                     </h2>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Ejecutivo de Negocios</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.ejecutivo_nombre || "-"}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {(solicitud.sol_observacion_ejn ||
+                        solicitud.sol_consumo_mensual_proyectado ||
+                        solicitud.sol_toneladas_proyectadas) && (
+                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
+                            Ejecutivo de Negocios
+                          </p>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Ejecutivo</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0 mb-3">
+                            {solicitud.ejecutivo_nombre || "-"}
+                          </p>
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo Mensual Proyectado</p>
+                              <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                                {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas Proyectadas</p>
+                              <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                                {solicitud.sol_toneladas_proyectadas
+                                  ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                                  : "-"}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Observación</p>
+                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                            {solicitud.sol_observacion_ejn || "-"}
+                          </p>
+                        </div>
+                      )}
+
+                      {comentarioASC && (
+                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
+                            Auxiliar Servicio al Cliente
+                          </p>
+                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                            {comentarioASC}
+                          </p>
+                        </div>
+                      )}
+
+                      {comentarioOFC && (
+                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd] space-y-4">
+                          <div>
+                            <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
+                              Oficial de Cumplimiento
+                            </p>
+                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                              {comentarioOFC}
+                            </p>
+                          </div>
+                          <SoportesAnalisis
+                            solicitudId={solicitud.sol_id}
+                            wetId={WORKFLOW_ETAPA.OFC.id}
+                            titulo="Soportes de Oficial de Cumplimiento"
+                            readOnly
+                          />
+                        </div>
+                      )}
+
+                      {comentarioCC1 && (
+                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd] space-y-4">
+                          <div>
+                            <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
+                              Comité de Crédito 1
+                            </p>
+                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                              {comentarioCC1}
+                            </p>
+                          </div>
+                          <SoportesAnalisis
+                            solicitudId={solicitud.sol_id}
+                            wetId={WORKFLOW_ETAPA.CC1.id}
+                            titulo="Soportes de Comité de Crédito 1"
+                            readOnly
+                          />
+                        </div>
+                      )}
+
+                      {comentarioCC2 && (
+                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
+                          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
+                            Comité de Crédito 2
+                          </p>
+                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                            {comentarioCC2}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Condiciones Financieras Aprobadas */}
                 {solicitud.sol_cupo_aprobado && (

@@ -15,10 +15,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
@@ -32,6 +28,7 @@ import { EmptyStateCard } from "@/components/EmptyStateCard";
 interface Cliente {
   cli_id: number;
   cli_razon_social: string;
+  ejng_id: number | null;
 }
 
 interface Ejecutivo {
@@ -53,6 +50,8 @@ interface SolicitudListado {
   sol_co_id: number | null;
   centro_operacion_nombre: string | null;
   sol_fecha_creacion: string;
+  sol_fecha_envio?: string | null;
+  sol_fecha_aprobacion?: string | null;
   sol_estado_id: number;
   sol_etapa_actual_id?: number;
   sol_resultado_etapa_id?: number;
@@ -118,7 +117,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const hoy = getTodayBogota();
 
   const [loading, setLoading] = useState(false);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Ejecutivo[]>([]);
   const [etapas, setEtapas] = useState<
@@ -140,7 +138,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
-  const [centroOperacionId, setCentroOperacionId] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [clienteBusqueda, setClienteBusqueda] = useState("");
   const [mostrarClienteLista, setMostrarClienteLista] = useState(false);
@@ -167,8 +164,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       setFechaDesde(params.get("fecha_desde") || "");
     if (params.has("fecha_hasta"))
       setFechaHasta(params.get("fecha_hasta") || "");
-    if (params.has("co_id"))
-      setCentroOperacionId(params.get("co_id") || "");
     if (params.has("cliente_id"))
       setClienteId(params.get("cliente_id") || "");
     if (esEjecutivo && user?.ejng_id) {
@@ -196,9 +191,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [centrosData, clientesData, etapasData, resultadosData] =
+        const [clientesData, etapasData, resultadosData, ejecutivosData] =
           await Promise.all([
-            centrosOperacionService.getAll(),
             // Solo se usa como picklist de filtro en esta página — se
             // cachea por sesión para no repetir la carga completa de
             // clientes (la más pesada de las 4) cada vez que se visita.
@@ -207,14 +201,14 @@ export default function SolicitudesListadoDeSolicitudesPage() {
             ),
             solicitudesService.getEtapas(),
             solicitudesService.getResultados(),
+            clientesService.getEjecutivosNegocio(),
           ]);
         console.log("📋 Respuestas iniciales:", {
-          centrosData,
           clientesData,
           etapasData,
           resultadosData,
+          ejecutivosData,
         });
-        setCentros(centrosData);
         setEtapas(etapasData || []);
         setResultados(resultadosData || []);
 
@@ -222,9 +216,20 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           ? clientesData.map((item: any) => ({
               cli_id: Number(item.cli_id ?? item.id ?? 0),
               cli_razon_social: String(item.cli_razon_social ?? ""),
+              ejng_id: item.ejng_id != null ? Number(item.ejng_id) : null,
             }))
           : [];
         setClientes(mappedClientes.filter((item: Cliente) => item.cli_id > 0));
+
+        const mappedEjecutivos = Array.isArray(ejecutivosData)
+          ? ejecutivosData.map((item: any) => ({
+              ejecutivo_id: Number(item.ejng_id ?? 0),
+              ejecutivo_nombre: String(item.ejng_nombre ?? ""),
+            }))
+          : [];
+        setEjecutivos(
+          mappedEjecutivos.filter((item: Ejecutivo) => item.ejecutivo_id > 0),
+        );
       } catch (error) {
         console.error(
           "[SolicitudesListadoDeSolicitudesPage] Error cargando catálogos",
@@ -247,6 +252,18 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     setEjecutivoBusqueda(user.nombre || "");
   }, [esEjecutivo, user]);
 
+  // Si se cambia el ejecutivo del filtro y el cliente ya seleccionado no es
+  // suyo, se limpia la selección para no dejar un filtro inconsistente.
+  useEffect(() => {
+    if (!clienteId) return;
+    if (!ejecutivoId) return;
+    const cliente = clientes.find((c) => String(c.cli_id) === clienteId);
+    if (cliente && String(cliente.ejng_id) !== String(ejecutivoId)) {
+      setClienteId("");
+      setClienteBusqueda("");
+    }
+  }, [ejecutivoId, clientes]);
+
   async function ejecutarBusquedaConUrlParams(
     urlParams: URLSearchParams,
   ) {
@@ -257,7 +274,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         params.fecha_desde = urlParams.get("fecha_desde");
       if (urlParams.has("fecha_hasta"))
         params.fecha_hasta = urlParams.get("fecha_hasta");
-      if (urlParams.has("co_id")) params.co_id = urlParams.get("co_id");
       if (urlParams.has("cliente_id"))
         params.cliente_id = urlParams.get("cliente_id");
       if (urlParams.has("ejecutivo_id"))
@@ -283,13 +299,18 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   }
 
   const clientesFiltrados = useMemo(() => {
-    if (!clienteBusqueda) return clientes;
-    return clientes.filter((cliente) =>
+    const porEjecutivo = ejecutivoId
+      ? clientes.filter(
+          (cliente) => String(cliente.ejng_id) === String(ejecutivoId),
+        )
+      : clientes;
+    if (!clienteBusqueda) return porEjecutivo;
+    return porEjecutivo.filter((cliente) =>
       cliente.cli_razon_social
         .toLowerCase()
         .includes(clienteBusqueda.toLowerCase())
     );
-  }, [clientes, clienteBusqueda]);
+  }, [clientes, clienteBusqueda, ejecutivoId]);
 
   const ejecutivosFiltrados = useMemo(() => {
     if (!ejecutivoBusqueda) return ejecutivos;
@@ -344,7 +365,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     console.log("🔴 [FRONTEND] Iniciando búsqueda con filtros:", {
       fechaDesde,
       fechaHasta,
-      centroOperacionId,
       clienteId,
       ejecutivoId,
       estadoId,
@@ -372,7 +392,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
-      if (centroOperacionId) params.co_id = centroOperacionId;
       if (clienteId) params.cliente_id = clienteId;
       if (ejecutivoId) params.ejecutivo_id = ejecutivoId;
       if (estadoId) params.estado_id = estadoId;
@@ -390,7 +409,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       const urlParams = new URLSearchParams();
       if (fechaDesde) urlParams.set("fecha_desde", fechaDesde);
       if (fechaHasta) urlParams.set("fecha_hasta", fechaHasta);
-      if (centroOperacionId) urlParams.set("co_id", centroOperacionId);
       if (clienteId) urlParams.set("cliente_id", clienteId);
       if (ejecutivoId) urlParams.set("ejecutivo_id", ejecutivoId);
       if (estadoId) urlParams.set("estado_id", estadoId);
@@ -412,7 +430,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   function limpiarFiltros() {
     setFechaDesde("");
     setFechaHasta("");
-    setCentroOperacionId("");
     setClienteId("");
     setClienteBusqueda("");
     // Un ejecutivo no puede limpiar su propio filtro — solo ve lo suyo.
@@ -443,6 +460,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Área Auxiliar",
       "Centro de operación",
       "Fecha de creación",
+      "Fecha de envío",
+      "Fecha de aprobación",
       "Estado",
       "Etapa Actual",
       "Resultado Etapa",
@@ -468,6 +487,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.auxiliar_area || "-",
       row.centro_operacion_nombre || "-",
       formatDateTime(row.sol_fecha_creacion),
+      formatDateTime(row.sol_fecha_envio),
+      formatDateTime(row.sol_fecha_aprobacion),
       ESTADOS[row.sol_estado_id] || "Desconocido",
       row.etapa_nombre || "-",
       row.resultado_nombre || "-",
@@ -523,76 +544,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           onBack={() => router.push("/solicitudes")}
         >
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Centro de operación
-                  </label>
-                  <select
-                    value={centroOperacionId}
-                    onChange={(event) =>
-                      setCentroOperacionId(event.target.value)
-                    }
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    {centros.map((item) => (
-                      <option key={item.cop_id} value={item.cop_id}>
-                        {item.cop_nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="relative" ref={clienteContainerRef}>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Cliente
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Buscar cliente..."
-                    value={clienteBusqueda}
-                    onFocus={() => setMostrarClienteLista(true)}
-                    onChange={(event) => {
-                      setClienteBusqueda(event.target.value);
-                      setMostrarClienteLista(true);
-                    }}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {mostrarClienteLista && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
-                      <div
-                        onClick={() => {
-                          setClienteId("");
-                          setClienteBusqueda("");
-                          setMostrarClienteLista(false);
-                        }}
-                        className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                      >
-                        Limpiar selección
-                      </div>
-                      {clientesFiltrados.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-gray-500">
-                          Sin resultados
-                        </div>
-                      ) : (
-                        clientesFiltrados.map((cliente) => (
-                          <div
-                            key={cliente.cli_id}
-                            onClick={() => {
-                              setClienteId(String(cliente.cli_id));
-                              setClienteBusqueda(cliente.cli_razon_social);
-                              setMostrarClienteLista(false);
-                            }}
-                            className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                          >
-                            {cliente.cli_razon_social}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 <div className="relative" ref={ejecutivoContainerRef}>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
                     Ejecutivo
@@ -649,9 +600,59 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   )}
                 </div>
 
+                <div className="relative" ref={clienteContainerRef}>
+                  <label className="block text-xs font-semibold text-gray-600 mb-2">
+                    Cliente
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente..."
+                    value={clienteBusqueda}
+                    onFocus={() => setMostrarClienteLista(true)}
+                    onChange={(event) => {
+                      setClienteBusqueda(event.target.value);
+                      setMostrarClienteLista(true);
+                    }}
+                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {mostrarClienteLista && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                      <div
+                        onClick={() => {
+                          setClienteId("");
+                          setClienteBusqueda("");
+                          setMostrarClienteLista(false);
+                        }}
+                        className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200"
+                      >
+                        Limpiar selección
+                      </div>
+                      {clientesFiltrados.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-gray-500">
+                          Sin resultados
+                        </div>
+                      ) : (
+                        clientesFiltrados.map((cliente) => (
+                          <div
+                            key={cliente.cli_id}
+                            onClick={() => {
+                              setClienteId(String(cliente.cli_id));
+                              setClienteBusqueda(cliente.cli_razon_social);
+                              setMostrarClienteLista(false);
+                            }}
+                            className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
+                          >
+                            {cliente.cli_razon_social}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Fecha desde
+                    Fecha de creación desde
                   </label>
                   <input
                     type="date"
@@ -664,7 +665,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Fecha hasta
+                    Fecha de creación hasta
                   </label>
                   <input
                     type="date"
@@ -802,10 +803,19 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         No. solicitud
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
+                        Ejecutivo
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         Cliente
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         Fecha y Hora de creación
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
+                        Fecha de envío
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
+                        Fecha de aprobación
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         Estado
@@ -870,10 +880,19 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                           {row.sol_numero_solicitud || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
+                          {row.ejecutivo_nombre || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">
                           {row.cliente_nombre || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {formatDateTime(row.sol_fecha_creacion)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {formatDateTime(row.sol_fecha_envio)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {formatDateTime(row.sol_fecha_aprobacion)}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {ESTADOS[row.sol_estado_id] || "Desconocido"}

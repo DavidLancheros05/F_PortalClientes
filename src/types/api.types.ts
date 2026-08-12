@@ -172,10 +172,15 @@ export interface FormularioPreguntaResponse {
   fp_pregunta_padre_id: number | null;
   fp_valor_padre_disparador: string | null;
   fp_tabla_columnas?: string | null;
-  fp_ancho_completo?: boolean;
+  fp_ancho_columnas?: number;
   fp_tabla_limite_modo?: string | null;
   fp_tabla_limite_pregunta_id?: number | null;
   fp_tabla_limite_reglas?: string | null;
+  fp_catalogo_filtro_columna?: string | null;
+  fp_catalogo_filtro_pregunta_id?: number | null;
+  fp_catalogo_filtro_reglas?: string | null;
+  fp_catalogo_columna_condicion?: string | null;
+  fp_catalogo_valor_condicion?: string | null;
   fp_oculto_en_formulario?: boolean;
 
   // Campos agregados en respuesta DTO (pueden no venir en la respuesta)

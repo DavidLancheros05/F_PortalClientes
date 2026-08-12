@@ -70,11 +70,11 @@ export function PreguntaFormColumnasTabla({
   {/* Columnas TABLA */}
   {(editandoPregunta || nuevaPregunta) &&
     formPregunta.tipo === TIPOS_PREGUNTA.TABLA && (
-      <div className="border border-purple-300 bg-purple-50 rounded p-2">
-        <h4 className="font-semibold text-xs mb-0.5">
+      <div className="border border-gray-200 bg-slate-50 rounded-xl p-3">
+        <h4 className="text-[12.5px] font-bold text-gray-800 mb-0.5">
           Columnas de la tabla:
         </h4>
-        <p className="text-xs text-purple-800 mb-1">
+        <p className="text-xs text-gray-600 mb-1">
           El usuario podrá agregar filas y llenar estas
           columnas en el formulario de solicitud.
         </p>
@@ -109,7 +109,7 @@ export function PreguntaFormColumnasTabla({
                           tabla_columnas: nuevas,
                         });
                       }}
-                      className="flex-1 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="flex-1 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                     <select
                       value={columna.tipo}
@@ -164,7 +164,7 @@ export function PreguntaFormColumnasTabla({
                           setColumnaCatalogoAbierta(null);
                         }
                       }}
-                      className="border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
+                      className="border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                     >
                       <option value="TEXTO">Texto libre</option>
                       <option value="NUMERO">Solo números</option>
@@ -190,7 +190,7 @@ export function PreguntaFormColumnasTabla({
                         setColumnaCatalogoAbierta(null);
                       }}
                       disabled={index === 0}
-                      className="p-1 text-purple-700 hover:bg-purple-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <ChevronUp className="h-3 w-3" />
                     </button>
@@ -219,7 +219,7 @@ export function PreguntaFormColumnasTabla({
                         index ===
                         formPregunta.tabla_columnas.length - 1
                       }
-                      className="p-1 text-purple-700 hover:bg-purple-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-1 text-gray-500 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <ChevronDown className="h-3 w-3" />
                     </button>
@@ -244,7 +244,7 @@ export function PreguntaFormColumnasTabla({
                   </div>
 
                   {columna.tipo === "CATALOGO" && (
-                    <div className="rounded border border-sky-200 bg-sky-50 p-1.5">
+                    <div className="rounded-[9px] border border-slate-200 bg-white p-1.5">
                       {columnaCatalogoAbierta !== index ? (
                         <button
                           type="button"
@@ -271,7 +271,7 @@ export function PreguntaFormColumnasTabla({
                               );
                             }
                           }}
-                          className="text-xs text-sky-700 underline hover:text-sky-900"
+                          className="text-xs text-gray-700 underline hover:text-gray-900"
                         >
                           {columna.catalogo_tabla
                             ? `Tabla: ${columna.catalogo_tabla} · Columna: ${columna.catalogo_columna || "(sin elegir)"} — cambiar`
@@ -328,8 +328,8 @@ export function PreguntaFormColumnasTabla({
                   )}
 
                   {columna.tipo === "NUMERO" && (
-                    <div className="flex items-center gap-2 rounded border border-emerald-200 bg-emerald-50 p-1.5">
-                      <label className="flex items-center gap-1 text-xs text-emerald-800">
+                    <div className="flex items-center gap-2 rounded-[9px] border border-slate-200 bg-white p-1.5">
+                      <label className="flex items-center gap-1 text-xs text-gray-700">
                         Mínimo
                         <input
                           type="number"
@@ -349,10 +349,10 @@ export function PreguntaFormColumnasTabla({
                             });
                           }}
                           placeholder="Sin mínimo"
-                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </label>
-                      <label className="flex items-center gap-1 text-xs text-emerald-800">
+                      <label className="flex items-center gap-1 text-xs text-gray-700">
                         Máximo
                         <input
                           type="number"
@@ -372,7 +372,7 @@ export function PreguntaFormColumnasTabla({
                             });
                           }}
                           placeholder="Sin máximo"
-                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </label>
                     </div>
@@ -392,7 +392,7 @@ export function PreguntaFormColumnasTabla({
               ],
             })
           }
-          className="px-2 py-1 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded hover:shadow-lg hover:from-purple-600 hover:to-purple-700 hover:scale-105 active:scale-95 text-xs flex items-center gap-0.5 font-semibold transition-all duration-200"
+          className="px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150"
         >
           <Plus className="h-3 w-3" />
           Agregar columna

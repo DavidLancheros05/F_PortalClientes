@@ -64,7 +64,7 @@ export function SeccionesSidebar({
 
   return (
     <div className="w-[23%] bg-white rounded-lg shadow p-2 flex flex-col min-h-0">
-      <h2 className="text-base font-bold mb-2">Secciones</h2>
+      <h2 className="text-sm font-bold mb-2">Secciones</h2>
 
       <div className="flex-1 overflow-y-auto space-y-1">
         {secciones.map((seccion) => {
@@ -96,22 +96,22 @@ export function SeccionesSidebar({
               <div className="flex items-start justify-between gap-1">
                 <div className="flex-1">
                   <div className="flex items-center gap-1">
-                    <p className="font-medium text-xs">{seccion.seccion_nombre}</p>
+                    <p className="font-medium text-[11px]">{seccion.seccion_nombre}</p>
                     {todasCompletadas && seccionPreguntas.length > 0 && (
                       <Check className="h-3 w-3 text-blue-600" />
                     )}
                   </div>
                   {seccion.seccion_descripcion && (
-                    <p className="text-xs text-gray-600 mt-0.5">
+                    <p className="text-[11px] text-gray-600 mt-0.5">
                       {seccion.seccion_descripcion}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-[11px] text-gray-500 mt-0.5">
                     {seccionRespondibles} campo(s) respondible(s)
                   </p>
                   {progresoSeccion && (
                     <div className="mt-1">
-                      <div className="flex items-center justify-between text-xs text-gray-600 mb-0.5">
+                      <div className="flex items-center justify-between text-[11px] text-gray-600 mb-0.5">
                         <span>
                           {progresoSeccion.usesRequired
                             ? "Obligatorias"

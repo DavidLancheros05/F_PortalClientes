@@ -50,6 +50,10 @@ export type RespuestasState = {
     // no).
     valor_opcion_codigo?: string | string[];
     archivo?: File;
+    // Varios archivos pendientes de subir, solo para preguntas ARCHIVO con
+    // fp_maximo > 1 (ver ArchivoMultipleField) — el resto del formulario
+    // sigue usando `archivo` (uno solo).
+    archivos?: File[];
     nombre_archivo?: string;
     vista_previa_url?: string;
   };
@@ -59,4 +63,8 @@ export interface SolicitudFormContentProps {
   solicitudId?: number;
   readOnly?: boolean;
   returnTo?: string;
+  // Cliente elegido por un usuario interno (no CLIENTE) al crear una
+  // solicitud en su nombre — ver page.tsx. Si no viene, se usa
+  // user.cliente_id (caso normal: el cliente diligencia la suya).
+  clienteId?: number;
 }

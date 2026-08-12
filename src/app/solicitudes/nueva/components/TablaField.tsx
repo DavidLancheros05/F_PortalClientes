@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { maestrosService } from "@/services/parametrizacion/maestros.service";
+import { resolverValorPreguntaDisparadora } from "../lib/resolverValorPregunta";
 import type { FormularioPregunta, RespuestasState } from "../types";
 
 interface TablaFieldProps {
@@ -29,34 +30,6 @@ function parseReglasLimite(json?: string | null): ReglaLimiteTabla[] {
   }
 }
 
-function resolverValorPreguntaDisparadora(
-  preguntaDisparadora: FormularioPregunta | undefined,
-  respuestas: RespuestasState,
-): string {
-  if (!preguntaDisparadora) return "";
-  const respuesta = respuestas[preguntaDisparadora.fp_id];
-  if (!respuesta) return "";
-
-  if (
-    ["SELECT", "SELECT_TABLA", "MULTISELECT"].includes(preguntaDisparadora.fp_tipo)
-  ) {
-    const valorOpcionId = respuesta.valor_opcion_id;
-    const id = Array.isArray(valorOpcionId) ? valorOpcionId[0] : valorOpcionId;
-    const opcion = preguntaDisparadora.opciones?.find(
-      (o: any) => Number(o.op_id ?? o.fpo_id) === Number(id),
-    );
-    return String((opcion as any)?.op_descripcion ?? (opcion as any)?.fpo_valor ?? "");
-  }
-
-  if (preguntaDisparadora.fp_tipo === "NUMERO") {
-    return respuesta.valor_numero != null ? String(respuesta.valor_numero) : "";
-  }
-  if (preguntaDisparadora.fp_tipo === "FECHA") {
-    return respuesta.valor_fecha || "";
-  }
-  return respuesta.valor_texto || "";
-}
-
 type FilaTabla = Record<string, string>;
 
 type OpcionCatalogo = { op_id: number; op_descripcion: string };
@@ -70,6 +43,8 @@ type ColumnaTabla = {
   catalogo_pk_column?: string;
   catalogo_columna_padre?: string;
   catalogo_columna_filtro?: string;
+  catalogo_columna_condicion?: string;
+  catalogo_valor_condicion?: string;
   minimo?: number;
   maximo?: number;
 };
@@ -100,6 +75,8 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
             catalogo_pk_column: col.catalogo_pk_column,
             catalogo_columna_padre: col.catalogo_columna_padre,
             catalogo_columna_filtro: col.catalogo_columna_filtro,
+            catalogo_columna_condicion: col.catalogo_columna_condicion,
+            catalogo_valor_condicion: col.catalogo_valor_condicion,
             minimo: typeof col.minimo === "number" ? col.minimo : undefined,
             maximo: typeof col.maximo === "number" ? col.maximo : undefined,
           };
@@ -189,6 +166,10 @@ function CeldaCatalogoDependiente({
         columnaPadre.catalogo_base_datos,
         columnaPadre.catalogo_columna,
         columnaPadre.catalogo_pk_column,
+        undefined,
+        undefined,
+        columnaPadre.catalogo_columna_condicion,
+        columnaPadre.catalogo_valor_condicion,
       )
       .then((opcionesPadre) => {
         const padreId = opcionesPadre.find(
@@ -202,6 +183,8 @@ function CeldaCatalogoDependiente({
           columna.catalogo_pk_column,
           columna.catalogo_columna_filtro,
           padreId,
+          columna.catalogo_columna_condicion,
+          columna.catalogo_valor_condicion,
         );
       })
       .then((valores) => {
@@ -282,6 +265,10 @@ export function TablaField({
           c.catalogo_base_datos,
           c.catalogo_columna,
           c.catalogo_pk_column,
+          undefined,
+          undefined,
+          c.catalogo_columna_condicion,
+          c.catalogo_valor_condicion,
         )
         .then((valores) => {
           setValoresCatalogo((prev) => ({ ...prev, [c.nombre]: valores }));
@@ -366,7 +353,7 @@ export function TablaField({
 
   if (columnas.length === 0) {
     return (
-      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 shadow-sm">
+      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 shadow-sm">
         Esta pregunta tipo tabla no tiene columnas configuradas.
       </p>
     );
@@ -375,19 +362,19 @@ export function TablaField({
   return (
     <div className="rounded-2xl border border-slate-200 shadow-md shadow-slate-200/60">
       <div className="overflow-x-auto" style={{overflowY: 'visible'}}>
-        <table className="w-full text-xs border-collapse">
+        <table className="w-full text-[11px] border-collapse">
           <thead>
             <tr className="bg-gradient-to-r from-blue-600 to-blue-700">
               {columnas.map((columna) => (
                 <th
                   key={columna.nombre}
-                  className="px-3 py-2.5 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl"
+                  className="px-2 py-1 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl"
                 >
                   {columna.nombre}
                 </th>
               ))}
               {!readOnly && (
-                <th className="w-9 rounded-tr-2xl px-2 py-2.5"></th>
+                <th className="w-9 rounded-tr-2xl px-2 py-1"></th>
               )}
             </tr>
           </thead>
@@ -423,7 +410,7 @@ export function TablaField({
                     );
                     if (!columnaPadre) {
                       return (
-                        <td key={columna.nombre} className="p-1 text-xs text-amber-700">
+                        <td key={columna.nombre} className="p-1 text-[11px] text-amber-700">
                           Columna padre "{columna.catalogo_columna_padre}" no existe
                         </td>
                       );
@@ -468,7 +455,7 @@ export function TablaField({
                     return (
                       <td key={columna.nombre} className="p-1">
                         <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-xs text-slate-500">
+                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
                             $
                           </span>
                           <input
@@ -484,7 +471,7 @@ export function TablaField({
                               const soloDigitos = e.target.value.replace(/\D/g, "");
                               actualizarCelda(filaIndex, columna.nombre, soloDigitos);
                             }}
-                            className="w-full rounded-lg border border-transparent bg-transparent py-1.5 pl-5 pr-2 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                            className="w-full rounded-lg border border-transparent bg-transparent py-1 pl-5 pr-2 text-[11px] text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
                           />
                         </div>
                       </td>
@@ -508,7 +495,7 @@ export function TablaField({
                             const soloDigitos = e.target.value.replace(/\D/g, "");
                             actualizarCelda(filaIndex, columna.nombre, soloDigitos);
                           }}
-                          className={`w-full rounded-lg border bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:bg-white focus:outline-none focus:ring-2 disabled:text-slate-400 ${
+                          className={`w-full rounded-lg border bg-transparent px-2 py-1 text-[11px] text-slate-700 transition-all focus:bg-white focus:outline-none focus:ring-2 disabled:text-slate-400 ${
                             enRango
                               ? "border-transparent focus:border-blue-300 focus:ring-blue-500/40"
                               : "border-red-300 focus:border-red-400 focus:ring-red-500/40"
@@ -539,7 +526,7 @@ export function TablaField({
                         onChange={(e) =>
                           actualizarCelda(filaIndex, columna.nombre, e.target.value)
                         }
-                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-[11px] text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
                       />
                     </td>
                   );
@@ -574,19 +561,19 @@ export function TablaField({
                   ? undefined
                   : "Completa todas las columnas de todas las filas antes de agregar otra"
             }
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm"
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm"
           >
             <Plus className="h-3 w-3" />
             Agregar fila
           </button>
           {limiteAlcanzado ? (
-            <p className="mt-1 text-xs text-amber-700">
+            <p className="mt-1 text-[11px] text-amber-700">
               Alcanzaste el límite de {limiteFilas} fila{limiteFilas === 1 ? "" : "s"} para
               esta pregunta.
             </p>
           ) : (
             !todasLasFilasCompletas && (
-              <p className="mt-1 text-xs text-amber-700">
+              <p className="mt-1 text-[11px] text-amber-700">
                 Completa todas las columnas de todas las filas para poder agregar una nueva.
               </p>
             )

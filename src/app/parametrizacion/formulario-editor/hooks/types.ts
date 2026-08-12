@@ -49,11 +49,16 @@ export type Pregunta = {
   fp_precarga_fuente?: string | null;
   fp_precarga_campo_cliente?: string | null;
   fp_tabla_columnas?: string | null;
-  fp_ancho_completo?: boolean;
+  fp_ancho_columnas?: number;
   fp_maximo?: number | null;
   fp_tabla_limite_modo?: string | null;
   fp_tabla_limite_pregunta_id?: number | null;
   fp_tabla_limite_reglas?: string | null;
+  fp_catalogo_filtro_columna?: string | null;
+  fp_catalogo_filtro_pregunta_id?: number | null;
+  fp_catalogo_filtro_reglas?: string | null;
+  fp_catalogo_columna_condicion?: string | null;
+  fp_catalogo_valor_condicion?: string | null;
   fp_oculto_en_formulario?: boolean;
   opciones?: Opcion[];
 };
@@ -102,6 +107,12 @@ export type ColumnaTabla = {
   // Cascada: esta columna depende de otra columna de la MISMA fila (ej: Departamento depende de Pais)
   catalogo_columna_padre?: string; // nombre de la columna padre (ej: "Pais")
   catalogo_columna_filtro?: string; // columna FK en ESTA tabla que referencia al padre (ej: "pai_id")
+  // Condición fija ("columna = valor") del catálogo, distinta del filtro
+  // dependiente de arriba (ambos opcionales) — si se dejan vacíos, el
+  // backend adivina la columna de estado/activo por convención de nombre
+  // (%estado%/%activo%), igual que antes.
+  catalogo_columna_condicion?: string;
+  catalogo_valor_condicion?: string;
   // Solo aplica cuando tipo === "NUMERO"
   minimo?: number;
   maximo?: number;
@@ -110,6 +121,11 @@ export type ColumnaTabla = {
 export type ReglaLimiteTabla = {
   valor: string;
   limite: string; // vacío = sin límite; en el form siempre es texto, se parsea al guardar
+};
+
+export type ReglaFiltroCatalogo = {
+  valor: string; // valor de la respuesta de la pregunta padre (ej: "Si")
+  valor_filtro: string; // valor a usar en el WHERE del catálogo (ej: "CR")
 };
 
 export type FormPreguntaState = {
@@ -125,6 +141,8 @@ export type FormPreguntaState = {
   catalogo_tabla: string;
   catalogo_columna: string;
   catalogo_pk_column: string;
+  catalogo_columna_condicion: string;
+  catalogo_valor_condicion: string;
   dependiente: boolean;
   dependencia_seccion_id: number | null;
   dependencia_pregunta_id: number | null;
@@ -135,12 +153,21 @@ export type FormPreguntaState = {
   precarga_tabla: string;
   precarga_columna: string;
   tabla_columnas: ColumnaTabla[];
-  ancho_completo: boolean;
+  ancho_columnas: 1 | 2 | 3;
   tabla_limite_modo: "SIN_LIMITE" | "FIJO" | "CONDICIONAL";
   tabla_limite_fijo: string;
   tabla_limite_seccion_id: number | null;
   tabla_limite_pregunta_id: number | null;
   tabla_limite_reglas: ReglaLimiteTabla[];
+  catalogo_filtro_dependiente: boolean;
+  catalogo_filtro_seccion_id: number | null;
+  catalogo_filtro_pregunta_id: number | null;
+  catalogo_filtro_columna: string;
+  catalogo_filtro_reglas: ReglaFiltroCatalogo[];
   oculto_en_formulario: boolean;
   espacio_lineas: string;
+  // Cantidad máxima de archivos para preguntas ARCHIVO — vacío/"1" = un
+  // solo archivo (comportamiento de siempre). Reutiliza fp_maximo, igual
+  // que tabla_limite_fijo (TABLA) y espacio_lineas (ESPACIO_FIRMA).
+  archivo_maximo: string;
 };

@@ -9,14 +9,19 @@ interface PageHeaderCardProps {
   eyebrow?: string;
   title: string;
   subtitle?: string;
-  onBack: () => void;
+  /** Botón "volver" a la izquierda del ícono — solo tiene sentido en
+   * pantallas "hijas" a las que se llega navegando desde un listado (ej.
+   * las bandejas de gestión, /solicitudes/[id]/detalle). Páginas de nivel
+   * superior (ej. Parametrización, accedidas directo desde el menú) deben
+   * omitir esta prop para no mostrar un botón sin destino claro. */
+  onBack?: () => void;
   actions?: ReactNode;
   children?: ReactNode;
 }
 
 // Encabezado estándar de las pantallas de listado/gestión: tarjeta con
-// gradiente de marca, botón volver, icono y título — con un slot opcional
-// debajo (filtros, etc.) separado por border-top. Ver
+// gradiente de marca, botón volver opcional, icono y título — con un slot
+// opcional debajo (filtros, etc.) separado por border-top. Ver
 // gestion-ejecutivo-negocios/page.tsx para el origen de este patrón.
 export function PageHeaderCard({
   icon: Icon,
@@ -34,12 +39,14 @@ export function PageHeaderCard({
           contenido que se desborda desde `children` (ej. desplegables de
           autocompletar en los filtros) como pasaba antes. */}
       <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors"
-        >
-          <ArrowLeft size={15} strokeWidth={2.3} />
-        </button>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors"
+          >
+            <ArrowLeft size={15} strokeWidth={2.3} />
+          </button>
+        )}
         <div className="w-[42px] h-[42px] rounded-xl bg-white/16 flex items-center justify-center flex-shrink-0">
           <Icon size={20} className="text-white" strokeWidth={2} />
         </div>

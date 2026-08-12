@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -8,6 +9,7 @@ import {
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ChevronDown, ChevronUp, Edit2, Plus, Save, Trash2, X } from "lucide-react";
 import { ConfirmModal } from "@/components/modals";
+import { Toast } from "@/components/Toast";
 import { SortableItem } from "./SortableItem";
 import type { Pregunta, Seccion } from "../hooks/types";
 
@@ -30,6 +32,12 @@ interface PanelSeccionesProps {
   formSeccion: { nombre: string; descripcion: string; ocultaEnFormulario: boolean };
   setFormSeccion: (value: { nombre: string; descripcion: string; ocultaEnFormulario: boolean }) => void;
   guardarSeccion: () => void;
+  confirmarGuardarSeccion: () => void;
+  guardandoSeccion: boolean;
+  mostrarConfirmarGuardarSeccion: boolean;
+  setMostrarConfirmarGuardarSeccion: (value: boolean) => void;
+  successMessageSeccion: "creada" | "editada" | null;
+  setSuccessMessageSeccion: (value: "creada" | "editada" | null) => void;
   iniciarEdicionSeccion: (seccion: Seccion) => void;
   eliminarSeccion: (seccionId: number) => void;
   cambiarOrdenSeccion: (seccionId: number, direccion: "arriba" | "abajo") => void;
@@ -57,6 +65,12 @@ export function PanelSecciones({
   formSeccion,
   setFormSeccion,
   guardarSeccion,
+  confirmarGuardarSeccion,
+  guardandoSeccion,
+  mostrarConfirmarGuardarSeccion,
+  setMostrarConfirmarGuardarSeccion,
+  successMessageSeccion,
+  setSuccessMessageSeccion,
   iniciarEdicionSeccion,
   eliminarSeccion,
   cambiarOrdenSeccion,
@@ -64,12 +78,25 @@ export function PanelSecciones({
   setSeccionAEliminar,
   confirmarEliminarSeccion,
 }: PanelSeccionesProps) {
+  useEffect(() => {
+    if (!successMessageSeccion) return;
+    const timer = setTimeout(() => setSuccessMessageSeccion(null), 2500);
+    return () => clearTimeout(timer);
+  }, [successMessageSeccion, setSuccessMessageSeccion]);
+
+  const toastMessageSeccion =
+    successMessageSeccion === "creada"
+      ? "Sección creada correctamente"
+      : successMessageSeccion === "editada"
+        ? "Sección actualizada correctamente"
+        : null;
+
   return (
     <>
   {/* PANEL IZQUIERDO - SECCIONES */}
-  <div className="w-1/3 min-h-0 bg-white rounded-xl shadow-lg p-3 flex flex-col overflow-hidden border-2 border-gray-100 hover:border-gray-200 transition-all duration-200">
+  <div className="w-1/3 min-h-0 bg-white rounded-lg shadow-sm p-2 flex flex-col overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200">
     <div className="flex items-center justify-between mb-3">
-      <h2 className="text-sm font-bold text-gray-900">📑 Secciones</h2>
+      <h2 className="text-xs font-bold text-gray-900">Secciones</h2>
       <button
         onClick={() => {
           setNuevaSeccion(true);
@@ -77,7 +104,7 @@ export function PanelSecciones({
           setFormSeccion({ nombre: "", descripcion: "", ocultaEnFormulario: false });
         }}
         disabled={readonly || formularioEdicionAbierto}
-        className="flex items-center gap-1 px-2 py-1 bg-gradient-to-br from-emerald-500 via-emerald-550 to-emerald-600 text-white font-medium text-xs rounded-lg hover:shadow-xl hover:from-emerald-600 hover:via-emerald-600 hover:to-emerald-700 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
+        className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white font-medium text-xs rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
       >
         <Plus className="h-3 w-3" />
         Nueva
@@ -86,10 +113,10 @@ export function PanelSecciones({
 
     {/* Formulario nueva/editar sección */}
     {(nuevaSeccion || editandoSeccion) && (
-      <div className="mb-2 p-2 bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-lg shadow-md">
+      <div className="mb-2 p-2 bg-emerald-50/60 border border-emerald-200 rounded-lg">
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-bold text-xs text-emerald-900">
-            {editandoSeccion ? "✏️ Editar Sección" : "✨ Nueva Sección"}
+            {editandoSeccion ? "Editar Sección" : "Nueva Sección"}
           </h3>
           <button
             onClick={() => {
@@ -118,7 +145,7 @@ export function PanelSecciones({
               onChange={(e) =>
                 setFormSeccion({ ...formSeccion, nombre: e.target.value })
               }
-              className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:shadow-lg bg-white transition-all"
+              className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-colors"
             />
           </div>
           <div>
@@ -141,7 +168,7 @@ export function PanelSecciones({
                   descripcion: e.target.value,
                 })
               }
-              className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:shadow-lg bg-white transition-all resize-none"
+              className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-colors resize-none"
               rows={2}
             />
           </div>
@@ -164,7 +191,7 @@ export function PanelSecciones({
           </label>
           <button
             onClick={guardarSeccion}
-            className="w-full px-2 py-1 bg-gradient-to-br from-emerald-500 via-emerald-550 to-emerald-600 text-white rounded hover:shadow-xl hover:from-emerald-600 hover:via-emerald-600 hover:to-emerald-700 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1 text-xs font-semibold transition-all duration-200"
+            className="w-full px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-1 text-xs font-semibold transition-colors duration-150"
           >
             <Save className="h-3 w-3" />
             Guardar
@@ -196,7 +223,7 @@ export function PanelSecciones({
               disabled={readonly}
             >
               <div
-                className={`p-1.5 border-2 rounded-lg transition-all duration-200 ${
+                className={`group relative p-1.5 border rounded-md transition-all duration-200 ${
                   editandoPregunta ||
                   nuevaPregunta ||
                   formularioEdicionAbierto
@@ -205,8 +232,8 @@ export function PanelSecciones({
                 } ${
                   (seccion.fs_id || seccion.seccion_id) ===
                   seccionSeleccionada
-                    ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-500 shadow-lg"
-                    : "border-gray-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30 bg-white"
+                    ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-500 shadow-sm"
+                    : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/30 bg-white"
                 } ${
                   !(seccion.fs_activo !== false)
                     ? "opacity-60 grayscale"
@@ -224,83 +251,81 @@ export function PanelSecciones({
                   }
                 }}
               >
-                <div className="flex items-start justify-between gap-1">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-xs text-gray-900">
-                      {seccion.fs_orden || seccion.seccion_orden}.{" "}
-                      {seccion.fs_nombre || seccion.seccion_nombre}
-                    </p>
-                    {seccion.fs_descripcion ||
-                      (seccion.seccion_descripcion && (
-                        <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">
-                          {seccion.fs_descripcion ||
-                            seccion.seccion_descripcion}
-                        </p>
-                      ))}
-                    <p className="text-xs text-gray-500 mt-0.5 font-medium">
-                      <span className="inline-block bg-gray-100 px-1.5 py-0.5 rounded-full text-xs">
-                        {
-                          preguntas.filter(
-                            (p) =>
-                              p.seccion_id ===
-                              (seccion.fs_id ?? seccion.seccion_id),
-                          ).length
-                        }{" "}
-                        pregunta(s)
-                      </span>
-                    </p>
-                  </div>
+                <div className="pr-14">
+                  <p className="font-semibold text-[11px] text-gray-900">
+                    {seccion.fs_orden || seccion.seccion_orden}.{" "}
+                    {seccion.fs_nombre || seccion.seccion_nombre}
+                  </p>
+                  {seccion.fs_descripcion ||
+                    (seccion.seccion_descripcion && (
+                      <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">
+                        {seccion.fs_descripcion ||
+                          seccion.seccion_descripcion}
+                      </p>
+                    ))}
+                  <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
+                    <span className="inline-block bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px]">
+                      {
+                        preguntas.filter(
+                          (p) =>
+                            p.seccion_id ===
+                            (seccion.fs_id ?? seccion.seccion_id),
+                        ).length
+                      }{" "}
+                      pregunta(s)
+                    </span>
+                  </p>
+                </div>
 
-                  <div className="flex gap-0.5 flex-shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        iniciarEdicionSeccion(seccion);
-                      }}
-                      disabled={readonly || formularioEdicionAbierto}
-                      className="p-1 text-blue-600 hover:bg-blue-100 hover:shadow-sm hover:scale-110 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        eliminarSeccion(seccion.fs_id ?? seccion.seccion_id);
-                      }}
-                      disabled={readonly || formularioEdicionAbierto}
-                      className="p-1 text-red-600 hover:bg-red-100 hover:shadow-sm hover:scale-110 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "arriba");
-                      }}
-                      disabled={
-                        readonly ||
-                        index === 0 ||
-                        formularioEdicionAbierto
-                      }
-                      className="p-1 text-gray-600 hover:bg-gray-200 hover:shadow-sm hover:scale-110 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "abajo");
-                      }}
-                      disabled={
-                        readonly ||
-                        index === secciones.length - 1 ||
-                        formularioEdicionAbierto
-                      }
-                      className="p-1 text-gray-600 hover:bg-gray-200 hover:shadow-sm hover:scale-110 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  </div>
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      iniciarEdicionSeccion(seccion);
+                    }}
+                    disabled={readonly || formularioEdicionAbierto}
+                    className="p-0.5 text-gray-400 hover:text-blue-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      eliminarSeccion(seccion.fs_id ?? seccion.seccion_id);
+                    }}
+                    disabled={readonly || formularioEdicionAbierto}
+                    className="p-0.5 text-gray-400 hover:text-red-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "arriba");
+                    }}
+                    disabled={
+                      readonly ||
+                      index === 0 ||
+                      formularioEdicionAbierto
+                    }
+                    className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "abajo");
+                    }}
+                    disabled={
+                      readonly ||
+                      index === secciones.length - 1 ||
+                      formularioEdicionAbierto
+                    }
+                    className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
             </SortableItem>
@@ -320,6 +345,23 @@ export function PanelSecciones({
         onConfirm={confirmarEliminarSeccion}
         onCancel={() => setSeccionAEliminar(null)}
       />
+
+      <ConfirmModal
+        isOpen={mostrarConfirmarGuardarSeccion}
+        title={editandoSeccion ? "Confirmar edición" : "Confirmar nueva sección"}
+        message={
+          editandoSeccion
+            ? "¿Deseas guardar los cambios de esta sección?"
+            : "¿Deseas crear esta sección?"
+        }
+        confirmText="Sí, guardar"
+        cancelText="Cancelar"
+        isLoading={guardandoSeccion}
+        onConfirm={confirmarGuardarSeccion}
+        onCancel={() => setMostrarConfirmarGuardarSeccion(false)}
+      />
+
+      <Toast message={toastMessageSeccion} />
     </>
   );
 }

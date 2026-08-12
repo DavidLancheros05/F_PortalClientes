@@ -6,6 +6,25 @@ import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
 import { AccionSolicitud } from "@/constants/acciones-solicitud";
 import { extractSolicitudId } from "@/utils/response-normalizers";
 
+export interface TablaPersonaResuelta {
+  fp_id: number;
+  columnas: string[];
+  filas: Record<string, string>[];
+}
+
+export interface EvidenciaPersona {
+  sep_id: number;
+  sep_sol_id: number;
+  sep_fp_id: number;
+  sep_fila_index: number;
+  sep_nombre_original: string;
+  sep_ruta_almacenamiento: string;
+  sep_tipo_mime?: string | null;
+  sep_tamano_bytes?: number | null;
+  sep_usuario_id: number;
+  sep_created_at?: string;
+}
+
 export const solicitudesService = {
   // Crear nueva solicitud
   async create(data: any) {
@@ -379,6 +398,47 @@ export const solicitudesService = {
 
   async eliminarSoporteAnalisis(id: number, ssaId: number) {
     await api.delete(`/solicitudes/${id}/soportes-analisis/${ssaId}`);
+  },
+
+  // Tablas KYC (representante legal / suplentes / accionistas) que llenó el
+  // cliente en el formulario — usado en Gestión Oficial de Cumplimiento.
+  async getTablasCumplimiento(id: number) {
+    const response = await api.get(`/solicitudes/${id}/tablas-cumplimiento`);
+    return response.data as {
+      representanteLegal: TablaPersonaResuelta | null;
+      representantesSuplentes: TablaPersonaResuelta | null;
+      accionistas: TablaPersonaResuelta | null;
+    };
+  },
+
+  // Evidencia (un archivo, reemplazable) por fila de una de esas tablas.
+  async getEvidenciasPersona(id: number, fpId: number) {
+    const response = await api.get(`/solicitudes/${id}/evidencias-persona`, {
+      params: { fp_id: fpId },
+    });
+    return (response.data?.data ?? []) as EvidenciaPersona[];
+  },
+
+  async subirEvidenciaPersona(
+    id: number,
+    fpId: number,
+    filaIndex: number,
+    file: File,
+  ) {
+    const formData = new FormData();
+    formData.append("archivo", file);
+    formData.append("fp_id", String(fpId));
+    formData.append("fila_index", String(filaIndex));
+    const response = await api.post(
+      `/solicitudes/${id}/evidencias-persona`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data as EvidenciaPersona;
+  },
+
+  async eliminarEvidenciaPersona(id: number, sepId: number) {
+    await api.delete(`/solicitudes/${id}/evidencias-persona/${sepId}`);
   },
 
   // Descargar PDF de una solicitud

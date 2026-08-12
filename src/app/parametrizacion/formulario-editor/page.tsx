@@ -55,6 +55,12 @@ export default function FormularioEditorPage() {
     formSeccion,
     setFormSeccion,
     guardarSeccion,
+    confirmarGuardarSeccion,
+    guardandoSeccion,
+    mostrarConfirmarGuardarSeccion,
+    setMostrarConfirmarGuardarSeccion,
+    successMessageSeccion,
+    setSuccessMessageSeccion,
     iniciarEdicionSeccion,
     eliminarSeccion,
     confirmarEliminarSeccion,
@@ -107,10 +113,22 @@ export default function FormularioEditorPage() {
     tablasFiltradas,
     columnasFiltradas,
     llaveFiltrada,
+    filtroPrecargaTabla,
+    setFiltroPrecargaTabla,
+    filtroPrecargaColumna,
+    setFiltroPrecargaColumna,
+    catalogoPrecargaTablas,
+    catalogoPrecargaColumnas,
+    loadingCatalogoPrecargaTablas,
+    loadingCatalogoPrecargaColumnas,
     cargarBasesCatalogo,
     cargarTablasCatalogo,
     cargarColumnasCatalogo,
     guardarPregunta,
+    confirmarGuardarPregunta,
+    guardandoPregunta,
+    mostrarConfirmarGuardarPregunta,
+    setMostrarConfirmarGuardarPregunta,
     puedeGuardarPregunta,
     iniciarEdicionPregunta,
     eliminarPregunta,
@@ -174,7 +192,8 @@ export default function FormularioEditorPage() {
   const formularioEdicionAbierto = seccionFormAbierto || preguntaFormAbierto;
 
   return (
-    <div className="w-full h-[calc(100vh-7rem)] p-2 bg-gradient-to-br from-slate-50 to-slate-100 overflow-y-auto overflow-x-hidden">
+    <div className="w-full h-[calc(100vh-7rem)] p-2 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+      <div className="mx-auto max-w-400 h-full flex flex-col gap-2">
       <FormularioHeader
         formulario={formulario}
         formularioId={formularioId}
@@ -186,7 +205,7 @@ export default function FormularioEditorPage() {
         editorModeUrl={editorModeUrl}
       />
 
-      <div className="h-[60vh] md:h-[65vh] min-h-[30rem] flex gap-2 overflow-hidden mx-auto max-w-7xl">
+      <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
         <PanelSecciones
           secciones={secciones}
           loading={loading}
@@ -206,6 +225,12 @@ export default function FormularioEditorPage() {
           formSeccion={formSeccion}
           setFormSeccion={setFormSeccion}
           guardarSeccion={guardarSeccion}
+          confirmarGuardarSeccion={confirmarGuardarSeccion}
+          guardandoSeccion={guardandoSeccion}
+          mostrarConfirmarGuardarSeccion={mostrarConfirmarGuardarSeccion}
+          setMostrarConfirmarGuardarSeccion={setMostrarConfirmarGuardarSeccion}
+          successMessageSeccion={successMessageSeccion}
+          setSuccessMessageSeccion={setSuccessMessageSeccion}
           iniciarEdicionSeccion={iniciarEdicionSeccion}
           eliminarSeccion={eliminarSeccion}
           cambiarOrdenSeccion={cambiarOrdenSeccion}
@@ -262,10 +287,22 @@ export default function FormularioEditorPage() {
           tablasFiltradas={tablasFiltradas}
           columnasFiltradas={columnasFiltradas}
           llaveFiltrada={llaveFiltrada}
+          filtroPrecargaTabla={filtroPrecargaTabla}
+          setFiltroPrecargaTabla={setFiltroPrecargaTabla}
+          filtroPrecargaColumna={filtroPrecargaColumna}
+          setFiltroPrecargaColumna={setFiltroPrecargaColumna}
+          catalogoPrecargaTablas={catalogoPrecargaTablas}
+          catalogoPrecargaColumnas={catalogoPrecargaColumnas}
+          loadingCatalogoPrecargaTablas={loadingCatalogoPrecargaTablas}
+          loadingCatalogoPrecargaColumnas={loadingCatalogoPrecargaColumnas}
           cargarBasesCatalogo={cargarBasesCatalogo}
           cargarTablasCatalogo={cargarTablasCatalogo}
           cargarColumnasCatalogo={cargarColumnasCatalogo}
           guardarPregunta={guardarPregunta}
+          confirmarGuardarPregunta={confirmarGuardarPregunta}
+          guardandoPregunta={guardandoPregunta}
+          mostrarConfirmarGuardarPregunta={mostrarConfirmarGuardarPregunta}
+          setMostrarConfirmarGuardarPregunta={setMostrarConfirmarGuardarPregunta}
           puedeGuardarPregunta={puedeGuardarPregunta}
           iniciarEdicionPregunta={iniciarEdicionPregunta}
           eliminarPregunta={eliminarPregunta}
@@ -299,6 +336,7 @@ export default function FormularioEditorPage() {
           sensors={sensors}
           preguntasDeSeccion={preguntasDeSeccion}
         />
+      </div>
       </div>
     </div>
   );

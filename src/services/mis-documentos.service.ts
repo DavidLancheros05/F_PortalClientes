@@ -72,14 +72,23 @@ export interface MisDocumentosResponse {
 
 export const misDocumentosService = {
   /**
-   * `solicitudId` es solo para personal interno (no CLIENTE) gestionando
-   * documentos en nombre de un cliente — ver corregir-formulario-asc. Un
-   * cliente autenticado siempre ve su propia última solicitud, sin importar
-   * qué se pase acá; el backend ignora el parámetro para ese rol.
+   * `solicitudId` y `clienteId` son solo para personal interno (no CLIENTE)
+   * viendo/gestionando documentos en nombre de un cliente — ver
+   * corregir-formulario-asc (solicitudId, una solicitud puntual) y el
+   * selector de cliente de esta misma página (clienteId, la última
+   * solicitud de ese cliente). Un cliente autenticado siempre ve su propia
+   * última solicitud, sin importar qué se pase acá; el backend ignora
+   * ambos parámetros para ese rol.
    */
-  async getMisDocumentos(solicitudId?: number): Promise<MisDocumentosResponse> {
+  async getMisDocumentos(
+    solicitudId?: number,
+    clienteId?: number,
+  ): Promise<MisDocumentosResponse> {
+    const params: Record<string, number> = {};
+    if (solicitudId) params.solicitudId = solicitudId;
+    if (clienteId) params.clienteId = clienteId;
     const response = await api.get("/solicitudes/mis-documentos", {
-      params: solicitudId ? { solicitudId } : undefined,
+      params: Object.keys(params).length > 0 ? params : undefined,
     });
     return response.data;
   },

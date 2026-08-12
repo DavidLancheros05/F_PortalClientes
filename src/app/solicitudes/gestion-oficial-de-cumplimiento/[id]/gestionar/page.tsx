@@ -1,5 +1,8 @@
 "use client";
-import { solicitudesService } from "@/services/solicitudes.service";
+import {
+  solicitudesService,
+  type TablaPersonaResuelta,
+} from "@/services/solicitudes.service";
 import {
   motivosRechazoService,
   type MotivoRechazo,
@@ -7,6 +10,7 @@ import {
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
+import { TablaPersonaConEvidencia } from "@/components/TablaPersonaConEvidencia";
 import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { ESTADOS } from "@/lib/workflow-labels";
@@ -85,6 +89,11 @@ export default function GestionOCPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [tablasCumplimiento, setTablasCumplimiento] = useState<{
+    representanteLegal: TablaPersonaResuelta | null;
+    representantesSuplentes: TablaPersonaResuelta | null;
+    accionistas: TablaPersonaResuelta | null;
+  } | null>(null);
   const {
     loading: loadingCupo,
     solicitaCredito,
@@ -121,6 +130,17 @@ export default function GestionOCPage() {
         setMotivosRechazo([]);
       });
   }, []);
+
+  useEffect(() => {
+    if (!solicitudId) return;
+    solicitudesService
+      .getTablasCumplimiento(solicitudId)
+      .then(setTablasCumplimiento)
+      .catch((error) => {
+        console.error("Error cargando tablas de cumplimiento:", error);
+        setTablasCumplimiento(null);
+      });
+  }, [solicitudId]);
 
   const observacionesLength = registro.observacionesCumplimiento.trim().length;
 
@@ -386,6 +406,30 @@ export default function GestionOCPage() {
                     <SoportesAnalisis
                       solicitudId={solicitud.sol_id}
                       wetId={WORKFLOW_ETAPA.OFC.id}
+                    />
+
+                    <TablaPersonaConEvidencia
+                      solicitudId={solicitud.sol_id}
+                      fpId={tablasCumplimiento?.representanteLegal?.fp_id ?? null}
+                      titulo="Representante legal principal"
+                      columnas={tablasCumplimiento?.representanteLegal?.columnas ?? []}
+                      filas={tablasCumplimiento?.representanteLegal?.filas ?? []}
+                    />
+
+                    <TablaPersonaConEvidencia
+                      solicitudId={solicitud.sol_id}
+                      fpId={tablasCumplimiento?.representantesSuplentes?.fp_id ?? null}
+                      titulo="Representantes suplentes"
+                      columnas={tablasCumplimiento?.representantesSuplentes?.columnas ?? []}
+                      filas={tablasCumplimiento?.representantesSuplentes?.filas ?? []}
+                    />
+
+                    <TablaPersonaConEvidencia
+                      solicitudId={solicitud.sol_id}
+                      fpId={tablasCumplimiento?.accionistas?.fp_id ?? null}
+                      titulo="Composición accionaria (relación de accionistas)"
+                      columnas={tablasCumplimiento?.accionistas?.columnas ?? []}
+                      filas={tablasCumplimiento?.accionistas?.filas ?? []}
                     />
 
                     {/* Observaciones de cumplimiento */}

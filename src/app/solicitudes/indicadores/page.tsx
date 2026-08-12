@@ -9,10 +9,6 @@ import {
   type SolicitudDetalle,
 } from "@/services/indicadores/indicadores.service";
 import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
-import {
   BarChart,
   Bar,
   XAxis,
@@ -115,13 +111,11 @@ function DetalleModal({
   area,
   fechaDesde,
   fechaHasta,
-  coId,
   onClose,
 }: {
   area: AreaKPI;
   fechaDesde: string;
   fechaHasta: string;
-  coId: string;
   onClose: () => void;
 }) {
   const [solicitudes, setSolicitudes] = useState<SolicitudDetalle[]>([]);
@@ -134,12 +128,11 @@ function DetalleModal({
     const params: Record<string, string> = { area: area.area };
     if (fechaDesde) params.fecha_desde = fechaDesde;
     if (fechaHasta) params.fecha_hasta = fechaHasta;
-    if (coId) params.co_id = coId;
     indicadoresService
       .getDetalleArea(params as any)
       .then(setSolicitudes)
       .finally(() => setLoading(false));
-  }, [area.area, fechaDesde, fechaHasta, coId]);
+  }, [area.area, fechaDesde, fechaHasta]);
 
   const filtradas =
     filtro === "todas"
@@ -281,10 +274,8 @@ function DetalleModal({
 
 export default function IndicadoresPage() {
   const { loading: authLoading } = useContext(AuthContext);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
-  const [coId, setCoId] = useState("");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -293,10 +284,6 @@ export default function IndicadoresPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    centrosOperacionService
-      .getAll()
-      .then(setCentros)
-      .catch(() => {});
     buscar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading]);
@@ -308,7 +295,6 @@ export default function IndicadoresPage() {
       const params: Record<string, string> = {};
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
-      if (coId) params.co_id = coId;
       const res = await indicadoresService.getDashboard(params);
       setData(res);
       setHasSearched(true);
@@ -364,7 +350,7 @@ export default function IndicadoresPage() {
 
         {/* Filtros */}
         <div className="bg-white rounded-2xl shadow-sm border p-5">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Fecha desde
@@ -386,23 +372,6 @@ export default function IndicadoresPage() {
                 onChange={(e) => setFechaHasta(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Centro de operación
-              </label>
-              <select
-                value={coId}
-                onChange={(e) => setCoId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Todos</option>
-                {centros.map((c) => (
-                  <option key={c.cop_id} value={String(c.cop_id)}>
-                    {c.cop_nombre}
-                  </option>
-                ))}
-              </select>
             </div>
             <button
               onClick={buscar}
@@ -698,7 +667,6 @@ export default function IndicadoresPage() {
           area={areaDetalle}
           fechaDesde={fechaDesde}
           fechaHasta={fechaHasta}
-          coId={coId}
           onClose={() => setAreaDetalle(null)}
         />
       )}

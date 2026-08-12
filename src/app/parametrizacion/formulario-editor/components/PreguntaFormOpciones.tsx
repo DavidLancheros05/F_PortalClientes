@@ -51,11 +51,11 @@ export function PreguntaFormOpciones({
   {(editandoPregunta || nuevaPregunta) &&
     (formPregunta.tipo === TIPOS_PREGUNTA.SELECT ||
       formPregunta.tipo === TIPOS_PREGUNTA.MULTISELECT) && (
-      <div className="border border-amber-300 bg-amber-50 rounded p-2">
-        <h4 className="font-semibold text-xs mb-0.5">
+      <div className="border border-gray-200 bg-slate-50 rounded-xl p-3">
+        <h4 className="text-[12.5px] font-bold text-gray-800 mb-0.5">
           Opciones de respuesta:
         </h4>
-        <p className="text-xs text-amber-800 mb-1">
+        <p className="text-xs text-gray-600 mb-2">
           {formPregunta.tipo === TIPOS_PREGUNTA.SELECT
             ? "El usuario podra seleccionar solo una opcion."
             : "El usuario podra seleccionar varias opciones."}
@@ -77,7 +77,7 @@ export function PreguntaFormOpciones({
               </p>
             )}
             {editandoPregunta && opciones.length > 0 && (
-              <div className="space-y-1 mb-2">
+              <div className="space-y-2 mb-2">
                 {opciones.map((opcion) => {
                   const dependientes =
                     obtenerPreguntasDependientesDeOpcion(
@@ -88,9 +88,9 @@ export function PreguntaFormOpciones({
                   return (
                     <div
                       key={opcion.fpo_id}
-                      className="bg-white p-1 rounded border border-gray-200 text-xs"
+                      className="bg-white border border-slate-200 rounded-[9px] py-2 px-3 text-xs"
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         {enEdicion ? (
                           <input
                             type="text"
@@ -107,16 +107,16 @@ export function PreguntaFormOpciones({
                               if (e.key === "Escape")
                                 cancelarEdicionOpcion();
                             }}
-                            className="flex-1 border border-amber-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            className="flex-1 border border-gray-300 rounded-[9px] px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         ) : (
-                          <span className="font-medium text-xs flex-1">
+                          <span className="font-medium text-xs text-gray-800 flex-1">
                             {opcion.fpo_valor ||
                               opcion.op_descripcion}
                           </span>
                         )}
                         <span
-                          className={`text-xs px-2 py-1 rounded ${opcion.fpo_estado ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                          className={`text-xs px-1.5 py-0.5 rounded font-medium ${opcion.fpo_estado ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}
                         >
                           {opcion.fpo_estado
                             ? "Activa"
@@ -126,14 +126,14 @@ export function PreguntaFormOpciones({
                           <>
                             <button
                               onClick={guardarEdicionOpcion}
-                              className="p-1 text-green-700 hover:bg-green-50 rounded"
+                              className="p-1.5 text-green-700 hover:bg-green-50 rounded-lg"
                               title="Guardar"
                             >
                               <Save className="h-3 w-3" />
                             </button>
                             <button
                               onClick={cancelarEdicionOpcion}
-                              className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                              className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg"
                               title="Cancelar"
                             >
                               <X className="h-3 w-3" />
@@ -145,7 +145,7 @@ export function PreguntaFormOpciones({
                               onClick={() =>
                                 iniciarEdicionOpcion(opcion)
                               }
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg"
                               title="Editar"
                             >
                               <Edit2 className="h-3 w-3" />
@@ -154,7 +154,7 @@ export function PreguntaFormOpciones({
                               onClick={() =>
                                 eliminarOpcion(opcion.fpo_id)
                               }
-                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
                               title="Eliminar"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -164,7 +164,7 @@ export function PreguntaFormOpciones({
                       </div>
                       {dependientes.length > 0 && (
                         <p className="mt-0.5 text-xs text-amber-700">
-                          ⚠️ De esta respuesta depende:{" "}
+                          De esta respuesta depende:{" "}
                           {dependientes
                             .map((p) => p.fp_descripcion)
                             .join(", ")}
@@ -178,18 +178,18 @@ export function PreguntaFormOpciones({
               </div>
             )}
             {!editandoPregunta && opcionesNuevas.length > 0 && (
-              <div className="space-y-1 mb-2">
+              <div className="space-y-2 mb-2">
                 {opcionesNuevas.map((opcion, index) => (
                   <div
                     key={`${opcion}-${index}`}
-                    className="flex items-center gap-1 bg-white p-1 rounded border border-gray-200 text-xs"
+                    className="flex items-center gap-2 bg-white border border-slate-200 rounded-[9px] py-2 px-3 text-xs"
                   >
-                    <span className="font-medium text-xs flex-1">
+                    <span className="font-medium text-xs text-gray-800 flex-1">
                       {opcion}
                     </span>
                     <button
                       onClick={() => eliminarOpcionNueva(index)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -201,11 +201,11 @@ export function PreguntaFormOpciones({
             <div className="space-y-1">
               <label
                 htmlFor="nueva-opcion"
-                className="block text-xs font-medium text-gray-700"
+                className="block text-[13px] font-semibold text-gray-800"
               >
                 Agregar nueva opción
               </label>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 <input
                   id="nueva-opcion"
                   type="text"
@@ -215,11 +215,11 @@ export function PreguntaFormOpciones({
                   onKeyPress={(e) => {
                     if (e.key === "Enter") agregarOpcion();
                   }}
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="flex-1 border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={agregarOpcion}
-                  className="px-2 py-1 bg-gradient-to-br from-green-500 to-green-600 text-white rounded hover:shadow-lg hover:from-green-600 hover:to-green-700 hover:scale-105 active:scale-95 text-xs flex items-center gap-0.5 font-semibold transition-all duration-200"
+                  className="px-2.5 py-1 bg-emerald-600 text-white rounded-[9px] hover:bg-emerald-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150"
                 >
                   <Plus className="h-3 w-3" />
                   Agregar

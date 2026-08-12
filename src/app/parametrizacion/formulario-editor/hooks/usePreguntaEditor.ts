@@ -14,6 +14,7 @@ import type {
   ColumnaTabla,
   FormPreguntaState,
   Pregunta,
+  ReglaFiltroCatalogo,
   ReglaLimiteTabla,
   Seccion,
 } from "./types";
@@ -58,6 +59,8 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   catalogo_tabla: "",
   catalogo_columna: "",
   catalogo_pk_column: "",
+  catalogo_columna_condicion: "",
+  catalogo_valor_condicion: "",
   dependiente: false,
   dependencia_seccion_id: null,
   dependencia_pregunta_id: null,
@@ -68,14 +71,20 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   precarga_tabla: "",
   precarga_columna: "",
   tabla_columnas: [],
-  ancho_completo: false,
+  ancho_columnas: 1,
   tabla_limite_modo: "SIN_LIMITE",
   tabla_limite_fijo: "",
   tabla_limite_seccion_id: null,
   tabla_limite_pregunta_id: null,
   tabla_limite_reglas: [],
+  catalogo_filtro_dependiente: false,
+  catalogo_filtro_seccion_id: null,
+  catalogo_filtro_pregunta_id: null,
+  catalogo_filtro_columna: "",
+  catalogo_filtro_reglas: [],
   oculto_en_formulario: false,
   espacio_lineas: "",
+  archivo_maximo: "",
 };
 
 type PreguntaEditorDeps = {
@@ -112,6 +121,9 @@ export function usePreguntaEditor({
   const [opcionesNuevas, setOpcionesNuevas] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<"creada" | "editada" | null>(null);
+  const [guardandoPregunta, setGuardandoPregunta] = useState(false);
+  const [mostrarConfirmarGuardarPregunta, setMostrarConfirmarGuardarPregunta] =
+    useState(false);
   const [opcionAEliminar, setOpcionAEliminar] = useState<number | null>(null);
   const [preguntaAEliminar, setPreguntaAEliminar] = useState<number | null>(
     null,
@@ -140,6 +152,28 @@ export function usePreguntaEditor({
   const [filtroTabla, setFiltroTabla] = useState("");
   const [filtroColumna, setFiltroColumna] = useState("");
   const [filtroLlave, setFiltroLlave] = useState("");
+
+  // Estado de catálogo/filtro independiente para "Precarga de datos"
+  // (formPregunta.precarga_*). No puede compartir filtroTabla/filtroColumna/
+  // catalogoTablas/catalogoColumnas con "Selección desde tabla"
+  // (formPregunta.catalogo_*): ambas secciones se renderizan a la vez para
+  // la misma pregunta (Precarga se muestra para casi todos los tipos, no
+  // solo SELECT_TABLA), y los efectos de más abajo que resetean este
+  // catálogo cuando "Sin precarga" está seleccionado pisaban en silencio lo
+  // que "Selección desde tabla" acababa de cargar — el filtro quedaba vacío
+  // aunque la tabla/columna ya estuviera guardada.
+  const [catalogoPrecargaTablas, setCatalogoPrecargaTablas] = useState<
+    string[]
+  >([]);
+  const [catalogoPrecargaColumnas, setCatalogoPrecargaColumnas] = useState<
+    string[]
+  >([]);
+  const [loadingCatalogoPrecargaTablas, setLoadingCatalogoPrecargaTablas] =
+    useState(false);
+  const [loadingCatalogoPrecargaColumnas, setLoadingCatalogoPrecargaColumnas] =
+    useState(false);
+  const [filtroPrecargaTabla, setFiltroPrecargaTabla] = useState("");
+  const [filtroPrecargaColumna, setFiltroPrecargaColumna] = useState("");
 
   const normalizarFiltro = (value: string) =>
     String(value || "")
@@ -222,6 +256,39 @@ export function usePreguntaEditor({
       setCatalogoColumnas([]);
     } finally {
       setLoadingCatalogoColumnas(false);
+    }
+  };
+
+  const cargarTablasPrecargaCatalogo = async (baseDatos: string) => {
+    try {
+      setLoadingCatalogoPrecargaTablas(true);
+      const data = await maestrosService.getCatalogoTablas(baseDatos);
+      setCatalogoPrecargaTablas(data);
+    } catch (error) {
+      console.error("❌ Error cargando tablas (precarga):", error);
+      setCatalogoPrecargaTablas([]);
+    } finally {
+      setLoadingCatalogoPrecargaTablas(false);
+    }
+  };
+
+  const cargarColumnasPrecargaCatalogo = async (
+    baseDatos: string,
+    tabla: string,
+  ) => {
+    if (!tabla.trim()) {
+      setCatalogoPrecargaColumnas([]);
+      return;
+    }
+    try {
+      setLoadingCatalogoPrecargaColumnas(true);
+      const data = await maestrosService.getCatalogoColumnas(tabla, baseDatos);
+      setCatalogoPrecargaColumnas(data);
+    } catch (error) {
+      console.error("❌ Error cargando columnas (precarga):", error);
+      setCatalogoPrecargaColumnas([]);
+    } finally {
+      setLoadingCatalogoPrecargaColumnas(false);
     }
   };
 
@@ -335,20 +402,20 @@ export function usePreguntaEditor({
         formPregunta.precarga_fuente,
       )
     ) {
-      setCatalogoTablas([]);
-      setCatalogoColumnas([]);
-      setFiltroTabla("");
-      setFiltroColumna("");
+      setCatalogoPrecargaTablas([]);
+      setCatalogoPrecargaColumnas([]);
+      setFiltroPrecargaTabla("");
+      setFiltroPrecargaColumna("");
       return;
     }
     if (!formPregunta.precarga_base_datos) {
-      setCatalogoTablas([]);
-      setCatalogoColumnas([]);
-      setFiltroTabla("");
-      setFiltroColumna("");
+      setCatalogoPrecargaTablas([]);
+      setCatalogoPrecargaColumnas([]);
+      setFiltroPrecargaTabla("");
+      setFiltroPrecargaColumna("");
       return;
     }
-    cargarTablasCatalogo(formPregunta.precarga_base_datos);
+    cargarTablasPrecargaCatalogo(formPregunta.precarga_base_datos);
   }, [
     formPregunta.precarga_fuente,
     formPregunta.precarga_base_datos,
@@ -363,16 +430,16 @@ export function usePreguntaEditor({
         formPregunta.precarga_fuente,
       )
     ) {
-      setCatalogoColumnas([]);
-      setFiltroColumna("");
+      setCatalogoPrecargaColumnas([]);
+      setFiltroPrecargaColumna("");
       return;
     }
     if (!String(formPregunta.precarga_tabla || "").trim()) {
-      setCatalogoColumnas([]);
-      setFiltroColumna("");
+      setCatalogoPrecargaColumnas([]);
+      setFiltroPrecargaColumna("");
       return;
     }
-    cargarColumnasCatalogo(
+    cargarColumnasPrecargaCatalogo(
       formPregunta.precarga_base_datos || "",
       formPregunta.precarga_tabla || "",
     );
@@ -458,13 +525,28 @@ export function usePreguntaEditor({
     ) {
       return false;
     }
+    if (
+      TIPOS_SELECT_MULTISELECT.includes(formPregunta.tipo) &&
+      (editandoPregunta
+        ? opciones.filter((o) => o.fpo_estado).length === 0
+        : opcionesNuevas.filter((v) => v.trim()).length === 0)
+    ) {
+      return false;
+    }
     if (!formularioIdNumber) {
       return false;
     }
     return true;
-  }, [formPregunta, seccionSeleccionada, formularioIdNumber]);
+  }, [
+    formPregunta,
+    seccionSeleccionada,
+    formularioIdNumber,
+    editandoPregunta,
+    opciones,
+    opcionesNuevas,
+  ]);
 
-  const guardarPregunta = async () => {
+  const guardarPregunta = () => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
     const requiereDescripcion =
       formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
@@ -478,9 +560,6 @@ export function usePreguntaEditor({
       );
       return;
     }
-
-    const descripcionPersistida =
-      descripcionNormalizada || "Fecha y hora actual";
 
     if (
       formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
@@ -532,11 +611,31 @@ export function usePreguntaEditor({
       setError("Para 'Pregunta tipo tabla' debes agregar al menos una columna");
       return;
     }
+    if (
+      TIPOS_SELECT_MULTISELECT.includes(formPregunta.tipo) &&
+      (editandoPregunta
+        ? opciones.filter((o) => o.fpo_estado).length === 0
+        : opcionesNuevas.filter((v) => v.trim()).length === 0)
+    ) {
+      setError(
+        "Para preguntas de selección debes agregar al menos una opción de respuesta",
+      );
+      return;
+    }
     if (!formularioIdNumber) {
       setError("Primero debes crear o seleccionar un formulario válido.");
       return;
     }
 
+    setMostrarConfirmarGuardarPregunta(true);
+  };
+
+  const confirmarGuardarPregunta = async () => {
+    const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
+    const descripcionPersistida =
+      formPregunta.descripcion.trim() || "Fecha y hora actual";
+
+    setGuardandoPregunta(true);
     try {
       const preguntaEnEdicion = editandoPregunta
         ? preguntas.find((p) => p.fp_id === editandoPregunta)
@@ -590,6 +689,16 @@ export function usePreguntaEditor({
             : formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA
               ? "tdo_id"
               : null,
+        fp_catalogo_columna_condicion:
+          formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
+            ? String(formPregunta.catalogo_columna_condicion || "").trim() ||
+              null
+            : null,
+        fp_catalogo_valor_condicion:
+          formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
+            ? String(formPregunta.catalogo_valor_condicion || "").trim() ||
+              null
+            : null,
         fp_tipo_documento_id: TIPOS_CATALOGO_DOCUMENTOS.includes(
           formPregunta.tipo,
         )
@@ -624,6 +733,10 @@ export function usePreguntaEditor({
                           catalogo_columna_filtro: c.catalogo_columna_padre
                             ? c.catalogo_columna_filtro || undefined
                             : undefined,
+                          catalogo_columna_condicion:
+                            c.catalogo_columna_condicion || undefined,
+                          catalogo_valor_condicion:
+                            c.catalogo_valor_condicion || undefined,
                         }
                       : {}),
                     ...(c.tipo === "NUMERO"
@@ -633,8 +746,32 @@ export function usePreguntaEditor({
                   .filter((c) => Boolean(c.nombre)),
               )
             : null,
-        fp_ancho_completo: formPregunta.ancho_completo,
+        fp_ancho_columnas: formPregunta.ancho_columnas,
         fp_oculto_en_formulario: formPregunta.oculto_en_formulario,
+        ...(formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
+          ? {
+              fp_catalogo_filtro_columna:
+                formPregunta.catalogo_filtro_dependiente
+                  ? String(formPregunta.catalogo_filtro_columna || "").trim() ||
+                    null
+                  : null,
+              fp_catalogo_filtro_pregunta_id:
+                formPregunta.catalogo_filtro_dependiente
+                  ? formPregunta.catalogo_filtro_pregunta_id
+                  : null,
+              fp_catalogo_filtro_reglas:
+                formPregunta.catalogo_filtro_dependiente
+                  ? JSON.stringify(
+                      formPregunta.catalogo_filtro_reglas
+                        .map((r) => ({
+                          valor: r.valor.trim(),
+                          valor_filtro: r.valor_filtro.trim(),
+                        }))
+                        .filter((r) => Boolean(r.valor) && Boolean(r.valor_filtro)),
+                    )
+                  : null,
+            }
+          : {}),
         ...(formPregunta.tipo === TIPOS_PREGUNTA.TABLA
           ? {
               fp_maximo:
@@ -667,6 +804,15 @@ export function usePreguntaEditor({
               fp_maximo: formPregunta.espacio_lineas.trim()
                 ? parseInt(formPregunta.espacio_lineas, 10)
                 : 5,
+            }
+          : {}),
+        ...(formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO
+          ? {
+              fp_maximo:
+                formPregunta.archivo_maximo.trim() &&
+                parseInt(formPregunta.archivo_maximo, 10) > 1
+                  ? parseInt(formPregunta.archivo_maximo, 10)
+                  : null,
             }
           : {}),
       };
@@ -736,6 +882,7 @@ export function usePreguntaEditor({
           await formularioPreguntasService.create(payloadFechaDependiente);
         }
 
+        let opcionesCreadas: Opcion[] = [];
         if (
           creada?.fp_id &&
           TIPOS_CON_SINCRONIZACION_OPCIONES.includes(formPregunta.tipo)
@@ -744,11 +891,22 @@ export function usePreguntaEditor({
             creada.fp_id,
             opcionesNuevas,
           );
+          // syncOpciones no devuelve las opciones creadas — sin este fetch,
+          // la pregunta quedaba en el estado local con el `creada` de antes
+          // de sincronizar opciones (sin `opciones`), mostrando "Sin
+          // opciones configuradas" en la lista hasta refrescar la página
+          // aunque sí se hubieran guardado en el backend.
+          opcionesCreadas = await formularioPreguntasService.getOpciones(
+            creada.fp_id,
+          );
         }
 
         // Agregar la nueva pregunta al estado local
         if (creada) {
-          setPreguntas((prev) => [...prev, creada]);
+          setPreguntas((prev) => [
+            ...prev,
+            { ...creada, opciones: opcionesCreadas },
+          ]);
           setSuccessMessage("creada");
         }
       }
@@ -761,6 +919,7 @@ export function usePreguntaEditor({
       setFiltroTabla("");
       setFiltroColumna("");
       setCatalogoColumnas([]);
+      setMostrarConfirmarGuardarPregunta(false);
     } catch (error) {
       console.error("Error guardando pregunta:", error);
       setError(
@@ -768,6 +927,9 @@ export function usePreguntaEditor({
           ? error.message
           : "No se pudo guardar la pregunta",
       );
+      setMostrarConfirmarGuardarPregunta(false);
+    } finally {
+      setGuardandoPregunta(false);
     }
   };
 
@@ -799,6 +961,8 @@ export function usePreguntaEditor({
       catalogo_tabla: pregunta.fp_catalogo_tabla ?? "",
       catalogo_columna: pregunta.fp_catalogo_columna ?? "",
       catalogo_pk_column: pregunta.fp_catalogo_pk_column ?? "",
+      catalogo_columna_condicion: pregunta.fp_catalogo_columna_condicion ?? "",
+      catalogo_valor_condicion: pregunta.fp_catalogo_valor_condicion ?? "",
       dependiente: Boolean(pregunta.fp_pregunta_padre_id),
       dependencia_seccion_id: preguntaPadre?.seccion_id ?? null,
       dependencia_pregunta_id: pregunta.fp_pregunta_padre_id ?? null,
@@ -826,6 +990,8 @@ export function usePreguntaEditor({
               catalogo_pk_column: col.catalogo_pk_column,
               catalogo_columna_padre: col.catalogo_columna_padre,
               catalogo_columna_filtro: col.catalogo_columna_filtro,
+              catalogo_columna_condicion: col.catalogo_columna_condicion,
+              catalogo_valor_condicion: col.catalogo_valor_condicion,
               minimo: col.minimo,
               maximo: col.maximo,
             };
@@ -834,7 +1000,11 @@ export function usePreguntaEditor({
           return [];
         }
       })(),
-      ancho_completo: Boolean(pregunta.fp_ancho_completo),
+      ancho_columnas: (
+        pregunta.fp_ancho_columnas === 2 || pregunta.fp_ancho_columnas === 3
+          ? pregunta.fp_ancho_columnas
+          : 1
+      ) as 1 | 2 | 3,
       oculto_en_formulario: Boolean(pregunta.fp_oculto_en_formulario),
       tabla_limite_modo:
         (pregunta.fp_tabla_limite_modo as
@@ -847,6 +1017,11 @@ export function usePreguntaEditor({
           : "",
       espacio_lineas:
         pregunta.fp_tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA &&
+        pregunta.fp_maximo != null
+          ? String(pregunta.fp_maximo)
+          : "",
+      archivo_maximo:
+        pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO &&
         pregunta.fp_maximo != null
           ? String(pregunta.fp_maximo)
           : "",
@@ -866,6 +1041,34 @@ export function usePreguntaEditor({
             }): ReglaLimiteTabla => ({
               valor: String(r.valor ?? ""),
               limite: r.limite != null ? String(r.limite) : "",
+            }),
+          );
+        } catch {
+          return [];
+        }
+      })(),
+      catalogo_filtro_dependiente: Boolean(
+        pregunta.fp_catalogo_filtro_pregunta_id,
+      ),
+      catalogo_filtro_seccion_id:
+        preguntas.find(
+          (p) => p.fp_id === pregunta.fp_catalogo_filtro_pregunta_id,
+        )?.seccion_id ?? null,
+      catalogo_filtro_pregunta_id:
+        pregunta.fp_catalogo_filtro_pregunta_id ?? null,
+      catalogo_filtro_columna: pregunta.fp_catalogo_filtro_columna ?? "",
+      catalogo_filtro_reglas: (() => {
+        if (!pregunta.fp_catalogo_filtro_reglas) return [];
+        try {
+          const parsed = JSON.parse(pregunta.fp_catalogo_filtro_reglas);
+          if (!Array.isArray(parsed)) return [];
+          return parsed.map(
+            (r: {
+              valor?: string;
+              valor_filtro?: string;
+            }): ReglaFiltroCatalogo => ({
+              valor: String(r.valor ?? ""),
+              valor_filtro: String(r.valor_filtro ?? ""),
             }),
           );
         } catch {
@@ -1236,6 +1439,15 @@ export function usePreguntaEditor({
     cargarBasesCatalogo,
     cargarTablasCatalogo,
     cargarColumnasCatalogo,
+    // Catálogo de precarga (aislado del catálogo de "Selección desde tabla")
+    catalogoPrecargaTablas,
+    catalogoPrecargaColumnas,
+    loadingCatalogoPrecargaTablas,
+    loadingCatalogoPrecargaColumnas,
+    filtroPrecargaTabla,
+    setFiltroPrecargaTabla,
+    filtroPrecargaColumna,
+    setFiltroPrecargaColumna,
     documentosCatalogo,
     loadingDocumentosCatalogo,
     opcionesPreguntaPadre,
@@ -1257,6 +1469,10 @@ export function usePreguntaEditor({
     setError,
     // Funciones
     guardarPregunta,
+    confirmarGuardarPregunta,
+    guardandoPregunta,
+    mostrarConfirmarGuardarPregunta,
+    setMostrarConfirmarGuardarPregunta,
     puedeGuardarPregunta,
     iniciarEdicionPregunta,
     eliminarPregunta,

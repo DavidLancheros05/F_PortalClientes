@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, FileText, Upload, Trash2, Download } from "lucide-react";
+import { ArrowLeft, FileText, Upload, Trash2, Download, Search } from "lucide-react";
+import { AuthContext } from "@/context/AuthContext";
+import { clientesService } from "@/services/clientes/clientes.service";
+import { cachedRequest } from "@/services/core/requestCache";
 import {
   misDocumentosService,
   type MiDocumento,
@@ -136,14 +139,40 @@ function esDocumentoEditable(
   return doc.sd_requiere_cambio || vencido;
 }
 
+interface ClienteOpcion {
+  cli_id: number;
+  cli_razon_social: string;
+  ejng_id: number | null;
+}
+
 export default function MisDocumentosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useContext(AuthContext);
   // Presente solo cuando entra personal interno (no CLIENTE) a corregir
   // documentos en nombre de un cliente — ver corregir-formulario-asc y
   // documentacion/Funcionalidades/modo-solucion-rechazo-asc.md.
   const solicitudIdParam = searchParams.get("solicitudId");
   const modoStaff = Boolean(solicitudIdParam);
+  const esCliente =
+    String(user?.rol?.nombre || "").toUpperCase().trim() === "CLIENTE";
+  const esEjecutivo =
+    String(user?.rol?.nombre || "").toUpperCase().trim() === "EJECUTIVO";
+
+  // Personal interno que entra sin solicitudId (ej. desde el menú, no desde
+  // corregir-formulario-asc) no tiene cliente_id propio — antes esto
+  // reventaba con "Usuario sin cliente asociado". Ahora se le pide elegir un
+  // cliente y se le muestra la última solicitud de ese cliente, mismo
+  // patrón que el selector de /solicitudes/nueva.
+  const [clientes, setClientes] = useState<ClienteOpcion[]>([]);
+  const [clienteSeleccionado, setClienteSeleccionado] =
+    useState<ClienteOpcion | null>(null);
+  const [busquedaCliente, setBusquedaCliente] = useState("");
+  const [mostrarListaClientes, setMostrarListaClientes] = useState(false);
+  const clienteSelectorRef = useRef<HTMLDivElement>(null);
+  const debeElegirCliente =
+    !authLoading && !esCliente && !modoStaff && !clienteSeleccionado;
+
   const [loading, setLoading] = useState(true);
   const [solicitud, setSolicitud] =
     useState<MisDocumentosResponse["solicitud"]>(null);
@@ -211,6 +240,7 @@ export default function MisDocumentosPage() {
       setLoading(true);
       const data = await misDocumentosService.getMisDocumentos(
         solicitudIdParam ? Number(solicitudIdParam) : undefined,
+        clienteSeleccionado?.cli_id,
       );
       setSolicitud(data.solicitud);
       setDocumentos(data.documentos);
@@ -226,8 +256,63 @@ export default function MisDocumentosPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    // modoStaff (solicitudId en la URL) y esCliente (autoservicio) cargan de
+    // inmediato; personal interno sin esos dos casos espera a que elija un
+    // cliente en el selector.
+    if (!modoStaff && !esCliente && !clienteSeleccionado) {
+      setLoading(false);
+      return;
+    }
     cargar();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, esCliente, modoStaff, clienteSeleccionado]);
+
+  // Catálogo de clientes para el selector — mismo cache/patrón que
+  // listado-de-solicitudes y solicitudes/nueva.
+  useEffect(() => {
+    if (authLoading || esCliente || modoStaff) return;
+    cachedRequest("listado-solicitudes-clientes", () =>
+      clientesService.getAll(),
+    )
+      .then((data: any) => {
+        const mapeados = Array.isArray(data)
+          ? data.map((item: any) => ({
+              cli_id: Number(item.cli_id ?? 0),
+              cli_razon_social: String(item.cli_razon_social ?? ""),
+              ejng_id: item.ejng_id != null ? Number(item.ejng_id) : null,
+            }))
+          : [];
+        setClientes(mapeados.filter((c: ClienteOpcion) => c.cli_id > 0));
+      })
+      .catch((error) => {
+        console.error("[MisDocumentosPage] Error cargando clientes", error);
+      });
+  }, [authLoading, esCliente, modoStaff]);
+
+  useEffect(() => {
+    if (!mostrarListaClientes) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        clienteSelectorRef.current &&
+        !clienteSelectorRef.current.contains(event.target as Node)
+      ) {
+        setMostrarListaClientes(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarListaClientes]);
+
+  const clientesFiltrados = clientes
+    .filter((c) =>
+      esEjecutivo && user?.ejng_id ? c.ejng_id === user.ejng_id : true,
+    )
+    .filter((c) =>
+      busquedaCliente
+        ? c.cli_razon_social.toLowerCase().includes(busquedaCliente.toLowerCase())
+        : true,
+    );
 
   const handleSeleccionarArchivo = async (doc: MiDocumento, file: File) => {
     if (!solicitud) return;
@@ -550,6 +635,84 @@ export default function MisDocumentosPage() {
     (doc) => doc.yaSubido,
   ).length;
 
+  if (debeElegirCliente) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
+        <div className="max-w-[90%] mx-auto mt-2 px-2">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg m-0">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-xl">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push("/solicitudes/cliente")}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
+                >
+                  <ArrowLeft size={16} />
+                  Volver
+                </button>
+                <div className="bg-white/20 rounded-full p-2 flex-shrink-0">
+                  <FileText className="text-white" size={22} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg md:text-xl font-bold text-white">
+                    Documentos de la Solicitud
+                  </h1>
+                  <p className="text-xs md:text-sm text-blue-100 truncate">
+                    Elige el cliente cuyos documentos quieres ver.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-8 py-10 flex flex-col items-center">
+              <div className="w-full max-w-md" ref={clienteSelectorRef}>
+                <Search className="h-10 w-10 text-blue-600 mx-auto mb-4" />
+                <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">
+                  ¿De qué cliente son los documentos?
+                </h2>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente..."
+                    value={busquedaCliente}
+                    onFocus={() => setMostrarListaClientes(true)}
+                    onChange={(event) => {
+                      setBusquedaCliente(event.target.value);
+                      setMostrarListaClientes(true);
+                    }}
+                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {mostrarListaClientes && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-64 overflow-y-auto">
+                      {clientesFiltrados.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          Sin resultados
+                        </div>
+                      ) : (
+                        clientesFiltrados.map((cliente) => (
+                          <div
+                            key={cliente.cli_id}
+                            onClick={() => {
+                              setClienteSeleccionado(cliente);
+                              setBusquedaCliente(cliente.cli_razon_social);
+                              setMostrarListaClientes(false);
+                            }}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
+                          >
+                            {cliente.cli_razon_social}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
       <div className="max-w-[90%] mx-auto mt-2 px-2">
@@ -557,11 +720,18 @@ export default function MisDocumentosPage() {
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={() =>
-                  modoStaff
-                    ? router.push("/solicitudes/corregir-formulario-asc")
-                    : router.push("/solicitudes/cliente")
-                }
+                onClick={() => {
+                  if (modoStaff) {
+                    router.push("/solicitudes/corregir-formulario-asc");
+                  } else if (clienteSeleccionado) {
+                    // Volvió al selector en vez de navegar afuera — este
+                    // usuario no tiene "/solicitudes/cliente" propio.
+                    setClienteSeleccionado(null);
+                    setBusquedaCliente("");
+                  } else {
+                    router.push("/solicitudes/cliente");
+                  }
+                }}
                 className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
               >
                 <ArrowLeft size={16} />
@@ -572,13 +742,17 @@ export default function MisDocumentosPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg md:text-xl font-bold text-white">
-                  {modoStaff ? "Documentos de la Solicitud" : "Mis Documentos"}
+                  {modoStaff || clienteSeleccionado
+                    ? "Documentos de la Solicitud"
+                    : "Mis Documentos"}
                 </h1>
                 <p className="text-xs md:text-sm text-blue-100 truncate">
                   {solicitud
                     ? modoStaff
                       ? `Solicitud ${solicitud.sol_numero_solicitud} — ${solicitud.cliente_nombre ?? "cliente"}. Corrige en su nombre los documentos marcados.`
-                      : `Documentos de la solicitud ${solicitud.sol_numero_solicitud}.`
+                      : clienteSeleccionado
+                        ? `Solicitud ${solicitud.sol_numero_solicitud} — ${clienteSeleccionado.cli_razon_social}.`
+                        : `Documentos de la solicitud ${solicitud.sol_numero_solicitud}.`
                     : "Consulta el estado de tus documentos y corrígelos si hace falta."}
                 </p>
               </div>
@@ -788,7 +962,9 @@ export default function MisDocumentosPage() {
           </div>
         ) : !solicitud ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
-            Aún no tienes ninguna solicitud con documentos.
+            {clienteSeleccionado
+              ? `${clienteSeleccionado.cli_razon_social} aún no tiene ninguna solicitud con documentos.`
+              : "Aún no tienes ninguna solicitud con documentos."}
           </div>
         ) : documentos.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">

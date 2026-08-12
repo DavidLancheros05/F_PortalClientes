@@ -131,6 +131,7 @@ export default function ListadoDocumentosPage() {
 
   const emptyFilters = {
     searchTerm: "",
+    solicitudNumero: "ALL",
     estadoVencimiento: "ALL",
     estadoSolicitud: "ALL",
     clienteNombre: "ALL",
@@ -159,6 +160,16 @@ export default function ListadoDocumentosPage() {
   useEffect(() => {
     cargar();
   }, []);
+
+  const solicitudes = useMemo(() => {
+    return Array.from(
+      new Set(
+        rows
+          .map((row) => row.sol_numero_solicitud?.trim() || "")
+          .filter((item) => item.length > 0),
+      ),
+    ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [rows]);
 
   const clientes = useMemo(() => {
     return Array.from(
@@ -196,6 +207,13 @@ export default function ListadoDocumentosPage() {
     const hasta = toDateOnlyValue(appliedFilters.fechaCargaHasta);
 
     return rows.filter((row) => {
+      if (
+        appliedFilters.solicitudNumero !== "ALL" &&
+        (row.sol_numero_solicitud || "") !== appliedFilters.solicitudNumero
+      ) {
+        return false;
+      }
+
       if (
         appliedFilters.estadoVencimiento !== "ALL" &&
         row.estado_vencimiento !== appliedFilters.estadoVencimiento
@@ -365,6 +383,29 @@ export default function ListadoDocumentosPage() {
             <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-6" />
 
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    No. de solicitud
+                  </label>
+                  <select
+                    value={pendingFilters.solicitudNumero}
+                    onChange={(event) =>
+                      setPendingFilters((prev) => ({
+                        ...prev,
+                        solicitudNumero: event.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ALL">Todas</option>
+                    {solicitudes.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Centro de operacion

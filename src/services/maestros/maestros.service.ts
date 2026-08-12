@@ -48,12 +48,24 @@ export const maestrosService = {
     baseDatos?: string | null,
     columnaDescripcion?: string | null,
     columnaId?: string | null,
+    columnaFiltro?: string | null,
+    valorFiltro?: string | null,
+    columnaCondicion?: string | null,
+    valorCondicion?: string | null,
   ): Promise<{ op_id: number; op_descripcion: string }[]> => {
     if (!tabla?.trim()) return [];
     const params: Record<string, string> = { tabla: tabla.trim() };
     if (baseDatos?.trim()) params.base_datos = baseDatos.trim();
     if (columnaDescripcion?.trim()) params.columna_descripcion = columnaDescripcion.trim();
     if (columnaId?.trim()) params.columna_id = columnaId.trim();
+    if (columnaFiltro?.trim() && valorFiltro?.trim()) {
+      params.columna_filtro = columnaFiltro.trim();
+      params.valor_filtro = valorFiltro.trim();
+    }
+    if (columnaCondicion?.trim() && valorCondicion?.trim()) {
+      params.columna_condicion = columnaCondicion.trim();
+      params.valor_condicion = valorCondicion.trim();
+    }
     const res = await api.get("/maestros/catalogo", { params });
     return Array.isArray(res.data) ? res.data : [];
   },

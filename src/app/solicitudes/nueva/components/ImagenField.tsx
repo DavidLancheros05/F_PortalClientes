@@ -1,7 +1,10 @@
 "use client";
 
 import { formularioRespuestasService } from '@/services/formulario-respuestas.service';
+import { LoadingModal } from "@/components/modals";
 import { ImageOff } from "lucide-react";
+import { useState } from "react";
+import { flushSync } from "react-dom";
 
 interface ImagenFieldProps {
   pregunta: any;
@@ -38,6 +41,20 @@ export function ImagenField({
     : null;
   const previaNueva = respuestas[pregunta.fp_id]?.vista_previa_url;
   const imagenAMostrar = rutaExistente || (!archivoExistente ? previaNueva : null);
+
+  // Mismo fix que ArchivoField/DocumentoTablaField: handleInputChange("ARCHIVO")
+  // es sincrono y dispara un re-render de todo el formulario, sin esto la
+  // pantalla queda "pegada" sin ninguna señal de que algo está pasando.
+  const [procesandoArchivo, setProcesandoArchivo] = useState(false);
+  const procesarArchivoSeleccionado = (file: File) => {
+    flushSync(() => setProcesandoArchivo(true));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+        setProcesandoArchivo(false);
+      });
+    });
+  };
 
   return (
     <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
@@ -92,12 +109,13 @@ export function ImagenField({
                     const target = event.target as HTMLInputElement;
                     const file = target.files?.[0];
                     if (file) {
-                      handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+                      procesarArchivoSeleccionado(file);
                     }
                   };
                   tempInput.click();
                 }}
-                className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                disabled={procesandoArchivo}
+                className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60"
               >
                 Cambiar imagen
               </button>
@@ -115,19 +133,22 @@ export function ImagenField({
           <input
             id={`imagen-input-${pregunta.fp_id}`}
             type="file"
+            disabled={procesandoArchivo}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                handleInputChange(pregunta.fp_id, file, "ARCHIVO");
+                procesarArchivoSeleccionado(file);
               }
             }}
             accept="image/*"
-            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
+            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-60 ${
               hasError ? "border-red-500" : "border-blue-200"
             }`}
           />
         </div>
       )}
+
+      <LoadingModal isOpen={procesandoArchivo} message="Cargando imagen..." />
     </div>
   );
 }

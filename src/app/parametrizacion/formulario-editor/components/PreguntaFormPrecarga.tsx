@@ -9,17 +9,15 @@ interface PreguntaFormPrecargaProps {
   setFormPregunta: Dispatch<SetStateAction<FormPreguntaState>>;
   filtroBaseDatos: string;
   setFiltroBaseDatos: (value: string) => void;
-  filtroTabla: string;
-  setFiltroTabla: (value: string) => void;
-  filtroColumna: string;
-  setFiltroColumna: (value: string) => void;
+  filtroPrecargaTabla: string;
+  setFiltroPrecargaTabla: (value: string) => void;
+  filtroPrecargaColumna: string;
+  setFiltroPrecargaColumna: (value: string) => void;
   basesFiltradas: string[];
-  tablasFiltradas: string[];
-  columnasFiltradas: string[];
-  catalogoTablas: string[];
-  catalogoColumnas: string[];
-  loadingCatalogoTablas: boolean;
-  loadingCatalogoColumnas: boolean;
+  catalogoPrecargaTablas: string[];
+  catalogoPrecargaColumnas: string[];
+  loadingCatalogoPrecargaTablas: boolean;
+  loadingCatalogoPrecargaColumnas: boolean;
 }
 
 export function PreguntaFormPrecarga({
@@ -27,17 +25,15 @@ export function PreguntaFormPrecarga({
   setFormPregunta,
   filtroBaseDatos,
   setFiltroBaseDatos,
-  filtroTabla,
-  setFiltroTabla,
-  filtroColumna,
-  setFiltroColumna,
+  filtroPrecargaTabla,
+  setFiltroPrecargaTabla,
+  filtroPrecargaColumna,
+  setFiltroPrecargaColumna,
   basesFiltradas,
-  tablasFiltradas,
-  columnasFiltradas,
-  catalogoTablas,
-  catalogoColumnas,
-  loadingCatalogoTablas,
-  loadingCatalogoColumnas,
+  catalogoPrecargaTablas,
+  catalogoPrecargaColumnas,
+  loadingCatalogoPrecargaTablas,
+  loadingCatalogoPrecargaColumnas,
 }: PreguntaFormPrecargaProps) {
   return (
     <>
@@ -45,21 +41,19 @@ export function PreguntaFormPrecarga({
   {![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
     formPregunta.tipo as any,
   ) && (
-    <div className="space-y-2 p-2 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 border-l-4 border-amber-400 rounded-md shadow-sm">
+    <div className="space-y-2 p-3 bg-slate-50 border border-gray-200 rounded-xl">
       <div>
-        <h4 className="text-xs font-bold text-amber-900 flex items-center gap-2">
-          <span className="text-sm">📦</span>
+        <h4 className="text-[12.5px] font-bold text-gray-800">
           Precarga de datos
         </h4>
-        <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+        <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
           Define de dónde se tomará el valor inicial para esta
           pregunta
         </p>
       </div>
 
       <div className="pt-1 space-y-1">
-        <label className="block text-xs font-semibold text-amber-900 flex items-center gap-1">
-          <span className="text-amber-600">↓</span>
+        <label className="block text-[13px] font-semibold text-gray-800">
           Fuente de precarga
         </label>
         <select
@@ -74,7 +68,7 @@ export function PreguntaFormPrecarga({
                   : formPregunta.precarga_campo_cliente,
             })
           }
-          className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
         >
           <option value="">Sin precarga</option>
           <option value="cliente">Datos del cliente</option>
@@ -93,10 +87,9 @@ export function PreguntaFormPrecarga({
       {(formPregunta.precarga_fuente === "cliente" ||
         formPregunta.precarga_fuente === "cliente_primero" ||
         formPregunta.precarga_fuente === "ultima_primero") && (
-        <div className="pt-1 space-y-2 bg-white/60 p-2 rounded-md border border-amber-100">
-          <div className="space-y-0.5">
-            <label className="block text-xs font-semibold text-amber-900 flex items-center gap-1">
-              <span className="text-amber-600">🔍</span>
+        <div className="pt-1 space-y-2 bg-white p-2.5 rounded-[9px] border border-gray-200">
+          <div className="space-y-1">
+            <label className="block text-[13px] font-semibold text-gray-800">
               Base de datos
             </label>
             <input
@@ -104,7 +97,7 @@ export function PreguntaFormPrecarga({
               placeholder="Filtrar bases de datos..."
               value={filtroBaseDatos}
               onChange={(e) => setFiltroBaseDatos(e.target.value)}
-              className="w-full border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white transition-all"
+              className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors"
             />
             <select
               value={formPregunta.precarga_base_datos || ""}
@@ -116,7 +109,7 @@ export function PreguntaFormPrecarga({
                   precarga_columna: "",
                 })
               }
-              className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
+              className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
             >
               <option value="">
                 Selecciona una base de datos
@@ -130,16 +123,16 @@ export function PreguntaFormPrecarga({
           </div>
 
           {formPregunta.precarga_base_datos && (
-            <div className="space-y-0.5">
-              <label className="block text-xs font-semibold text-amber-900 leading-tight">
+            <div className="space-y-1">
+              <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
                 Tabla <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 placeholder="Filtrar tablas..."
-                value={filtroTabla}
-                onChange={(e) => setFiltroTabla(e.target.value)}
-                className="w-full border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white transition-all"
+                value={filtroPrecargaTabla}
+                onChange={(e) => setFiltroPrecargaTabla(e.target.value)}
+                className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors"
               />
               <select
                 value={formPregunta.precarga_tabla || ""}
@@ -150,29 +143,29 @@ export function PreguntaFormPrecarga({
                     precarga_columna: "",
                   })
                 }
-                className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
+                className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
               >
                 <option value="">
-                  {loadingCatalogoTablas
+                  {loadingCatalogoPrecargaTablas
                     ? "Cargando tablas..."
                     : "Selecciona una tabla"}
                 </option>
-                {catalogoTablas
+                {catalogoPrecargaTablas
                   .filter((tabla) =>
                     tabla
                       .toLowerCase()
-                      .includes(filtroTabla.toLowerCase()),
+                      .includes(filtroPrecargaTabla.toLowerCase()),
                   )
                   .map((tabla) => (
                     <option key={tabla} value={tabla}>
                       {tabla}
                     </option>
                   ))}
-                {!loadingCatalogoTablas &&
-                  catalogoTablas.filter((tabla) =>
+                {!loadingCatalogoPrecargaTablas &&
+                  catalogoPrecargaTablas.filter((tabla) =>
                     tabla
                       .toLowerCase()
-                      .includes(filtroTabla.toLowerCase()),
+                      .includes(filtroPrecargaTabla.toLowerCase()),
                   ).length === 0 && (
                     <option disabled>
                       No hay tablas disponibles
@@ -183,16 +176,16 @@ export function PreguntaFormPrecarga({
           )}
 
           {formPregunta.precarga_tabla && (
-            <div className="space-y-0.5">
-              <label className="block text-xs font-semibold text-amber-900 leading-tight">
+            <div className="space-y-1">
+              <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
                 Columna <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 placeholder="Filtrar columnas..."
-                value={filtroColumna}
-                onChange={(e) => setFiltroColumna(e.target.value)}
-                className="w-full border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white transition-all"
+                value={filtroPrecargaColumna}
+                onChange={(e) => setFiltroPrecargaColumna(e.target.value)}
+                className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors"
               />
               <select
                 value={formPregunta.precarga_columna || ""}
@@ -202,29 +195,29 @@ export function PreguntaFormPrecarga({
                     precarga_columna: e.target.value,
                   })
                 }
-                className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
+                className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
               >
                 <option value="">
-                  {loadingCatalogoColumnas
+                  {loadingCatalogoPrecargaColumnas
                     ? "Cargando columnas..."
                     : "Selecciona una columna"}
                 </option>
-                {catalogoColumnas
+                {catalogoPrecargaColumnas
                   .filter((columna) =>
                     columna
                       .toLowerCase()
-                      .includes(filtroColumna.toLowerCase()),
+                      .includes(filtroPrecargaColumna.toLowerCase()),
                   )
                   .map((columna) => (
                     <option key={columna} value={columna}>
                       {columna}
                     </option>
                   ))}
-                {!loadingCatalogoColumnas &&
-                  catalogoColumnas.filter((columna) =>
+                {!loadingCatalogoPrecargaColumnas &&
+                  catalogoPrecargaColumnas.filter((columna) =>
                     columna
                       .toLowerCase()
-                      .includes(filtroColumna.toLowerCase()),
+                      .includes(filtroPrecargaColumna.toLowerCase()),
                   ).length === 0 && (
                     <option disabled>
                       No hay columnas disponibles
@@ -237,8 +230,7 @@ export function PreguntaFormPrecarga({
       )}
 
       {formPregunta.precarga_fuente && (
-        <p className="text-xs text-amber-700 font-medium bg-white/50 px-3 py-2 rounded-lg border border-amber-100">
-          ✓{" "}
+        <p className="text-xs text-gray-600 font-medium bg-white px-2.5 py-2 rounded-[9px] border border-gray-200">
           {formPregunta.precarga_fuente === "cliente" &&
             "Llenará automáticamente con datos del cliente actual"}
           {formPregunta.precarga_fuente === "ultima_solicitud" &&

@@ -1604,6 +1604,14 @@ export interface GenerarPlantillaDocumentoOpciones {
   piePaginaTexto?: string | null;
   /** URL de la imagen de pie de página, cuando piePaginaTipo='IMAGEN'. */
   piePaginaImagenUrl?: string | null;
+  /** Reemplazos adicionales aplicados junto a los fijos de arriba —
+   * placeholder -> valor ya resuelto. Pensado para variables que no tienen
+   * sentido como "fijas" de cualquier plantilla (ej. las 5 variables de
+   * condiciones financieras de la Carta de Aprobación:
+   * {{cupo_aprobado}}/{{forma_pago}}/{{plazo}}/{{fecha_aprobacion}}/
+   * {{tasa_interes}}, ver VARIABLES_CARTA_VINCULACION en
+   * plantilla-variables.util.ts), sin hardcodearlas acá. */
+  reemplazosExtra?: Record<string, string>;
 }
 
 export interface PreguntaRenderizadaParaPlantilla {
@@ -1685,6 +1693,7 @@ export async function generarPlantillaDocumentoPdf({
   piePaginaTipo,
   piePaginaTexto,
   piePaginaImagenUrl,
+  reemplazosExtra,
 }: GenerarPlantillaDocumentoOpciones): Promise<File> {
   const reemplazos: Record<string, string> = {
     "{{cliente_nombre}}": clienteNombre || "",
@@ -1692,6 +1701,7 @@ export async function generarPlantillaDocumentoPdf({
     "{{numero_solicitud}}": numeroSolicitud || "",
     "{{representante_legal_nombre}}": representanteLegalNombre || "",
     "{{representante_legal_cedula}}": representanteLegalCedula || "",
+    ...reemplazosExtra,
   };
   const contenidoFijo = Object.entries(reemplazos).reduce(
     (texto, [placeholder, valor]) => texto.split(placeholder).join(valor),

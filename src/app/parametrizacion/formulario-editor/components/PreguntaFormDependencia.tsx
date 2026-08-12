@@ -26,9 +26,13 @@ export function PreguntaFormDependencia({
     <>
   {/* Dependencia */}
   {formPregunta.dependiente && (
-    <div className="space-y-1.5 p-2 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg">
-      <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-amber-900 leading-tight">
+    <div className="space-y-1.5 p-3 bg-[#f5f8ff] border border-blue-100 rounded-xl">
+      <p className="text-[12.5px] font-bold text-blue-900">
+        Comportamiento condicional
+      </p>
+
+      <div className="space-y-1">
+        <label className="block text-[13px] font-semibold text-blue-900 leading-tight">
           Sección padre <span className="text-red-500">*</span>
         </label>
         <select
@@ -42,7 +46,7 @@ export function PreguntaFormDependencia({
               dependencia_pregunta_id: null,
             })
           }
-          className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all"
+          className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
         >
           <option value="">Seleccione sección padre</option>
           {secciones.map((seccion) => (
@@ -57,8 +61,8 @@ export function PreguntaFormDependencia({
         </select>
       </div>
 
-      <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-amber-900 leading-tight">
+      <div className="space-y-1">
+        <label className="block text-[13px] font-semibold text-blue-900 leading-tight">
           Pregunta padre <span className="text-red-500">*</span>
         </label>
         <select
@@ -72,7 +76,7 @@ export function PreguntaFormDependencia({
               dependencia_valor: "",
             })
           }
-          className="w-full border border-amber-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white disabled:bg-gray-100 transition-all"
+          className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
           disabled={!formPregunta.dependencia_seccion_id}
         >
           <option value="">Seleccione pregunta padre</option>
@@ -91,8 +95,8 @@ export function PreguntaFormDependencia({
         </select>
       </div>
 
-      <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-amber-900 leading-tight">
+      <div className="space-y-1">
+        <label className="block text-[13px] font-semibold text-blue-900 leading-tight">
           Respuesta que dispara{" "}
           <span className="text-red-500">*</span>
         </label>
@@ -105,7 +109,7 @@ export function PreguntaFormDependencia({
                 dependencia_valor: e.target.value,
               })
             }
-            className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white text-xs transition-all"
+            className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
           >
             <option value="">Selecciona una respuesta</option>
             {opcionesPreguntaPadre
@@ -136,7 +140,7 @@ export function PreguntaFormDependencia({
                   dependencia_valor: e.target.value,
                 })
               }
-              className="w-full border border-amber-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:shadow-lg bg-white text-xs transition-all disabled:bg-gray-100"
+              className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors disabled:bg-gray-100"
             />
             {formPregunta.dependencia_pregunta_id &&
               !loadingOpcionesPreguntaPadre && (
@@ -148,8 +152,8 @@ export function PreguntaFormDependencia({
               )}
           </>
         )}
-        <p className="text-xs text-amber-700 font-medium mt-2">
-          ℹ️ Esta pregunta se mostrará cuando la pregunta padre
+        <p className="text-xs text-blue-700 font-medium mt-2">
+          Esta pregunta se mostrará cuando la pregunta padre
           tenga este valor
         </p>
       </div>

@@ -14,6 +14,7 @@ type RespuestasState = {
     valor_fecha?: string;
     valor_opcion_id?: number | number[] | string;
     archivo?: File;
+    archivos?: File[];
     nombre_archivo?: string;
     vista_previa_url?: string;
   };
@@ -21,7 +22,7 @@ type RespuestasState = {
 
 interface UseSolicitudEdicionParams {
   solicitudId?: number;
-  preguntas: Array<{ fp_id: number; fp_tipo: string }>;
+  preguntas: Array<{ fp_id: number; fp_tipo: string; fp_maximo?: number | null }>;
   setNumeroSolicitud: (value: string | null) => void;
   setFormularioVersionObjetivo: (value: number) => void;
   setRespuestas: Dispatch<SetStateAction<RespuestasState>>;
@@ -63,9 +64,23 @@ export function useSolicitudEdicion({
           await formularioRespuestasService.getArchivosExistentes(sa_sol_id);
         const mapArchivos: Record<number, any> = {};
         if (Array.isArray(data)) {
+          // `data` viene ordenado DESC (más nuevo primero, ver
+          // obtenerArchivosExistentes en el backend, que ya trae fp_maximo
+          // de la pregunta en el mismo JOIN — evita depender de `preguntas`
+          // acá, que puede cargar en paralelo y aún no estar listo). Para
+          // preguntas de un solo archivo (fp_maximo<=1) nos quedamos con la
+          // primera ocurrencia (la más nueva) — antes se sobreescribía sin
+          // condición y terminaba ganando la más vieja. Para preguntas
+          // multi-archivo (fp_maximo>1, ver ArchivoMultipleField)
+          // acumulamos todas en un array, mismo orden DESC.
           data.forEach((archivo: any) => {
             const fpId = archivo.fr_fp_id ?? archivo.fp_id;
-            if (fpId) {
+            if (!fpId) return;
+            const esMultiple = Number(archivo.fp_maximo) > 1;
+            if (esMultiple) {
+              if (!Array.isArray(mapArchivos[fpId])) mapArchivos[fpId] = [];
+              mapArchivos[fpId].push(archivo);
+            } else if (!mapArchivos[fpId]) {
               mapArchivos[fpId] = archivo;
             }
           });
