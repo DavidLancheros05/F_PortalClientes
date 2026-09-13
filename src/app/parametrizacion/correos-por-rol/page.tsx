@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { correosRolService } from "@/services/parametrizacion/correos-rol.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { AtSign } from "lucide-react";
 import type { RolResponse, CorreoPorRolResponse } from "@/types/api.types";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -179,55 +181,64 @@ export default function CorreosPorRolPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Correos por Rol</h1>
-        <Link
-          href="/parametrizacion/formatos-de-correos"
-          className="px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
-        >
-          Ir a plantillas de notificaciones
-        </Link>
-      </div>
-
-      <div className="bg-white p-4 rounded shadow mb-6 flex flex-wrap gap-4">
-        <select
-          value={rolId}
-          onChange={(e) =>
-            setRolId(e.target.value ? Number(e.target.value) : "")
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-5xl mx-auto">
+        <PageHeaderCard
+          icon={AtSign}
+          eyebrow="Parametrización"
+          title="Correos por rol"
+          subtitle="Administra a qué correo llegan las notificaciones de cada rol."
+          actions={
+            <Link
+              href="/parametrizacion/formatos-de-correos"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
+            >
+              Ir a plantillas de notificaciones
+            </Link>
           }
-          className="border px-3 py-2 rounded min-w-[220px]"
         >
-          <option value="">Selecciona un rol</option>
-          {roles.map((rol) => (
-            <option key={rol.rol_id} value={rol.rol_id}>
-              {rol.rol_nombre}
-            </option>
-          ))}
-        </select>
+          <div className="flex flex-wrap gap-4">
+            <select
+              value={rolId}
+              onChange={(e) =>
+                setRolId(e.target.value ? Number(e.target.value) : "")
+              }
+              className="border border-gray-300 px-3 py-2 rounded-lg text-sm min-w-[220px]"
+            >
+              <option value="">Selecciona un rol</option>
+              {roles.map((rol) => (
+                <option key={rol.rol_id} value={rol.rol_id}>
+                  {rol.rol_nombre}
+                </option>
+              ))}
+            </select>
 
-        <input
-          type="email"
-          placeholder="correo@empresa.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border px-3 py-2 rounded flex-1 min-w-[220px]"
-        />
+            <input
+              type="email"
+              placeholder="correo@empresa.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="border border-gray-300 px-3 py-2 rounded-lg text-sm flex-1 min-w-[220px]"
+            />
 
-        <button
-          onClick={crear}
-          disabled={submitting || !isFormValid}
-          className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting ? "Guardando..." : "Agregar"}
-        </button>
-      </div>
+            <button
+              onClick={crear}
+              disabled={submitting || !isFormValid}
+              className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Guardando..." : "Agregar"}
+            </button>
+          </div>
+        </PageHeaderCard>
 
       {loading ? (
-        <p>Cargando...</p>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+          Cargando...
+        </div>
       ) : (
-        <table className="w-full bg-white rounded shadow">
-          <thead className="bg-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
             <tr>
               <th className="p-2">Rol</th>
               <th className="p-2">Codigo</th>
@@ -260,7 +271,7 @@ export default function CorreosPorRolPage() {
                   {editingId === item.correo_id ? (
                     <button
                       onClick={guardarEdicion}
-                      className="text-indigo-600"
+                      className="text-brand-600 font-semibold"
                     >
                       Guardar
                     </button>
@@ -268,7 +279,7 @@ export default function CorreosPorRolPage() {
                     <>
                       <button
                         onClick={() => iniciarEdicion(item)}
-                        className="text-indigo-600"
+                        className="text-brand-600 font-semibold"
                       >
                         Editar
                       </button>
@@ -285,7 +296,9 @@ export default function CorreosPorRolPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
+      </div>
 
       {/* Modals */}
       {modalState.type === "error" && (

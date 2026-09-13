@@ -3,6 +3,14 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { Wallet, PackageOpen, Search, X } from "lucide-react";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   carteraService,
   type SaldoClienteResponse,
@@ -14,9 +22,16 @@ export default function CarteraPage() {
   const [saldos, setSaldos] = useState<SaldoClienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const [filtroNumeroInput, setFiltroNumeroInput] = useState("");
+  const [soloVencidosInput, setSoloVencidosInput] = useState(false);
 
   const [filtroNumero, setFiltroNumero] = useState("");
   const [soloVencidos, setSoloVencidos] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (!user?.cliente_id) return;
@@ -38,9 +53,22 @@ export default function CarteraPage() {
     cargarSaldos();
   }, [user?.cliente_id]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroNumero, soloVencidos]);
+
+  const handleBuscar = () => {
+    setHasSearched(true);
+    setFiltroNumero(filtroNumeroInput);
+    setSoloVencidos(soloVencidosInput);
+  };
+
   const limpiarFiltros = () => {
+    setFiltroNumeroInput("");
+    setSoloVencidosInput(false);
     setFiltroNumero("");
     setSoloVencidos(false);
+    setHasSearched(false);
   };
 
   const saldosFiltrados = useMemo(() => {
@@ -62,88 +90,143 @@ export default function CarteraPage() {
     });
   }, [saldos, filtroNumero, soloVencidos]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-full mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push("/consultas")}
-            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            ← Volver a consultas
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Resumen de saldos de clientes
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Consulta el estado de cartera de tu cuenta (edades de vencimiento).
-          </p>
-        </div>
+  const saldosPaginados = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return saldosFiltrados.slice(start, start + pageSize);
+  }, [saldosFiltrados, currentPage, pageSize]);
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de documento
-              </label>
+  async function exportarExcel() {
+    if (saldosFiltrados.length === 0) return;
+
+    const XLSX = await import("xlsx");
+
+    const header = [
+      "Documento",
+      "Cliente",
+      "Auxiliar",
+      "Vendedor",
+      "C.O.",
+      "Cupo de crédito",
+      "Fecha documento",
+      "Fecha vencimiento",
+      "Plazo",
+      "Días vencidos",
+      "Corriente",
+      "Ven. 1-15",
+      "Ven. 16-30",
+      "Ven. 31-60",
+      "Ven. +60",
+      "Total",
+    ];
+
+    const data = saldosFiltrados.map((saldo) => [
+      saldo.numeroDocumento,
+      saldo.razonSocialSucursal,
+      saldo.auxiliar || "-",
+      saldo.vendedor || "-",
+      saldo.centroOperacion || "-",
+      saldo.cupoCredito || "-",
+      saldo.fechaDocumento || "-",
+      saldo.fechaVencimiento || "-",
+      saldo.plazo ?? "-",
+      saldo.diasVencidos,
+      saldo.totalCorriente,
+      saldo.vencido1a15,
+      saldo.vencido16a30,
+      saldo.vencido31a60,
+      saldo.vencidoMas60,
+      saldo.total,
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cartera");
+
+    XLSX.writeFile(wb, `cartera-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[115rem] mx-auto">
+        <PageHeaderCard
+          icon={Wallet}
+          eyebrow="Consultas"
+          title="Resumen de saldos de clientes"
+          subtitle="Consulta el estado de cartera de tu cuenta (edades de vencimiento)."
+          onBack={() => router.push("/consultas")}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <FilterField label="Número de documento">
               <input
                 type="text"
-                value={filtroNumero}
-                onChange={(e) => setFiltroNumero(e.target.value)}
+                value={filtroNumeroInput}
+                onChange={(e) => setFiltroNumeroInput(e.target.value)}
                 placeholder="Ej: FEV-00098211"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div className="flex items-center gap-2 pb-2">
-              <input
-                id="solo-vencidos"
-                type="checkbox"
-                checked={soloVencidos}
-                onChange={(e) => setSoloVencidos(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="solo-vencidos" className="text-sm font-medium text-gray-700">
-                Solo documentos vencidos
-              </label>
-            </div>
+            </FilterField>
+            <FilterField label="Filtro adicional">
+              <div className="flex items-center gap-2 h-9">
+                <input
+                  id="solo-vencidos"
+                  type="checkbox"
+                  checked={soloVencidosInput}
+                  onChange={(e) => setSoloVencidosInput(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="solo-vencidos" className="text-sm font-medium text-gray-700">
+                  Solo documentos vencidos
+                </label>
+              </div>
+            </FilterField>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar filtros
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={limpiarFiltros}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
+        </PageHeaderCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Saldos de cartera
-            </h2>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-              {saldosFiltrados.length} de {saldos.length} registros
-            </span>
+        {!hasSearched ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Presiona Buscar para ver tu cartera."
+            subtitle="Opcionalmente puedes filtrar antes de buscar."
+          />
+        ) : loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+            Cargando cartera...
           </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-gray-600">
-              Cargando cartera...
-            </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-600">
-              No se pudo cargar la cartera.
-            </div>
-          ) : saldos.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              No se encontraron saldos pendientes.
-            </div>
-          ) : saldosFiltrados.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              Ningún documento coincide con los filtros aplicados.
-            </div>
-          ) : (
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-red-600">
+            No se pudo cargar la cartera.
+          </div>
+        ) : saldos.length === 0 ? (
+          <EmptyStateCard icon={PackageOpen} title="No se encontraron saldos pendientes." />
+        ) : saldosFiltrados.length === 0 ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Ningún documento coincide con los filtros aplicados."
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            <ResultsToolbar
+              count={saldosFiltrados.length}
+              label={`de ${saldos.length} documento(s)`}
+              onExport={exportarExcel}
+            />
+            <TableContainer>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -167,7 +250,7 @@ export default function CarteraPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {saldosFiltrados.map((saldo, index) => (
+                  {saldosPaginados.map((saldo, index) => (
                     <tr
                       key={`${saldo.numeroDocumento}-${index}`}
                       className="hover:bg-gray-50"
@@ -207,8 +290,20 @@ export default function CarteraPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+            </TableContainer>
+
+            <TablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={saldosFiltrados.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

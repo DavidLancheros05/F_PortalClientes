@@ -3,6 +3,14 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { Receipt, PackageOpen, Search, X } from "lucide-react";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   facturasService,
   type FacturaClienteResponse,
@@ -29,11 +37,20 @@ export default function FacturasPage() {
   const [facturas, setFacturas] = useState<FacturaClienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const [filtroNumeroInput, setFiltroNumeroInput] = useState("");
+  const [filtroDescripcionInput, setFiltroDescripcionInput] = useState("");
+  const [filtroFechaDesdeInput, setFiltroFechaDesdeInput] = useState("");
+  const [filtroFechaHastaInput, setFiltroFechaHastaInput] = useState("");
 
   const [filtroNumero, setFiltroNumero] = useState("");
   const [filtroDescripcion, setFiltroDescripcion] = useState("");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (!user?.cliente_id) return;
@@ -55,11 +72,28 @@ export default function FacturasPage() {
     cargarFacturas();
   }, [user?.cliente_id]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroNumero, filtroDescripcion, filtroFechaDesde, filtroFechaHasta]);
+
+  const handleBuscar = () => {
+    setHasSearched(true);
+    setFiltroNumero(filtroNumeroInput);
+    setFiltroDescripcion(filtroDescripcionInput);
+    setFiltroFechaDesde(filtroFechaDesdeInput);
+    setFiltroFechaHasta(filtroFechaHastaInput);
+  };
+
   const limpiarFiltros = () => {
+    setFiltroNumeroInput("");
+    setFiltroDescripcionInput("");
+    setFiltroFechaDesdeInput("");
+    setFiltroFechaHastaInput("");
     setFiltroNumero("");
     setFiltroDescripcion("");
     setFiltroFechaDesde("");
     setFiltroFechaHasta("");
+    setHasSearched(false);
   };
 
   const facturasFiltradas = useMemo(() => {
@@ -98,106 +132,180 @@ export default function FacturasPage() {
     });
   }, [facturas, filtroNumero, filtroDescripcion, filtroFechaDesde, filtroFechaHasta]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-full mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push("/consultas")}
-            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            ← Volver a consultas
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Facturas y notas</h1>
-          <p className="text-gray-600 mt-2">
-            Consulta el historial de facturas y notas asociadas a tu cuenta.
-          </p>
-        </div>
+  const facturasPaginadas = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return facturasFiltradas.slice(start, start + pageSize);
+  }, [facturasFiltradas, currentPage, pageSize]);
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+  async function exportarExcel() {
+    if (facturasFiltradas.length === 0) return;
+
+    const XLSX = await import("xlsx");
+
+    const header = [
+      "Documento",
+      "Número",
+      "NIT",
+      "Cliente",
+      "Fecha",
+      "Pedido",
+      "Remisión",
+      "Orden de compra",
+      "Ítem",
+      "Referencia",
+      "Descripción",
+      "Cantidad",
+      "Peso",
+      "Ciudad",
+      "Punto de envío",
+      "Precio unitario",
+      "Precio cliente",
+      "Precio por peso",
+      "Plan 001",
+      "Plan 003",
+      "SEC",
+      "SSE",
+      "Valor subtotal",
+      "Valor impuesto",
+      "Valor neto",
+      "Bodega",
+      "Centro operación",
+      "Vendedor",
+      "Vendedor cliente",
+    ];
+
+    const data = facturasFiltradas.map((factura) => [
+      factura.numeroDocumento,
+      factura.numero,
+      factura.nit,
+      factura.clienteRazonSocial,
+      formatFecha(factura.fecha),
+      factura.pedidoDocumento || "-",
+      factura.documentoRemision || "-",
+      factura.ordenCompra || "-",
+      factura.item,
+      factura.referencia,
+      factura.descripcionItem,
+      formatNumero(factura.cantidad),
+      formatNumero(factura.peso),
+      factura.ciudad || "-",
+      factura.descripcionPuntoEnvio || "-",
+      formatNumero(factura.precioUnitario),
+      formatNumero(factura.precioCliente),
+      formatNumero(factura.precioPeso),
+      factura.plan001 || "-",
+      factura.plan003 || "-",
+      factura.sec || "-",
+      factura.sse || "-",
+      formatNumero(factura.valorSubtotal),
+      formatNumero(factura.valorImpuesto),
+      formatNumero(factura.valorNeto),
+      factura.bodega,
+      factura.centroOperacion,
+      factura.vendedor,
+      factura.vendedorClienteNombre || "-",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+
+    XLSX.writeFile(wb, `facturas-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[115rem] mx-auto">
+        <PageHeaderCard
+          icon={Receipt}
+          eyebrow="Consultas"
+          title="Facturas y notas"
+          subtitle="Consulta el historial de facturas y notas asociadas a tu cuenta."
+          onBack={() => router.push("/consultas")}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de documento
-              </label>
+            <FilterField label="Número de documento">
               <input
                 type="text"
-                value={filtroNumero}
-                onChange={(e) => setFiltroNumero(e.target.value)}
+                value={filtroNumeroInput}
+                onChange={(e) => setFiltroNumeroInput(e.target.value)}
                 placeholder="Ej: FEV-00098211"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Referencia o descripción
-              </label>
+            </FilterField>
+            <FilterField label="Referencia o descripción">
               <input
                 type="text"
-                value={filtroDescripcion}
-                onChange={(e) => setFiltroDescripcion(e.target.value)}
+                value={filtroDescripcionInput}
+                onChange={(e) => setFiltroDescripcionInput(e.target.value)}
                 placeholder="Ej: CAJA CJ 3550"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha desde
-              </label>
+            </FilterField>
+            <FilterField label="Fecha desde">
               <input
                 type="date"
-                value={filtroFechaDesde}
-                onChange={(e) => setFiltroFechaDesde(e.target.value)}
+                value={filtroFechaDesdeInput}
+                onChange={(e) => setFiltroFechaDesdeInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha hasta
-              </label>
+            </FilterField>
+            <FilterField label="Fecha hasta">
               <input
                 type="date"
-                value={filtroFechaHasta}
-                onChange={(e) => setFiltroFechaHasta(e.target.value)}
+                value={filtroFechaHastaInput}
+                onChange={(e) => setFiltroFechaHastaInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar filtros
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={limpiarFiltros}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
+        </PageHeaderCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Facturas y notas</h2>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-              {facturasFiltradas.length} de {facturas.length} registros
-            </span>
+        {!hasSearched ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Presiona Buscar para ver tus facturas."
+            subtitle="Opcionalmente puedes filtrar antes de buscar."
+          />
+        ) : loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+            Cargando facturas...
           </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-gray-600">
-              Cargando facturas...
-            </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-600">
-              No se pudieron cargar las facturas.
-            </div>
-          ) : facturas.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              No se encontraron facturas.
-            </div>
-          ) : facturasFiltradas.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              Ninguna factura coincide con los filtros aplicados.
-            </div>
-          ) : (
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-red-600">
+            No se pudieron cargar las facturas.
+          </div>
+        ) : facturas.length === 0 ? (
+          <EmptyStateCard icon={PackageOpen} title="No se encontraron facturas." />
+        ) : facturasFiltradas.length === 0 ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Ninguna factura coincide con los filtros aplicados."
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            <ResultsToolbar
+              count={facturasFiltradas.length}
+              label={`de ${facturas.length} factura(s)`}
+              onExport={exportarExcel}
+            />
+            <TableContainer>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -234,7 +342,7 @@ export default function FacturasPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {facturasFiltradas.map((factura, index) => (
+                  {facturasPaginadas.map((factura, index) => (
                     <tr
                       key={`${factura.numeroDocumento}-${factura.item}-${index}`}
                       className="hover:bg-gray-50"
@@ -275,8 +383,20 @@ export default function FacturasPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+            </TableContainer>
+
+            <TablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={facturasFiltradas.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

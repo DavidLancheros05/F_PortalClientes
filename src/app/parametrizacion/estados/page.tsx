@@ -6,6 +6,8 @@ import {
   Estado,
 } from "@/services/admin/parametrizacion/estados.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { ListChecks } from "lucide-react";
 
 export default function EstadosPage() {
   const [estados, setEstados] = useState<Estado[]>([]);
@@ -211,21 +213,14 @@ export default function EstadosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
-              <span className="text-2xl text-white">🧭</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Estados</h1>
-              <p className="text-sm text-gray-600">
-                Administra los estados del flujo de solicitudes
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeaderCard
+          icon={ListChecks}
+          eyebrow="Parametrización"
+          title="Estados"
+          subtitle="Administra los estados del flujo de solicitudes"
+        />
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -280,7 +275,7 @@ export default function EstadosPage() {
                   orden === "" ||
                   submitting
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-brand-600 hover:bg-brand-700 text-white"
                 }`}
               >
                 {submitting ? "Agregando..." : "Agregar Estado"}
@@ -406,7 +401,7 @@ export default function EstadosPage() {
                           <div className="flex gap-2 justify-end">
                             <button
                               onClick={() => iniciarEdicion(estado)}
-                              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                              className="px-3 py-1 text-sm bg-brand-600 text-white rounded hover:bg-brand-700"
                             >
                               Editar
                             </button>

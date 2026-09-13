@@ -29,11 +29,7 @@ interface SolicitudDetalle {
   resultado_nombre?: string;
   sol_fecha_creacion: string;
   sol_estado_id: number;
-  sol_razon_social?: string;
-  sol_nit_documento?: string;
-  sol_direccion?: string;
   cliente_direccion?: string;
-  sol_telefono?: string;
   sol_consumo_mensual_proyectado?: number;
   sol_toneladas_proyectadas?: number;
   sol_cupo_aprobado?: number;
@@ -42,11 +38,7 @@ interface SolicitudDetalle {
   sol_observacion_ejn?: string | null;
   sol_es_zona_franca?: boolean;
   sol_formulario_version?: number;
-  sol_fecha_estimada_respuesta_comercial?: string;
-  sol_fecha_real_respuesta_comercial?: string;
-  sol_fecha_estimada_respuesta?: string;
-  sol_estado_llenado?: string;
-  sol_formulario_progreso_porcentaje?: number;
+  fecha_aprobacion?: string;
   sol_cupo_solicitado?: number;
   sol_justificacion_ampliacion?: string | null;
   sol_cupo_actual_referencia?: number | null;
@@ -155,9 +147,7 @@ export default function DetalleDetailPage() {
           "{{plazo}}": solicitud.sol_plazo_pago
             ? `${solicitud.sol_plazo_pago} días`
             : "-",
-          "{{fecha_aprobacion}}": formatDate(
-            solicitud.sol_fecha_real_respuesta_comercial,
-          ),
+          "{{fecha_aprobacion}}": formatDate(solicitud.fecha_aprobacion),
           "{{tasa_interes}}": "-",
         },
       });
@@ -207,11 +197,11 @@ export default function DetalleDetailPage() {
   const comentarioCC2 = comentarioPorEtapa("CC2");
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
       <div className="max-w-[1240px] mx-auto">
         <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]">
           {/* Header */}
-          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
+          <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
               className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
@@ -354,7 +344,7 @@ export default function DetalleDetailPage() {
                   <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
                     <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                       <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <FileText size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                        <FileText size={15} strokeWidth={2.2} className="text-brand-600" />
                       </div>
                       Información General
                     </h2>
@@ -378,7 +368,7 @@ export default function DetalleDetailPage() {
                   <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
                     <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                       <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <Building2 size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                        <Building2 size={15} strokeWidth={2.2} className="text-brand-600" />
                       </div>
                       Datos del Cliente
                     </h2>
@@ -386,25 +376,19 @@ export default function DetalleDetailPage() {
                       <div>
                         <p className="text-[11px] text-[#94a3b8] mb-0.5">Razón Social</p>
                         <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_razon_social || solicitud.cliente_nombre || "-"}
+                          {solicitud.cliente_nombre || "-"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[11px] text-[#94a3b8] mb-0.5">NIT/Documento</p>
                         <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_nit_documento || solicitud.cliente_nit || "-"}
+                          {solicitud.cliente_nit || "-"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[11px] text-[#94a3b8] mb-0.5">Dirección</p>
                         <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_direccion || solicitud.cliente_direccion || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Teléfono</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_telefono || "-"}
+                          {solicitud.cliente_direccion || "-"}
                         </p>
                       </div>
                     </div>
@@ -428,7 +412,7 @@ export default function DetalleDetailPage() {
                   <div className="mt-4">
                     <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                       <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <Clock size={15} strokeWidth={2.2} className="text-[#003d99]" />
+                        <Clock size={15} strokeWidth={2.2} className="text-brand-600" />
                       </div>
                       Gestión por Área
                     </h2>

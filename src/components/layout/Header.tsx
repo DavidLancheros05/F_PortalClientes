@@ -329,7 +329,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   return (
-    <header className="bg-[#003d99] shadow-md sticky top-0 z-50">
+    <header className="bg-brand-600 shadow-md sticky top-0 z-50">
       <div className="max-w-full h-15 px-4 flex items-center justify-between">
         {/* Logo + Nombre */}
         <div className="flex items-center space-x-4 min-w-0">
@@ -475,7 +475,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                 userMenuOpen ? "bg-white/14 hover:bg-white/20" : "hover:bg-white/14"
               }`}
             >
-              <span className="w-8 h-8 rounded-full bg-white text-[#003d99] font-bold text-xs flex items-center justify-center shrink-0">
+              <span className="w-8 h-8 rounded-full bg-white text-brand-600 font-bold text-xs flex items-center justify-center shrink-0">
                 {iniciales}
               </span>
               <span className="text-white text-sm font-medium max-w-40 truncate">
@@ -532,8 +532,8 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
 
       {/* Menú móvil */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-gradient-to-b from-[#003d99] to-[#0052cc] p-4 space-y-2">
-          <div className="px-3 py-2 text-white text-sm font-medium border-b border-[#0052cc]">
+        <div className="md:hidden bg-gradient-to-b from-brand-600 to-brand-500 p-4 space-y-2">
+          <div className="px-3 py-2 text-white text-sm font-medium border-b border-brand-500">
             {nombreUsuario}
           </div>
           {topLevelModulos.map((m, idx) => (
@@ -542,7 +542,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                 <>
                   <button
                     onClick={() => toggleSubMenu(m.mod_id)}
-                    className="flex justify-between w-full px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
+                    className="flex justify-between w-full px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
                   >
                     {m.mod_nombre}
                     <ChevronDown
@@ -567,7 +567,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                   onClick={() =>
                                     toggleNestedSubMenu(sub.mod_id)
                                   }
-                                  className="flex justify-between w-full px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
+                                  className="flex justify-between w-full px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
                                 >
                                   <span>{sub.mod_nombre}</span>
                                   <ChevronDown
@@ -595,7 +595,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                               setActiveSubMenu(null);
                                               setActiveNestedSubMenu(null);
                                             }}
-                                            className="block px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
+                                            className="block px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
                                           >
                                             {nested.mod_nombre}
                                           </Link>
@@ -618,7 +618,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                   setActiveSubMenu(null);
                                   setActiveNestedSubMenu(null);
                                 }}
-                                className="block px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
+                                className="block px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
                               >
                                 {sub.mod_nombre}
                               </Link>
@@ -636,7 +636,7 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                 <Link
                   href={resolveModuloRoute(m)!}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg hover:bg-[#0052cc] text-white transition"
+                  className="block px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
                 >
                   {m.mod_nombre}
                 </Link>

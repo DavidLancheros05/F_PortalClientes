@@ -28,7 +28,7 @@ function DatoCard({
   return (
     <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[14px] px-4 py-3.5 flex items-start gap-3">
       <div className="w-9 h-9 rounded-lg bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-[#003d99]" strokeWidth={2.2} />
+        <Icon className="w-4 h-4 text-brand-600" strokeWidth={2.2} />
       </div>
       <div className="min-w-0">
         <p className="text-[10.5px] font-bold uppercase tracking-wide text-[#94a3b8]">
@@ -85,7 +85,7 @@ export default function PerfilPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-8 py-6 flex items-center gap-4">
+            <div className="bg-brand-gradient px-8 py-6 flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                 {inicialesUsuario}
               </div>
@@ -111,7 +111,7 @@ export default function PerfilPage() {
             <div className="border-t border-gray-100 px-8 py-6">
               <Link
                 href="/perfil/cambiar-contrasena"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-[#003d99] hover:bg-[#0047b3] hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all"
               >
                 <KeyRound className="w-4 h-4" />
                 Cambiar contraseña
@@ -142,7 +142,7 @@ export default function PerfilPage() {
         )}
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-8 py-6 flex items-center gap-4">
+          <div className="bg-brand-gradient px-8 py-6 flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
               {iniciales}
             </div>
@@ -189,7 +189,7 @@ export default function PerfilPage() {
           <div className="border-t border-gray-100 px-8 py-6">
             <Link
               href="/perfil/cambiar-contrasena"
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-[#003d99] hover:bg-[#0047b3] hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all"
             >
               <KeyRound className="w-4 h-4" />
               Cambiar contraseña

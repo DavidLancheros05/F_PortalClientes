@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import FormularioPreguntaForm from "./components/FormularioPreguntaForm";
 import FormularioPreguntaTable from "./components/FormularioPreguntaTable";
 import { FormularioPregunta, formularioPreguntasService } from "@/services/parametrizacion/formulario-preguntas.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { HelpCircle } from "lucide-react";
 
 
 
@@ -30,8 +32,14 @@ export default function FormularioPreguntasPage() {
   }, []);
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-4">Formulario de Preguntas</h1>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+      <PageHeaderCard
+        icon={HelpCircle}
+        eyebrow="Parametrización"
+        title="Preguntas del formulario"
+        subtitle="Administra el catálogo de preguntas reutilizables del formulario de vinculación."
+      />
 
       <FormularioPreguntaForm
         editItem={editItem || undefined}
@@ -47,6 +55,7 @@ export default function FormularioPreguntasPage() {
       ) : (
         <FormularioPreguntaTable items={items} onEdit={setEditItem} onReload={cargarDatos} />
       )}
+      </div>
     </div>
   );
 }

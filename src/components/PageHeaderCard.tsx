@@ -38,7 +38,7 @@ export function PageHeaderCard({
           propósito: recorta las esquinas del degradado, pero sin cortar
           contenido que se desborda desde `children` (ej. desplegables de
           autocompletar en los filtros) como pasaba antes. */}
-      <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4">
+      <div className="bg-brand-gradient rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4">
         {onBack && (
           <button
             onClick={onBack}

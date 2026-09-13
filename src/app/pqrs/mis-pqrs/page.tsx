@@ -3,16 +3,20 @@
 import { useState, useEffect, useContext, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Plus,
   Eye,
   RefreshCw,
   Search,
   Filter,
+  ClipboardList,
   X,
 } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
 import { pqrsService } from "@/services/pqrs.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 
 interface PQRS {
   pqrs_id: number;
@@ -42,8 +46,11 @@ export default function MisPQRSPage() {
   const [estados, setEstados] = useState<EstadoOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Filtros y búsqueda
+  // Filtros y búsqueda — searchTermInput es lo que se escribe, searchTerm es
+  // lo aplicado (solo cambia al presionar Buscar/Limpiar).
+  const [searchTermInput, setSearchTermInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEstados, setSelectedEstados] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -117,11 +124,20 @@ export default function MisPQRSPage() {
         ? prev.filter((id) => id !== estadoId)
         : [...prev, estadoId],
     );
+    setHasSearched(true);
+    setCurrentPage(1);
+  };
+
+  const handleBuscar = () => {
+    setSearchTerm(searchTermInput);
+    setHasSearched(true);
     setCurrentPage(1);
   };
 
   const clearFilters = () => {
+    setSearchTermInput("");
     setSearchTerm("");
+    setHasSearched(false);
     setSelectedEstados([]);
     setCurrentPage(1);
   };
@@ -135,29 +151,20 @@ export default function MisPQRSPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <button
-                onClick={() => router.push("/pqrs")}
-                className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Volver
-              </button>
-              <h1 className="text-3xl font-bold text-blue-800">Mis PQRS</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Gestiona tus peticiones, quejas, reclamaciones y sugerencias
-              </p>
-            </div>
+        <PageHeaderCard
+          icon={ClipboardList}
+          eyebrow="PQRS"
+          title="Mis PQRS"
+          subtitle="Gestiona tus peticiones, quejas, reclamaciones y sugerencias"
+          onBack={() => router.push("/pqrs")}
+          actions={
             <div className="flex gap-2">
               <button
                 onClick={loadPQRS}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
               >
                 <RefreshCw
                   className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
@@ -166,13 +173,75 @@ export default function MisPQRSPage() {
               </button>
               <button
                 onClick={() => router.push("/pqrs/nueva")}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
               >
                 <Plus className="h-4 w-4" />
                 Nueva PQRS
               </button>
             </div>
-          </div>
+          }
+        >
+          {!(loading || pqrsList.length === 0) && (
+            <div className="space-y-4">
+              <FilterField label="Buscar por número o asunto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por número o asunto..."
+                    value={searchTermInput}
+                    onChange={(e) => setSearchTermInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              </FilterField>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filtrar por estado
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {estados.map((estado) => (
+                    <button
+                      key={estado.pe_id}
+                      onClick={() => toggleEstadoFilter(estado.pe_id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        selectedEstados.includes(estado.pe_id)
+                          ? "ring-2 ring-offset-1"
+                          : "opacity-70 hover:opacity-100"
+                      }`}
+                      style={{
+                        backgroundColor: estado.pe_color || "#6B7280",
+                        color: "white",
+                      }}
+                    >
+                      {estado.pe_nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <FilterActions>
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+                >
+                  <X className="h-4 w-4" />
+                  Limpiar
+                </button>
+                <button
+                  onClick={handleBuscar}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
+                >
+                  <Search className="h-4 w-4" />
+                  Buscar
+                </button>
+              </FilterActions>
+            </div>
+          )}
+        </PageHeaderCard>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -183,92 +252,37 @@ export default function MisPQRSPage() {
           {loading ? (
             <LoadingSkeleton />
           ) : pqrsList.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📋</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No tienes PQRS creadas
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Comienza creando una nueva petición, queja, reclamación o
-                sugerencia
-              </p>
-              <button
-                onClick={() => router.push("/pqrs/nueva")}
-                className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Crear primera PQRS
-              </button>
-            </div>
+            <EmptyStateCard
+              icon={ClipboardList}
+              title="No tienes PQRS creadas"
+              subtitle="Comienza creando una nueva petición, queja, reclamación o sugerencia"
+              action={
+                <button
+                  onClick={() => router.push("/pqrs/nueva")}
+                  className="px-6 py-2 bg-brand-600 text-white font-semibold rounded-lg hover:bg-brand-700 transition-colors"
+                >
+                  Crear primera PQRS
+                </button>
+              }
+            />
+          ) : !hasSearched ? (
+            <EmptyStateCard
+              icon={Search}
+              title="Presiona Buscar para ver tus PQRS"
+              subtitle="Opcionalmente puedes filtrar antes de buscar."
+            />
           ) : (
             <>
-              {/* Búsqueda y Filtros */}
-              <div className="mb-6 space-y-4">
-                {/* Buscador */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por número o asunto..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
-                </div>
-
-                {/* Filtros por estado */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      Filtrar por estado
-                    </label>
-                    {selectedEstados.length > 0 && (
-                      <button
-                        onClick={clearFilters}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        Limpiar filtros
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {estados.map((estado) => (
-                      <button
-                        key={estado.pe_id}
-                        onClick={() => toggleEstadoFilter(estado.pe_id)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          selectedEstados.includes(estado.pe_id)
-                            ? "ring-2 ring-offset-1"
-                            : "opacity-70 hover:opacity-100"
-                        }`}
-                        style={{
-                          backgroundColor: estado.pe_color || "#6B7280",
-                          color: "white",
-                        }}
-                      >
-                        {estado.pe_nombre}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Resultado de filtrado */}
-                <div className="text-sm text-gray-600">
-                  Mostrando{" "}
-                  <span className="font-semibold text-gray-900">
-                    {paginatedPQRS.length}
-                  </span>{" "}
-                  de{" "}
-                  <span className="font-semibold text-gray-900">
-                    {filteredPQRS.length}
-                  </span>{" "}
-                  PQRS
-                </div>
+              <div className="text-sm text-gray-600 mb-3">
+                Mostrando{" "}
+                <span className="font-semibold text-gray-900">
+                  {paginatedPQRS.length}
+                </span>{" "}
+                de{" "}
+                <span className="font-semibold text-gray-900">
+                  {filteredPQRS.length}
+                </span>{" "}
+                PQRS
               </div>
 
               {/* Tabla */}
@@ -304,7 +318,7 @@ export default function MisPQRSPage() {
                           className="hover:bg-blue-50/50 transition-colors"
                         >
                           <td className="px-6 py-4">
-                            <span className="text-sm font-semibold text-blue-600">
+                            <span className="text-sm font-semibold text-brand-600">
                               {pqrs.pqrs_numero}
                             </span>
                           </td>
@@ -344,7 +358,7 @@ export default function MisPQRSPage() {
                               onClick={() =>
                                 router.push(`/pqrs/${pqrs.pqrs_id}`)
                               }
-                              className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-600 hover:bg-blue-100 transition-all hover:shadow-md"
+                              className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-brand-600 hover:bg-blue-100 transition-all hover:shadow-md"
                               title="Ver detalle"
                             >
                               <Eye className="h-4 w-4" />
@@ -408,7 +422,7 @@ export default function MisPQRSPage() {
                           onClick={() => setCurrentPage(pageNum)}
                           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             currentPage === pageNum
-                              ? "bg-blue-600 text-white"
+                              ? "bg-brand-600 text-white"
                               : "border border-gray-300 text-gray-700 hover:bg-gray-50"
                           }`}
                         >
@@ -431,7 +445,6 @@ export default function MisPQRSPage() {
               )}
             </>
           )}
-        </div>
       </div>
     </div>
   );

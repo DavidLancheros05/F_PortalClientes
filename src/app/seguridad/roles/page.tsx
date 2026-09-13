@@ -3,16 +3,16 @@
 import React, { useEffect, useState } from "react";
 import { rolesService, Rol, Modulo, Permisos } from "@/services/seguridad/roles.service";
 import { useFetch, useMutation } from "@/hooks/useFetch";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import Link from "next/link";
 import {
   Shield,
   Plus,
   Edit,
-  Eye,
   CheckCircle,
   XCircle,
-  Users,
   Key,
   Lock,
   Unlock,
@@ -189,7 +189,7 @@ const RolesPage = () => {
           style={{ paddingLeft: `${level * 24}px` }}
         >
           {level === 0 && (
-            <Folder className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+            <Folder className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
           )}
           {level === 1 && (
             <ChevronRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
@@ -257,29 +257,18 @@ const RolesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl shadow-lg">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                  Administrar Roles
-                </h1>
-                <p className="text-slate-500 mt-1">
-                  Gestiona los roles y sus permisos en el sistema
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={Shield}
+          eyebrow="Seguridad"
+          title="Roles"
+          subtitle="Gestiona los roles y sus permisos en el sistema"
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
               <Link
                 href="/seguridad/permisos-por-pagina"
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1"
+                className="inline-flex items-center gap-1 rounded-lg bg-white/14 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
                 title="Ver permisos por página"
               >
                 <FileText className="w-4 h-4" />
@@ -287,36 +276,36 @@ const RolesPage = () => {
               </Link>
               <button
                 onClick={expandAllRoles}
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1"
+                className="inline-flex items-center gap-1 rounded-lg bg-white/14 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
                 title="Expandir todos"
               >
                 <ChevronDown className="w-4 h-4" />
-                <span className="hidden sm:inline">Expandir todos</span>
+                <span className="hidden sm:inline">Expandir</span>
               </button>
               <button
                 onClick={collapseAllRoles}
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1"
+                className="inline-flex items-center gap-1 rounded-lg bg-white/14 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
                 title="Colapsar todos"
               >
                 <ChevronRight className="w-4 h-4" />
-                <span className="hidden sm:inline">Colapsar todos</span>
+                <span className="hidden sm:inline">Colapsar</span>
               </button>
               <button
                 onClick={() => openModal()}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-sm flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
               >
                 <Plus className="w-4 h-4" />
                 Nuevo Rol
               </button>
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
+              <div className="w-12 h-12 border-4 border-slate-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-4" />
               <p className="text-slate-500">Cargando roles...</p>
             </div>
           </div>
@@ -325,23 +314,19 @@ const RolesPage = () => {
             {error.message || "Ocurrió un error al cargar los roles"}
           </div>
         ) : !roles || roles.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-slate-400" />
-            </div>
-            <h3 className="text-lg font-medium text-slate-700 mb-1">
-              No hay roles
-            </h3>
-            <p className="text-slate-500 mb-4">
-              Comienza creando tu primer rol
-            </p>
-            <button
-              onClick={() => openModal()}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-indigo-800 transition-all"
-            >
-              Crear rol
-            </button>
-          </div>
+          <EmptyStateCard
+            icon={Shield}
+            title="No hay roles"
+            subtitle="Comienza creando tu primer rol"
+            action={
+              <button
+                onClick={() => openModal()}
+                className="px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-all"
+              >
+                Crear rol
+              </button>
+            }
+          />
         ) : (
           <div className="space-y-4">
             {roles?.map((rol) => {
@@ -367,9 +352,9 @@ const RolesPage = () => {
                         )}
                       </button>
 
-                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-50">
+                      <div className="p-1.5 rounded-lg bg-[#eef3ff]">
                         {rol.rolActivo ? (
-                          <Lock className="w-4 h-4 text-indigo-600" />
+                          <Lock className="w-4 h-4 text-brand-600" />
                         ) : (
                           <Unlock className="w-4 h-4 text-slate-400" />
                         )}
@@ -489,15 +474,10 @@ const RolesPage = () => {
       />
 
       {/* Error Modal */}
-      <ConfirmModal
+      <ErrorModal
         isOpen={!!errorMessage}
-        title="Error"
         message={errorMessage}
-        confirmText="Aceptar"
-        cancelText="Cancelar"
-        isDangerous={true}
-        onConfirm={() => setErrorMessage('')}
-        onCancel={() => setErrorMessage('')}
+        onAction={() => setErrorMessage('')}
       />
     </div>
   );

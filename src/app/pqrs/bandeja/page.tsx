@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { CheckCircle, Inbox, PackageOpen } from "lucide-react";
 import { pqrsService } from "@/services/pqrs.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 
 interface PQRS {
   pqrs_id: number;
@@ -80,7 +82,7 @@ export default function BandejaPage() {
     isDisponible: boolean;
   }) => (
     <tr key={item.pqrs_id} className="hover:bg-gray-50 transition-colors">
-      <td className="px-6 py-4 font-medium text-blue-600">
+      <td className="px-6 py-4 font-medium text-brand-600">
         {item.pqrs_numero}
       </td>
       <td className="px-6 py-4 text-gray-700">{item.pqrs_titulo}</td>
@@ -111,7 +113,7 @@ export default function BandejaPage() {
             </button>
             <button
               onClick={() => router.push(`/pqrs/${item.pqrs_id}`)}
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-brand-600 hover:text-brand-700 font-medium"
             >
               Ver
             </button>
@@ -119,7 +121,7 @@ export default function BandejaPage() {
         ) : (
           <button
             onClick={() => router.push(`/pqrs/gestionar/${item.pqrs_id}`)}
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            className="text-brand-600 hover:text-brand-700 font-medium"
           >
             Gestionar
           </button>
@@ -129,20 +131,14 @@ export default function BandejaPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <button
-            onClick={() => router.push("/pqrs")}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </button>
-
-          <h1 className="text-3xl font-bold text-blue-800 mb-8">
-            Bandeja de PQRS
-          </h1>
+        <PageHeaderCard
+          icon={Inbox}
+          eyebrow="PQRS"
+          title="Bandeja de PQRS"
+          onBack={() => router.push("/pqrs")}
+        />
 
           {loading ? (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
@@ -153,12 +149,7 @@ export default function BandejaPage() {
               <p className="text-red-600">{error}</p>
             </div>
           ) : pqrs.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl text-gray-400">📥</span>
-              </div>
-              <p className="text-gray-600">No hay PQRS disponibles</p>
-            </div>
+            <EmptyStateCard icon={PackageOpen} title="No hay PQRS disponibles" />
           ) : (
             <div className="space-y-8">
               {asignadas.length > 0 && (
@@ -253,7 +244,6 @@ export default function BandejaPage() {
               )}
             </div>
           )}
-        </div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Edit2, Plus, MapPin, Power, Search, X } from "lucide-react";
+import { Trash2, Edit2, Plus, MapPin, Power, Search, X, Users } from "lucide-react";
 import UsuarioModal from "./usuarioModal";
 import UsuarioCentrosModal from "./UsuarioCentrosModal";
 import {
@@ -10,6 +10,11 @@ import {
   type Usuario,
 } from "@/services/usuarios/usuarios.service";
 import { rolesService } from "@/services/seguridad/roles.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 interface Rol {
   rol_id: number;
@@ -28,6 +33,11 @@ const UsuariosPage = () => {
   const [centrosModalOpen, setCentrosModalOpen] = useState(false);
   const [currentUsuario, setCurrentUsuario] = useState<Usuario | null>(null);
   const [isNew, setIsNew] = useState(false);
+
+  // Confirmaciones y errores de acciones (reemplaza confirm()/alert() nativos)
+  const [confirmDesactivarId, setConfirmDesactivarId] = useState<number | null>(null);
+  const [confirmEliminarId, setConfirmEliminarId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState("");
 
   // Filtros
   const [searchInput, setSearchInput] = useState("");
@@ -56,7 +66,6 @@ const UsuariosPage = () => {
     try {
       setLoading(true);
       const data = await usuariosService.getAll();
-      console.log("[UsuariosPage] Usuarios cargados:", data);
       setUsuarios(data);
       setError(null);
     } catch (err) {
@@ -70,7 +79,6 @@ const UsuariosPage = () => {
   const loadRoles = async () => {
     try {
       const data = await rolesService.getAll();
-      console.log("[UsuariosPage] Roles cargados:", data);
       setRoles(data);
     } catch (err) {
       console.error("[UsuariosPage] Error cargando roles:", err);
@@ -94,14 +102,9 @@ const UsuariosPage = () => {
     setCentrosModalOpen(true);
   };
 
-  const handleDesactivarUsuario = async (usuarioId: number) => {
-    if (!confirm("¿Estás seguro de que deseas desactivar este usuario?")) {
-      return;
-    }
-
+  const performDesactivar = async (usuarioId: number) => {
     try {
       await usuariosService.update(usuarioId, { usuario_activo: false });
-
       setUsuarios((prev) =>
         prev.map((u) =>
           u.usr_id === usuarioId ? { ...u, usuario_activo: false } : u,
@@ -109,14 +112,15 @@ const UsuariosPage = () => {
       );
     } catch (err) {
       console.error("Error:", err);
-      alert("Error al desactivar usuario");
+      setActionError("Error al desactivar usuario");
+    } finally {
+      setConfirmDesactivarId(null);
     }
   };
 
   const handleActivarUsuario = async (usuarioId: number) => {
     try {
       await usuariosService.update(usuarioId, { usuario_activo: true });
-
       setUsuarios((prev) =>
         prev.map((u) =>
           u.usr_id === usuarioId ? { ...u, usuario_activo: true } : u,
@@ -124,25 +128,19 @@ const UsuariosPage = () => {
       );
     } catch (err) {
       console.error("Error:", err);
-      alert("Error al activar usuario");
+      setActionError("Error al activar usuario");
     }
   };
 
-  const handleEliminarUsuario = async (usuarioId: number) => {
-    if (
-      !confirm(
-        "¿Estás seguro de que deseas ELIMINAR este usuario? Esta acción no se puede deshacer.",
-      )
-    ) {
-      return;
-    }
-
+  const performEliminar = async (usuarioId: number) => {
     try {
       await usuariosService.delete(usuarioId);
       setUsuarios((prev) => prev.filter((u) => u.usr_id !== usuarioId));
     } catch (err) {
       console.error("Error:", err);
-      alert("Error al eliminar usuario");
+      setActionError("Error al eliminar usuario");
+    } finally {
+      setConfirmEliminarId(null);
     }
   };
 
@@ -194,61 +192,42 @@ const UsuariosPage = () => {
   }, [usuarios, searchTerm, rolFiltro, estadoFiltro]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-gray-600 mt-1">
-            Gestiona los usuarios del sistema
-          </p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* New Button */}
-        <div className="mb-6">
-          <button
-            onClick={handleNuevoUsuario}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            Nuevo Usuario
-          </button>
-        </div>
-
-        {/* Filtros */}
-        <div className="mb-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+        <PageHeaderCard
+          icon={Users}
+          eyebrow="Seguridad"
+          title="Usuarios"
+          subtitle="Gestiona los usuarios del sistema"
+          actions={
+            <button
+              onClick={handleNuevoUsuario}
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo Usuario
+            </button>
+          }
+        >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Buscar
-              </label>
+            <FilterField label="Buscar" className="md:col-span-2">
               <input
                 type="text"
                 placeholder="Nombre o email"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Rol
-              </label>
+            <FilterField label="Rol">
               <select
                 value={rolFiltro}
                 onChange={(e) =>
                   setRolFiltro(e.target.value ? Number(e.target.value) : "")
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">Todos</option>
                 {roles.map((rol) => (
@@ -257,12 +236,9 @@ const UsuariosPage = () => {
                   </option>
                 ))}
               </select>
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Estado
-              </label>
+            <FilterField label="Estado">
               <select
                 value={estadoFiltro}
                 onChange={(e) =>
@@ -270,50 +246,58 @@ const UsuariosPage = () => {
                     e.target.value as "todos" | "activo" | "inactivo",
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="todos">Todos</option>
                 <option value="activo">Activo</option>
                 <option value="inactivo">Inactivo</option>
               </select>
-            </div>
-          </div>
+            </FilterField>
 
-          <div className="flex items-center justify-end gap-2 mt-4">
-            <button
-              onClick={handleLimpiarFiltros}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-            >
-              <X size={16} />
-              Limpiar
-            </button>
-            <button
-              onClick={handleBuscar}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Search size={16} />
-              Buscar
-            </button>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={handleLimpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-        </div>
+        </PageHeaderCard>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
 
         {/* Loading State */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Cargando usuarios...</p>
           </div>
         ) : usuariosFiltrados.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600">
-              {usuarios.length === 0
+          <EmptyStateCard
+            icon={Users}
+            title={
+              usuarios.length === 0
                 ? "No hay usuarios registrados"
-                : "Ningún usuario coincide con los filtros"}
-            </p>
-          </div>
+                : "Ningún usuario coincide con los filtros"
+            }
+          />
         ) : (
           /* Tabla de Usuarios */
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -381,7 +365,7 @@ const UsuariosPage = () => {
                           <button
                             onClick={() => handleEditarUsuario(usuario)}
                             title="Editar"
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            className="text-brand-600 hover:text-brand-700 transition-colors"
                           >
                             <Edit2 size={18} />
                           </button>
@@ -389,7 +373,7 @@ const UsuariosPage = () => {
                             <>
                               <button
                                 onClick={() =>
-                                  handleDesactivarUsuario(usuario.usr_id)
+                                  setConfirmDesactivarId(usuario.usr_id)
                                 }
                                 title="Desactivar"
                                 className="text-orange-600 hover:text-orange-800 transition-colors"
@@ -398,7 +382,7 @@ const UsuariosPage = () => {
                               </button>
                               <button
                                 onClick={() =>
-                                  handleEliminarUsuario(usuario.usr_id)
+                                  setConfirmEliminarId(usuario.usr_id)
                                 }
                                 title="Eliminar"
                                 className="text-red-600 hover:text-red-800 transition-colors"
@@ -446,6 +430,38 @@ const UsuariosPage = () => {
           onClose={() => setCentrosModalOpen(false)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmDesactivarId !== null}
+        title="Desactivar usuario"
+        message="¿Estás seguro de que deseas desactivar este usuario?"
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={() => {
+          if (confirmDesactivarId) performDesactivar(confirmDesactivarId);
+        }}
+        onCancel={() => setConfirmDesactivarId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmEliminarId !== null}
+        title="Eliminar usuario"
+        message="¿Estás seguro de que deseas ELIMINAR este usuario? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={() => {
+          if (confirmEliminarId) performEliminar(confirmEliminarId);
+        }}
+        onCancel={() => setConfirmEliminarId(null)}
+      />
+
+      <ErrorModal
+        isOpen={!!actionError}
+        message={actionError}
+        onAction={() => setActionError("")}
+      />
     </div>
   );
 };

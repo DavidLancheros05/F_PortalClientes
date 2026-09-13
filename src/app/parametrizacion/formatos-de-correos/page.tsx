@@ -9,6 +9,7 @@ import {
 import { EmailPreview } from "@/components/EmailPreview";
 import { HtmlBodyEditor } from "@/components/HtmlBodyEditor";
 import { ConfirmModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
 import {
   Save,
   Mail,
@@ -132,34 +133,23 @@ export default function FormatosDeCorreosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-xl">
-                <Mail className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Formatos de correos
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  Administra asunto, contenido, destinatarios y estado de cada
-                  evento
-                </p>
-              </div>
-            </div>
+        <PageHeaderCard
+          icon={Mail}
+          eyebrow="Parametrización"
+          title="Formatos de correos"
+          subtitle="Administra asunto, contenido, destinatarios y estado de cada evento"
+          actions={
             <Link
               href="/parametrizacion/correos-por-rol"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
             >
               <Users className="h-4 w-4" />
               Ver correos por rol
             </Link>
-          </div>
-        </div>
+          }
+        />
 
         {/* Alertas */}
         {error && (
@@ -438,7 +428,7 @@ export default function FormatosDeCorreosPage() {
                         type="button"
                         onClick={guardarCambios}
                         disabled={saving}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                       >
                         {saving ? (
                           <>

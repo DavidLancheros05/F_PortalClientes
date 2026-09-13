@@ -34,6 +34,8 @@ interface Solicitud {
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
+  cliente_consumo_mensual_proyectado?: number | null;
+  cliente_toneladas_proyectadas?: number | null;
   sol_cupo_solicitado?: number | null;
   sol_justificacion_ampliacion?: string | null;
   sol_cupo_actual_referencia?: number | null;
@@ -440,6 +442,14 @@ export default function RegistrarConceptoPage() {
                       placeholder="Ej: 5.000.000"
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                     />
+                    {solicitud.cliente_consumo_mensual_proyectado != null && (
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        El cliente declaró en el formulario: $
+                        {solicitud.cliente_consumo_mensual_proyectado.toLocaleString(
+                          "es-CO",
+                        )}
+                      </p>
+                    )}
                   </div>
 
                   {/* Toneladas Mensuales Proyectadas */}
@@ -456,6 +466,15 @@ export default function RegistrarConceptoPage() {
                       placeholder="Ej: 500"
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                     />
+                    {solicitud.cliente_toneladas_proyectadas != null && (
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        El cliente declaró en el formulario:{" "}
+                        {solicitud.cliente_toneladas_proyectadas.toLocaleString(
+                          "es-CO",
+                        )}{" "}
+                        toneladas
+                      </p>
+                    )}
                   </div>
 
                   {/* Observaciones */}

@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeftRight, Shield, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeftRight, Shield, Search, X } from "lucide-react";
 import {
   rolesService,
   type Rol,
   type Modulo,
 } from "@/services/seguridad/roles.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 
 interface Permisos {
   ver: boolean;
@@ -36,9 +40,11 @@ const hasAnyPermiso = (p: Permisos) =>
   Boolean(p?.ver || p?.crear || p?.editar || p?.eliminar || p?.aprobar);
 
 export default function PermisosPorPaginaPage() {
+  const router = useRouter();
   const [roles, setRoles] = useState<Rol[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -144,47 +150,56 @@ export default function PermisosPorPaginaPage() {
     });
   }, [paginas, search]);
 
+  const handleBuscar = () => setSearch(searchInput.trim());
+  const handleLimpiar = () => {
+    setSearchInput("");
+    setSearch("");
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-600 text-white">
-              <ArrowLeftRight className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">
-                Permisos por Pagina
-              </h1>
-              <p className="text-sm text-slate-500">
-                Vista inversa: por cada pagina, que roles tienen acceso.
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={ArrowLeftRight}
+          eyebrow="Seguridad"
+          title="Permisos por Página"
+          subtitle="Vista inversa: por cada página, qué roles tienen acceso"
+          onBack={() => router.push("/seguridad/roles")}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FilterField label="Buscar" className="md:col-span-2">
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+                placeholder="Página, ruta o rol"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </FilterField>
 
-          <Link
-            href="/seguridad/roles"
-            className="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium hover:bg-white"
-          >
-            Volver a Roles
-          </Link>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar pagina, ruta o rol"
-              className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm"
-            />
+            <FilterActions className="md:col-span-1 flex md:items-end">
+              <button
+                onClick={handleLimpiar}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-        </div>
+        </PageHeaderCard>
 
         {loading && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">
-            Cargando informacion...
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
+            <div className="w-10 h-10 border-4 border-slate-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-slate-500">Cargando información...</p>
           </div>
         )}
 
@@ -213,7 +228,7 @@ export default function PermisosPorPaginaPage() {
                       {pagina.jerarquia}
                     </p>
                   </div>
-                  <span className="text-xs font-medium px-2 py-1 rounded bg-indigo-50 text-indigo-700">
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-[#eef3ff] text-brand-700">
                     {pagina.roles.length} rol(es) con acceso
                   </span>
                 </div>
@@ -247,9 +262,11 @@ export default function PermisosPorPaginaPage() {
             ))}
 
             {paginasFiltradas.length === 0 && (
-              <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">
-                No se encontraron resultados para la busqueda.
-              </div>
+              <EmptyStateCard
+                icon={Search}
+                title="No se encontraron resultados"
+                subtitle="Ajusta la búsqueda e intenta de nuevo"
+              />
             )}
           </div>
         )}

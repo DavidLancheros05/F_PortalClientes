@@ -3,6 +3,14 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { Warehouse, PackageOpen, Search, X } from "lucide-react";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   existenciasService,
   type ExistenciaClienteResponse,
@@ -29,10 +37,18 @@ export default function ExistenciasPage() {
   const [existencias, setExistencias] = useState<ExistenciaClienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const [filtroItemInput, setFiltroItemInput] = useState("");
+  const [filtroBodegaInput, setFiltroBodegaInput] = useState("");
+  const [filtroUbicacionInput, setFiltroUbicacionInput] = useState("");
 
   const [filtroItem, setFiltroItem] = useState("");
   const [filtroBodega, setFiltroBodega] = useState("");
   const [filtroUbicacion, setFiltroUbicacion] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (!user?.cliente_id) return;
@@ -54,10 +70,25 @@ export default function ExistenciasPage() {
     cargarExistencias();
   }, [user?.cliente_id]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroItem, filtroBodega, filtroUbicacion]);
+
+  const handleBuscar = () => {
+    setHasSearched(true);
+    setFiltroItem(filtroItemInput);
+    setFiltroBodega(filtroBodegaInput);
+    setFiltroUbicacion(filtroUbicacionInput);
+  };
+
   const limpiarFiltros = () => {
+    setFiltroItemInput("");
+    setFiltroBodegaInput("");
+    setFiltroUbicacionInput("");
     setFiltroItem("");
     setFiltroBodega("");
     setFiltroUbicacion("");
+    setHasSearched(false);
   };
 
   const existenciasFiltradas = useMemo(() => {
@@ -93,100 +124,143 @@ export default function ExistenciasPage() {
     });
   }, [existencias, filtroItem, filtroBodega, filtroUbicacion]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-full mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push("/consultas")}
-            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            ← Volver a consultas
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Existencia a la fecha por bodega
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Consulta el inventario disponible de tus ítems por bodega.
-          </p>
-        </div>
+  const existenciasPaginadas = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return existenciasFiltradas.slice(start, start + pageSize);
+  }, [existenciasFiltradas, currentPage, pageSize]);
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ítem, referencia o descripción
-              </label>
+  async function exportarExcel() {
+    if (existenciasFiltradas.length === 0) return;
+
+    const XLSX = await import("xlsx");
+
+    const header = [
+      "Ítem",
+      "Referencia",
+      "Descripción",
+      "Cliente",
+      "Lote",
+      "Bodega",
+      "Ubicación",
+      "Existencia",
+      "Disponible",
+      "Peso",
+      "Volumen",
+      "Fecha lote",
+      "Última entrada",
+      "Ejecutivo",
+    ];
+
+    const data = existenciasFiltradas.map((existencia) => [
+      existencia.item,
+      existencia.referencia,
+      existencia.descripcionItem,
+      existencia.cliente,
+      existencia.lote || "-",
+      existencia.bodega,
+      existencia.ubicacion || "-",
+      formatNumero(existencia.cantidadExistencia),
+      formatNumero(existencia.cantidadDisponible),
+      formatNumero(existencia.peso),
+      formatNumero(existencia.volumen),
+      formatFecha(existencia.fechaLote),
+      formatFecha(existencia.fechaUltimaEntrada),
+      existencia.ejecutivoNegocio || "-",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Existencias");
+
+    XLSX.writeFile(wb, `existencias-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[115rem] mx-auto">
+        <PageHeaderCard
+          icon={Warehouse}
+          eyebrow="Consultas"
+          title="Existencia a la fecha por bodega"
+          subtitle="Consulta el inventario disponible de tus ítems por bodega."
+          onBack={() => router.push("/consultas")}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <FilterField label="Ítem, referencia o descripción">
               <input
                 type="text"
-                value={filtroItem}
-                onChange={(e) => setFiltroItem(e.target.value)}
+                value={filtroItemInput}
+                onChange={(e) => setFiltroItemInput(e.target.value)}
                 placeholder="Ej: CAJA CJ 3550"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bodega
-              </label>
+            </FilterField>
+            <FilterField label="Bodega">
               <input
                 type="text"
-                value={filtroBodega}
-                onChange={(e) => setFiltroBodega(e.target.value)}
+                value={filtroBodegaInput}
+                onChange={(e) => setFiltroBodegaInput(e.target.value)}
                 placeholder="Ej: 01"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ubicación
-              </label>
+            </FilterField>
+            <FilterField label="Ubicación">
               <input
                 type="text"
-                value={filtroUbicacion}
-                onChange={(e) => setFiltroUbicacion(e.target.value)}
+                value={filtroUbicacionInput}
+                onChange={(e) => setFiltroUbicacionInput(e.target.value)}
                 placeholder="Ej: A-01-03"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar filtros
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={limpiarFiltros}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
+        </PageHeaderCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Existencia por bodega
-            </h2>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-              {existenciasFiltradas.length} de {existencias.length} registros
-            </span>
+        {!hasSearched ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Presiona Buscar para ver las existencias."
+            subtitle="Opcionalmente puedes filtrar antes de buscar."
+          />
+        ) : loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+            Cargando existencias...
           </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-gray-600">
-              Cargando existencias...
-            </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-600">
-              No se pudieron cargar las existencias.
-            </div>
-          ) : existencias.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              No se encontraron existencias.
-            </div>
-          ) : existenciasFiltradas.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              Ninguna existencia coincide con los filtros aplicados.
-            </div>
-          ) : (
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-red-600">
+            No se pudieron cargar las existencias.
+          </div>
+        ) : existencias.length === 0 ? (
+          <EmptyStateCard icon={PackageOpen} title="No se encontraron existencias." />
+        ) : existenciasFiltradas.length === 0 ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Ninguna existencia coincide con los filtros aplicados."
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            <ResultsToolbar
+              count={existenciasFiltradas.length}
+              label={`de ${existencias.length} registro(s)`}
+              onExport={exportarExcel}
+            />
+            <TableContainer>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -208,7 +282,7 @@ export default function ExistenciasPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {existenciasFiltradas.map((existencia, index) => (
+                  {existenciasPaginadas.map((existencia, index) => (
                     <tr
                       key={`${existencia.item}-${existencia.lote}-${existencia.bodega}-${index}`}
                       className="hover:bg-gray-50"
@@ -234,8 +308,20 @@ export default function ExistenciasPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+            </TableContainer>
+
+            <TablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={existenciasFiltradas.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

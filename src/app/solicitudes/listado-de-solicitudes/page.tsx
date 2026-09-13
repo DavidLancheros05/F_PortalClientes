@@ -24,6 +24,8 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 
 interface Cliente {
   cli_id: number;
@@ -47,8 +49,6 @@ interface SolicitudListado {
   auxiliar_id?: number | null;
   auxiliar_nombre?: string | null;
   auxiliar_area?: string | null;
-  sol_co_id: number | null;
-  centro_operacion_nombre: string | null;
   sol_fecha_creacion: string;
   sol_fecha_envio?: string | null;
   sol_fecha_aprobacion?: string | null;
@@ -59,9 +59,6 @@ interface SolicitudListado {
   resultado_nombre?: string;
   sol_formulario_version: number | null;
   sol_fecha_estimada_respuesta_comercial: string | null;
-  sol_fecha_real_respuesta_comercial: string | null;
-  sol_fecha_estimada_respuesta_financiera: string | null;
-  sol_fecha_real_respuesta_financiera: string | null;
   sol_fecha_estimada_oficial_cumplimiento: string | null;
   sol_fecha_real_oficial_cumplimiento: string | null;
   sol_fecha_estimada_comite_credito_1: string | null;
@@ -458,7 +455,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Área Ejecutivo",
       "Auxiliar Serv. Cliente",
       "Área Auxiliar",
-      "Centro de operación",
       "Fecha de creación",
       "Fecha de envío",
       "Fecha de aprobación",
@@ -472,8 +468,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "F. Real Ejecutivo de Negocios",
       "F. Est. Auxiliar Servicio al Cliente",
       "F. Real Auxiliar Servicio al Cliente",
-      "Fecha estimada de respuesta financiera",
-      "Fecha real de respuesta financiera",
       "Fecha estimada oficial cumplimiento",
       "Fecha real oficial cumplimiento",
     ];
@@ -485,7 +479,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.ejecutivo_area || "-",
       row.auxiliar_nombre || "-",
       row.auxiliar_area || "-",
-      row.centro_operacion_nombre || "-",
       formatDateTime(row.sol_fecha_creacion),
       formatDateTime(row.sol_fecha_envio),
       formatDateTime(row.sol_fecha_aprobacion),
@@ -499,8 +492,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       formatDateTime(row.sol_fecha_real_ejecutivo),
       formatDateTime(row.sol_fecha_estimada_auxiliar_servicio_cliente),
       formatDateTime(row.sol_fecha_real_auxiliar_servicio_cliente),
-      formatDateTime(row.sol_fecha_estimada_respuesta_financiera),
-      formatDateTime(row.sol_fecha_real_respuesta_financiera),
       formatDateTime(row.sol_fecha_estimada_oficial_cumplimiento),
       formatDateTime(row.sol_fecha_real_oficial_cumplimiento),
     ]);
@@ -534,7 +525,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc,#eef1f7)] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-[115rem] mx-auto">
         <PageHeaderCard
           icon={ClipboardList}
@@ -544,10 +535,11 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           onBack={() => router.push("/solicitudes")}
         >
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div className="relative" ref={ejecutivoContainerRef}>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Ejecutivo
-                  </label>
+                <FilterField
+                  label="Ejecutivo"
+                  className="relative"
+                  ref={ejecutivoContainerRef}
+                >
                   <input
                     type="text"
                     placeholder="Buscar ejecutivo..."
@@ -598,12 +590,13 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       )}
                     </div>
                   )}
-                </div>
+                </FilterField>
 
-                <div className="relative" ref={clienteContainerRef}>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Cliente
-                  </label>
+                <FilterField
+                  label="Cliente"
+                  className="relative"
+                  ref={clienteContainerRef}
+                >
                   <input
                     type="text"
                     placeholder="Buscar cliente..."
@@ -648,12 +641,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       )}
                     </div>
                   )}
-                </div>
+                </FilterField>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Fecha de creación desde
-                  </label>
+                <FilterField label="Fecha de creación desde">
                   <input
                     type="date"
                     value={fechaDesde}
@@ -661,12 +651,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                     max={hoy}
                     className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </div>
+                </FilterField>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Fecha de creación hasta
-                  </label>
+                <FilterField label="Fecha de creación hasta">
                   <input
                     type="date"
                     value={fechaHasta}
@@ -675,12 +662,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                     min={fechaDesde || undefined}
                     className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                </div>
+                </FilterField>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Estado
-                  </label>
+                <FilterField label="Estado">
                   <select
                     value={estadoId}
                     onChange={(event) => setEstadoId(event.target.value)}
@@ -693,12 +677,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </FilterField>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Etapa Actual
-                  </label>
+                <FilterField label="Etapa Actual">
                   <select
                     value={etapaId}
                     onChange={(event) => setEtapaId(event.target.value)}
@@ -711,12 +692,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </FilterField>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-2">
-                    Resultado Etapa
-                  </label>
+                <FilterField label="Resultado Etapa">
                   <select
                     value={resultadoId}
                     onChange={(event) => setResultadoId(event.target.value)}
@@ -729,30 +707,25 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </FilterField>
 
-                <div className="col-span-2 md:col-span-3 lg:col-span-4 flex flex-col gap-2 justify-center">
-                  <label className="block text-xs font-semibold text-gray-600 mb-2 text-center">
-                    &nbsp;
-                  </label>
-                  <div className="flex gap-2 justify-center">
-                    <button
-                      onClick={limpiarFiltros}
-                      className="px-6 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded border border-gray-300 bg-white transition-colors inline-flex items-center justify-center gap-2"
-                    >
-                      <X className="h-4 w-4" />
-                      Limpiar
-                    </button>
-                    <button
-                      onClick={buscar}
-                      disabled={!canSearch || loading}
-                      className="px-6 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-2"
-                    >
-                      <Search className="h-4 w-4" />
-                      Buscar
-                    </button>
-                  </div>
-                </div>
+                <FilterActions className="col-span-full">
+                  <button
+                    onClick={limpiarFiltros}
+                    className="px-6 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded border border-gray-300 bg-white transition-colors inline-flex items-center justify-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Limpiar
+                  </button>
+                  <button
+                    onClick={buscar}
+                    disabled={!canSearch || loading}
+                    className="px-6 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-2"
+                  >
+                    <Search className="h-4 w-4" />
+                    Buscar
+                  </button>
+                </FilterActions>
               </div>
 
               <div className="flex gap-2 mt-0 justify-end hidden">
@@ -796,9 +769,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                 <table className="min-w-full divide-y divide-blue-100">
                   <thead className="bg-blue-100 sticky top-0 z-20">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Centro de operación
-                      </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
                         No. solicitud
                       </th>
@@ -873,9 +843,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   <tbody className="divide-y divide-gray-100">
                     {paginatedRows.map((row) => (
                       <tr key={row.sol_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {row.centro_operacion_nombre || "-"}
-                        </td>
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {row.sol_numero_solicitud || "-"}
                         </td>

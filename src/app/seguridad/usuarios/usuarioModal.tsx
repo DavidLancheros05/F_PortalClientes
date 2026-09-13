@@ -152,7 +152,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="p.ej. Juan Pérez"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               disabled={loading}
             />
           </div>
@@ -168,7 +168,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
                 value={usuarioLogin}
                 onChange={(e) => setUsuarioLogin(e.target.value)}
                 placeholder="p.ej. jperez"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 disabled={loading}
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -188,7 +188,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="usuario@ejemplo.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               disabled={loading}
             />
           </div>
@@ -201,7 +201,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
             <select
               value={rolId}
               onChange={(e) => setRolId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               disabled={loading}
             >
               <option value="">Selecciona un rol</option>
@@ -227,7 +227,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
                   ? "Contraseña requerida"
                   : "Dejar en blanco para no cambiar"
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               disabled={loading}
             />
             {!isNew && (
@@ -249,7 +249,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
               {loading ? "Guardando..." : "Guardar"}

@@ -5,6 +5,8 @@ import { Pencil, Power, Save, X } from "lucide-react";
 import { tiposVigenciaService } from "@/services/admin/parametrizacion/tipos-vigencia.service";
 import { TipoVigencia } from "@/services/admin/parametrizacion/tipos-vigencia.types";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { CalendarClock } from "lucide-react";
 
 export default function TiposVigenciaPage() {
   const [items, setItems] = useState<TipoVigencia[]>([]);
@@ -132,23 +134,16 @@ export default function TiposVigenciaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <div className="mb-6">
-            <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
-              Tipos de vigencia
-            </p>
-            <p className="text-gray-600 mt-2">
-              Nombres y descripciones de las reglas de vigencia disponibles al
-              configurar un tipo de documento. El código de cada tipo es fijo
-              (lo reconoce la lógica de validación); no se pueden crear ni
-              eliminar tipos desde aquí, solo editar su nombre, descripción y
-              estado.
-            </p>
-          </div>
+        <PageHeaderCard
+          icon={CalendarClock}
+          eyebrow="Parametrización"
+          title="Tipos de vigencia"
+          subtitle="Nombres y descripciones de las reglas de vigencia disponibles al configurar un tipo de documento. El código de cada tipo es fijo (lo reconoce la lógica de validación); no se pueden crear ni eliminar tipos desde aquí, solo editar su nombre, descripción y estado."
+        />
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
@@ -277,7 +272,6 @@ export default function TiposVigenciaPage() {
                 </table>
               </div>
             )}
-          </div>
         </div>
       </div>
 

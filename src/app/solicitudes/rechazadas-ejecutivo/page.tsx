@@ -12,6 +12,8 @@ import { ArrowLeft, Check, Eye, FileX, Info, Search, X } from "lucide-react";
 import { LoadingModal, InfoModal } from "@/components/modals";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { ExportExcelButton } from "@/components/tables/ExportExcelButton";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 
 interface SolicitudRechazada {
   sol_id: number;
@@ -179,12 +181,12 @@ export default function SolicitudesRechazadasEjecutivoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a]">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a]">
       <LoadingModal isOpen={loading} message="Cargando solicitudes..." />
       <div className="max-w-[1400px] mx-auto px-5 pt-7 pb-16">
         {/* Header */}
         <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)] mb-6">
-          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
+          <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
               onClick={() => router.push("/solicitudes")}
@@ -215,10 +217,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
           {/* Filtros */}
           <div className="px-7 py-4 bg-white">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#64748b] mb-1">
-                  Centro de operación
-                </label>
+              <FilterField label="Centro de operación">
                 <select
                   value={centroFiltro ?? ""}
                   onChange={(event) =>
@@ -226,7 +225,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
                       event.target.value ? Number(event.target.value) : null,
                     )
                   }
-                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0050c7] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
                   <option value="">Todos</option>
                   {centros.map((item, index) => (
@@ -238,22 +237,19 @@ export default function SolicitudesRechazadasEjecutivoPage() {
                     </option>
                   ))}
                 </select>
-              </div>
+              </FilterField>
 
-              <div>
-                <label className="block text-xs font-semibold text-[#64748b] mb-1">
-                  Buscar
-                </label>
+              <FilterField label="Buscar">
                 <input
                   type="text"
                   placeholder="No. solicitud, cliente o centro"
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0050c7] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 />
-              </div>
+              </FilterField>
 
-              <div className="flex items-end justify-end gap-2 lg:col-start-4">
+              <FilterActions className="col-span-full">
                 <button
                   onClick={limpiarFiltros}
                   className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-[#475569] hover:text-[#0f172a] hover:bg-[#f1f5f9] rounded-lg transition-colors border border-[#e2e8f0] bg-white"
@@ -263,12 +259,12 @@ export default function SolicitudesRechazadasEjecutivoPage() {
                 </button>
                 <button
                   onClick={handleBuscar}
-                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-[#003d99] rounded-lg hover:bg-[#0050c7] transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-500 transition-colors"
                 >
                   <Search className="h-4 w-4" />
                   Buscar
                 </button>
-              </div>
+              </FilterActions>
             </div>
           </div>
         </div>

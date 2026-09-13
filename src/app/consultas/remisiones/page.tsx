@@ -3,6 +3,14 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { Truck, PackageOpen, Search, X } from "lucide-react";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   remisionesService,
   type RemisionClienteResponse,
@@ -38,12 +46,25 @@ export default function RemisionesPage() {
   const [remisiones, setRemisiones] = useState<RemisionClienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
+  // Valores que el usuario está escribiendo (ligados a los inputs).
+  const [filtroNumeroInput, setFiltroNumeroInput] = useState("");
+  const [filtroEstadoInput, setFiltroEstadoInput] = useState("");
+  const [filtroDescripcionInput, setFiltroDescripcionInput] = useState("");
+  const [filtroFechaDesdeInput, setFiltroFechaDesdeInput] = useState("");
+  const [filtroFechaHastaInput, setFiltroFechaHastaInput] = useState("");
+
+  // Valores realmente aplicados al filtrado — solo cambian al presionar
+  // "Buscar" o "Limpiar filtros".
   const [filtroNumero, setFiltroNumero] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroDescripcion, setFiltroDescripcion] = useState("");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (!user?.cliente_id) return;
@@ -65,12 +86,31 @@ export default function RemisionesPage() {
     cargarRemisiones();
   }, [user?.cliente_id]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroNumero, filtroEstado, filtroDescripcion, filtroFechaDesde, filtroFechaHasta]);
+
+  const handleBuscar = () => {
+    setHasSearched(true);
+    setFiltroNumero(filtroNumeroInput);
+    setFiltroEstado(filtroEstadoInput);
+    setFiltroDescripcion(filtroDescripcionInput);
+    setFiltroFechaDesde(filtroFechaDesdeInput);
+    setFiltroFechaHasta(filtroFechaHastaInput);
+  };
+
   const limpiarFiltros = () => {
+    setFiltroNumeroInput("");
+    setFiltroEstadoInput("");
+    setFiltroDescripcionInput("");
+    setFiltroFechaDesdeInput("");
+    setFiltroFechaHastaInput("");
     setFiltroNumero("");
     setFiltroEstado("");
     setFiltroDescripcion("");
     setFiltroFechaDesde("");
     setFiltroFechaHasta("");
+    setHasSearched(false);
   };
 
   const remisionesFiltradas = useMemo(() => {
@@ -120,45 +160,115 @@ export default function RemisionesPage() {
     filtroFechaHasta,
   ]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-full mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={() => router.push("/consultas")}
-            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
-            ← Volver a consultas
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Remisiones y devoluciones
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Consulta el historial de remisiones y devoluciones asociadas a tu cuenta.
-          </p>
-        </div>
+  const remisionesPaginadas = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return remisionesFiltradas.slice(start, start + pageSize);
+  }, [remisionesFiltradas, currentPage, pageSize]);
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+  async function exportarExcel() {
+    if (remisionesFiltradas.length === 0) return;
+
+    const XLSX = await import("xlsx");
+
+    const header = [
+      "Documento",
+      "Número",
+      "Cliente",
+      "Estado",
+      "Fecha",
+      "Pedido",
+      "Factura",
+      "Orden de compra",
+      "Ítem",
+      "Referencia",
+      "Descripción",
+      "Lote",
+      "Cantidad",
+      "Peso",
+      "Volumen",
+      "Ciudad",
+      "Ciudad envío",
+      "Punto de envío",
+      "Precio unitario",
+      "Precio por peso",
+      "Plan",
+      "Valor bruto",
+      "Valor impuesto",
+      "Valor neto",
+      "Bodega",
+      "Vehículo",
+      "Conductor",
+      "Ident. conductor",
+      "Vendedor",
+      "CDV",
+      "Notas",
+    ];
+
+    const data = remisionesFiltradas.map((remision) => [
+      remision.numeroDocumento,
+      remision.numero,
+      remision.clienteRazonSocial,
+      remision.estado,
+      formatFecha(remision.fecha),
+      remision.pedidoDocumento || "-",
+      remision.facturaDocumento || "-",
+      remision.ordenCompra || "-",
+      remision.item,
+      remision.referencia,
+      remision.descripcionItem,
+      remision.lote || "-",
+      formatNumero(remision.cantidad),
+      formatNumero(remision.peso),
+      formatNumero(remision.volumen),
+      remision.ciudad || "-",
+      remision.ciudadEnvio || "-",
+      remision.descripcionPuntoEnvio || "-",
+      formatNumero(remision.precioUnitario),
+      formatNumero(remision.precioPeso),
+      remision.plan003 || "-",
+      formatNumero(remision.valorBruto),
+      formatNumero(remision.valorImpuesto),
+      formatNumero(remision.valorNeto),
+      remision.bodega,
+      remision.vehiculo || "-",
+      remision.nombreConductor || "-",
+      remision.identificacionConductor || "-",
+      remision.vendedor,
+      remision.cdv || "-",
+      remision.notas || remision.notasMovimiento || "-",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Remisiones");
+
+    XLSX.writeFile(wb, `remisiones-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[115rem] mx-auto">
+        <PageHeaderCard
+          icon={Truck}
+          eyebrow="Consultas"
+          title="Remisiones y devoluciones"
+          subtitle="Consulta el historial de remisiones y devoluciones asociadas a tu cuenta."
+          onBack={() => router.push("/consultas")}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de documento
-              </label>
+            <FilterField label="Número de documento">
               <input
                 type="text"
-                value={filtroNumero}
-                onChange={(e) => setFiltroNumero(e.target.value)}
+                value={filtroNumeroInput}
+                onChange={(e) => setFiltroNumeroInput(e.target.value)}
                 placeholder="Ej: REM-00184532"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estado
-              </label>
+            </FilterField>
+            <FilterField label="Estado">
               <select
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
+                value={filtroEstadoInput}
+                onChange={(e) => setFiltroEstadoInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todos los estados</option>
@@ -168,79 +278,80 @@ export default function RemisionesPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Referencia o descripción
-              </label>
+            </FilterField>
+            <FilterField label="Referencia o descripción">
               <input
                 type="text"
-                value={filtroDescripcion}
-                onChange={(e) => setFiltroDescripcion(e.target.value)}
+                value={filtroDescripcionInput}
+                onChange={(e) => setFiltroDescripcionInput(e.target.value)}
                 placeholder="Ej: CAJA CJ 3550"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha desde
-              </label>
+            </FilterField>
+            <FilterField label="Fecha desde">
               <input
                 type="date"
-                value={filtroFechaDesde}
-                onChange={(e) => setFiltroFechaDesde(e.target.value)}
+                value={filtroFechaDesdeInput}
+                onChange={(e) => setFiltroFechaDesdeInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha hasta
-              </label>
+            </FilterField>
+            <FilterField label="Fecha hasta">
               <input
                 type="date"
-                value={filtroFechaHasta}
-                onChange={(e) => setFiltroFechaHasta(e.target.value)}
+                value={filtroFechaHastaInput}
+                onChange={(e) => setFiltroFechaHastaInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar filtros
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={limpiarFiltros}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
+        </PageHeaderCard>
 
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Remisiones y devoluciones
-            </h2>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-              {remisionesFiltradas.length} de {remisiones.length} registros
-            </span>
+        {!hasSearched ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Presiona Buscar para ver tus remisiones."
+            subtitle="Opcionalmente puedes filtrar antes de buscar."
+          />
+        ) : loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+            Cargando remisiones...
           </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-gray-600">
-              Cargando remisiones...
-            </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-600">
-              No se pudieron cargar las remisiones.
-            </div>
-          ) : remisiones.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              No se encontraron remisiones.
-            </div>
-          ) : remisionesFiltradas.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              Ninguna remisión coincide con los filtros aplicados.
-            </div>
-          ) : (
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-red-600">
+            No se pudieron cargar las remisiones.
+          </div>
+        ) : remisiones.length === 0 ? (
+          <EmptyStateCard icon={PackageOpen} title="No se encontraron remisiones." />
+        ) : remisionesFiltradas.length === 0 ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Ninguna remisión coincide con los filtros aplicados."
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            <ResultsToolbar
+              count={remisionesFiltradas.length}
+              label={`de ${remisiones.length} remisión(es)`}
+              onExport={exportarExcel}
+            />
+            <TableContainer>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -279,7 +390,7 @@ export default function RemisionesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {remisionesFiltradas.map((remision, index) => (
+                  {remisionesPaginadas.map((remision, index) => (
                     <tr
                       key={`${remision.numeroDocumento}-${remision.item}-${index}`}
                       className="hover:bg-gray-50"
@@ -337,8 +448,20 @@ export default function RemisionesPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+            </TableContainer>
+
+            <TablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={remisionesFiltradas.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

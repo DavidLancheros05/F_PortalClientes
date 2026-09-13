@@ -18,6 +18,8 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   calcularDiasRestantes,
   DiasRestantesBadge,
@@ -371,7 +373,7 @@ export default function GestionOficialCumplimientoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc,#eef1f7)] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-[115rem] mx-auto">
         <PageHeaderCard
           icon={ShieldCheck}
@@ -380,10 +382,7 @@ export default function GestionOficialCumplimientoPage() {
           onBack={() => router.back()}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Centro de operacion *
-              </label>
+            <FilterField label="Centro de operacion *">
               <select
                 value={centroSeleccionado ? String(centroSeleccionado) : ""}
                 onChange={(e) =>
@@ -403,11 +402,8 @@ export default function GestionOficialCumplimientoPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cliente
-              </label>
+            </FilterField>
+            <FilterField label="Cliente" className="relative">
               <input
                 type="text"
                 placeholder={
@@ -454,12 +450,9 @@ export default function GestionOficialCumplimientoPage() {
                   )}
                 </div>
               )}
-            </div>
+            </FilterField>
 
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ejecutivo
-              </label>
+            <FilterField label="Ejecutivo" className="relative">
               <input
                 type="text"
                 placeholder="Buscar ejecutivo..."
@@ -501,11 +494,8 @@ export default function GestionOficialCumplimientoPage() {
                   )}
                 </div>
               )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Numero de solicitud
-              </label>
+            </FilterField>
+            <FilterField label="Numero de solicitud">
               <input
                 type="text"
                 value={numeroFiltro}
@@ -513,8 +503,8 @@ export default function GestionOficialCumplimientoPage() {
                 placeholder="Ej: SOL-00123"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div className="flex items-end justify-end">
+            </FilterField>
+            <FilterActions className="col-span-full">
               <button
                 onClick={() => buscar()}
                 disabled={loadingSolicitudes}
@@ -522,7 +512,7 @@ export default function GestionOficialCumplimientoPage() {
               >
                 Buscar
               </button>
-            </div>
+            </FilterActions>
           </div>
         </PageHeaderCard>
 
@@ -667,7 +657,7 @@ export default function GestionOficialCumplimientoPage() {
                                   `/solicitudes/gestion-oficial-de-cumplimiento/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
                                 )
                               }
-                              className="px-4 py-2 bg-[#003d99] text-white rounded-lg hover:bg-[#0047b3] transition-colors text-sm font-medium"
+                              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
                             >
                               Gestionar
                             </button>

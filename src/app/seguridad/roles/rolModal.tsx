@@ -348,7 +348,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
         {/* Módulo header */}
         <div
           className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-all ${
-            asignado ? "bg-blue-50/50" : "hover:bg-slate-50"
+            asignado ? "bg-[#eef3ff]/60" : "hover:bg-slate-50"
           }`}
           style={{ marginLeft: `${level * 20}px` }}
         >
@@ -373,14 +373,14 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
             className="focus:outline-none"
           >
             {asignado ? (
-              <CheckSquare className="w-4 h-4 text-blue-600" />
+              <CheckSquare className="w-4 h-4 text-brand-600" />
             ) : (
               <Square className="w-4 h-4 text-slate-400 hover:text-slate-600" />
             )}
           </button>
 
           {/* Icono según nivel */}
-          {level === 0 && <FolderTree className="w-4 h-4 text-blue-500" />}
+          {level === 0 && <FolderTree className="w-4 h-4 text-brand-500" />}
           {level === 1 && <Key className="w-3.5 h-3.5 text-amber-500" />}
           {level >= 2 && <div className="w-3.5" />}
 
@@ -393,7 +393,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
 
           {/* Badge de asignado */}
           {asignado && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#eef3ff] text-brand-700">
               Asignado
             </span>
           )}
@@ -441,7 +441,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl shadow-lg">
+            <div className="p-2 bg-brand-gradient rounded-xl shadow-lg">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -474,7 +474,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ej: Administrador, Editor, Usuario..."
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
                 autoFocus
               />
             </div>
@@ -488,7 +488,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
                 onChange={(e) => setDescripcion(e.target.value)}
                 placeholder="Describe las responsabilidades de este rol..."
                 rows={2}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all resize-none"
               />
             </div>
           </div>
@@ -504,7 +504,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
                   Módulos y Permisos
                 </h3>
                 {totalAsignados > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#eef3ff] text-brand-700">
                     {totalAsignados} módulo{totalAsignados !== 1 ? "s" : ""}{" "}
                     asignado{totalAsignados !== 1 ? "s" : ""}
                   </span>
@@ -536,7 +536,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar módulo..."
-                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all pl-8"
+                className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all pl-8"
               />
               <svg
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
@@ -577,7 +577,7 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
                     {searchTerm && (
                       <button
                         onClick={() => setSearchTerm("")}
-                        className="mt-2 text-xs text-indigo-600 hover:text-indigo-700"
+                        className="mt-2 text-xs text-brand-600 hover:text-brand-700"
                       >
                         Limpiar búsqueda
                       </button>
@@ -612,10 +612,8 @@ export default function RolModal({ rol, onClose, onSave }: Props) {
             Cancelar
           </button>
           <button
-            className={`px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium transition-all shadow-sm flex items-center gap-2 ${
-              isValid
-                ? "hover:from-indigo-700 hover:to-indigo-800"
-                : "opacity-50 cursor-not-allowed"
+            className={`px-5 py-2 bg-brand-600 text-white rounded-lg font-medium transition-all shadow-sm flex items-center gap-2 ${
+              isValid ? "hover:bg-brand-700" : "opacity-50 cursor-not-allowed"
             }`}
             onClick={handleSave}
             disabled={!isValid}

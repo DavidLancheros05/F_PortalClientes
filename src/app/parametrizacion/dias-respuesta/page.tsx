@@ -10,6 +10,8 @@ import {
 import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
 
@@ -270,7 +272,7 @@ export default function DiasRespuestaPage() {
 
   return (
     <div
-      className={`min-h-screen bg-[linear-gradient(180deg,#f6f8fc,#eef1f7)] p-4 sm:p-6 lg:p-8 ${
+      className={`min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8 ${
         !hasSearched && !loading ? "flex items-center justify-center" : ""
       }`}
     >
@@ -286,7 +288,7 @@ export default function DiasRespuestaPage() {
                 setMostrarNuevo(true);
                 limpiarFormulario();
               }}
-              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#003d99] transition-colors hover:bg-[#eef3ff]"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
             >
               <Plus className="h-4 w-4" />
               Nuevo
@@ -294,10 +296,7 @@ export default function DiasRespuestaPage() {
           }
         >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Área
-              </label>
+            <FilterField label="Área">
               <select
                 value={filtroArea}
                 onChange={(e) =>
@@ -312,12 +311,9 @@ export default function DiasRespuestaPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estado
-              </label>
+            <FilterField label="Estado">
               <select
                 value={filtroEstado}
                 onChange={(e) =>
@@ -331,12 +327,9 @@ export default function DiasRespuestaPage() {
                 <option value="ACTIVO">Activos</option>
                 <option value="INACTIVO">Inactivos</option>
               </select>
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Días
-              </label>
+            <FilterField label="Días">
               <input
                 type="number"
                 min={1}
@@ -345,32 +338,32 @@ export default function DiasRespuestaPage() {
                 placeholder="Ej: 5"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-          </div>
+            </FilterField>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => aplicarFiltros(items)}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Search className="h-4 w-4" />
-              Buscar
-            </button>
-            <button
-              onClick={limpiarFiltros}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <X className="h-4 w-4" />
-              Limpiar
-            </button>
-            <button
-              onClick={cargarDatos}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Actualizar
-            </button>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={() => aplicarFiltros(items)}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={cargarDatos}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </button>
+            </FilterActions>
           </div>
         </PageHeaderCard>
 
@@ -416,7 +409,7 @@ export default function DiasRespuestaPage() {
                 <button
                   onClick={crear}
                   disabled={submitting}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#003d99] rounded-lg hover:bg-[#0047b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4 w-4" />
                   {submitting ? "Guardando..." : "Agregar"}
@@ -515,7 +508,7 @@ export default function DiasRespuestaPage() {
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={guardarEdicion}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-[#003d99] rounded-lg hover:bg-[#0047b3] transition-colors"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
                               >
                                 <Save className="h-3.5 w-3.5" />
                                 Guardar

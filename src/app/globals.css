@@ -3,6 +3,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Colores de marca — antes repetidos como hex en ~18 archivos del
+     proyecto (#003d99, #0047b3, #0050c7). Cambiar el azul de marca ahora
+     es cambiar estas 3 líneas, no buscar y reemplazar en todo el código.
+     Ver documentacion/Portal Clientes/parte visual/. */
+  --brand-600: #003d99; /* azul principal: botones, header, íconos */
+  --brand-700: #0047b3; /* hover de botones sólidos (más oscuro) */
+  --brand-500: #0050c7; /* extremo claro de gradientes, focus ring */
+
+  /* Fondo de página en pantallas de listado/gestión */
+  --page-from: #f6f8fc;
+  --page-to: #eef1f7;
 }
 
 @theme inline {
@@ -10,6 +22,15 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Expone los tokens de arriba como utilidades de Tailwind:
+     bg-brand-600, text-brand-600, hover:bg-brand-700, focus:ring-brand-500,
+     from-page-from, to-page-to, etc. */
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-page-from: var(--page-from);
+  --color-page-to: var(--page-to);
 }
 
 html, body {
@@ -22,4 +43,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Gradiente diagonal de marca (header de PageHeaderCard y páginas de
+   detalle/gestión). Ángulo de 120° no coincide con ninguna dirección fija
+   de Tailwind (to-r, to-br, ...), por eso vive como clase CSS aparte en
+   vez de una utilidad bg-gradient-to-*. */
+.bg-brand-gradient {
+  background: linear-gradient(120deg, var(--brand-600) 0%, var(--brand-500) 100%);
 }

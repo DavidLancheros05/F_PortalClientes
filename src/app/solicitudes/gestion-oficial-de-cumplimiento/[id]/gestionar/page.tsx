@@ -194,11 +194,11 @@ export default function GestionOCPage() {
   const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6f8fc] to-[#eef1f7] font-sans text-[#0f172a]">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a]">
       <div className="max-w-[1240px] mx-auto px-5 pt-7 pb-[70px]">
         <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]">
           {/* Header */}
-          <div className="bg-[linear-gradient(120deg,#003d99_0%,#0050c7_100%)] px-7 py-[22px] flex items-center gap-4">
+          <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
               className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
@@ -397,7 +397,7 @@ export default function GestionOCPage() {
                 <div className="min-w-0">
                   <h2 className="text-base font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                     <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 size={16} strokeWidth={2.2} className="text-[#003d99]" />
+                      <CheckCircle2 size={16} strokeWidth={2.2} className="text-brand-600" />
                     </div>
                     Revisión de cumplimiento
                   </h2>
@@ -435,7 +435,7 @@ export default function GestionOCPage() {
                     {/* Observaciones de cumplimiento */}
                     <div>
                       <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
-                        <MessageSquare size={15} strokeWidth={2} className="text-[#003d99]" />
+                        <MessageSquare size={15} strokeWidth={2} className="text-brand-600" />
                         Observaciones del análisis <span className="text-[#dc2626]">*</span>
                       </label>
                       <textarea
@@ -448,7 +448,7 @@ export default function GestionOCPage() {
                         }
                         placeholder="Describe los hallazgos y observaciones de la revisión de cumplimiento…"
                         rows={5}
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none resize-none font-sans leading-normal focus:border-[#003d99] focus:ring-[3px] focus:ring-[#003d99]/[0.12]"
+                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none resize-none font-sans leading-normal focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
                       />
                       <p
                         className="text-[11.5px] mt-1.5"
@@ -563,7 +563,7 @@ export default function GestionOCPage() {
                       <button
                         onClick={handleGuardarRevision}
                         disabled={!puedeGuardar || registro.guardando}
-                        className="flex-1 flex items-center justify-center gap-2 bg-[#003d99] hover:bg-[#0047b3] hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                       >
                         {registro.guardando ? "Guardando…" : "Guardar revisión"}
                       </button>

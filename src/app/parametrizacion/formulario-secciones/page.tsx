@@ -6,6 +6,8 @@ import {
   type FormularioSeccion,
 } from "@/services/parametrizacion/formulario-secciones.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Layers } from "lucide-react";
 
 export default function FormularioSeccionesPage() {
   const [secciones, setSecciones] = useState<FormularioSeccion[]>([]);
@@ -180,53 +182,59 @@ export default function FormularioSeccionesPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Secciones del Formulario</h1>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        <PageHeaderCard
+          icon={Layers}
+          eyebrow="Parametrización"
+          title="Secciones del formulario"
+          subtitle="Administra las secciones disponibles para agrupar preguntas."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <input
+              type="text"
+              placeholder="Nombre de la sección"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="border border-gray-300 px-3 py-2 rounded-lg text-sm col-span-2"
+            />
 
-      {/* Formulario crear */}
-      <div className="bg-white p-4 rounded shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="Nombre de la sección"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            className="border px-3 py-2 rounded col-span-2"
+            <input
+              type="number"
+              min={1}
+              placeholder="Orden"
+              value={orden}
+              onChange={(e) => setOrden(Number(e.target.value))}
+              className="border border-gray-300 px-3 py-2 rounded-lg text-sm"
+            />
+
+            <button
+              onClick={crear}
+              disabled={submitting || !isFormValid}
+              className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Guardando..." : "Agregar"}
+            </button>
+          </div>
+
+          <textarea
+            placeholder="Descripción (opcional)"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="border border-gray-300 px-3 py-2 rounded-lg text-sm w-full"
+            rows={2}
           />
-
-          <input
-            type="number"
-            min={1}
-            placeholder="Orden"
-            value={orden}
-            onChange={(e) => setOrden(Number(e.target.value))}
-            className="border px-3 py-2 rounded"
-          />
-
-          <button
-            onClick={crear}
-            disabled={submitting || !isFormValid}
-            className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? "Guardando..." : "Agregar"}
-          </button>
-        </div>
-
-        <textarea
-          placeholder="Descripción (opcional)"
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          className="border px-3 py-2 rounded w-full"
-          rows={2}
-        />
-      </div>
+        </PageHeaderCard>
 
       {/* Tabla */}
       {loading ? (
-        <p>Cargando...</p>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+          Cargando...
+        </div>
       ) : (
-        <table className="w-full bg-white rounded shadow">
-          <thead className="bg-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
             <tr>
               <th className="p-2">Orden</th>
               <th className="p-2">Nombre</th>
@@ -282,7 +290,7 @@ export default function FormularioSeccionesPage() {
                   {editingId === seccion.fse_id ? (
                     <button
                       onClick={guardarEdicion}
-                      className="text-indigo-600"
+                      className="text-brand-600 font-semibold"
                     >
                       Guardar
                     </button>
@@ -290,7 +298,7 @@ export default function FormularioSeccionesPage() {
                     <>
                       <button
                         onClick={() => iniciarEdicion(seccion)}
-                        className="text-indigo-600"
+                        className="text-brand-600 font-semibold"
                       >
                         Editar
                       </button>
@@ -307,7 +315,9 @@ export default function FormularioSeccionesPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
+      </div>
 
       {/* Modals */}
       {modalState.type === "error" && (

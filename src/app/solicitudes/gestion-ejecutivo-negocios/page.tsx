@@ -17,6 +17,8 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   calcularDiasRestantes,
   DiasRestantesBadge,
@@ -278,7 +280,7 @@ export default function ConceptoEjecutivoPage() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc,#eef1f7)] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <LoadingModal isOpen={loading} message="Cargando solicitudes..." />
       <div className="max-w-[115rem] mx-auto">
         <PageHeaderCard
@@ -289,10 +291,7 @@ export default function ConceptoEjecutivoPage() {
           onBack={() => router.push("/solicitudes")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Centro de operación
-              </label>
+            <FilterField label="Centro de operación">
               <select
                 value={centroFiltro ?? ""}
                 onChange={(event) =>
@@ -312,12 +311,9 @@ export default function ConceptoEjecutivoPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Buscar
-              </label>
+            <FilterField label="Buscar">
               <input
                 type="text"
                 placeholder="No. solicitud, cliente o centro"
@@ -325,33 +321,27 @@ export default function ConceptoEjecutivoPage() {
                 onChange={(event) => setSearchInput(event.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Fecha inicio
-              </label>
+            <FilterField label="Fecha inicio">
               <input
                 type="date"
                 value={fechaInicio}
                 onChange={(event) => setFechaInicio(event.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Fecha fin
-              </label>
+            <FilterField label="Fecha fin">
               <input
                 type="date"
                 value={fechaFin}
                 onChange={(event) => setFechaFin(event.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
 
-            <div className="flex items-end justify-end gap-2">
+            <FilterActions className="col-span-full">
               <button
                 onClick={limpiarFiltros}
                 className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
@@ -367,7 +357,7 @@ export default function ConceptoEjecutivoPage() {
                 <Search className="h-4 w-4" />
                 Buscar
               </button>
-            </div>
+            </FilterActions>
           </div>
         </PageHeaderCard>
 
@@ -499,7 +489,7 @@ export default function ConceptoEjecutivoPage() {
                                     `/solicitudes/gestion-ejecutivo-negocios/${solicitud.sol_id ?? solicitud.sa_sol_id}/registrar`,
                                   )
                                 }
-                                className="px-4 py-2 bg-[#003d99] text-white rounded-lg hover:bg-[#0047b3] transition-colors text-sm font-medium"
+                                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
                               >
                                 Registrar Concepto
                               </button>

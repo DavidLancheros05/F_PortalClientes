@@ -3,10 +3,14 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
-import { ArrowLeft, Package } from "lucide-react";
+import { Package, PackageOpen, Search, X } from "lucide-react";
 import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   pedidosService,
   type PedidoClienteResponse,
@@ -43,7 +47,22 @@ export default function MisPedidosPage() {
   const [pedidos, setPedidos] = useState<PedidoClienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
+  // Valores que el usuario está escribiendo (ligados a los inputs).
+  const [filtroNumeroInput, setFiltroNumeroInput] = useState("");
+  const [filtroClienteInput, setFiltroClienteInput] = useState("");
+  const [filtroEstadoInput, setFiltroEstadoInput] = useState("");
+  const [filtroDescripcionInput, setFiltroDescripcionInput] = useState("");
+  const [filtroNumeroPedidoInput, setFiltroNumeroPedidoInput] = useState("");
+  const [filtroOrdenCompraInput, setFiltroOrdenCompraInput] = useState("");
+  const [filtroReferenciaInput, setFiltroReferenciaInput] = useState("");
+  const [filtroFechaDesdeInput, setFiltroFechaDesdeInput] = useState("");
+  const [filtroFechaHastaInput, setFiltroFechaHastaInput] = useState("");
+
+  // Valores realmente aplicados al filtrado — solo cambian al presionar
+  // "Buscar" o "Limpiar filtros", no en cada tecla (igual que el resto de
+  // páginas de listados del portal).
   const [filtroNumero, setFiltroNumero] = useState("");
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
@@ -91,9 +110,31 @@ export default function MisPedidosPage() {
     filtroReferencia,
     filtroFechaDesde,
     filtroFechaHasta,
-  ]);
+  ]); // deps: filtros aplicados (los que "Buscar"/"Limpiar" escriben), no los inputs en vivo
+
+  const handleBuscar = () => {
+    setHasSearched(true);
+    setFiltroNumero(filtroNumeroInput);
+    setFiltroCliente(filtroClienteInput);
+    setFiltroEstado(filtroEstadoInput);
+    setFiltroDescripcion(filtroDescripcionInput);
+    setFiltroNumeroPedido(filtroNumeroPedidoInput);
+    setFiltroOrdenCompra(filtroOrdenCompraInput);
+    setFiltroReferencia(filtroReferenciaInput);
+    setFiltroFechaDesde(filtroFechaDesdeInput);
+    setFiltroFechaHasta(filtroFechaHastaInput);
+  };
 
   const limpiarFiltros = () => {
+    setFiltroNumeroInput("");
+    setFiltroClienteInput("");
+    setFiltroEstadoInput("");
+    setFiltroDescripcionInput("");
+    setFiltroNumeroPedidoInput("");
+    setFiltroOrdenCompraInput("");
+    setFiltroReferenciaInput("");
+    setFiltroFechaDesdeInput("");
+    setFiltroFechaHastaInput("");
     setFiltroNumero("");
     setFiltroCliente("");
     setFiltroEstado("");
@@ -103,6 +144,7 @@ export default function MisPedidosPage() {
     setFiltroReferencia("");
     setFiltroFechaDesde("");
     setFiltroFechaHasta("");
+    setHasSearched(false);
   };
 
   const clientesDisponibles = useMemo(() => {
@@ -279,52 +321,29 @@ export default function MisPedidosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-      <div className="max-w-[90%] mx-auto mt-2 px-2">
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push("/pedidos")}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
-              >
-                <ArrowLeft size={16} />
-                Volver
-              </button>
-              <div className="bg-white/20 rounded-full p-2 flex-shrink-0">
-                <Package className="text-white" size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg md:text-xl font-bold text-white">Listado de pedidos</h1>
-                <p className="text-xs md:text-sm text-blue-100 truncate">
-                  Consulta y seguimiento de los pedidos asociados a tu usuario.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 border-b border-gray-200 bg-white/50">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-[115rem] mx-auto">
+        <PageHeaderCard
+          icon={Package}
+          eyebrow="Pedidos"
+          title="Listado de pedidos"
+          subtitle="Consulta y seguimiento de los pedidos asociados a tu usuario."
+          onBack={() => router.push("/pedidos")}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de documento
-              </label>
+            <FilterField label="Número de documento">
               <input
                 type="text"
-                value={filtroNumero}
-                onChange={(e) => setFiltroNumero(e.target.value)}
+                value={filtroNumeroInput}
+                onChange={(e) => setFiltroNumeroInput(e.target.value)}
                 placeholder="Ej: PV-00259993"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cliente
-              </label>
+            </FilterField>
+            <FilterField label="Cliente">
               <select
-                value={filtroCliente}
-                onChange={(e) => setFiltroCliente(e.target.value)}
+                value={filtroClienteInput}
+                onChange={(e) => setFiltroClienteInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todos los clientes</option>
@@ -334,14 +353,11 @@ export default function MisPedidosPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estado
-              </label>
+            </FilterField>
+            <FilterField label="Estado">
               <select
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
+                value={filtroEstadoInput}
+                onChange={(e) => setFiltroEstadoInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todos los estados</option>
@@ -351,111 +367,106 @@ export default function MisPedidosPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </label>
+            </FilterField>
+            <FilterField label="Descripción">
               <input
                 type="text"
-                value={filtroDescripcion}
-                onChange={(e) => setFiltroDescripcion(e.target.value)}
+                value={filtroDescripcionInput}
+                onChange={(e) => setFiltroDescripcionInput(e.target.value)}
                 placeholder="Ej: CAJA CJ 3550"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Número de pedido
-              </label>
+            </FilterField>
+            <FilterField label="Número de pedido">
               <input
                 type="text"
-                value={filtroNumeroPedido}
-                onChange={(e) => setFiltroNumeroPedido(e.target.value)}
+                value={filtroNumeroPedidoInput}
+                onChange={(e) => setFiltroNumeroPedidoInput(e.target.value)}
                 placeholder="Ej: 259993"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Orden de compra
-              </label>
+            </FilterField>
+            <FilterField label="Orden de compra">
               <input
                 type="text"
-                value={filtroOrdenCompra}
-                onChange={(e) => setFiltroOrdenCompra(e.target.value)}
+                value={filtroOrdenCompraInput}
+                onChange={(e) => setFiltroOrdenCompraInput(e.target.value)}
                 placeholder="Ej: 19078"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Referencia
-              </label>
+            </FilterField>
+            <FilterField label="Referencia">
               <input
                 type="text"
-                value={filtroReferencia}
-                onChange={(e) => setFiltroReferencia(e.target.value)}
+                value={filtroReferenciaInput}
+                onChange={(e) => setFiltroReferenciaInput(e.target.value)}
                 placeholder="Ej: BAR00002571571"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha creación desde
-              </label>
+            </FilterField>
+            <FilterField label="Fecha creación desde">
               <input
                 type="date"
-                value={filtroFechaDesde}
-                onChange={(e) => setFiltroFechaDesde(e.target.value)}
+                value={filtroFechaDesdeInput}
+                onChange={(e) => setFiltroFechaDesdeInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha creación hasta
-              </label>
+            </FilterField>
+            <FilterField label="Fecha creación hasta">
               <input
                 type="date"
-                value={filtroFechaHasta}
-                onChange={(e) => setFiltroFechaHasta(e.target.value)}
+                value={filtroFechaHastaInput}
+                onChange={(e) => setFiltroFechaHastaInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
+            </FilterField>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar filtros
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={limpiarFiltros}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-          </div>
+        </PageHeaderCard>
 
-          <ResultsToolbar
-            count={pedidosFiltrados.length}
-            label={`de ${pedidos.length} pedido(s)`}
-            onExport={exportarExcel}
+        {!hasSearched ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Presiona Buscar para ver tus pedidos."
+            subtitle="Opcionalmente puedes filtrar antes de buscar."
           />
-
-          {loading ? (
-            <div className="p-8 text-center text-gray-600">
-              Cargando pedidos...
-            </div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-600">
-              No se pudieron cargar los pedidos.
-            </div>
-          ) : pedidos.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              No se encontraron pedidos.
-            </div>
-          ) : pedidosFiltrados.length === 0 ? (
-            <div className="p-8 text-center text-gray-600">
-              Ningún pedido coincide con los filtros aplicados.
-            </div>
-          ) : (
+        ) : loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-gray-600">
+            Cargando pedidos...
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center text-red-600">
+            No se pudieron cargar los pedidos.
+          </div>
+        ) : pedidos.length === 0 ? (
+          <EmptyStateCard icon={PackageOpen} title="No se encontraron pedidos." />
+        ) : pedidosFiltrados.length === 0 ? (
+          <EmptyStateCard
+            icon={PackageOpen}
+            title="Ningún pedido coincide con los filtros aplicados."
+          />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            <ResultsToolbar
+              count={pedidosFiltrados.length}
+              label={`de ${pedidos.length} pedido(s)`}
+              onExport={exportarExcel}
+            />
             <TableContainer>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -550,9 +561,7 @@ export default function MisPedidosPage() {
               </table>
             </div>
             </TableContainer>
-          )}
 
-          {!loading && !error && pedidosFiltrados.length > 0 && (
             <TablePagination
               page={currentPage}
               pageSize={pageSize}
@@ -563,8 +572,8 @@ export default function MisPedidosPage() {
                 setCurrentPage(1);
               }}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

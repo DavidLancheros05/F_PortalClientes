@@ -16,6 +16,10 @@ import {
   formulariosService,
   type Formulario,
 } from "@/services/parametrizacion/formularios.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
+
 export default function FormulariosPage() {
   const router = useRouter();
   const [formularios, setFormularios] = useState<Formulario[]>([]);
@@ -70,80 +74,59 @@ export default function FormulariosPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <div className="mb-3">
-                <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
-                  Gestión de formularios
-                </p>
-              </div>
-              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-4" />
-              <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-                Formularios y sus versiones
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Administra formularios, versiones y edición de contenido
-              </p>
-            </div>
+        <PageHeaderCard
+          icon={FileText}
+          eyebrow="Parametrización"
+          title="Formularios"
+          subtitle="Administra formularios, versiones y edición de contenido"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <FilterField label="Buscar formulario" className="md:col-span-2">
+              <input
+                type="text"
+                value={filtroTexto}
+                onChange={(e) => setFiltroTexto(e.target.value)}
+                placeholder="Nombre o descripción"
+                className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </FilterField>
+
+            <FilterField label="Estado">
+              <select
+                value={filtroEstado}
+                onChange={(e) =>
+                  setFiltroEstado(
+                    e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
+                  )
+                }
+                className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="TODOS">Todos</option>
+                <option value="ACTIVO">Activos</option>
+                <option value="INACTIVO">Inactivos</option>
+              </select>
+            </FilterField>
+
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={buscarFormularios}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
           </div>
-
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4">
-            <div className="px-6 py-4 border-b border-gray-200 bg-blue-50/40">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Buscar formulario
-                  </label>
-                  <input
-                    type="text"
-                    value={filtroTexto}
-                    onChange={(e) => setFiltroTexto(e.target.value)}
-                    placeholder="Nombre o descripción"
-                    className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Estado
-                  </label>
-                  <select
-                    value={filtroEstado}
-                    onChange={(e) =>
-                      setFiltroEstado(
-                        e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
-                      )
-                    }
-                    className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="TODOS">Todos</option>
-                    <option value="ACTIVO">Activos</option>
-                    <option value="INACTIVO">Inactivos</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={buscarFormularios}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  >
-                    <Search className="h-4 w-4" />
-                    Buscar
-                  </button>
-                  <button
-                    onClick={limpiarFiltros}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-                  >
-                    <X className="h-4 w-4" />
-                    Limpiar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+        </PageHeaderCard>
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
@@ -197,7 +180,7 @@ export default function FormulariosPage() {
                       <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-3 mb-2">
-                            <FileText className="h-5 w-5 text-blue-600" />
+                            <FileText className="h-5 w-5 text-brand-600" />
                             <h3 className="text-lg md:text-xl font-semibold text-gray-800">
                               {formulario.frm_nombre}
                             </h3>
@@ -295,7 +278,6 @@ export default function FormulariosPage() {
               </p>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );

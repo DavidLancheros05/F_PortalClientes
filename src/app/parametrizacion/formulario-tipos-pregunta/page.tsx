@@ -7,6 +7,10 @@ import {
   TipoPregunta,
 } from "@/services/parametrizacion/formulario-tipos-pregunta.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
+import { ListTree } from "lucide-react";
 
 export default function FormularioTiposPreguntaPage() {
   const [items, setItems] = useState<TipoPregunta[]>([]);
@@ -263,37 +267,28 @@ export default function FormularioTiposPreguntaPage() {
   const inactivos = total - activos;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-3">
-                <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
-                  Gestión de tipos de pregunta
-                </p>
-                <button
-                  onClick={() => {
-                    setMostrarNuevo(true);
-                    limpiarFormulario();
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nuevo
-                </button>
-              </div>
-              <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-4" />
-              <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-                Catálogo de tipos de pregunta del formulario
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Administra los tipos disponibles para configurar preguntas.
-              </p>
-            </div>
-          </div>
+        <PageHeaderCard
+          icon={ListTree}
+          eyebrow="Parametrización"
+          title="Tipos de pregunta"
+          subtitle="Administra los tipos disponibles para configurar preguntas del formulario."
+          actions={
+            <button
+              onClick={() => {
+                setMostrarNuevo(true);
+                limpiarFormulario();
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo
+            </button>
+          }
+        />
 
-          {mostrarNuevo && (
+        {mostrarNuevo && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
@@ -332,7 +327,7 @@ export default function FormularioTiposPreguntaPage() {
                       className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                         submitting
                           ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                          : "bg-brand-600 hover:bg-brand-700 text-white"
                       }`}
                     >
                       <Plus className="h-4 w-4" />
@@ -344,7 +339,7 @@ export default function FormularioTiposPreguntaPage() {
                         limpiarFormulario();
                         setMostrarNuevo(false);
                       }}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
                     >
                       <X className="h-4 w-4" />
                       Cerrar
@@ -355,58 +350,50 @@ export default function FormularioTiposPreguntaPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4">
-            <div className="px-6 py-4 border-b border-gray-200 bg-blue-50/40">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Buscar por código o descripción
-                  </label>
-                  <input
-                    type="text"
-                    value={filtroTexto}
-                    onChange={(event) => setFiltroTexto(event.target.value)}
-                    placeholder="Ej: texto, selección"
-                    className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <FilterField label="Buscar por código o descripción" className="md:col-span-2">
+                <input
+                  type="text"
+                  value={filtroTexto}
+                  onChange={(event) => setFiltroTexto(event.target.value)}
+                  placeholder="Ej: texto, selección"
+                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </FilterField>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Estado
-                  </label>
-                  <select
-                    value={filtroEstado}
-                    onChange={(event) =>
-                      setFiltroEstado(
-                        event.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
-                      )
-                    }
-                    className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="TODOS">Todos</option>
-                    <option value="ACTIVO">Activos</option>
-                    <option value="INACTIVO">Inactivos</option>
-                  </select>
-                </div>
+              <FilterField label="Estado">
+                <select
+                  value={filtroEstado}
+                  onChange={(event) =>
+                    setFiltroEstado(
+                      event.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
+                    )
+                  }
+                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="TODOS">Todos</option>
+                  <option value="ACTIVO">Activos</option>
+                  <option value="INACTIVO">Inactivos</option>
+                </select>
+              </FilterField>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => aplicarFiltros()}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  >
-                    <Search className="h-4 w-4" />
-                    Buscar
-                  </button>
-                  <button
-                    onClick={limpiarFiltros}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-                  >
-                    <X className="h-4 w-4" />
-                    Limpiar
-                  </button>
-                </div>
-              </div>
+              <FilterActions className="col-span-full">
+                <button
+                  onClick={limpiarFiltros}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+                >
+                  <X className="h-4 w-4" />
+                  Limpiar
+                </button>
+                <button
+                  onClick={() => aplicarFiltros()}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
+                >
+                  <Search className="h-4 w-4" />
+                  Buscar
+                </button>
+              </FilterActions>
             </div>
           </div>
 
@@ -534,7 +521,7 @@ export default function FormularioTiposPreguntaPage() {
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => iniciarEdicion(item)}
-                                className="inline-flex min-w-[92px] items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                                className="inline-flex min-w-[92px] items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
                               >
                                 <Pencil className="mr-1 h-3.5 w-3.5" />
                                 Editar
@@ -583,7 +570,6 @@ export default function FormularioTiposPreguntaPage() {
               </p>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Modals */}

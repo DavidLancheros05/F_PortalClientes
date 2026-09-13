@@ -18,6 +18,8 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   calcularDiasRestantes,
   DiasRestantesBadge,
@@ -302,7 +304,7 @@ export default function AprobacionDesaprobacionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fc,#eef1f7)] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-[115rem] mx-auto">
         <PageHeaderCard
           icon={Headset}
@@ -311,10 +313,7 @@ export default function AprobacionDesaprobacionPage() {
           onBack={() => router.back()}
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Centro de operacion *
-              </label>
+            <FilterField label="Centro de operacion *">
               <select
                 value={centroSeleccionado ? String(centroSeleccionado) : ""}
                 onChange={(e) =>
@@ -334,11 +333,8 @@ export default function AprobacionDesaprobacionPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cliente
-              </label>
+            </FilterField>
+            <FilterField label="Cliente">
               <select
                 value={clienteSeleccionado ?? ""}
                 onChange={(e) =>
@@ -359,11 +355,8 @@ export default function AprobacionDesaprobacionPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Numero de solicitud
-              </label>
+            </FilterField>
+            <FilterField label="Numero de solicitud">
               <input
                 type="text"
                 value={numeroFiltro}
@@ -371,8 +364,8 @@ export default function AprobacionDesaprobacionPage() {
                 placeholder="Ej: SOL-00123"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div className="flex items-end justify-end">
+            </FilterField>
+            <FilterActions className="col-span-full">
               <button
                 onClick={() => buscar()}
                 disabled={loadingSolicitudes}
@@ -380,7 +373,7 @@ export default function AprobacionDesaprobacionPage() {
               >
                 Buscar
               </button>
-            </div>
+            </FilterActions>
           </div>
         </PageHeaderCard>
 
@@ -525,7 +518,7 @@ export default function AprobacionDesaprobacionPage() {
                                   `/solicitudes/gestion-auxiliar-servicio-al-cliente/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
                                 )
                               }
-                              className="px-4 py-2 bg-[#003d99] text-white rounded-lg hover:bg-[#0047b3] transition-colors text-sm font-medium"
+                              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
                             >
                               Gestionar
                             </button>

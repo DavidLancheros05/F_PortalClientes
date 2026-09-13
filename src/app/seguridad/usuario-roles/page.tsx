@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import {
@@ -8,6 +7,9 @@ import {
   type UsuarioRol,
 } from "@/services/usuario-roles/usuario-roles.service";
 import { rolesService, type Rol } from "@/services/roles/roles.service";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 import {
   Shield,
@@ -21,19 +23,24 @@ import {
 } from "lucide-react";
 
 export default function UsuarioRolesPage() {
-  const router = useRouter();
   const { loading: authLoading } = useContext(AuthContext);
 
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(
     null,
   );
   const [usuarioRoles, setUsuarioRoles] = useState<UsuarioRol[]>([]);
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{
+    usuarioId: number;
+    rolId: number;
+    rolNombre: string;
+  } | null>(null);
 
   const fetchData = async () => {
     try {
@@ -67,7 +74,9 @@ export default function UsuarioRolesPage() {
         setUsuarioRoles(rolesData);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar roles");
+      setActionError(
+        err instanceof Error ? err.message : "Error al cargar roles",
+      );
     }
   };
 
@@ -77,56 +86,55 @@ export default function UsuarioRolesPage() {
       const rolesData = await usuarioRolesService.getByUsuario(usuarioId);
       setUsuarioRoles(rolesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al asignar rol");
+      setActionError(
+        err instanceof Error ? err.message : "Error al asignar rol",
+      );
     }
   };
 
-  const handleRemoveRole = async (usuarioId: number, rolId: number) => {
+  const performRemoveRole = async () => {
+    if (!confirmRemove) return;
+    const { usuarioId, rolId } = confirmRemove;
     try {
       await usuarioRolesService.removeRole(usuarioId, rolId);
       const rolesData = await usuarioRolesService.getByUsuario(usuarioId);
       setUsuarioRoles(rolesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al remover rol");
+      setActionError(
+        err instanceof Error ? err.message : "Error al remover rol",
+      );
+    } finally {
+      setConfirmRemove(null);
     }
   };
 
-  if (loading && usuarios.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Gestionar Rol de Usuarios
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Asigna roles a usuarios del sistema
-              </p>
-            </div>
-          </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={Users}
+          eyebrow="Seguridad"
+          title="Gestionar Rol de Usuarios"
+          subtitle="Asigna y administra roles para cada usuario"
+          actions={
+            <button
+              onClick={() => fetchData()}
+              className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualizar
+            </button>
+          }
+        />
+
+        {loading && usuarios.length === 0 ? (
           <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-lg">
             <div className="text-center">
-              <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+              <Loader2 className="w-12 h-12 text-brand-500 animate-spin mx-auto mb-4" />
               <p className="text-gray-600">Cargando usuarios...</p>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Gestionar Rol de Usuarios
-              </h1>
-            </div>
-          </div>
+        ) : error ? (
           <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-xl">
             <div className="flex">
               <AlertCircle className="h-6 w-6 text-red-500 mr-3" />
@@ -143,55 +151,24 @@ export default function UsuarioRolesPage() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Gestionar Rol de Usuarios
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Asigna y administra roles para cada usuario
-            </p>
-          </div>
-          <button
-            onClick={() => fetchData()}
-            className="flex items-center px-4 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 shadow border border-gray-200 transition"
-          >
-            <RefreshCw className="w-5 h-5 mr-2" />
-            Actualizar
-          </button>
-        </div>
-
-        {/* Lista de Usuarios */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="divide-y divide-gray-200">
-            {usuarios.length === 0 ? (
-              <div className="text-center py-16">
-                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                  No hay usuarios disponibles
-                </h3>
-                <p className="text-gray-500">
-                  Crea usuarios primero para asignar roles
-                </p>
-              </div>
-            ) : (
-              usuarios.map((usuario) => (
+        ) : usuarios.length === 0 ? (
+          <EmptyStateCard
+            icon={Users}
+            title="No hay usuarios disponibles"
+            subtitle="Crea usuarios primero para asignar roles"
+          />
+        ) : (
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="divide-y divide-gray-200">
+              {usuarios.map((usuario) => (
                 <div key={usuario.usr_id}>
                   <button
                     onClick={() => handleSelectUsuario(usuario.usr_id)}
                     className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition text-left"
                   >
                     <div className="flex items-center flex-1">
-                      <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center mr-4">
-                        <Users className="w-5 h-5 text-blue-600" />
+                      <div className="h-10 w-10 rounded-lg bg-[#eef3ff] flex items-center justify-center mr-4">
+                        <Users className="w-5 h-5 text-brand-600" />
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900">
@@ -203,7 +180,7 @@ export default function UsuarioRolesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                      <span className="px-3 py-1 bg-[#eef3ff] text-brand-700 rounded-full text-xs font-medium">
                         {
                           usuarioRoles.filter(
                             (ur) => ur.usuarioId === usuario.usr_id,
@@ -249,7 +226,11 @@ export default function UsuarioRolesPage() {
                               </div>
                               <button
                                 onClick={() =>
-                                  handleRemoveRole(usuario.usr_id, rol.rolId)
+                                  setConfirmRemove({
+                                    usuarioId: usuario.usr_id,
+                                    rolId: rol.rolId,
+                                    rolNombre: rol.rolNombre,
+                                  })
                                 }
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                 title="Remover rol"
@@ -285,10 +266,10 @@ export default function UsuarioRolesPage() {
                                   onClick={() =>
                                     handleAssignRole(usuario.usr_id, rol.rolId)
                                   }
-                                  className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition"
+                                  className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-[#eef3ff] hover:border-[#b9d0f7] transition"
                                 >
                                   <div className="flex items-center flex-1 text-left">
-                                    <Plus className="w-4 h-4 text-blue-600 mr-2" />
+                                    <Plus className="w-4 h-4 text-brand-600 mr-2" />
                                     <div>
                                       <div className="text-sm font-medium text-gray-900">
                                         {rol.rolNombre}
@@ -306,11 +287,28 @@ export default function UsuarioRolesPage() {
                     </div>
                   )}
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      <ConfirmModal
+        isOpen={confirmRemove !== null}
+        title="Quitar rol"
+        message={`¿Deseas quitar el rol "${confirmRemove?.rolNombre}" a este usuario?`}
+        confirmText="Quitar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={performRemoveRole}
+        onCancel={() => setConfirmRemove(null)}
+      />
+
+      <ErrorModal
+        isOpen={!!actionError}
+        message={actionError}
+        onAction={() => setActionError("")}
+      />
     </div>
   );
 }

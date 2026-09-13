@@ -9,6 +9,7 @@ import {
 import { EmailPreview } from "@/components/EmailPreview";
 import { HtmlBodyEditor } from "@/components/HtmlBodyEditor";
 import { ConfirmModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
 import {
   Save,
   Mail,
@@ -194,43 +195,32 @@ export default function NotificacionesParametrizacionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-xl">
-                <Bell className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Plantillas de notificaciones
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  Administra asunto, contenido, destinatarios y estado de cada
-                  evento
-                </p>
-              </div>
-            </div>
+        <PageHeaderCard
+          icon={Bell}
+          eyebrow="Parametrización"
+          title="Plantillas de notificaciones"
+          subtitle="Administra asunto, contenido, destinatarios y estado de cada evento"
+          actions={
             <div className="flex gap-2">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-all duration-200"
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
               >
                 <Plus className="h-4 w-4" />
                 Nueva plantilla
               </button>
               <Link
                 href="/parametrizacion/correos-por-rol"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
               >
                 <Users className="h-4 w-4" />
                 Ver correos por rol
               </Link>
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {/* Alertas */}
         {error && (
@@ -498,7 +488,7 @@ export default function NotificacionesParametrizacionPage() {
                             }
                             className="sr-only peer"
                           />
-                          <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                          <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-brand-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                         </div>
                         <span className="text-sm font-medium text-gray-700">
                           Plantilla activa
@@ -509,7 +499,7 @@ export default function NotificacionesParametrizacionPage() {
                         type="button"
                         onClick={guardarCambios}
                         disabled={saving}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                       >
                         {saving ? (
                           <>
@@ -700,7 +690,7 @@ export default function NotificacionesParametrizacionPage() {
                         className="sr-only peer"
                         disabled={saving}
                       />
-                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                      <div className="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-brand-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                     </div>
                     <span className="text-sm font-medium text-gray-700">
                       Plantilla activa
@@ -720,7 +710,7 @@ export default function NotificacionesParametrizacionPage() {
                       type="button"
                       onClick={crearPlantilla}
                       disabled={saving}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                     >
                       {saving ? (
                         <>
