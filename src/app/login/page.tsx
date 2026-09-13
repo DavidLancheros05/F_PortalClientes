@@ -78,7 +78,7 @@ function LoginForm() {
       });
       // console.log("[LoginPage] login response:", data);
 
-      if (!data.token || !data.user) {
+      if (!data.user) {
         setLoginError("Error al iniciar sesión");
         return;
       }
@@ -96,7 +96,7 @@ function LoginForm() {
               },
       };
 
-      login(data.token, usuario);
+      login(usuario);
 
       if (data.modulos && Array.isArray(data.modulos)) {
         localStorage.setItem("modulos", JSON.stringify(data.modulos));

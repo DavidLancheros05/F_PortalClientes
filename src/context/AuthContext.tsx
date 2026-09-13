@@ -38,7 +38,7 @@ interface User {
 interface AuthContextProps {
   user: User | null;
   loading: boolean;
-  login: (token: string, userData: any) => void;
+  login: (userData: any) => void;
   logout: () => Promise<void>;
 }
 
@@ -139,9 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login: guardar el perfil del usuario. El JWT ya no se guarda acá — el
   // backend lo manda como cookie httpOnly en la misma respuesta de
   // /auth/login (Fase 1 de documentacion/migracion-auth-httponly.md en
-  // B_PortalClientes); `token` se mantiene en la firma solo por
-  // compatibilidad con quien llama (login/page.tsx), sin usarlo.
-  const login = (_token: string, userData: any) => {
+  // B_PortalClientes). Desde Fase 4, el backend tampoco lo manda en el
+  // body, así que ya no hace falta ni recibirlo acá.
+  const login = (userData: any) => {
     const normalizedUser: User = {
       ...userData,
       rol:

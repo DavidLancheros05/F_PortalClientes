@@ -7,7 +7,9 @@ interface LoginPayload {
 }
 
 interface LoginResponse {
-  token: string;
+  // Fase 4 de la migración de auth (ver
+  // B_PortalClientes/documentacion/.../migracion-auth-httponly.md): el JWT
+  // ya no viaja en el body de /auth/login, solo en la cookie httpOnly.
   user: any;
   modulos?: any[];
 }
