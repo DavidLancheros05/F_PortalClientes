@@ -9,7 +9,6 @@ export interface Solicitud {
   sol_fecha_creacion: string;
   sol_created_at: string;
   sol_updated_at: string;
-  sol_razon_social?: string;
   cliente_nombre?: string;
 }
 

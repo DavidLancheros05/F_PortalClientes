@@ -29,6 +29,18 @@ export const solicitudesService = {
   // Crear nueva solicitud
   async create(data: any) {
     const response = await api.post("/solicitudes", data);
+    // El backend responde 200 con { ok: false, error } en vez de un status
+    // HTTP de error (ver comentario en solicitudes.controller.ts::crearSolicitud)
+    // — sin este chequeo, extractSolicitudId() no encuentra ningún id y
+    // lanza un error genérico con el JSON completo, tapando el mensaje real
+    // del backend (ej. "El cliente ya tiene una solicitud en borrador...").
+    if (response.data?.ok === false) {
+      throw new Error(
+        response.data?.error ||
+          response.data?.mensaje ||
+          "No se pudo crear la solicitud",
+      );
+    }
     return response.data;
   },
 
@@ -567,7 +579,6 @@ export const solicitudesService = {
 
       const nuevaSolicitud = await this.create({
         cliente_id: clienteId,
-        co_id: 1,
         usuario_crea: usuarioId,
         estado_id: estado.id,
       });
