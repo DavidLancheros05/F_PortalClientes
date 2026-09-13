@@ -1,5 +1,5 @@
 // Estados de solicitud con sus códigos y IDs — debe coincidir con la tabla
-// real `solicitud_estados` (ver BACKEND/FLUJO_ETAPAS.md); no hay estado
+// real `solicitud_estados` (ver documentacion/Portal Clientes/Solicitudes/FLUJO_ETAPAS.md); no hay estado
 // CANCELADA en el catálogo real.
 export const ESTADO_SOLICITUD = {
   BORRADOR: { id: 1, codigo: "BORRADOR", label: "Borrador" },
