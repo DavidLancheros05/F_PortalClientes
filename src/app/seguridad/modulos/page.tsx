@@ -435,17 +435,20 @@ const ModulosPage = () => {
     setBlockedTargetId(null);
   };
 
-  const handleCellDragStart = (
-    e: React.DragEvent<HTMLTableCellElement>,
+  // El drag-and-drop nativo de HTML5 (draggable + dragstart/dragover/drop)
+  // resultó poco confiable en la práctica (texto seleccionable capturando
+  // el gesto, botones anidados capturando el mousedown) — se reemplazó por
+  // una implementación a mano con mousedown/mousemove/mouseup que no
+  // depende de las heurísticas de arrastre nativo del navegador. Las filas
+  // llevan `data-mod-row-id` y la zona de soltar en raíz lleva
+  // `data-root-dropzone` para poder ubicar el destino con
+  // `document.elementFromPoint` durante el gesto.
+  const handleRowMouseDown = (
+    e: React.MouseEvent,
     targetModuloId: number | undefined,
   ) => {
-    if (!targetModuloId) {
-      e.preventDefault();
-      return;
-    }
-
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(targetModuloId));
+    if (!targetModuloId) return;
+    e.preventDefault();
     setDraggingModuloId(targetModuloId);
     setDropIndicator(null);
     setBlockedTargetId(null);
@@ -909,49 +912,108 @@ const ModulosPage = () => {
     }
   };
 
-  const handleRowDragOver = (
-    e: React.DragEvent<HTMLTableRowElement>,
-    targetNodeId: number,
-  ) => {
+  // Mientras hay un módulo "agarrado" (draggingModuloId), escucha
+  // mousemove/mouseup a nivel de documento para ubicar el destino por
+  // coordenadas (en vez de depender de dragover/drop nativos por celda).
+  useEffect(() => {
     if (!draggingModuloId) return;
 
-    e.preventDefault();
-    const sourceRow = flattenedRows.find(
-      (r) => r.node.mod_id === draggingModuloId,
-    );
-    const targetRow = flattenedRows.find((r) => r.node.mod_id === targetNodeId);
+    let latestHover: { targetId: number; position: "above" | "below" } | null =
+      null;
 
-    if (!sourceRow || !targetRow) {
-      setDropIndicator(null);
-      setBlockedTargetId(null);
-      return;
-    }
+    const handleMouseMove = (e: MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY) as
+        | HTMLElement
+        | null;
+      const rowEl = el?.closest<HTMLElement>("[data-mod-row-id]") ?? null;
 
-    const validation = validateDropByLevel(sourceRow, targetRow);
-    if (!validation.allowed) {
-      setDropIndicator(null);
-      setBlockedTargetId(targetNodeId);
-      return;
-    }
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offsetY = e.clientY - rect.top;
-    const position: "above" | "below" =
-      offsetY < rect.height / 2 ? "above" : "below";
-
-    setBlockedTargetId(null);
-
-    setDropIndicator((prev) => {
-      if (
-        prev &&
-        prev.targetId === targetNodeId &&
-        prev.position === position
-      ) {
-        return prev;
+      if (!rowEl) {
+        latestHover = null;
+        setDropIndicator(null);
+        setBlockedTargetId(null);
+        return;
       }
-      return { targetId: targetNodeId, position };
-    });
-  };
+
+      const targetNodeId = Number(rowEl.dataset.modRowId);
+      if (targetNodeId === draggingModuloId) {
+        latestHover = null;
+        setDropIndicator(null);
+        setBlockedTargetId(null);
+        return;
+      }
+
+      const sourceRow = flattenedRows.find(
+        (r) => r.node.mod_id === draggingModuloId,
+      );
+      const targetRow = flattenedRows.find(
+        (r) => r.node.mod_id === targetNodeId,
+      );
+
+      if (!sourceRow || !targetRow) {
+        latestHover = null;
+        setDropIndicator(null);
+        setBlockedTargetId(null);
+        return;
+      }
+
+      const validation = validateDropByLevel(sourceRow, targetRow);
+      if (!validation.allowed) {
+        latestHover = null;
+        setDropIndicator(null);
+        setBlockedTargetId(targetNodeId);
+        return;
+      }
+
+      const rect = rowEl.getBoundingClientRect();
+      const position: "above" | "below" =
+        e.clientY - rect.top < rect.height / 2 ? "above" : "below";
+
+      latestHover = { targetId: targetNodeId, position };
+      setBlockedTargetId(null);
+      setDropIndicator((prev) =>
+        prev && prev.targetId === targetNodeId && prev.position === position
+          ? prev
+          : { targetId: targetNodeId, position },
+      );
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY) as
+        | HTMLElement
+        | null;
+      const dropZoneEl = el?.closest<HTMLElement>("[data-root-dropzone]");
+
+      if (dropZoneEl) {
+        handleDropToRoot();
+        return;
+      }
+
+      if (latestHover) {
+        const targetNode = getModuloById(modulos, latestHover.targetId);
+        if (targetNode) {
+          handleDropOnRow(targetNode, latestHover.position);
+          return;
+        }
+      }
+
+      clearDragState();
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = previousUserSelect;
+    };
+    // Solo debe re-suscribirse cuando arranca/termina un drag — el resto
+    // de valores se leen frescos desde el cuerpo del efecto o desde
+    // `latestHover` para no reinstalar los listeners en cada movimiento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingModuloId]);
 
   // Función para toggle colapso
   const toggleCollapse = (nodeId: number) => {
@@ -1069,19 +1131,12 @@ const ModulosPage = () => {
 
         {/* Drop Zone */}
         <div
+          data-root-dropzone={draggingRow && draggingRow.depth === 0 ? "true" : undefined}
           className={`mb-6 p-4 rounded-xl border-2 border-dashed transition-all ${
             draggingRow && draggingRow.depth > 0
               ? "border-red-300 bg-red-50/50 text-red-500"
               : "border-[#b9d0f7] bg-[#eef3ff]/60 text-brand-600 hover:bg-[#eef3ff]"
           }`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            if (draggingRow && draggingRow.depth > 0) {
-              setBlockedTargetId(-1);
-              setDropIndicator(null);
-            }
-          }}
-          onDrop={handleDropToRoot}
         >
           <div className="flex items-center justify-center gap-2 text-sm">
             <Move className="w-4 h-4" />
@@ -1149,6 +1204,7 @@ const ModulosPage = () => {
                       }) => (
                         <tr
                           key={node.mod_id}
+                          data-mod-row-id={node.mod_id}
                           className={`transition-all ${
                             draggingModuloId === node.mod_id
                               ? "bg-[#eef3ff]"
@@ -1156,15 +1212,6 @@ const ModulosPage = () => {
                                 ? "bg-[#eef3ff]/50"
                                 : "hover:bg-slate-50"
                           }`}
-                          onDragOver={(e) => handleRowDragOver(e, node.mod_id)}
-                          onDrop={() =>
-                            handleDropOnRow(
-                              node,
-                              dropIndicator?.targetId === node.mod_id
-                                ? dropIndicator.position
-                                : "above",
-                            )
-                          }
                           style={
                             dropIndicator?.targetId === node.mod_id
                               ? {
@@ -1182,11 +1229,9 @@ const ModulosPage = () => {
                         >
                           <td
                             className="px-6 py-3 cursor-move group select-none"
-                            draggable={Boolean(pathIds[0])}
-                            onDragStart={(e) =>
-                              handleCellDragStart(e, pathIds[0])
+                            onMouseDown={(e) =>
+                              handleRowMouseDown(e, pathIds[0])
                             }
-                            onDragEnd={clearDragState}
                           >
                             <div className="flex items-center gap-2">
                               <GripVertical className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1194,7 +1239,7 @@ const ModulosPage = () => {
                                 (hasChildren ? (
                                   <button
                                     type="button"
-                                    draggable={false}
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleCollapse(node.mod_id);
@@ -1228,11 +1273,9 @@ const ModulosPage = () => {
                           </td>
                           <td
                             className={`px-6 py-3 ${pathIds[1] ? "cursor-move group select-none" : ""}`}
-                            draggable={Boolean(pathIds[1])}
-                            onDragStart={(e) =>
-                              handleCellDragStart(e, pathIds[1])
+                            onMouseDown={(e) =>
+                              handleRowMouseDown(e, pathIds[1])
                             }
-                            onDragEnd={clearDragState}
                           >
                             {submodulo !== "-" ? (
                               <div className="flex items-center gap-2">
@@ -1247,11 +1290,9 @@ const ModulosPage = () => {
                           </td>
                           <td
                             className={`px-6 py-3 ${pathIds[2] ? "cursor-move group select-none" : ""}`}
-                            draggable={Boolean(pathIds[2])}
-                            onDragStart={(e) =>
-                              handleCellDragStart(e, pathIds[2])
+                            onMouseDown={(e) =>
+                              handleRowMouseDown(e, pathIds[2])
                             }
-                            onDragEnd={clearDragState}
                           >
                             {subsubmodulo !== "-" ? (
                               <div className="flex items-center gap-2 pl-4">
