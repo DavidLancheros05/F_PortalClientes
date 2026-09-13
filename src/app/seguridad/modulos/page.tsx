@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FolderTree,
   Plus,
@@ -16,6 +16,18 @@ import {
   PlusCircle,
 } from "lucide-react";
 import { modulosManagementService } from "@/services/modulos.service";
+import appRoutes from "@/data/app-routes.json";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
+
+// Rutas reales del frontend (generadas desde src/app por
+// `npm run routes:generate` — ver scripts/generate-app-routes.ts). El
+// selector de "Ruta" del formulario solo deja elegir entre estas — no se
+// puede crear un módulo que apunte a una página que no existe. Si la
+// página todavía no se ha construido, el orden correcto es: construirla,
+// correr `npm run routes:generate`, y recién ahí crear/editar el módulo.
+const RUTAS_REALES: string[] = appRoutes as string[];
 
 interface Modulo {
   mod_id: number;
@@ -88,7 +100,7 @@ const ModuloPadreTreeSelect: React.FC<ModuloPadreTreeSelectProps> = ({
               isExcluded
                 ? "text-slate-300 cursor-not-allowed"
                 : value === node.mod_id
-                  ? "bg-blue-100 text-blue-900"
+                  ? "bg-[#eef3ff] text-brand-700"
                   : "hover:bg-slate-100 text-slate-700"
             }`}
             style={{ paddingLeft: `${12 + depth * 20}px` }}
@@ -137,7 +149,7 @@ const ModuloPadreTreeSelect: React.FC<ModuloPadreTreeSelectProps> = ({
       <button
         type="button"
         onClick={() => setTreeOpen(!treeOpen)}
-        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white text-left text-sm text-slate-700 flex items-center justify-between"
+        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all bg-white text-left text-sm text-slate-700 flex items-center justify-between"
       >
         <span>{selectedLabel || "-- Ninguno (módulo principal) --"}</span>
         <ChevronDown
@@ -186,6 +198,12 @@ const ModulosPage = () => {
   const [savingOrder, setSavingOrder] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
+  // Confirmaciones y notificaciones (reemplaza alert()/confirm() nativos)
+  const [confirmInactivarOpen, setConfirmInactivarOpen] = useState(false);
+  const [confirmActivarOpen, setConfirmActivarOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
   // Estado para colapso/expansión
   const [collapsedNodes, setCollapsedNodes] = useState<Set<number>>(new Set());
 
@@ -196,12 +214,14 @@ const ModulosPage = () => {
 
   const [formData, setFormData] = useState({
     nombre: "",
+    ruta: "",
     padre_id: null as number | null,
     icono: "",
     orden: 0,
   });
 
-  const isCreateFormValid = formData.nombre.trim() !== "";
+  const isCreateFormValid =
+    formData.nombre.trim() !== "" && formData.ruta.trim() !== "";
 
   const moduloNombreById = useMemo(() => {
     const map = new Map<number, string>();
@@ -219,16 +239,6 @@ const ModulosPage = () => {
     return map;
   }, [modulos]);
 
-  const slugifySegment = (value: string) =>
-    String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .replace(/-{2,}/g, "-");
-
   const normalizeRoute = (rawRoute: string) => {
     const trimmed = String(rawRoute || "").trim();
     if (!trimmed) return "";
@@ -241,15 +251,6 @@ const ModulosPage = () => {
     }
 
     return collapsed;
-  };
-
-  const generateRoute = (nombre: string, padreId: number | null) => {
-    const segment = slugifySegment(nombre);
-    if (!segment) return "";
-
-    const parentRoute = padreId ? parentRouteById.get(padreId) : null;
-    if (!parentRoute) return `/${segment}`;
-    return normalizeRoute(`${parentRoute}/${segment}`);
   };
 
   const parentRouteById = useMemo(() => {
@@ -267,6 +268,30 @@ const ModulosPage = () => {
     walk(modulos);
     return map;
   }, [modulos]);
+
+  // Rutas que se pueden elegir para el módulo que se está creando/editando:
+  // si tiene padre, solo las páginas que viven bajo la ruta del padre (o la
+  // misma ruta del padre, para el caso de un hijo que reutiliza la página
+  // del padre); si es un módulo raíz, todas las páginas reales.
+  const rutasDisponibles = useMemo(() => {
+    const padreRuta = formData.padre_id
+      ? parentRouteById.get(formData.padre_id)
+      : null;
+
+    const base = !padreRuta
+      ? RUTAS_REALES
+      : RUTAS_REALES.filter(
+          (ruta) => ruta === padreRuta || ruta.startsWith(`${padreRuta}/`),
+        );
+
+    // Si la ruta actual del módulo (editando uno existente) ya no está en
+    // el listado filtrado, se agrega igual al principio para no perderla
+    // de vista silenciosamente — pero marcada, para que se note.
+    if (formData.ruta && !base.includes(formData.ruta)) {
+      return [formData.ruta, ...base];
+    }
+    return base;
+  }, [formData.padre_id, formData.ruta, parentRouteById]);
 
   const getDescendantIds = (modulo: Modulo | null): Set<number> => {
     const ids = new Set<number>();
@@ -426,12 +451,22 @@ const ModulosPage = () => {
     setBlockedTargetId(null);
   };
 
+  // Solo se usa la primera vez que cargan los módulos, para arrancar con
+  // el árbol colapsado — las recargas posteriores (tras crear/editar/
+  // reordenar) no deben pisar el expandido/colapsado que el usuario ya
+  // armó a mano.
+  const hasAppliedInitialCollapse = useRef(false);
+
   const fetchModulos = async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await modulosManagementService.getAllModulos();
       setModulos(data);
+      if (!hasAppliedInitialCollapse.current) {
+        hasAppliedInitialCollapse.current = true;
+        setCollapsedNodes(getNodesWithChildrenIds(data));
+      }
     } catch (err: any) {
       setError(err.message || "Error desconocido");
     } finally {
@@ -443,17 +478,14 @@ const ModulosPage = () => {
     fetchModulos();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const guardarModulo = async (basePayload: {
+    nombre: string;
+    ruta: string;
+    padre_id: number | null;
+    icono: string;
+    orden: number;
+  }) => {
     try {
-      const basePayload = {
-        nombre: formData.nombre,
-        ruta: generateRoute(formData.nombre, formData.padre_id),
-        padre_id: formData.padre_id,
-        icono: formData.icono,
-        orden: Number(formData.orden) || 0,
-      };
-
       if (editingModulo) {
         await modulosManagementService.updateModulo(
           editingModulo.mod_id,
@@ -463,25 +495,44 @@ const ModulosPage = () => {
         await modulosManagementService.createModulo(basePayload);
       }
 
-      alert(
+      setSuccessMessage(
         editingModulo
           ? "Módulo actualizado correctamente"
           : "Módulo creado correctamente",
       );
-      setFormData({ nombre: "", padre_id: null, icono: "", orden: 0 });
+      setFormData({ nombre: "", ruta: "", padre_id: null, icono: "", orden: 0 });
       setEditingModulo(null);
       setModalOpen(false);
       await fetchModulos();
     } catch (err: any) {
       console.error("❌ Error:", err);
-      alert(err.message || "Error desconocido");
+      setErrorMessage(err.message || "Error desconocido");
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    await guardarModulo({
+      nombre: formData.nombre,
+      ruta: formData.ruta,
+      padre_id: formData.padre_id,
+      icono: formData.icono,
+      orden: Number(formData.orden) || 0,
+    });
+  };
+
+  const openCreateModal = () => {
+    setEditingModulo(null);
+    setFormData({ nombre: "", ruta: "", padre_id: null, icono: "", orden: 0 });
+    setModalOpen(true);
   };
 
   const openEditModal = (modulo: Modulo) => {
     setEditingModulo(modulo);
     setFormData({
       nombre: modulo.mod_nombre,
+      ruta: normalizeRoute(modulo.mod_ruta),
       padre_id: modulo.mod_padre_id || null,
       icono: modulo.mod_icono || "",
       orden: Number(modulo.mod_posicion ?? 0),
@@ -492,28 +543,40 @@ const ModulosPage = () => {
   const closeModal = () => {
     setModalOpen(false);
     setEditingModulo(null);
-    setFormData({ nombre: "", padre_id: null, icono: "", orden: 0 });
+    setFormData({ nombre: "", ruta: "", padre_id: null, icono: "", orden: 0 });
   };
 
-  const handleInactivarModulo = async () => {
+  const performInactivar = async () => {
     if (!editingModulo) return;
-
-    const confirmed = window.confirm(
-      `Se inactivara el modulo "${editingModulo.mod_nombre}". Deseas continuar?`,
-    );
-
-    if (!confirmed) return;
 
     try {
       setDeactivating(true);
       await modulosManagementService.deleteModulo(editingModulo.mod_id);
-      alert("Modulo inactivado correctamente");
+      setSuccessMessage("Módulo inactivado correctamente");
       closeModal();
       await fetchModulos();
     } catch (err: any) {
-      alert(err?.message || "Error inactivando modulo");
+      setErrorMessage(err?.message || "Error inactivando modulo");
     } finally {
       setDeactivating(false);
+      setConfirmInactivarOpen(false);
+    }
+  };
+
+  const performActivar = async () => {
+    if (!editingModulo) return;
+
+    try {
+      setDeactivating(true);
+      await modulosManagementService.activarModulo(editingModulo.mod_id);
+      setSuccessMessage("Módulo activado correctamente");
+      closeModal();
+      await fetchModulos();
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Error activando módulo");
+    } finally {
+      setDeactivating(false);
+      setConfirmActivarOpen(false);
     }
   };
 
@@ -678,7 +741,7 @@ const ModulosPage = () => {
     const sourceParentId = sourceRow.node.mod_padre_id ?? null;
     const validation = validateDropByLevel(sourceRow, targetRow);
     if (!validation.allowed) {
-      alert(validation.message);
+      setErrorMessage(validation.message);
       clearDragState();
       return;
     }
@@ -755,7 +818,9 @@ const ModulosPage = () => {
       await fetchModulos();
     } catch (err) {
       console.error("Error guardando nuevo orden", err);
-      alert(err instanceof Error ? err.message : "No se pudo guardar el orden");
+      setErrorMessage(
+        err instanceof Error ? err.message : "No se pudo guardar el orden",
+      );
     } finally {
       setSavingOrder(false);
       clearDragState();
@@ -774,7 +839,9 @@ const ModulosPage = () => {
     }
 
     if (sourceRow.depth > 0) {
-      alert("Solo un módulo principal se puede soltar en el nivel de módulos.");
+      setErrorMessage(
+        "Solo un módulo principal se puede soltar en el nivel de módulos.",
+      );
       clearDragState();
       return;
     }
@@ -831,7 +898,7 @@ const ModulosPage = () => {
       await fetchModulos();
     } catch (err) {
       console.error("Error moviendo a raiz", err);
-      alert(
+      setErrorMessage(
         err instanceof Error
           ? err.message
           : "No se pudo mover el modulo a raiz",
@@ -899,50 +966,43 @@ const ModulosPage = () => {
     });
   };
 
-  // Función para colapsar/expandir todos
-  const collapseAll = () => {
-    const allNodeIds = new Set<number>();
-    const collectIds = (nodes: Modulo[]) => {
-      nodes.forEach((node) => {
+  // IDs de todos los nodos con hijos (son los únicos que se pueden colapsar)
+  const getNodesWithChildrenIds = (nodes: Modulo[]): Set<number> => {
+    const ids = new Set<number>();
+    const collectIds = (list: Modulo[]) => {
+      list.forEach((node) => {
         if (node.subModulos && node.subModulos.length > 0) {
-          allNodeIds.add(node.mod_id);
+          ids.add(node.mod_id);
           collectIds(node.subModulos);
         }
       });
     };
-    collectIds(modulos);
-    setCollapsedNodes(allNodeIds);
+    collectIds(nodes);
+    return ids;
+  };
+
+  // Función para colapsar/expandir todos
+  const collapseAll = () => {
+    setCollapsedNodes(getNodesWithChildrenIds(modulos));
   };
 
   const expandAll = () => {
     setCollapsedNodes(new Set());
   };
 
-  const getDepthPrefix = (depth: number) => {
-    if (depth === 0) return "";
-    return "  ".repeat(depth - 1) + "└─ ";
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
-                <FolderTree className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                Administrar Módulos
-              </h1>
-            </div>
-
-            {/* Botones de colapso/expansión */}
-            <div className="flex gap-2">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={FolderTree}
+          eyebrow="Seguridad"
+          title="Módulos"
+          subtitle="Gestiona la estructura jerárquica de los módulos del sistema"
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={collapseAll}
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1"
+                className="inline-flex items-center gap-1 rounded-lg bg-white/14 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
                 title="Colapsar todos"
               >
                 <MinusCircle className="w-4 h-4" />
@@ -950,24 +1010,46 @@ const ModulosPage = () => {
               </button>
               <button
                 onClick={expandAll}
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-1"
+                className="inline-flex items-center gap-1 rounded-lg bg-white/14 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
                 title="Expandir todos"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">Expandir todo</span>
               </button>
+              <button
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
+              >
+                <Plus className="w-4 h-4" />
+                Nuevo Módulo
+              </button>
             </div>
+          }
+        >
+          <div className="max-w-xs">
+            <FilterField label="Filtrar por estado">
+              <select
+                value={estadoFiltro}
+                onChange={(e) =>
+                  setEstadoFiltro(
+                    e.target.value as "todos" | "activos" | "inactivos",
+                  )
+                }
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+              >
+                <option value="todos">Todos</option>
+                <option value="activos">Activos</option>
+                <option value="inactivos">Inactivos</option>
+              </select>
+            </FilterField>
           </div>
-          <p className="text-slate-500 ml-12">
-            Gestiona la estructura jerárquica de los módulos del sistema
-          </p>
-        </div>
+        </PageHeaderCard>
 
         {/* Drag Status */}
         {savingOrder && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-blue-700">Guardando nuevo orden...</p>
+          <div className="mb-4 p-3 bg-[#eef3ff] border border-[#b9d0f7] rounded-lg flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-brand-700">Guardando nuevo orden...</p>
           </div>
         )}
 
@@ -990,7 +1072,7 @@ const ModulosPage = () => {
           className={`mb-6 p-4 rounded-xl border-2 border-dashed transition-all ${
             draggingRow && draggingRow.depth > 0
               ? "border-red-300 bg-red-50/50 text-red-500"
-              : "border-blue-300 bg-blue-50/50 text-blue-600 hover:bg-blue-50"
+              : "border-[#b9d0f7] bg-[#eef3ff]/60 text-brand-600 hover:bg-[#eef3ff]"
           }`}
           onDragOver={(e) => {
             e.preventDefault();
@@ -1009,142 +1091,11 @@ const ModulosPage = () => {
           </div>
         </div>
 
-        {/* Create Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="p-1.5 bg-emerald-100 rounded-lg">
-              <Plus className="w-4 h-4 text-emerald-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-800">
-              {editingModulo ? "Editar Módulo" : "Nuevo Módulo"}
-            </h2>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Nombre del módulo *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: Usuarios, Roles, Reportes..."
-                  value={formData.nombre}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nombre: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Módulo padre
-                </label>
-                <ModuloPadreTreeSelect
-                  nodes={modulos}
-                  value={formData.padre_id}
-                  onChange={(id) =>
-                    setFormData({
-                      ...formData,
-                      padre_id: id,
-                    })
-                  }
-                  excludedIds={excludedParentIds}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Icono (opcional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: Users, Settings, BarChart..."
-                  value={formData.icono}
-                  onChange={(e) =>
-                    setFormData({ ...formData, icono: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Posición
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="Orden de visualización"
-                  value={formData.orden}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      orden: Number(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              {editingModulo && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingModulo(null);
-                    setFormData({
-                      nombre: "",
-                      padre_id: null,
-                      icono: "",
-                      orden: 0,
-                    });
-                  }}
-                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-                >
-                  Cancelar edición
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={!isCreateFormValid || loading}
-                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                {editingModulo ? "Actualizar" : "Crear Módulo"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Filtro de Estado */}
-        <div className="flex items-center gap-2 mb-4">
-          <label className="text-sm text-slate-700 font-medium">
-            Filtrar por estado:
-          </label>
-          <select
-            value={estadoFiltro}
-            onChange={(e) =>
-              setEstadoFiltro(
-                e.target.value as "todos" | "activos" | "inactivos",
-              )
-            }
-            className="px-3 py-1 border border-slate-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          >
-            <option value="todos">Todos</option>
-            <option value="activos">Activos</option>
-            <option value="inactivos">Inactivos</option>
-          </select>
-        </div>
-
         {/* Modules Table */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+              <div className="w-12 h-12 border-4 border-slate-200 border-t-brand-600 rounded-full animate-spin mx-auto mb-4" />
               <p className="text-slate-500">Cargando módulos...</p>
             </div>
           </div>
@@ -1158,9 +1109,6 @@ const ModulosPage = () => {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      ID
-                    </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Módulo
                     </th>
@@ -1203,9 +1151,9 @@ const ModulosPage = () => {
                           key={node.mod_id}
                           className={`transition-all ${
                             draggingModuloId === node.mod_id
-                              ? "bg-blue-50"
+                              ? "bg-[#eef3ff]"
                               : draggingBlockIds.has(node.mod_id)
-                                ? "bg-blue-50/50"
+                                ? "bg-[#eef3ff]/50"
                                 : "hover:bg-slate-50"
                           }`}
                           onDragOver={(e) => handleRowDragOver(e, node.mod_id)}
@@ -1222,8 +1170,8 @@ const ModulosPage = () => {
                               ? {
                                   boxShadow:
                                     dropIndicator.position === "above"
-                                      ? "inset 0 2px 0 0 #3b82f6"
-                                      : "inset 0 -2px 0 0 #3b82f6",
+                                      ? "inset 0 2px 0 0 #003d99"
+                                      : "inset 0 -2px 0 0 #003d99",
                                 }
                               : blockedTargetId === node.mod_id
                                 ? {
@@ -1232,11 +1180,8 @@ const ModulosPage = () => {
                                 : undefined
                           }
                         >
-                          <td className="px-4 py-3 text-xs text-slate-400 font-mono">
-                            {node.mod_id}
-                          </td>
                           <td
-                            className="px-6 py-3 cursor-move group"
+                            className="px-6 py-3 cursor-move group select-none"
                             draggable={Boolean(pathIds[0])}
                             onDragStart={(e) =>
                               handleCellDragStart(e, pathIds[0])
@@ -1248,6 +1193,8 @@ const ModulosPage = () => {
                               {depth === 0 &&
                                 (hasChildren ? (
                                   <button
+                                    type="button"
+                                    draggable={false}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleCollapse(node.mod_id);
@@ -1267,7 +1214,7 @@ const ModulosPage = () => {
                                 (isCollapsed ? (
                                   <Folder className="w-4 h-4 text-amber-500" />
                                 ) : (
-                                  <FolderOpen className="w-4 h-4 text-blue-500" />
+                                  <FolderOpen className="w-4 h-4 text-brand-500" />
                                 ))}
                               <span className="text-sm text-slate-700">
                                 {modulo}
@@ -1280,7 +1227,7 @@ const ModulosPage = () => {
                             </div>
                           </td>
                           <td
-                            className={`px-6 py-3 ${pathIds[1] ? "cursor-move group" : ""}`}
+                            className={`px-6 py-3 ${pathIds[1] ? "cursor-move group select-none" : ""}`}
                             draggable={Boolean(pathIds[1])}
                             onDragStart={(e) =>
                               handleCellDragStart(e, pathIds[1])
@@ -1299,7 +1246,7 @@ const ModulosPage = () => {
                             )}
                           </td>
                           <td
-                            className={`px-6 py-3 ${pathIds[2] ? "cursor-move group" : ""}`}
+                            className={`px-6 py-3 ${pathIds[2] ? "cursor-move group select-none" : ""}`}
                             draggable={Boolean(pathIds[2])}
                             onDragStart={(e) =>
                               handleCellDragStart(e, pathIds[2])
@@ -1335,7 +1282,7 @@ const ModulosPage = () => {
                           <td className="px-6 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {dropIndicator?.targetId === node.mod_id && (
-                                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                <span className="text-xs px-2 py-1 rounded-full bg-[#eef3ff] text-brand-700">
                                   {dropIndicator.position === "above"
                                     ? "↑"
                                     : "↓"}
@@ -1370,14 +1317,18 @@ const ModulosPage = () => {
           </div>
         )}
 
-        {/* Edit Modal */}
+        {/* Create/Edit Modal */}
         {modalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-100 rounded-lg">
-                    <Edit className="w-4 h-4 text-blue-600" />
+                  <div className="p-1.5 bg-[#eef3ff] rounded-lg">
+                    {editingModulo ? (
+                      <Edit className="w-4 h-4 text-brand-600" />
+                    ) : (
+                      <Plus className="w-4 h-4 text-brand-600" />
+                    )}
                   </div>
                   <h2 className="text-xl font-semibold text-slate-800">
                     {editingModulo
@@ -1400,21 +1351,14 @@ const ModulosPage = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="Nombre del módulo"
+                    placeholder="Ej: Usuarios, Roles, Reportes..."
                     value={formData.nombre}
                     onChange={(e) =>
                       setFormData({ ...formData, nombre: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                     required
                   />
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-slate-500 flex items-center gap-1">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    La ruta se genera automáticamente
-                  </p>
                 </div>
 
                 <div>
@@ -1428,7 +1372,7 @@ const ModulosPage = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, icono: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                   />
                 </div>
 
@@ -1443,10 +1387,37 @@ const ModulosPage = () => {
                       setFormData({
                         ...formData,
                         padre_id: id,
+                        ruta: "",
                       })
                     }
                     excludedIds={excludedParentIds}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Ruta *
+                  </label>
+                  <select
+                    value={formData.ruta}
+                    onChange={(e) =>
+                      setFormData({ ...formData, ruta: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-white"
+                    required
+                  >
+                    <option value="">-- Selecciona una página --</option>
+                    {rutasDisponibles.map((ruta) => (
+                      <option key={ruta} value={ruta}>
+                        {ruta}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Solo páginas que ya existen en el frontend. Si la página
+                    todavía no está construida, créala primero y corre{" "}
+                    <code>npm run routes:generate</code>.
+                  </p>
                 </div>
 
                 <div>
@@ -1464,7 +1435,7 @@ const ModulosPage = () => {
                         orden: Number(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                   />
                 </div>
 
@@ -1473,7 +1444,7 @@ const ModulosPage = () => {
                     (editingModulo.mod_activo !== false ? (
                       <button
                         type="button"
-                        onClick={handleInactivarModulo}
+                        onClick={() => setConfirmInactivarOpen(true)}
                         disabled={deactivating}
                         className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-all disabled:opacity-50"
                       >
@@ -1482,28 +1453,7 @@ const ModulosPage = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (!editingModulo) return;
-                          if (
-                            !window.confirm(
-                              `¿Seguro que deseas activar el módulo "${editingModulo.mod_nombre}"?`,
-                            )
-                          )
-                            return;
-                          setDeactivating(true);
-                          try {
-                            await modulosManagementService.activarModulo(
-                              editingModulo.mod_id,
-                            );
-                            alert("Módulo activado correctamente");
-                            closeModal();
-                            await fetchModulos();
-                          } catch (err: any) {
-                            alert(err?.message || "Error activando módulo");
-                          } finally {
-                            setDeactivating(false);
-                          }
-                        }}
+                        onClick={() => setConfirmActivarOpen(true)}
                         disabled={deactivating}
                         className="px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg font-medium transition-all disabled:opacity-50"
                       >
@@ -1520,8 +1470,8 @@ const ModulosPage = () => {
                     </button>
                     <button
                       type="submit"
-                      disabled={deactivating}
-                      className="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm"
+                      disabled={deactivating || !isCreateFormValid}
+                      className="px-5 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                     >
                       {editingModulo ? "Actualizar" : "Crear"}
                     </button>
@@ -1531,6 +1481,45 @@ const ModulosPage = () => {
             </div>
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={confirmInactivarOpen}
+          title="Inactivar módulo"
+          message={`Se inactivará el módulo "${editingModulo?.mod_nombre}". ¿Deseas continuar?`}
+          confirmText="Inactivar"
+          cancelText="Cancelar"
+          isDangerous
+          isLoading={deactivating}
+          onConfirm={performInactivar}
+          onCancel={() => setConfirmInactivarOpen(false)}
+        />
+
+        <ConfirmModal
+          isOpen={confirmActivarOpen}
+          title="Activar módulo"
+          message={`¿Seguro que deseas activar el módulo "${editingModulo?.mod_nombre}"?`}
+          confirmText="Activar"
+          cancelText="Cancelar"
+          isLoading={deactivating}
+          onConfirm={performActivar}
+          onCancel={() => setConfirmActivarOpen(false)}
+        />
+
+        <SuccessModal
+          isOpen={!!successMessage}
+          title="Éxito"
+          message={successMessage}
+          actionText="Aceptar"
+          onAction={() => setSuccessMessage("")}
+          autoClose={true}
+          autoCloseDelay={3000}
+        />
+
+        <ErrorModal
+          isOpen={!!errorMessage}
+          message={errorMessage}
+          onAction={() => setErrorMessage("")}
+        />
       </div>
     </div>
   );

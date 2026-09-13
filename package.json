@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:doc": "tsx scripts/generate-db-doc.ts"
+    "db:doc": "tsx scripts/generate-db-doc.ts",
+    "routes:generate": "tsx scripts/generate-app-routes.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
