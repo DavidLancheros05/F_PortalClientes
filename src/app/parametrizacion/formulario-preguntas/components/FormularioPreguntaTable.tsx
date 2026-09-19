@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import {
   FormularioPregunta,
   formularioPreguntasService,
 } from "@/services/parametrizacion/formulario-preguntas.service";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 interface Props {
   items: FormularioPregunta[];
@@ -16,60 +20,59 @@ export default function FormularioPreguntaTable({
   onEdit,
   onReload,
 }: Props) {
-  const cambiarEstado = async (item: FormularioPregunta) => {
-    const ok = confirm(
-      `¿Deseas ${item.fp_estado ? "inactivar" : "activar"} esta pregunta?`,
-    );
-    if (!ok) return;
+  const [itemACambiarEstado, setItemACambiarEstado] =
+    useState<FormularioPregunta | null>(null);
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const cambiarEstado = (item: FormularioPregunta) => {
+    setItemACambiarEstado(item);
+  };
+
+  const confirmarCambiarEstado = async () => {
+    if (!itemACambiarEstado) return;
+    setCambiandoEstado(true);
     try {
-      await formularioPreguntasService.update(item.fp_id!, {
-        fp_estado: !item.fp_estado,
+      await formularioPreguntasService.update(itemACambiarEstado.fp_id!, {
+        fp_estado: !itemACambiarEstado.fp_estado,
       });
+      setItemACambiarEstado(null);
       onReload();
     } catch (err) {
       console.error(err);
-      alert("Error al cambiar el estado");
+      setErrorMessage("Error al cambiar el estado");
+      setItemACambiarEstado(null);
+    } finally {
+      setCambiandoEstado(false);
     }
   };
 
   return (
+    <>
     <table className="min-w-full divide-y divide-gray-200 mt-4">
       <thead className="bg-gray-50">
         <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            ID
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Descripción
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Tipo
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Orden
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Estado
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Acciones
-          </th>
+          <Th>ID</Th>
+          <Th>Descripción</Th>
+          <Th>Tipo</Th>
+          <Th>Orden</Th>
+          <Th>Estado</Th>
+          <Th sticky>Acciones</Th>
         </tr>
       </thead>
 
       <tbody className="divide-y divide-gray-200">
         {items.map((item) => (
-          <tr key={item.fp_id}>
-            <td className="px-6 py-4">{item.fp_id}</td>
+          <Tr key={item.fp_id}>
+            <Td>{item.fp_id}</Td>
 
-            <td className="px-6 py-4">{item.fp_descripcion}</td>
+            <Td>{item.fp_descripcion}</Td>
 
-            <td className="px-6 py-4">{item.fp_tipo}</td>
+            <Td>{item.fp_tipo}</Td>
 
-            <td className="px-6 py-4">{item.fp_orden}</td>
+            <Td>{item.fp_orden}</Td>
 
-            <td className="px-6 py-4">
+            <Td>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                   item.fp_estado
@@ -79,9 +82,9 @@ export default function FormularioPreguntaTable({
               >
                 {item.fp_estado ? "Activo" : "Inactivo"}
               </span>
-            </td>
+            </Td>
 
-            <td className="px-6 py-4 flex gap-3">
+            <Td sticky className="flex gap-3">
               <button
                 onClick={() => onEdit(item)}
                 className="text-indigo-600 font-medium"
@@ -95,10 +98,27 @@ export default function FormularioPreguntaTable({
               >
                 {item.fp_estado ? "Inactivar" : "Activar"}
               </button>
-            </td>
-          </tr>
+            </Td>
+          </Tr>
         ))}
       </tbody>
     </table>
+
+    <ConfirmModal
+      isOpen={!!itemACambiarEstado}
+      title={itemACambiarEstado?.fp_estado ? "Inactivar pregunta" : "Activar pregunta"}
+      message={`¿Deseas ${itemACambiarEstado?.fp_estado ? "inactivar" : "activar"} esta pregunta?`}
+      confirmText="Sí, continuar"
+      isLoading={cambiandoEstado}
+      onConfirm={confirmarCambiarEstado}
+      onCancel={() => setItemACambiarEstado(null)}
+    />
+
+    <ErrorModal
+      isOpen={!!errorMessage}
+      message={errorMessage || ""}
+      onAction={() => setErrorMessage(null)}
+    />
+    </>
   );
 }

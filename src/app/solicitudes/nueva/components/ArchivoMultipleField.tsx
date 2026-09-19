@@ -1,7 +1,7 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, SuccessModal, ConfirmModal } from "@/components/modals";
 import { FileText, Upload, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
@@ -45,9 +45,7 @@ export function ArchivoMultipleField({
   setErrorMessage,
 }: ArchivoMultipleFieldProps) {
   const maximoArchivos = Number(pregunta.fp_maximo) || 1;
-  const existentes: any[] = Array.isArray(archivosExistentes[pregunta.fp_id])
-    ? archivosExistentes[pregunta.fp_id]
-    : [];
+  const existentes: any[] = Array.isArray(archivosExistentes[pregunta.fp_id]) ? archivosExistentes[pregunta.fp_id] : [];
   const pendientes: File[] = Array.isArray(respuestas[pregunta.fp_id]?.archivos)
     ? respuestas[pregunta.fp_id].archivos
     : [];
@@ -68,13 +66,13 @@ export function ArchivoMultipleField({
   // setRespuestas dispara un re-render sincrono de todo el formulario, sin
   // esto la pantalla queda "pegada" sin ninguna señal de que algo está
   // pasando.
-  const [procesandoArchivo, setProcesandoArchivo] = useState(false);
+  const [procesandoArchivo, setProcesandoArchivo] = useState<"loading" | "ready" | null>(null);
   const procesarArchivoSeleccionado = (file: File) => {
-    flushSync(() => setProcesandoArchivo(true));
+    flushSync(() => setProcesandoArchivo("loading"));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         agregarArchivo(file);
-        setProcesandoArchivo(false);
+        setProcesandoArchivo("ready");
       });
     });
   };
@@ -92,17 +90,22 @@ export function ArchivoMultipleField({
     });
   };
 
-  const eliminarArchivoExistente = async (saId: number) => {
-    if (!confirm("¿Eliminar archivo? No podrás recuperarlo.")) return;
+  const [saIdAEliminar, setSaIdAEliminar] = useState<number | null>(null);
+
+  const eliminarArchivoExistente = (saId: number) => {
+    setSaIdAEliminar(saId);
+  };
+
+  const confirmarEliminarArchivoExistente = async () => {
+    if (saIdAEliminar === null) return;
+    const saId = saIdAEliminar;
+    setSaIdAEliminar(null);
     try {
-      await formularioRespuestasService.eliminarArchivoRespuesta(
-        solicitudId!,
-        saId,
-      );
+      await formularioRespuestasService.eliminarArchivoRespuesta(solicitudId!, saId);
       setArchivosExistentes((prev) => {
-        const restantes = (
-          Array.isArray(prev[pregunta.fp_id]) ? prev[pregunta.fp_id] : []
-        ).filter((a: any) => a.sa_id !== saId);
+        const restantes = (Array.isArray(prev[pregunta.fp_id]) ? prev[pregunta.fp_id] : []).filter(
+          (a: any) => a.sa_id !== saId,
+        );
         const next = { ...prev };
         if (restantes.length > 0) {
           next[pregunta.fp_id] = restantes;
@@ -138,28 +141,20 @@ export function ArchivoMultipleField({
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-semibold text-slate-900 leading-tight">
             {pregunta.fp_descripcion}
-            {pregunta.fp_requerida && (
-              <span className="text-red-500 ml-1">*</span>
-            )}
+            {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
           </p>
           <p className="text-xs text-slate-500">
-            Puedes subir hasta {maximoArchivos} archivos ({totalActual}/
-            {maximoArchivos})
+            Puedes subir hasta {maximoArchivos} archivos ({totalActual}/{maximoArchivos})
           </p>
         </div>
 
         <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
           {existentes.map((archivo) => (
-            <div
-              key={archivo.sa_id}
-              className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5"
-            >
+            <div key={archivo.sa_id} className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex items-start gap-1 min-w-0">
                   <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs font-medium text-blue-900 break-words">
-                    {archivo.sa_nombre_original}
-                  </p>
+                  <p className="text-xs font-medium text-blue-900 break-words">{archivo.sa_nombre_original}</p>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   {(() => {
@@ -170,8 +165,7 @@ export function ArchivoMultipleField({
                         href={rutaArchivo}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200"
-                      >
+                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200">
                         Ver
                       </a>
                     );
@@ -180,8 +174,7 @@ export function ArchivoMultipleField({
                     <button
                       type="button"
                       onClick={() => eliminarArchivoExistente(archivo.sa_id)}
-                      className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
-                    >
+                      className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200">
                       Eliminar
                     </button>
                   )}
@@ -193,21 +186,17 @@ export function ArchivoMultipleField({
           {pendientes.map((archivo, index) => (
             <div
               key={`${archivo.name}-${index}`}
-              className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs"
-            >
+              className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
               <div className="flex items-center gap-1 min-w-0">
                 <FileText className="h-3 w-3 flex-shrink-0" />
-                <span className="break-words font-medium">
-                  {archivo.name}
-                </span>
+                <span className="break-words font-medium">{archivo.name}</span>
               </div>
               {!readOnly && (
                 <button
                   type="button"
                   onClick={() => quitarArchivoPendiente(index)}
                   className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200 flex-shrink-0"
-                  title="Quitar archivo seleccionado (aún no se ha guardado)"
-                >
+                  title="Quitar archivo seleccionado (aún no se ha guardado)">
                   <X className="h-3 w-3" />
                   Quitar
                 </button>
@@ -218,26 +207,40 @@ export function ArchivoMultipleField({
           {!readOnly && !alcanzoMaximo && (
             <button
               type="button"
-              disabled={procesandoArchivo}
+              disabled={!!procesandoArchivo}
               onClick={seleccionarArchivo}
               className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
                 hasError
                   ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
                   : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
-              }`}
-            >
+              }`}>
               <Upload className="h-3.5 w-3.5 flex-shrink-0" />
               {totalActual === 0 ? "Seleccionar archivo" : "Agregar otro archivo"}
             </button>
           )}
 
-          {errors[pregunta.fp_id] && (
-            <p className="text-xs text-red-600">{errors[pregunta.fp_id]}</p>
-          )}
+          {errors[pregunta.fp_id] && <p className="text-xs text-red-600">{errors[pregunta.fp_id]}</p>}
         </div>
       </div>
 
-      <LoadingModal isOpen={procesandoArchivo} message="Cargando archivo..." />
+      <LoadingModal isOpen={procesandoArchivo === "loading"} message="Cargando archivo..." />
+      <SuccessModal
+        isOpen={procesandoArchivo === "ready"}
+        title="Archivo cargado"
+        message="El archivo quedó listo en el formulario. Puedes continuar agregando archivos o completando la solicitud."
+        actionText="Aceptar"
+        onAction={() => setProcesandoArchivo(null)}
+      />
+
+      <ConfirmModal
+        isOpen={saIdAEliminar !== null}
+        title="Eliminar archivo"
+        message="¿Eliminar archivo? No podrás recuperarlo."
+        confirmText="Eliminar"
+        isDangerous
+        onConfirm={confirmarEliminarArchivoExistente}
+        onCancel={() => setSaIdAEliminar(null)}
+      />
     </div>
   );
 }

@@ -1,19 +1,17 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { clientesService } from "@/services/clientes/clientes.service";
-import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
 import type { ClienteListResponse } from "@/types/api.types";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Edit2, Eye } from "lucide-react";
-import { LoadingModal } from "@/components/modals";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { ExportExcelButton } from "@/components/tables/ExportExcelButton";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
@@ -40,65 +38,40 @@ interface Solicitud {
 
 export default function CorregirFormularioASCPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
-  const [loadingCentros, setLoadingCentros] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadingClientes, setLoadingClientes] = useState(false);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
   const [clientes, setClientes] = useState<ClienteListResponse[]>([]);
-  const [centroSeleccionado, setCentroSeleccionado] = useState<number | null>(
-    null,
+  // Filtros y página inicializados desde la URL (?cliente=&numero=&pagina=)
+  // para que "Ver"/"Corregir documentos" y volver restaure la búsqueda en
+  // vez de reiniciarla — mismo patrón que gestion-auxiliar-servicio-al-cliente.
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<
+    number | null
+  >(() => {
+    const v = searchParams.get("cliente");
+    return v ? Number(v) : null;
+  });
+  const [numeroFiltro, setNumeroFiltro] = useState(
+    () => searchParams.get("numero") || "",
   );
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<number | null>(
-    null,
-  );
-  const [numeroFiltro, setNumeroFiltro] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
-  const [paginaActual, setPaginaActual] = useState(1);
+  const [paginaActual, setPaginaActual] = useState(() => {
+    const v = searchParams.get("pagina");
+    return v ? Number(v) : 1;
+  });
   const [pageSize, setPageSize] = useState(10);
-
-  useEffect(() => {
-    async function cargarCentros() {
-      try {
-        setLoadingCentros(true);
-        const data = await centrosOperacionService.getAll();
-        setCentros(data);
-      } catch (error) {
-        console.error("Error cargando centros:", error);
-      } finally {
-        setLoadingCentros(false);
-      }
-    }
-
-    cargarCentros();
-  }, []);
-
-  useEffect(() => {
-    if (!user?.co_id) return;
-    if (centroSeleccionado !== null) return;
-    const centroId = Number(user.co_id);
-    if (!isNaN(centroId)) {
-      setCentroSeleccionado(centroId);
-    }
-  }, [user?.co_id, centroSeleccionado]);
+  const autoBuscoRef = useRef(false);
 
   useEffect(() => {
     async function cargarClientes() {
-      if (!centroSeleccionado) {
-        setClientes([]);
-        setClienteSeleccionado(null);
-        return;
-      }
-
       try {
         setLoadingClientes(true);
         const data = await clientesService.getAll();
-        const filtered = (Array.isArray(data) ? data : []).filter((c: any) => {
-          const centroIds = c.centro_operacion_ids || [];
-          return centroIds.includes(centroSeleccionado);
-        });
-        setClientes(filtered);
+        setClientes(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error cargando clientes:", error);
       } finally {
@@ -107,7 +80,7 @@ export default function CorregirFormularioASCPage() {
     }
 
     cargarClientes();
-  }, [centroSeleccionado]);
+  }, []);
 
   const obtenerUsuarioId = () => {
     const directId =
@@ -137,9 +110,89 @@ export default function CorregirFormularioASCPage() {
   const indiceFin = indiceInicio + pageSize;
   const solicitudesActuales = solicitudes.slice(indiceInicio, indiceFin);
 
+  // Refleja los filtros/página actuales en la URL (sin agregar entradas al
+  // historial) para que "Ver"/"Corregir documentos" los puedan restaurar al
+  // volver.
+  const sincronizarUrl = (pagina: number) => {
+    const params = new URLSearchParams();
+    params.set("buscado", "1");
+    if (clienteSeleccionado) params.set("cliente", String(clienteSeleccionado));
+    if (numeroFiltro.trim()) params.set("numero", numeroFiltro.trim());
+    params.set("pagina", String(pagina));
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const buscar = async (opts: { preservePagina?: boolean } = {}) => {
+    try {
+      setLoadingSolicitudes(true);
+      const usuarioId = obtenerUsuarioId();
+
+      if (!usuarioId) {
+        setErrorMessage("No hay usuario autenticado");
+        return;
+      }
+
+      // Buscar solicitudes con estado=3, etapa=3, resultado=3 (RECHAZADO)
+      const data = await solicitudesService.getSolicitudesConFiltros(usuarioId, {
+        estado_id: 3, // REVISIÓN
+        etapa_id: 3, // ASC
+        resultado_etapa_id: 3, // RECHAZADO
+      });
+
+      const numeroBuscado = numeroFiltro.trim().toLowerCase();
+
+      const mapped = data
+        .map((s: Solicitud) => ({
+          ...s,
+        }))
+        .filter((s: Solicitud) => {
+          const cumpleCliente = clienteSeleccionado
+            ? s.sol_cliente_id === clienteSeleccionado
+            : true;
+          return cumpleCliente;
+        })
+        .filter((s: Solicitud) => {
+          const cumpleNumero = numeroBuscado
+            ? (s.sol_numero_solicitud || s.numero_solicitud || "")
+                .toLowerCase()
+                .includes(numeroBuscado)
+            : true;
+          return cumpleNumero;
+        });
+
+      setSolicitudes(mapped);
+      setHasSearched(true);
+      const paginaFinal = opts.preservePagina ? paginaActual : 1;
+      if (!opts.preservePagina) setPaginaActual(1);
+      sincronizarUrl(paginaFinal);
+    } catch (error) {
+      console.error("Error buscando solicitudes:", error);
+      setErrorMessage("Error al cargar solicitudes");
+    } finally {
+      setLoadingSolicitudes(false);
+    }
+  };
+
+  // Si se vuelve desde "Ver"/"Corregir documentos" con una búsqueda ya hecha
+  // (marcador "buscado=1" en la URL), repetirla automáticamente para
+  // restaurar la tabla en vez de dejarla vacía pidiendo buscar de nuevo.
+  useEffect(() => {
+    if (autoBuscoRef.current) return;
+    if (searchParams.get("buscado") !== "1") return;
+    if (!user) return;
+    autoBuscoRef.current = true;
+    buscar({ preservePagina: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const irAPagina = (page: number) => {
+    setPaginaActual(page);
+    sincronizarUrl(page);
+  };
+
   const cambiarPageSize = (size: number) => {
     setPageSize(size);
-    setPaginaActual(1);
+    irAPagina(1);
   };
 
   async function exportarExcel() {
@@ -182,10 +235,6 @@ export default function CorregirFormularioASCPage() {
     );
   }
 
-  if (loadingCentros) {
-    return <LoadingModal isOpen message="Cargando centros..." />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
@@ -209,31 +258,7 @@ export default function CorregirFormularioASCPage() {
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Centro de operacion *
-              </label>
-              <select
-                value={centroSeleccionado ? String(centroSeleccionado) : ""}
-                onChange={(e) =>
-                  setCentroSeleccionado(
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona un centro</option>
-                {centros.map((centro, index) => (
-                  <option
-                    key={`centro-${centro.cop_id}-${index}`}
-                    value={String(centro.cop_id)}
-                  >
-                    {centro.cop_nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Cliente
@@ -246,7 +271,7 @@ export default function CorregirFormularioASCPage() {
                   )
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={!centroSeleccionado || loadingClientes}
+                disabled={loadingClientes}
               >
                 <option value="">Todos los clientes</option>
                 {clientes.map((cliente, index) => (
@@ -273,64 +298,7 @@ export default function CorregirFormularioASCPage() {
             </div>
             <div className="flex items-end justify-end">
               <button
-                onClick={async () => {
-                  try {
-                    setLoadingSolicitudes(true);
-                    const usuarioId = obtenerUsuarioId();
-
-                    if (!usuarioId) {
-                      alert("No hay usuario autenticado");
-                      return;
-                    }
-
-                    // Buscar solicitudes con estado=3, etapa=3, resultado=3 (RECHAZADO)
-                    const data =
-                      await solicitudesService.getSolicitudesConFiltros(
-                        usuarioId,
-                        {
-                          estado_id: 3, // REVISIÓN
-                          etapa_id: 3, // ASC
-                          resultado_etapa_id: 3, // RECHAZADO
-                        },
-                      );
-
-                    const numeroBuscado = numeroFiltro.trim().toLowerCase();
-
-                    const mapped = data
-                      .map((s: Solicitud) => ({
-                        ...s,
-                      }))
-                      .filter((s: Solicitud) => {
-                        const cumpleCentro = centroSeleccionado
-                          ? s.sol_co_id === centroSeleccionado
-                          : true;
-                        return cumpleCentro;
-                      })
-                      .filter((s: Solicitud) => {
-                        const cumpleCliente = clienteSeleccionado
-                          ? s.sol_cliente_id === clienteSeleccionado
-                          : true;
-                        return cumpleCliente;
-                      })
-                      .filter((s: Solicitud) => {
-                        const cumpleNumero = numeroBuscado
-                          ? (s.sol_numero_solicitud || s.numero_solicitud || "")
-                              .toLowerCase()
-                              .includes(numeroBuscado)
-                          : true;
-                        return cumpleNumero;
-                      });
-
-                    setSolicitudes(mapped);
-                    setHasSearched(true);
-                    setPaginaActual(1);
-                  } catch (error) {
-                    console.error("Error buscando solicitudes:", error);
-                    alert("Error al cargar solicitudes");
-                  } finally {
-                    setLoadingSolicitudes(false);
-                  }
-                }}
+                onClick={() => buscar()}
                 disabled={loadingSolicitudes}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -348,10 +316,7 @@ export default function CorregirFormularioASCPage() {
         ) : !hasSearched ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
             <p className="text-gray-600 mb-2">
-              Selecciona un centro y presiona Buscar para ver las solicitudes.
-            </p>
-            <p className="text-sm text-gray-500">
-              El centro de operacion es obligatorio.
+              Presiona Buscar para ver las solicitudes.
             </p>
           </div>
         ) : solicitudes.length === 0 ? (
@@ -375,59 +340,34 @@ export default function CorregirFormularioASCPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Numero Solicitud
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Centro de Operacion
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Etapa Actual
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Resultado Etapa
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Consumo Proyectado (COP)
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Observaciones Ejecutivo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Fecha Creación
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Ver
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Editar
-                      </th>
+                      <Th>Numero Solicitud</Th>
+                      {/* <Th>Centro de Operacion</Th> */}
+                      <Th>Cliente</Th>
+                      <Th>Estado</Th>
+                      <Th>Etapa Actual</Th>
+                      <Th>Resultado Etapa</Th>
+                      <Th>Consumo Proyectado (COP)</Th>
+                      <Th>Observaciones Ejecutivo</Th>
+                      <Th>Fecha Creación</Th>
+                      <Th align="center">Ver</Th>
+                      <Th align="center">Editar</Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {solicitudesActuales.map((solicitud) => {
                       return (
-                        <tr
-                          key={solicitud.sol_id ?? solicitud.sa_sol_id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                        <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
+                          <Td className="whitespace-nowrap font-medium text-blue-600">
                             {solicitud.sol_numero_solicitud ||
                               solicitud.numero_solicitud}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td> */}
+                          <Td className="whitespace-nowrap">
                             {solicitud.cliente_nombre}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                                 (solicitud.sol_estado_id ??
@@ -449,14 +389,14 @@ export default function CorregirFormularioASCPage() {
                                 solicitud.sol_estado_id ?? solicitud.estado_id
                               ] || "Desconocido"}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.etapa_nombre || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.resultado_nombre || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.consumo_mensual_proyectado
                               ? `$${solicitud.consumo_mensual_proyectado.toLocaleString(
                                   "es-CO",
@@ -466,18 +406,18 @@ export default function CorregirFormularioASCPage() {
                                   },
                                 )}`
                               : "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.observacionesComercial || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.fecha_creacion
                               ? new Date(
                                   solicitud.fecha_creacion,
                                 ).toLocaleDateString("es-CO")
                               : "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                          </Td>
+                          <Td align="center" className="whitespace-nowrap">
                             <button
                               onClick={() =>
                                 router.push(
@@ -489,8 +429,8 @@ export default function CorregirFormularioASCPage() {
                             >
                               <Eye size={18} />
                             </button>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                          </Td>
+                          <Td align="center" className="whitespace-nowrap">
                             <button
                               onClick={() =>
                                 router.push(
@@ -502,8 +442,8 @@ export default function CorregirFormularioASCPage() {
                             >
                               <Edit2 size={18} />
                             </button>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       );
                     })}
                   </tbody>
@@ -514,13 +454,19 @@ export default function CorregirFormularioASCPage() {
                 page={paginaActual}
                 pageSize={pageSize}
                 totalItems={solicitudes.length}
-                onPageChange={setPaginaActual}
+                onPageChange={irAPagina}
                 onPageSizeChange={cambiarPageSize}
               />
             </div>
           </>
         )}
       </div>
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

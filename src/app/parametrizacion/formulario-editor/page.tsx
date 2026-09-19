@@ -61,6 +61,8 @@ export default function FormularioEditorPage() {
     setMostrarConfirmarGuardarSeccion,
     successMessageSeccion,
     setSuccessMessageSeccion,
+    errorMessageSeccion,
+    setErrorMessageSeccion,
     iniciarEdicionSeccion,
     eliminarSeccion,
     confirmarEliminarSeccion,
@@ -231,6 +233,8 @@ export default function FormularioEditorPage() {
           setMostrarConfirmarGuardarSeccion={setMostrarConfirmarGuardarSeccion}
           successMessageSeccion={successMessageSeccion}
           setSuccessMessageSeccion={setSuccessMessageSeccion}
+          errorMessageSeccion={errorMessageSeccion}
+          setErrorMessageSeccion={setErrorMessageSeccion}
           iniciarEdicionSeccion={iniciarEdicionSeccion}
           eliminarSeccion={eliminarSeccion}
           cambiarOrdenSeccion={cambiarOrdenSeccion}

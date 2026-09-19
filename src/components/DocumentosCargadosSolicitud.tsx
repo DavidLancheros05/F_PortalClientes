@@ -8,6 +8,7 @@ import {
   documentoRequiereFechaEmision,
   getArchivoPreviewUrl,
 } from "@/lib/documentos-vigencia.util";
+import { ErrorModal } from "@/components/modals";
 
 interface DocumentoCargado {
   sa_id: number;
@@ -61,6 +62,7 @@ export function DocumentosCargadosSolicitud({
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [fechaEditada, setFechaEditada] = useState("");
   const [guardandoFecha, setGuardandoFecha] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const cargarDocumentos = () => {
     setLoading(true);
@@ -103,7 +105,7 @@ export function DocumentosCargadosSolicitud({
       setEditandoId(null);
     } catch (error) {
       console.error("Error actualizando fecha de emisión:", error);
-      alert("No se pudo actualizar la fecha de emisión");
+      setErrorMessage("No se pudo actualizar la fecha de emisión");
     } finally {
       setGuardandoFecha(false);
     }
@@ -331,6 +333,12 @@ export function DocumentosCargadosSolicitud({
           </table>
         </div>
       )}
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

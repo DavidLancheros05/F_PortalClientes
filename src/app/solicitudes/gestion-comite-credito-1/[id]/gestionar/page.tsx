@@ -99,27 +99,34 @@ export default function GestionComiteCredito1Page() {
   } = useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
-    async function cargarDatos() {
-      if (!solicitudId) return;
+    let cancelled = false;
 
+    async function cargarDatos(id: number) {
       try {
         setLoading(true);
         const [solicitudData, dias] = await Promise.all([
-          solicitudesService.getById(solicitudId),
+          solicitudesService.getById(id),
           parametrosService.getDiasRespuesta(),
         ]);
+        if (cancelled) return;
 
         setSolicitud(solicitudData);
         setDiasRespuesta(dias);
       } catch (error) {
+        if (cancelled) return;
         console.error("Error cargando datos:", error);
-        alert("Error al cargar la solicitud");
+        setErrorMessage("No se pudo cargar la solicitud. Intenta de nuevo.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    cargarDatos();
+    if (solicitudId) {
+      cargarDatos(solicitudId);
+    }
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId]);
 
   const obtenerUsuarioId = () => {
@@ -144,7 +151,7 @@ export default function GestionComiteCredito1Page() {
 
     const usuarioId = obtenerUsuarioId();
     if (!usuarioId) {
-      alert("No hay usuario autenticado para registrar la revisión.");
+      setErrorMessage("No hay usuario autenticado para registrar la revisión.");
       return;
     }
 

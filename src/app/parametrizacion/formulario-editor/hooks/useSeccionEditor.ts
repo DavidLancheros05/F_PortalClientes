@@ -35,10 +35,13 @@ export function useSeccionEditor({
   const [successMessageSeccion, setSuccessMessageSeccion] = useState<
     "creada" | "editada" | null
   >(null);
+  const [errorMessageSeccion, setErrorMessageSeccion] = useState<
+    string | null
+  >(null);
 
   const guardarSeccion = () => {
     if (!formSeccion.nombre.trim()) {
-      alert("El nombre es requerido");
+      setErrorMessageSeccion("El nombre es requerido");
       return;
     }
     setMostrarConfirmarGuardarSeccion(true);
@@ -72,7 +75,7 @@ export function useSeccionEditor({
       await cargarDatos();
     } catch (error) {
       console.error("Error guardando sección:", error);
-      alert("Error al guardar la sección");
+      setErrorMessageSeccion("Error al guardar la sección");
       setMostrarConfirmarGuardarSeccion(false);
     } finally {
       setGuardandoSeccion(false);
@@ -108,7 +111,9 @@ export function useSeccionEditor({
     } catch (error: any) {
       console.error("Error eliminando sección:", error);
       const data = error?.response?.data;
-      alert(data?.message || data?.error || "Error al eliminar sección");
+      setErrorMessageSeccion(
+        data?.message || data?.error || "Error al eliminar sección",
+      );
       if (error?.response?.status === 404) {
         // La sección ya no existe en la BD: refrescar para que desaparezca
         // de la lista y no se repita el intento sobre una fila fantasma.
@@ -192,6 +197,8 @@ export function useSeccionEditor({
     setMostrarConfirmarGuardarSeccion,
     successMessageSeccion,
     setSuccessMessageSeccion,
+    errorMessageSeccion,
+    setErrorMessageSeccion,
     iniciarEdicionSeccion,
     eliminarSeccion,
     confirmarEliminarSeccion,

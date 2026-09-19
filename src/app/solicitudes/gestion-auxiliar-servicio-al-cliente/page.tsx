@@ -1,29 +1,28 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { clientesService } from "@/services/clientes/clientes.service";
-import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
 import type { ClienteListResponse } from "@/types/api.types";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
-import { formatDate } from "@/lib/date-utils";
-import { useEffect, useRef, useState } from "react";
+import { formatDate, formatDateTime } from "@/lib/date-utils";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Headset, PackageOpen } from "lucide-react";
-import { LoadingModal } from "@/components/modals";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   calcularDiasRestantes,
   DiasRestantesBadge,
 } from "@/components/badges/DiasRestantesBadge";
+import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
@@ -32,6 +31,8 @@ interface Solicitud {
   cliente_nombre: string;
   sol_co_id: number;
   centro_operacion_nombre: string;
+  sol_ejecutivo_id?: number | null;
+  ejecutivo_nombre?: string | null;
   sol_estado_id: number;
   sol_etapa_actual_id?: number;
   sol_resultado_etapa_id?: number;
@@ -40,12 +41,21 @@ interface Solicitud {
   fecha_creacion: string;
   fecha_estimada_respuesta_comercial: string | null;
   fecha_real_respuesta_comercial: string | null;
+  sol_fecha_envio?: string | null;
+  // Fecha en que el Ejecutivo de Negocios (etapa anterior a Auxiliar
+  // Servicio Cliente en el flujo) registró su concepto.
+  sol_fecha_real_ejecutivo?: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
   sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
   estado_id?: number;
+}
+
+interface EjecutivoNegocio {
+  ejng_id: number;
+  ejng_nombre: string;
 }
 
 export default function AprobacionDesaprobacionPage() {
@@ -55,20 +65,23 @@ export default function AprobacionDesaprobacionPage() {
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
-  const [loadingCentros, setLoadingCentros] = useState(true);
   const [loadingClientes, setLoadingClientes] = useState(false);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [clientes, setClientes] = useState<ClienteListResponse[]>([]);
-  // Filtros y página inicializados desde la URL (?centro=&cliente=&numero=&pagina=)
+  const [ejecutivos, setEjecutivos] = useState<EjecutivoNegocio[]>([]);
+  // Filtros y página inicializados desde la URL (?ejecutivo=&cliente=&numero=&pagina=)
   // para que "Volver" desde /gestionar restaure la búsqueda en vez de
   // reiniciar el formulario — antes todo esto vivía solo en useState local,
   // que se perdía al desmontar/remontar la página.
-  const [centroSeleccionado, setCentroSeleccionado] = useState<number | null>(
-    () => {
-      const v = searchParams.get("centro");
-      return v ? Number(v) : null;
-    },
-  );
+  const [ejecutivoSeleccionado, setEjecutivoSeleccionado] = useState<
+    number | null
+  >(() => {
+    const v = searchParams.get("ejecutivo");
+    return v ? Number(v) : null;
+  });
+  const [ejecutivoBusqueda, setEjecutivoBusqueda] = useState("");
+  const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
+  const ejecutivoRef = useRef<HTMLDivElement>(null);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<
     number | null
   >(() => {
@@ -87,46 +100,11 @@ export default function AprobacionDesaprobacionPage() {
   const autoBuscoRef = useRef(false);
 
   useEffect(() => {
-    async function cargarCentros() {
-      try {
-        setLoadingCentros(true);
-        const data = await centrosOperacionService.getAll();
-        setCentros(data);
-      } catch (error) {
-        console.error("Error cargando centros:", error);
-      } finally {
-        setLoadingCentros(false);
-      }
-    }
-
-    cargarCentros();
-  }, []);
-
-  useEffect(() => {
-    if (!user?.co_id) return;
-    if (centroSeleccionado !== null) return;
-    const centroId = Number(user.co_id);
-    if (!isNaN(centroId)) {
-      setCentroSeleccionado(centroId);
-    }
-  }, [user?.co_id, centroSeleccionado]);
-
-  useEffect(() => {
     async function cargarClientes() {
-      if (!centroSeleccionado) {
-        setClientes([]);
-        setClienteSeleccionado(null);
-        return;
-      }
-
       try {
         setLoadingClientes(true);
         const data = await clientesService.getAll();
-        const filtered = (Array.isArray(data) ? data : []).filter((c: any) => {
-          const centroIds = c.centro_operacion_ids || [];
-          return centroIds.includes(centroSeleccionado);
-        });
-        setClientes(filtered);
+        setClientes(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error cargando clientes:", error);
       } finally {
@@ -135,7 +113,71 @@ export default function AprobacionDesaprobacionPage() {
     }
 
     cargarClientes();
-  }, [centroSeleccionado]);
+  }, []);
+
+  useEffect(() => {
+    async function cargarEjecutivos() {
+      try {
+        const data = await clientesService.getEjecutivosNegocio();
+        setEjecutivos(data || []);
+      } catch (error) {
+        console.error("Error cargando ejecutivos:", error);
+      }
+    }
+
+    cargarEjecutivos();
+  }, []);
+
+  // Si el ejecutivo llegó preseleccionado desde la URL (?ejecutivo=, al
+  // volver desde /gestionar), una vez cargado el catálogo se resuelve el
+  // texto a mostrar en el buscador.
+  useEffect(() => {
+    if (!ejecutivoSeleccionado || ejecutivoBusqueda) return;
+    const match = ejecutivos.find((e) => e.ejng_id === ejecutivoSeleccionado);
+    if (match) setEjecutivoBusqueda(match.ejng_nombre);
+  }, [ejecutivos, ejecutivoSeleccionado, ejecutivoBusqueda]);
+
+  const ejecutivosFiltrados = useMemo(() => {
+    if (!ejecutivoBusqueda) return ejecutivos;
+    return ejecutivos.filter((e) =>
+      e.ejng_nombre.toLowerCase().includes(ejecutivoBusqueda.toLowerCase()),
+    );
+  }, [ejecutivos, ejecutivoBusqueda]);
+
+  // "Cliente" depende del "Ejecutivo" seleccionado: sin ejecutivo elegido no
+  // hay clientes para mostrar (el <select> queda deshabilitado); con uno
+  // elegido, solo los suyos.
+  const clientesDelEjecutivo = useMemo(() => {
+    if (!ejecutivoSeleccionado) return [];
+    return clientes.filter((c) => c.ejng_id === ejecutivoSeleccionado);
+  }, [clientes, ejecutivoSeleccionado]);
+
+  // Si cambia el ejecutivo y el cliente ya elegido no es suyo, se limpia la
+  // selección de cliente en vez de dejar un filtro imposible de cumplir.
+  useEffect(() => {
+    if (!clienteSeleccionado) return;
+    const sigueSiendoValido = clientesDelEjecutivo.some(
+      (c) => Number(c.cli_id) === clienteSeleccionado,
+    );
+    if (!sigueSiendoValido) setClienteSeleccionado(null);
+  }, [clientesDelEjecutivo, clienteSeleccionado]);
+
+  // Cierra el dropdown de Ejecutivo al hacer clic afuera — mismo mecanismo
+  // que SuggestField (el onBlur del input no basta: el clic sobre un ítem de
+  // la lista dispara blur antes que el click).
+  useEffect(() => {
+    if (!mostrarEjecutivos) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        ejecutivoRef.current &&
+        !ejecutivoRef.current.contains(event.target as Node)
+      ) {
+        setMostrarEjecutivos(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarEjecutivos]);
 
   const obtenerUsuarioId = () => {
     const directId =
@@ -158,7 +200,8 @@ export default function AprobacionDesaprobacionPage() {
   const sincronizarUrl = (pagina: number) => {
     const params = new URLSearchParams();
     params.set("buscado", "1");
-    if (centroSeleccionado) params.set("centro", String(centroSeleccionado));
+    if (ejecutivoSeleccionado)
+      params.set("ejecutivo", String(ejecutivoSeleccionado));
     if (clienteSeleccionado) params.set("cliente", String(clienteSeleccionado));
     if (numeroFiltro.trim()) params.set("numero", numeroFiltro.trim());
     params.set("pagina", String(pagina));
@@ -171,7 +214,7 @@ export default function AprobacionDesaprobacionPage() {
       const usuarioId = obtenerUsuarioId();
 
       if (!usuarioId) {
-        alert("No hay usuario autenticado");
+        setErrorMessage("No hay usuario autenticado");
         return;
       }
 
@@ -187,10 +230,10 @@ export default function AprobacionDesaprobacionPage() {
           ...s,
         }))
         .filter((s: Solicitud) => {
-          const cumpleCentro = centroSeleccionado
-            ? s.sol_co_id === centroSeleccionado
+          const cumpleEjecutivo = ejecutivoSeleccionado
+            ? s.sol_ejecutivo_id === ejecutivoSeleccionado
             : true;
-          return cumpleCentro;
+          return cumpleEjecutivo;
         })
         .filter((s: Solicitud) => {
           const cumpleCliente = clienteSeleccionado
@@ -213,7 +256,7 @@ export default function AprobacionDesaprobacionPage() {
       if (!opts.preservePagina) setPaginaActual(1);
       sincronizarUrl(paginaFinal);
     } catch (error) {
-      alert("Error al cargar solicitudes");
+      setErrorMessage("Error al cargar solicitudes");
     } finally {
       setLoadingSolicitudes(false);
     }
@@ -222,22 +265,14 @@ export default function AprobacionDesaprobacionPage() {
   // Si se vuelve desde /gestionar con una búsqueda ya hecha (marcador
   // "buscado=1" en la URL), repetirla automáticamente para restaurar la
   // tabla en vez de dejar el listado vacío pidiendo buscar de nuevo.
-  // El centro es opcional en la búsqueda (buscar() no lo exige), así que
-  // no podemos condicionar esto a que centroSeleccionado tenga valor: si el
-  // usuario buscó sin centro (o no tiene centro por defecto), esa condición
-  // nunca se cumplía y el auto-restore no disparaba. Solo esperamos a que
-  // termine de resolverse el centro por defecto cuando sabemos que va a
-  // llegar (usuario con co_id); si el usuario no tiene co_id, no hay nada
-  // que esperar.
   useEffect(() => {
     if (autoBuscoRef.current) return;
     if (searchParams.get("buscado") !== "1") return;
     if (!user) return;
-    if (centroSeleccionado === null && user?.co_id) return;
     autoBuscoRef.current = true;
     buscar({ preservePagina: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, centroSeleccionado]);
+  }, [user]);
 
   const irAPagina = (page: number) => {
     setPaginaActual(page);
@@ -253,6 +288,15 @@ export default function AprobacionDesaprobacionPage() {
   const indiceFin = indiceInicio + pageSize;
   const solicitudesActuales = solicitudes.slice(indiceInicio, indiceFin);
 
+  // Pool crudo de sugerencias para el campo de número de solicitud — se
+  // arma antes de aplicar el filtro de texto (buscar() ya filtra por
+  // numeroFiltro al construir `solicitudes`, pero mientras no se haya
+  // acotado por número, este array sigue siendo el listado completo).
+  const numeroSugerencias = useMemo(
+    () => solicitudes.map((s) => s.sol_numero_solicitud || s.numero_solicitud || ""),
+    [solicitudes],
+  );
+
   async function exportarExcel() {
     if (solicitudes.length === 0) return;
 
@@ -266,6 +310,8 @@ export default function AprobacionDesaprobacionPage() {
       "Resultado Etapa",
       "Consumo Proyectado (COP)",
       "Observaciones Ejecutivo",
+      "Fecha de Envío",
+      "Fecha Gestión Ejecutivo",
       "Fecha Estimada Respuesta",
       "Dias Faltantes",
     ];
@@ -285,6 +331,8 @@ export default function AprobacionDesaprobacionPage() {
           ? `$${s.consumo_mensual_proyectado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
           : "-",
         s.observacionesComercial || "-",
+        formatDateTime(s.sol_fecha_envio),
+        formatDateTime(s.sol_fecha_real_ejecutivo),
         formatDate(fechaEstimada),
         diasRestantes !== null ? diasRestantes : "-",
       ];
@@ -299,10 +347,6 @@ export default function AprobacionDesaprobacionPage() {
     );
   }
 
-  if (loadingCentros) {
-    return <LoadingModal isOpen message="Cargando centros..." />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-[115rem] mx-auto">
@@ -312,28 +356,55 @@ export default function AprobacionDesaprobacionPage() {
           title="Pendientes — Auxiliar Servicio al Cliente"
           onBack={() => router.back()}
         >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <FilterField label="Centro de operacion *">
-              <select
-                value={centroSeleccionado ? String(centroSeleccionado) : ""}
-                onChange={(e) =>
-                  setCentroSeleccionado(
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <FilterField label="Ejecutivo" className="relative" ref={ejecutivoRef}>
+              <input
+                type="text"
+                placeholder="Buscar ejecutivo..."
+                value={ejecutivoBusqueda}
+                onFocus={() => setMostrarEjecutivos(true)}
+                onChange={(e) => {
+                  setEjecutivoBusqueda(e.target.value);
+                  setEjecutivoSeleccionado(null);
+                  setMostrarEjecutivos(true);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona un centro</option>
-                {centros.map((centro, index) => (
-                  <option
-                    key={`centro-${centro.cop_id}-${index}`}
-                    value={String(centro.cop_id)}
+              />
+              {mostrarEjecutivos && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                  <div
+                    onClick={() => {
+                      setEjecutivoSeleccionado(null);
+                      setEjecutivoBusqueda("");
+                      setMostrarEjecutivos(false);
+                    }}
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
                   >
-                    {centro.cop_nombre}
-                  </option>
-                ))}
-              </select>
+                    Limpiar selección
+                  </div>
+                  {ejecutivosFiltrados.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      Sin resultados
+                    </div>
+                  ) : (
+                    ejecutivosFiltrados.map((ejecutivo) => (
+                      <div
+                        key={ejecutivo.ejng_id}
+                        onClick={() => {
+                          setEjecutivoSeleccionado(ejecutivo.ejng_id);
+                          setEjecutivoBusqueda(ejecutivo.ejng_nombre);
+                          setMostrarEjecutivos(false);
+                        }}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
+                      >
+                        {ejecutivo.ejng_nombre}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </FilterField>
+
             <FilterField label="Cliente">
               <select
                 value={clienteSeleccionado ?? ""}
@@ -342,11 +413,15 @@ export default function AprobacionDesaprobacionPage() {
                     e.target.value === "" ? null : Number(e.target.value),
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={!centroSeleccionado || loadingClientes}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                disabled={loadingClientes || !ejecutivoSeleccionado}
               >
-                <option value="">Todos los clientes</option>
-                {clientes.map((cliente, index) => (
+                <option value="">
+                  {ejecutivoSeleccionado
+                    ? "Todos los clientes"
+                    : "Selecciona un ejecutivo primero"}
+                </option>
+                {clientesDelEjecutivo.map((cliente, index) => (
                   <option
                     key={`cliente-${cliente.cli_id}-${index}`}
                     value={cliente.cli_id}
@@ -356,15 +431,14 @@ export default function AprobacionDesaprobacionPage() {
                 ))}
               </select>
             </FilterField>
-            <FilterField label="Numero de solicitud">
-              <input
-                type="text"
-                value={numeroFiltro}
-                onChange={(e) => setNumeroFiltro(e.target.value)}
-                placeholder="Ej: SOL-00123"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Numero de solicitud"
+              placeholder="Ej: SOL-00123"
+              value={numeroFiltro}
+              onChange={setNumeroFiltro}
+              suggestions={numeroSugerencias}
+              onEnter={() => buscar()}
+            />
             <FilterActions className="col-span-full">
               <button
                 onClick={() => buscar()}
@@ -385,8 +459,7 @@ export default function AprobacionDesaprobacionPage() {
         ) : !hasSearched ? (
           <EmptyStateCard
             icon={PackageOpen}
-            title="Selecciona un centro y presiona Buscar para ver las solicitudes."
-            subtitle="El centro de operación es obligatorio."
+            title="Presiona Buscar para cargar tus solicitudes pendientes."
           />
         ) : solicitudes.length === 0 ? (
           <EmptyStateCard icon={PackageOpen} title="No se encontraron solicitudes." />
@@ -402,42 +475,22 @@ export default function AprobacionDesaprobacionPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Numero Solicitud
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Centro de Operacion
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Etapa Actual
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Resultado Etapa
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Ver Formulario
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Consumo Proyectado (COP)
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Observaciones Ejecutivo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Fecha Estimada Respuesta
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Dias Faltantes
-                      </th>
-                      <th className="sticky right-0 px-6 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                      <Th>Numero Solicitud</Th>
+                      {/* <Th>Centro de Operacion</Th> */}
+                      <Th>Cliente</Th>
+                      <Th>Estado</Th>
+                      <Th>Etapa Actual</Th>
+                      <Th>Resultado Etapa</Th>
+                      <Th>Ver Formulario</Th>
+                      <Th>Consumo Proyectado (COP)</Th>
+                      <Th>Observaciones Ejecutivo</Th>
+                      <Th>Fecha de Envío</Th>
+                      <Th>Fecha Gestión Ejecutivo</Th>
+                      <Th>Fecha Estimada Respuesta</Th>
+                      <Th>Dias Faltantes</Th>
+                      <Th sticky align="right">
                         Acción
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -448,21 +501,18 @@ export default function AprobacionDesaprobacionPage() {
                         solicitud.fecha_estimada_respuesta_comercial;
 
                       return (
-                        <tr
-                          key={solicitud.sol_id ?? solicitud.sa_sol_id}
-                          className="group hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                        <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
+                          <Td className="whitespace-nowrap font-medium text-blue-600">
                             {solicitud.sol_numero_solicitud ||
                               solicitud.numero_solicitud}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td> */}
+                          <Td className="whitespace-nowrap">
                             {solicitud.cliente_nombre}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
                                 solicitud.sol_estado_id ?? solicitud.estado_id,
@@ -472,14 +522,14 @@ export default function AprobacionDesaprobacionPage() {
                                 solicitud.sol_estado_id ?? solicitud.estado_id
                               ] || "Desconocido"}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.etapa_nombre || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.resultado_nombre || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          </Td>
+                          <Td className="whitespace-nowrap font-medium">
                             <button
                               onClick={() =>
                                 router.push(
@@ -490,8 +540,8 @@ export default function AprobacionDesaprobacionPage() {
                             >
                               Ver formulario
                             </button>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.consumo_mensual_proyectado
                               ? `$${solicitud.consumo_mensual_proyectado.toLocaleString(
                                   "es-CO",
@@ -501,17 +551,23 @@ export default function AprobacionDesaprobacionPage() {
                                   },
                                 )}`
                               : "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.observacionesComercial || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
+                            {formatDateTime(solicitud.sol_fecha_envio)}
+                          </Td>
+                          <Td className="whitespace-nowrap">
+                            {formatDateTime(solicitud.sol_fecha_real_ejecutivo)}
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {formatDate(fechaEstimada)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             <DiasRestantesBadge fecha={fechaEstimada} />
-                          </td>
-                          <td className="sticky right-0 px-6 py-4 whitespace-nowrap text-sm font-medium text-right bg-white group-hover:bg-gray-50 transition-colors shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                          </Td>
+                          <Td sticky align="right" className="whitespace-nowrap font-medium">
                             <button
                               onClick={() =>
                                 router.push(
@@ -522,8 +578,8 @@ export default function AprobacionDesaprobacionPage() {
                             >
                               Gestionar
                             </button>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       );
                     })}
                   </tbody>
@@ -542,6 +598,12 @@ export default function AprobacionDesaprobacionPage() {
           </>
         )}
       </div>
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

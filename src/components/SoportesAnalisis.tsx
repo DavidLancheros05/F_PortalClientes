@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Eye, Paperclip, Trash2, Upload } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, ConfirmModal, ErrorModal } from "@/components/modals";
 
 interface SoporteAnalisis {
   ssa_id: number;
@@ -36,6 +36,9 @@ export function SoportesAnalisis({
   const [soportes, setSoportes] = useState<SoporteAnalisis[]>([]);
   const [loading, setLoading] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ssaAEliminar, setSsaAEliminar] = useState<number | null>(null);
+  const [eliminando, setEliminando] = useState(false);
 
   const cargar = () => {
     setLoading(true);
@@ -67,20 +70,30 @@ export function SoportesAnalisis({
       cargar();
     } catch (error) {
       console.error("Error subiendo soporte de análisis:", error);
-      alert("No se pudo subir el archivo.");
+      setErrorMessage("No se pudo subir el archivo.");
     } finally {
       setSubiendo(false);
     }
   };
 
-  const handleEliminar = async (ssaId: number) => {
-    if (!confirm("¿Eliminar este soporte? No podrás recuperarlo.")) return;
+  const handleEliminar = (ssaId: number) => {
+    setSsaAEliminar(ssaId);
+  };
+
+  const handleConfirmEliminar = async () => {
+    if (ssaAEliminar === null) return;
+    const ssaId = ssaAEliminar;
+    setEliminando(true);
     try {
       await solicitudesService.eliminarSoporteAnalisis(solicitudId, ssaId);
       setSoportes((prev) => prev.filter((s) => s.ssa_id !== ssaId));
+      setSsaAEliminar(null);
     } catch (error) {
       console.error("Error eliminando soporte de análisis:", error);
-      alert("No se pudo eliminar el archivo.");
+      setErrorMessage("No se pudo eliminar el archivo.");
+      setSsaAEliminar(null);
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -155,6 +168,23 @@ export function SoportesAnalisis({
       )}
 
       <LoadingModal isOpen={subiendo} message="Subiendo archivo de soporte..." />
+
+      <ConfirmModal
+        isOpen={ssaAEliminar !== null}
+        title="Eliminar soporte"
+        message="¿Eliminar este soporte? No podrás recuperarlo."
+        confirmText="Eliminar"
+        isDangerous
+        isLoading={eliminando}
+        onConfirm={handleConfirmEliminar}
+        onCancel={() => setSsaAEliminar(null)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

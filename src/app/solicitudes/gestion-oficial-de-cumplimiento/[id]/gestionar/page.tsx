@@ -103,43 +103,74 @@ export default function GestionOCPage() {
   } = useSolicitudCupoSolicitado(solicitudId);
 
   useEffect(() => {
-    async function cargarDatos() {
-      if (!solicitudId) return;
+    let cancelled = false;
 
+    async function cargarDatos(id: number) {
       try {
         setLoading(true);
-        const solicitudData = await solicitudesService.getById(solicitudId);
+        const solicitudData = await solicitudesService.getById(id);
+        if (cancelled) return;
         setSolicitud(solicitudData);
       } catch (error) {
+        if (cancelled) return;
         console.error("Error cargando datos:", error);
-        alert("Error al cargar la solicitud");
+        setErrorMessage("No se pudo cargar la solicitud. Intenta de nuevo.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    cargarDatos();
+    if (solicitudId) {
+      cargarDatos(solicitudId);
+    }
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId]);
 
   useEffect(() => {
+    let cancelled = false;
+
     motivosRechazoService
       .getActivos()
-      .then(setMotivosRechazo)
+      .then((data) => {
+        if (!cancelled) setMotivosRechazo(data);
+      })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Error cargando motivos de rechazo:", error);
         setMotivosRechazo([]);
+        // Sin esto, el select de "Motivo del rechazo" queda vacío y el
+        // usuario no puede rechazar la solicitud sin saber por qué.
+        setErrorMessage(
+          "No se pudo cargar el catálogo de motivos de rechazo. Recarga la página antes de intentar rechazar.",
+        );
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!solicitudId) return;
+
+    let cancelled = false;
+
     solicitudesService
       .getTablasCumplimiento(solicitudId)
-      .then(setTablasCumplimiento)
+      .then((data) => {
+        if (!cancelled) setTablasCumplimiento(data);
+      })
       .catch((error) => {
+        if (cancelled) return;
         console.error("Error cargando tablas de cumplimiento:", error);
         setTablasCumplimiento(null);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId]);
 
   const observacionesLength = registro.observacionesCumplimiento.trim().length;

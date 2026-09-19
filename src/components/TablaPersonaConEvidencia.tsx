@@ -6,7 +6,7 @@ import {
   solicitudesService,
   type EvidenciaPersona,
 } from "@/services/solicitudes.service";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, ConfirmModal, ErrorModal } from "@/components/modals";
 
 interface TablaPersonaConEvidenciaProps {
   solicitudId: number;
@@ -35,6 +35,11 @@ export function TablaPersonaConEvidencia({
   );
   const [loading, setLoading] = useState(true);
   const [subiendoFila, setSubiendoFila] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [evidenciaAEliminar, setEvidenciaAEliminar] = useState<
+    { filaIndex: number; sepId: number } | null
+  >(null);
+  const [eliminando, setEliminando] = useState(false);
 
   const cargar = () => {
     if (!fpId) {
@@ -84,14 +89,20 @@ export function TablaPersonaConEvidencia({
       });
     } catch (error) {
       console.error("Error subiendo evidencia de persona:", error);
-      alert("No se pudo subir el archivo de evidencia.");
+      setErrorMessage("No se pudo subir el archivo de evidencia.");
     } finally {
       setSubiendoFila(null);
     }
   };
 
-  const handleEliminar = async (filaIndex: number, sepId: number) => {
-    if (!confirm("¿Eliminar esta evidencia? No podrás recuperarla.")) return;
+  const handleEliminar = (filaIndex: number, sepId: number) => {
+    setEvidenciaAEliminar({ filaIndex, sepId });
+  };
+
+  const handleConfirmEliminar = async () => {
+    if (!evidenciaAEliminar) return;
+    const { filaIndex, sepId } = evidenciaAEliminar;
+    setEliminando(true);
     try {
       await solicitudesService.eliminarEvidenciaPersona(solicitudId, sepId);
       setEvidencias((prev) => {
@@ -99,9 +110,13 @@ export function TablaPersonaConEvidencia({
         next.delete(filaIndex);
         return next;
       });
+      setEvidenciaAEliminar(null);
     } catch (error) {
       console.error("Error eliminando evidencia de persona:", error);
-      alert("No se pudo eliminar el archivo de evidencia.");
+      setErrorMessage("No se pudo eliminar el archivo de evidencia.");
+      setEvidenciaAEliminar(null);
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -204,6 +219,23 @@ export function TablaPersonaConEvidencia({
       <LoadingModal
         isOpen={subiendoFila !== null}
         message="Subiendo evidencia..."
+      />
+
+      <ConfirmModal
+        isOpen={evidenciaAEliminar !== null}
+        title="Eliminar evidencia"
+        message="¿Eliminar esta evidencia? No podrás recuperarla."
+        confirmText="Eliminar"
+        isDangerous
+        isLoading={eliminando}
+        onConfirm={handleConfirmEliminar}
+        onCancel={() => setEvidenciaAEliminar(null)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
       />
     </div>
   );

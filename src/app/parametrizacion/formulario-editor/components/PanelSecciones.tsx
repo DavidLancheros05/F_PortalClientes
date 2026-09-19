@@ -8,7 +8,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ChevronDown, ChevronUp, Edit2, Plus, Save, Trash2, X } from "lucide-react";
-import { ConfirmModal } from "@/components/modals";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 import { Toast } from "@/components/Toast";
 import { SortableItem } from "./SortableItem";
 import type { Pregunta, Seccion } from "../hooks/types";
@@ -38,6 +38,8 @@ interface PanelSeccionesProps {
   setMostrarConfirmarGuardarSeccion: (value: boolean) => void;
   successMessageSeccion: "creada" | "editada" | null;
   setSuccessMessageSeccion: (value: "creada" | "editada" | null) => void;
+  errorMessageSeccion: string | null;
+  setErrorMessageSeccion: (value: string | null) => void;
   iniciarEdicionSeccion: (seccion: Seccion) => void;
   eliminarSeccion: (seccionId: number) => void;
   cambiarOrdenSeccion: (seccionId: number, direccion: "arriba" | "abajo") => void;
@@ -71,6 +73,8 @@ export function PanelSecciones({
   setMostrarConfirmarGuardarSeccion,
   successMessageSeccion,
   setSuccessMessageSeccion,
+  errorMessageSeccion,
+  setErrorMessageSeccion,
   iniciarEdicionSeccion,
   eliminarSeccion,
   cambiarOrdenSeccion,
@@ -359,6 +363,12 @@ export function PanelSecciones({
         isLoading={guardandoSeccion}
         onConfirm={confirmarGuardarSeccion}
         onCancel={() => setMostrarConfirmarGuardarSeccion(false)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessageSeccion}
+        message={errorMessageSeccion || ""}
+        onAction={() => setErrorMessageSeccion(null)}
       />
 
       <Toast message={toastMessageSeccion} />

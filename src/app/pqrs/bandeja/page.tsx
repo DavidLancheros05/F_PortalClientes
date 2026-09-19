@@ -6,6 +6,9 @@ import { CheckCircle, Inbox, PackageOpen } from "lucide-react";
 import { pqrsService } from "@/services/pqrs.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { ErrorModal } from "@/components/modals";
 
 interface PQRS {
   pqrs_id: number;
@@ -26,6 +29,7 @@ export default function BandejaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tomarLoading, setTomarLoading] = useState<number | null>(null);
+  const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<{ id: number; rol: string } | null>(
     null,
   );
@@ -65,7 +69,7 @@ export default function BandejaPage() {
       setPqrs(data || []);
     } catch (err) {
       console.error("Error al tomar PQRS:", err);
-      alert("Error al tomar la PQRS");
+      setActionErrorMessage("Error al tomar la PQRS");
     } finally {
       setTomarLoading(null);
     }
@@ -81,13 +85,13 @@ export default function BandejaPage() {
     item: PQRS;
     isDisponible: boolean;
   }) => (
-    <tr key={item.pqrs_id} className="hover:bg-gray-50 transition-colors">
-      <td className="px-6 py-4 font-medium text-brand-600">
+    <Tr key={item.pqrs_id}>
+      <Td className="font-medium text-brand-600">
         {item.pqrs_numero}
-      </td>
-      <td className="px-6 py-4 text-gray-700">{item.pqrs_titulo}</td>
-      <td className="px-6 py-4 text-gray-600">{item.tipo?.pt_nombre || "-"}</td>
-      <td className="px-6 py-4">
+      </Td>
+      <Td>{item.pqrs_titulo}</Td>
+      <Td>{item.tipo?.pt_nombre || "-"}</Td>
+      <Td>
         <span
           className="inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white"
           style={{
@@ -97,11 +101,11 @@ export default function BandejaPage() {
         >
           {item.estado?.pe_nombre || "-"}
         </span>
-      </td>
-      <td className="px-6 py-4 text-gray-600">
+      </Td>
+      <Td>
         {new Date(item.pqrs_fecha_creacion).toLocaleDateString("es-ES")}
-      </td>
-      <td className="px-6 py-4 text-center space-x-2">
+      </Td>
+      <Td align="center" sticky className="space-x-2">
         {isDisponible ? (
           <>
             <button
@@ -126,8 +130,8 @@ export default function BandejaPage() {
             Gestionar
           </button>
         )}
-      </td>
-    </tr>
+      </Td>
+    </Tr>
   );
 
   return (
@@ -163,24 +167,14 @@ export default function BandejaPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50 border-b border-gray-200">
                           <tr>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Número
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Título
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Tipo
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Estado
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Fecha Creación
-                            </th>
-                            <th className="px-6 py-3 text-center font-semibold text-gray-700">
+                            <Th>Número</Th>
+                            <Th>Título</Th>
+                            <Th>Tipo</Th>
+                            <Th>Estado</Th>
+                            <Th>Fecha Creación</Th>
+                            <Th align="center" sticky>
                               Acciones
-                            </th>
+                            </Th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -208,24 +202,14 @@ export default function BandejaPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50 border-b border-gray-200">
                           <tr>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Número
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Título
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Tipo
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Estado
-                            </th>
-                            <th className="px-6 py-3 text-left font-semibold text-gray-700">
-                              Fecha Creación
-                            </th>
-                            <th className="px-6 py-3 text-center font-semibold text-gray-700">
+                            <Th>Número</Th>
+                            <Th>Título</Th>
+                            <Th>Tipo</Th>
+                            <Th>Estado</Th>
+                            <Th>Fecha Creación</Th>
+                            <Th align="center" sticky>
                               Acciones
-                            </th>
+                            </Th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -245,6 +229,12 @@ export default function BandejaPage() {
             </div>
           )}
       </div>
+
+      <ErrorModal
+        isOpen={!!actionErrorMessage}
+        message={actionErrorMessage || ""}
+        onAction={() => setActionErrorMessage(null)}
+      />
     </div>
   );
 }

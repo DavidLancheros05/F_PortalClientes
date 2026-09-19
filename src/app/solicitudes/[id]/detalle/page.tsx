@@ -15,6 +15,7 @@ import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
 import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
+import { ErrorModal } from "@/components/modals";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -78,6 +79,7 @@ export default function DetalleDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [descargandoPdfFormulario, setDescargandoPdfFormulario] = useState(false);
+  const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
   const { historial } = useHistorialWorkflow(
     Number.isFinite(solicitudId) ? solicitudId : null,
   );
@@ -99,7 +101,7 @@ export default function DetalleDetailPage() {
       window.open(url, "_blank");
     } catch (err) {
       console.error("Error abriendo PDF del formulario:", err);
-      alert("No se pudo generar el PDF del formulario. Intenta de nuevo.");
+      setActionErrorMessage("No se pudo generar el PDF del formulario. Intenta de nuevo.");
     } finally {
       setDescargandoPdfFormulario(false);
     }
@@ -120,7 +122,7 @@ export default function DetalleDetailPage() {
       );
 
       if (!plantillaActiva || !plantillaActiva.plantillaContenido) {
-        alert("No hay plantilla de carta activa");
+        setActionErrorMessage("No hay plantilla de carta activa");
         return;
       }
 
@@ -153,28 +155,35 @@ export default function DetalleDetailPage() {
       });
     } catch (err) {
       console.error("Error generando PDF:", err);
-      alert("Error al generar el PDF");
+      setActionErrorMessage("Error al generar el PDF");
     } finally {
       setGenerandoPDF(false);
     }
   };
 
   useEffect(() => {
+    if (!solicitudId) return;
+
+    let cancelled = false;
+
     async function cargarSolicitud() {
       try {
         const data = await solicitudesService.getById(solicitudId);
+        if (cancelled) return;
         setSolicitud(data);
       } catch (err) {
+        if (cancelled) return;
         console.error("Error cargando solicitud:", err);
         setError("Error al cargar los datos de la solicitud");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    if (solicitudId) {
-      cargarSolicitud();
-    }
+    cargarSolicitud();
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId]);
 
   const estadoTokens = ESTADO_TOKENS[solicitud?.sol_estado_id ?? 1] || ESTADO_TOKENS[1];
@@ -580,6 +589,12 @@ export default function DetalleDetailPage() {
           )}
         </div>
       </div>
+
+      <ErrorModal
+        isOpen={!!actionErrorMessage}
+        message={actionErrorMessage || ""}
+        onAction={() => setActionErrorMessage(null)}
+      />
     </div>
   );
 }

@@ -1,19 +1,17 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
-import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Check, Eye, FileX, Info, Search, X } from "lucide-react";
-import { LoadingModal, InfoModal } from "@/components/modals";
+import { LoadingModal, InfoModal, ErrorModal } from "@/components/modals";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { ExportExcelButton } from "@/components/tables/ExportExcelButton";
-import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 
 interface SolicitudRechazada {
   sol_id: number;
@@ -48,14 +46,9 @@ export default function SolicitudesRechazadasEjecutivoPage() {
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState<SolicitudRechazada[]>([]);
   const [loading, setLoading] = useState(false);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
   // Filtros inicializados desde la URL — mismo patrón que
   // gestion-ejecutivo-negocios/page.tsx, para que "Volver" desde el detalle
   // restaure la búsqueda en vez de reiniciar el formulario.
-  const [centroFiltro, setCentroFiltro] = useState<number | null>(() => {
-    const v = searchParams.get("centro");
-    return v ? Number(v) : null;
-  });
   const [searchInput, setSearchInput] = useState(
     () => searchParams.get("buscar") || "",
   );
@@ -66,58 +59,55 @@ export default function SolicitudesRechazadasEjecutivoPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showInfoModal, setShowInfoModal] = useState(false);
-
-  useEffect(() => {
-    async function cargarCentros() {
-      try {
-        const data = await centrosOperacionService.getAll();
-        setCentros(data);
-      } catch (error) {
-        console.error("Error cargando centros:", error);
-      }
-    }
-
-    cargarCentros();
-  }, []);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const solicitudesFiltradas = useMemo(
     () =>
       solicitudes.filter((solicitud) => {
-        const matchCentro = !centroFiltro || solicitud.sol_co_id === centroFiltro;
         const term = searchTerm.toLowerCase();
         const matchSearch =
           solicitud.sol_numero_solicitud?.toLowerCase().includes(term) ||
           solicitud.cliente_nombre?.toLowerCase().includes(term) ||
           solicitud.centro_operacion_nombre?.toLowerCase().includes(term);
 
-        return matchCentro && matchSearch;
+        return matchSearch;
       }),
-    [solicitudes, centroFiltro, searchTerm],
+    [solicitudes, searchTerm],
   );
 
-  // La página se reinicia cuando cambia el filtro de centro o el resultado
-  // de una nueva búsqueda — evita quedar en una página que ya no existe.
+  // La página se reinicia cuando cambia el resultado de una nueva búsqueda —
+  // evita quedar en una página que ya no existe.
   useEffect(() => {
     setPage(1);
-  }, [centroFiltro, searchTerm, solicitudes]);
+  }, [searchTerm, solicitudes]);
 
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
     return solicitudesFiltradas.slice(start, start + pageSize);
   }, [solicitudesFiltradas, page, pageSize]);
 
+  // Pool crudo de sugerencias para "Buscar" — combina los mismos campos que
+  // matchSearch usa (número, cliente, centro), tomados de `solicitudes`
+  // (antes de aplicar el filtro de texto).
+  const buscarSugerencias = useMemo(
+    () => [
+      ...solicitudes.map((s) => s.sol_numero_solicitud ?? ""),
+      ...solicitudes.map((s) => s.cliente_nombre ?? ""),
+      ...solicitudes.map((s) => s.centro_operacion_nombre ?? ""),
+    ],
+    [solicitudes],
+  );
+
   // Refleja los filtros actuales en la URL (sin agregar entradas al
   // historial) para que "Volver" desde el detalle los pueda restaurar.
-  function sincronizarUrl(filtros: { centro: number | null; buscar: string }) {
+  function sincronizarUrl(filtros: { buscar: string }) {
     const params = new URLSearchParams();
     params.set("buscado", "1");
-    if (filtros.centro) params.set("centro", String(filtros.centro));
     if (filtros.buscar.trim()) params.set("buscar", filtros.buscar.trim());
     router.replace(`${pathname}?${params.toString()}`);
   }
 
   function limpiarFiltros() {
-    setCentroFiltro(null);
     setSearchInput("");
     setSearchTerm("");
     setHasSearched(false);
@@ -128,7 +118,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
   async function handleBuscar() {
     try {
       if (!user?.usr_id) {
-        alert("No hay usuario autenticado");
+        setErrorMessage("No hay usuario autenticado");
         return;
       }
       setLoading(true);
@@ -138,9 +128,9 @@ export default function SolicitudesRechazadasEjecutivoPage() {
       setSolicitudes(data);
       setSearchTerm(searchInput.trim());
       setHasSearched(true);
-      sincronizarUrl({ centro: centroFiltro, buscar: searchInput });
+      sincronizarUrl({ buscar: searchInput });
     } catch (error) {
-      alert("Error al buscar solicitudes");
+      setErrorMessage("Error al buscar solicitudes");
     } finally {
       setLoading(false);
     }
@@ -216,38 +206,15 @@ export default function SolicitudesRechazadasEjecutivoPage() {
 
           {/* Filtros */}
           <div className="px-7 py-4 bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <FilterField label="Centro de operación">
-                <select
-                  value={centroFiltro ?? ""}
-                  onChange={(event) =>
-                    setCentroFiltro(
-                      event.target.value ? Number(event.target.value) : null,
-                    )
-                  }
-                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                >
-                  <option value="">Todos</option>
-                  {centros.map((item, index) => (
-                    <option
-                      key={item.cop_id || index}
-                      value={String(item.cop_id)}
-                    >
-                      {item.cop_nombre}
-                    </option>
-                  ))}
-                </select>
-              </FilterField>
-
-              <FilterField label="Buscar">
-                <input
-                  type="text"
-                  placeholder="No. solicitud, cliente o centro"
-                  value={searchInput}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  className="w-full px-3 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                />
-              </FilterField>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <SuggestField
+                label="Buscar"
+                placeholder="No. solicitud, cliente o centro"
+                value={searchInput}
+                onChange={setSearchInput}
+                suggestions={buscarSugerencias}
+                onEnter={handleBuscar}
+              />
 
               <FilterActions className="col-span-full">
                 <button
@@ -306,66 +273,47 @@ export default function SolicitudesRechazadasEjecutivoPage() {
             <div className="border border-[#eef1f6] rounded-[12px] mx-5 my-4 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-[#eef1f6]">
-                  <thead className="bg-[#f8fafc]">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        Centro de operación
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        No. solicitud
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        Rechazado en
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        Rechazado por
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        Fecha rechazo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider">
-                        Motivo
-                      </th>
-                      <th className="sticky right-0 z-10 bg-[#f8fafc] px-6 py-3 text-left text-xs font-semibold text-[#0f172a] uppercase tracking-wider shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)]">
-                        Acción
-                      </th>
+                      {/* <Th>Centro de operación</Th> */}
+                      <Th>No. solicitud</Th>
+                      <Th>Cliente</Th>
+                      <Th>Rechazado en</Th>
+                      <Th>Rechazado por</Th>
+                      <Th>Fecha rechazo</Th>
+                      <Th>Motivo</Th>
+                      <Th sticky>Acción</Th>
                     </tr>
                   </thead>
 
                   <tbody className="divide-y divide-[#eef1f6]">
                     {paginatedRows.map((solicitud) => (
-                      <tr
-                        key={solicitud.sol_id}
-                        className="group hover:bg-[#f8fafc] transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#0f172a]">
+                      <Tr key={solicitud.sol_id}>
+                        {/* <Td className="whitespace-nowrap">
                           {solicitud.centro_operacion_nombre}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#b91c1c]">
+                        </Td> */}
+                        <Td className="whitespace-nowrap font-semibold text-[#b91c1c]">
                           {solicitud.sol_numero_solicitud}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#0f172a]">
+                        </Td>
+                        <Td className="whitespace-nowrap">
                           {solicitud.cliente_nombre}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        </Td>
+                        <Td className="whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-[11px] py-1 rounded-full bg-[#fef2f2] text-[#b91c1c]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#b91c1c]" />
                             {solicitud.etapa_rechazo_nombre || "-"}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#64748b]">
+                        </Td>
+                        <Td className="whitespace-nowrap">
                           {solicitud.usuario_rechazo_nombre || "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#64748b]">
+                        </Td>
+                        <Td className="whitespace-nowrap">
                           {formatDateTime(solicitud.fecha_rechazo)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-[#64748b] max-w-xs truncate">
+                        </Td>
+                        <Td className="max-w-xs truncate">
                           {solicitud.motivo_rechazo || "-"}
-                        </td>
-                        <td className="sticky right-0 z-10 bg-white group-hover:bg-[#f8fafc] px-6 py-4 whitespace-nowrap text-sm font-medium shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.1)]">
+                        </Td>
+                        <Td sticky className="whitespace-nowrap font-medium">
                           <button
                             onClick={() =>
                               router.push(
@@ -377,8 +325,8 @@ export default function SolicitudesRechazadasEjecutivoPage() {
                             <Eye className="h-3.5 w-3.5" />
                             Ver
                           </button>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))}
                   </tbody>
                 </table>
@@ -404,6 +352,12 @@ export default function SolicitudesRechazadasEjecutivoPage() {
         title="Solicitudes rechazadas"
         message={`Solicitudes rechazadas de forma definitiva por Oficial de Cumplimiento o Comité de Crédito 2. El cliente no fue notificado automáticamente — te corresponde gestionar el seguimiento y marcar "Finalizar" cuando termines.`}
         onClose={() => setShowInfoModal(false)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
       />
     </div>
   );

@@ -10,7 +10,7 @@ import {
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { CheckCircle, Download, FileText, Upload, X } from "lucide-react";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, SuccessModal, ConfirmModal } from "@/components/modals";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
@@ -122,8 +122,8 @@ export function DocumentoTablaField({
     archivoExistente?.sa_origen === "cliente_archivo_reutilizado";
 
   const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
-  const [ofrecerReutilizarOmitido, setOfrecerReutilizarOmitido] =
-    useState(false);
+  const [ofrecerReutilizarOmitido, setOfrecerReutilizarOmitido] = useState(false);
+  const [confirmarEliminarArchivo, setConfirmarEliminarArchivo] = useState(false);
 
   // handleInputChange("ARCHIVO") es sincrono, pero dispara un re-render de
   // TODO el formulario (puede tener 90+ preguntas) — sin este indicador la
@@ -141,20 +141,19 @@ export function DocumentoTablaField({
   // setState de baja prioridad junto con el pesado de más abajo en el mismo
   // commit, dejando el modal sin pintarse nunca antes del freeze. flushSync
   // fuerza el commit del modal de una vez, sin depender de esa heurística.
-  const [procesandoArchivo, setProcesandoArchivo] = useState(false);
+  const [procesandoArchivo, setProcesandoArchivo] = useState<"loading" | "ready" | null>(null);
   const procesarArchivoSeleccionado = (file: File) => {
-    flushSync(() => setProcesandoArchivo(true));
+    flushSync(() => setProcesandoArchivo("loading"));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-        setProcesandoArchivo(false);
+        setProcesandoArchivo("ready");
       });
     });
   };
 
   const handleDescargarPlantilla = async () => {
-    if (documento?.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !documento?.tdo_plantilla_contenido)
-      return;
+    if (documento?.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !documento?.tdo_plantilla_contenido) return;
     setDescargandoPlantilla(true);
     try {
       if (documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") {
@@ -171,11 +170,8 @@ export function DocumentoTablaField({
         const contenido = documento!.tdo_plantilla_contenido!;
         let respuestasPregunta: Record<string, string> | undefined;
         if (solicitudId && /\{\{pregunta\|/.test(contenido)) {
-          const renderizable =
-            await solicitudesService.getFormularioRenderizable(solicitudId);
-          respuestasPregunta = construirMapaRespuestasPregunta(
-            renderizable.preguntas,
-          );
+          const renderizable = await solicitudesService.getFormularioRenderizable(solicitudId);
+          respuestasPregunta = construirMapaRespuestasPregunta(renderizable.preguntas);
         }
 
         let revisiones: { revision: string; descripcionCambio: string; fecha: string }[] = [];
@@ -225,336 +221,316 @@ export function DocumentoTablaField({
       // renombrada/eliminada) — se muestra en el ErrorModal del padre sin
       // auto-cerrar, a diferencia de los banners temporales de abajo, para
       // dar tiempo a leer el detalle.
-      setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "Error generando la plantilla descargable",
-      );
+      setErrorMessage(err instanceof Error ? err.message : "Error generando la plantilla descargable");
     } finally {
       setDescargandoPlantilla(false);
     }
   };
 
+  const handleEliminarArchivo = async () => {
+    setConfirmarEliminarArchivo(false);
+    try {
+      await formularioRespuestasService.eliminarArchivoRespuesta(
+        solicitudId!,
+        archivosExistentes[pregunta.fp_id].sa_id,
+      );
+      setArchivosExistentes((prev) => {
+        const newMap = { ...prev };
+        delete newMap[pregunta.fp_id];
+        return newMap;
+      });
+      setSuccessMessage("Archivo eliminado");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      console.error("Error eliminando archivo:", err);
+      setErrorMessage("Error eliminando archivo");
+      setTimeout(() => setErrorMessage(""), 3000);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {/* Columna izquierda: qué documento es */}
-      <div className="min-w-0 space-y-2">
-        <p className="text-sm font-semibold text-slate-900 leading-tight">
-          {tipoDocumentoFijo || pregunta.fp_descripcion}
-          {pregunta.fp_requerida && (
-            <span className="text-red-500 ml-1">*</span>
-          )}
-        </p>
-        {documento?.tdo_descripcion && (
-          <p className="text-xs text-slate-500 whitespace-pre-wrap break-words leading-relaxed">
-            {documento.tdo_descripcion}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* Columna izquierda: qué documento es */}
+        <div className="min-w-0 space-y-2">
+          <p className="text-sm font-semibold text-slate-900 leading-tight">
+            {tipoDocumentoFijo || pregunta.fp_descripcion}
+            {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
           </p>
-        )}
+          {documento?.tdo_descripcion && (
+            <p className="text-xs text-slate-500 whitespace-pre-wrap break-words leading-relaxed">
+              {documento.tdo_descripcion}
+            </p>
+          )}
 
-        {documento?.tdo_tiene_plantilla &&
-          (documento?.tdo_plantilla_contenido ||
-            documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
-          <button
-            type="button"
-            onClick={handleDescargarPlantilla}
-            disabled={descargandoPlantilla}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
-          >
-            <Download className="h-3 w-3" />
-            {descargandoPlantilla ? "Generando..." : "Descargar plantilla"}
-          </button>
-        )}
+          {documento?.tdo_tiene_plantilla &&
+            (documento?.tdo_plantilla_contenido || documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
+              <button
+                type="button"
+                onClick={handleDescargarPlantilla}
+                disabled={descargandoPlantilla}
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60">
+                <Download className="h-3 w-3" />
+                {descargandoPlantilla ? "Generando..." : "Descargar plantilla"}
+              </button>
+            )}
 
-        {!tipoDocumentoFijo && !readOnly && (
-          <div className="space-y-0.5">
-            <label className="text-xs font-semibold uppercase tracking-tight text-slate-600">
-              Tipo de documento
-            </label>
-            <div className="relative">
-              <SearchableSelect
-              options={pregunta.opciones?.map((opcion: any) => ({
-                id: String(opcion.op_id),
-                label: opcion.op_descripcion,
-              })) || []}
-              value={String(respuestas[pregunta.fp_id]?.valor_opcion_id || "")}
-              onChange={(value) =>
-                handleInputChange(
-                  pregunta.fp_id,
-                  Number(value) || value,
-                  "SELECT",
-                )
-              }
-              placeholder="Selecciona una opción"
-              />
+          {!tipoDocumentoFijo && !readOnly && (
+            <div className="space-y-0.5">
+              <label className="text-xs font-semibold uppercase tracking-tight text-slate-600">Tipo de documento</label>
+              <div className="relative">
+                <SearchableSelect
+                  options={
+                    pregunta.opciones?.map((opcion: any) => ({
+                      id: String(opcion.op_id),
+                      label: opcion.op_descripcion,
+                    })) || []
+                  }
+                  value={String(respuestas[pregunta.fp_id]?.valor_opcion_id || "")}
+                  onChange={(value) => handleInputChange(pregunta.fp_id, Number(value) || value, "SELECT")}
+                  placeholder="Selecciona una opción"
+                />
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Columna derecha: cargar el archivo y su fecha */}
-      <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
-      {archivosExistentes[pregunta.fp_id] && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
-          <div className="flex items-start justify-between gap-1">
-            <div className="flex items-start gap-1 min-w-0">
-              <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
-              <p className="text-xs font-medium text-blue-900 break-words">
-                {archivosExistentes[pregunta.fp_id].sa_nombre_original}
-                {esDocumentoReutilizado && (
-                  <span className="ml-1 font-normal text-blue-600">
-                    (de tu archivo)
-                  </span>
-                )}
-              </p>
-            </div>
-            <div className="flex gap-1 flex-shrink-0">
-              {(() => {
-                const rutaArchivo = getArchivoPreviewUrl(
-                  archivosExistentes[pregunta.fp_id],
-                );
-                if (!rutaArchivo) return null;
-                return (
-                  <a
-                    href={rutaArchivo}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200"
-                  >
-                    Ver
-                  </a>
-                );
-              })()}
-              {!readOnly && esDocumentoReutilizado && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setArchivosExistentes((prev) => {
-                      const newMap = { ...prev };
-                      delete newMap[pregunta.fp_id];
-                      return newMap;
-                    });
-                  }}
-                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
-                  title="Elegir un archivo distinto en vez de este"
-                >
-                  Quitar
-                </button>
-              )}
-              {!readOnly && !esDocumentoReutilizado && (
-                <>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!confirm("¿Eliminar archivo? No podrás recuperarlo."))
-                        return;
-                      try {
-                        await formularioRespuestasService.eliminarArchivoRespuesta(
-                          solicitudId!,
-                          archivosExistentes[pregunta.fp_id].sa_id,
-                        );
+        {/* Columna derecha: cargar el archivo y su fecha */}
+        <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
+          {archivosExistentes[pregunta.fp_id] && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
+              <div className="flex items-start justify-between gap-1">
+                <div className="flex items-start gap-1 min-w-0">
+                  <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs font-medium text-blue-900 break-words">
+                    {archivosExistentes[pregunta.fp_id].sa_nombre_original}
+                    {esDocumentoReutilizado && <span className="ml-1 font-normal text-blue-600">(de tu archivo)</span>}
+                  </p>
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                  {(() => {
+                    const rutaArchivo = getArchivoPreviewUrl(archivosExistentes[pregunta.fp_id]);
+                    if (!rutaArchivo) return null;
+                    return (
+                      <a
+                        href={rutaArchivo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200">
+                        Ver
+                      </a>
+                    );
+                  })()}
+                  {!readOnly && esDocumentoReutilizado && (
+                    <button
+                      type="button"
+                      onClick={() => {
                         setArchivosExistentes((prev) => {
                           const newMap = { ...prev };
                           delete newMap[pregunta.fp_id];
                           return newMap;
                         });
-                        setSuccessMessage("Archivo eliminado");
-                        setTimeout(() => setSuccessMessage(""), 3000);
-                      } catch (err) {
-                        console.error("Error eliminando archivo:", err);
-                        setErrorMessage("Error eliminando archivo");
-                        setTimeout(() => setErrorMessage(""), 3000);
-                      }
-                    }}
-                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
-                  >
-                    Eliminar
-                  </button>
+                      }}
+                      className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
+                      title="Elegir un archivo distinto en vez de este">
+                      Quitar
+                    </button>
+                  )}
+                  {!readOnly && !esDocumentoReutilizado && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmarEliminarArchivo(true)}
+                        className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200">
+                        Eliminar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const tempInput = document.createElement("input");
+                          tempInput.type = "file";
+                          tempInput.accept = ".pdf,application/pdf";
+                          tempInput.onchange = (event) => {
+                            const target = event.target as HTMLInputElement;
+                            const file = target.files?.[0];
+                            if (file) {
+                              procesarArchivoSeleccionado(file);
+                            }
+                          };
+                          tempInput.click();
+                        }}
+                        disabled={!!procesandoArchivo}
+                        className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60">
+                        Cambiar
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {respuestas[pregunta.fp_id]?.nombre_archivo && !archivosExistentes[pregunta.fp_id] && (
+            <div className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
+              <div className="flex items-center gap-1 min-w-0">
+                <CheckCircle className="h-3 w-3 flex-shrink-0" />
+                <span className="break-words font-medium">{respuestas[pregunta.fp_id]?.nombre_archivo}</span>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                {respuestas[pregunta.fp_id]?.vista_previa_url && (
+                  <a
+                    href={respuestas[pregunta.fp_id]?.vista_previa_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors font-medium border border-emerald-200">
+                    Ver
+                  </a>
+                )}
+                {!readOnly && (
                   <button
                     type="button"
                     onClick={() => {
-                      const tempInput = document.createElement("input");
-                      tempInput.type = "file";
-                      tempInput.accept = ".pdf,application/pdf";
-                      tempInput.onchange = (event) => {
-                        const target = event.target as HTMLInputElement;
-                        const file = target.files?.[0];
-                        if (file) {
-                          procesarArchivoSeleccionado(file);
-                        }
-                      };
-                      tempInput.click();
+                      const vistaPreviaUrl = respuestas[pregunta.fp_id]?.vista_previa_url;
+                      if (vistaPreviaUrl) {
+                        URL.revokeObjectURL(vistaPreviaUrl);
+                      }
+                      setRespuestas((prev) => {
+                        const next = { ...prev };
+                        next[pregunta.fp_id] = {
+                          ...next[pregunta.fp_id],
+                          archivo: undefined,
+                          nombre_archivo: undefined,
+                          vista_previa_url: undefined,
+                        };
+                        return next;
+                      });
                     }}
-                    disabled={procesandoArchivo}
-                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60"
-                  >
-                    Cambiar
+                    className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
+                    title="Quitar archivo seleccionado (aún no se ha guardado)">
+                    <X className="h-3 w-3" />
+                    Quitar
                   </button>
-                </>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {respuestas[pregunta.fp_id]?.nombre_archivo &&
-        !archivosExistentes[pregunta.fp_id] && (
-          <div className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
-            <div className="flex items-center gap-1 min-w-0">
-              <CheckCircle className="h-3 w-3 flex-shrink-0" />
-              <span className="break-words font-medium">
-                {respuestas[pregunta.fp_id]?.nombre_archivo}
-              </span>
-            </div>
-            <div className="flex gap-1 flex-shrink-0">
-              {respuestas[pregunta.fp_id]?.vista_previa_url && (
-                <a
-                  href={respuestas[pregunta.fp_id]?.vista_previa_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors font-medium border border-emerald-200"
-                >
-                  Ver
-                </a>
-              )}
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const vistaPreviaUrl =
-                      respuestas[pregunta.fp_id]?.vista_previa_url;
-                    if (vistaPreviaUrl) {
-                      URL.revokeObjectURL(vistaPreviaUrl);
-                    }
-                    setRespuestas((prev) => {
-                      const next = { ...prev };
-                      next[pregunta.fp_id] = {
-                        ...next[pregunta.fp_id],
-                        archivo: undefined,
-                        nombre_archivo: undefined,
-                        vista_previa_url: undefined,
-                      };
-                      return next;
-                    });
-                  }}
-                  className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
-                  title="Quitar archivo seleccionado (aún no se ha guardado)"
-                >
-                  <X className="h-3 w-3" />
-                  Quitar
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+          {!archivosExistentes[pregunta.fp_id] &&
+            !respuestas[pregunta.fp_id]?.nombre_archivo &&
+            !readOnly &&
+            documentoClienteDisponible &&
+            !ofrecerReutilizarOmitido && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 space-y-1.5">
+                <p className="text-xs text-amber-900">
+                  Ya tienes{" "}
+                  <span className="font-medium break-words">{documentoClienteDisponible.ca_nombre_original}</span> en tu
+                  archivo
+                  {documentoClienteDisponible.ca_fecha_emision && (
+                    <>
+                      {" "}
+                      (subido el{" "}
+                      {new Date(
+                        `${String(documentoClienteDisponible.ca_fecha_emision).split("T")[0]}T00:00:00`,
+                      ).toLocaleDateString("es-CO")}
+                      )
+                    </>
+                  )}
+                  .
+                </p>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArchivosExistentes((prev) => ({
+                        ...prev,
+                        [pregunta.fp_id]: {
+                          sa_nombre_original: documentoClienteDisponible.ca_nombre_original,
+                          sa_ruta_almacenamiento: documentoClienteDisponible.ca_ruta_almacenamiento,
+                          sd_fecha_emision: documentoClienteDisponible.ca_fecha_emision,
+                          sa_origen: "cliente_archivo_pendiente",
+                          ca_id: documentoClienteDisponible.ca_id,
+                        },
+                      }));
+                    }}
+                    className="inline-flex items-center text-xs px-2 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium">
+                    Usar este documento
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOfrecerReutilizarOmitido(true)}
+                    className="inline-flex items-center text-xs px-2 py-1 bg-white text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200">
+                    Subir uno nuevo
+                  </button>
+                </div>
+              </div>
+            )}
 
-      {!archivosExistentes[pregunta.fp_id] &&
-        !respuestas[pregunta.fp_id]?.nombre_archivo &&
-        !readOnly &&
-        documentoClienteDisponible &&
-        !ofrecerReutilizarOmitido && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 space-y-1.5">
-            <p className="text-xs text-amber-900">
-              Ya tienes{" "}
-              <span className="font-medium break-words">
-                {documentoClienteDisponible.ca_nombre_original}
-              </span>{" "}
-              en tu archivo
-              {documentoClienteDisponible.ca_fecha_emision && (
-                <>
-                  {" "}
-                  (subido el{" "}
-                  {new Date(
-                    `${String(documentoClienteDisponible.ca_fecha_emision).split("T")[0]}T00:00:00`,
-                  ).toLocaleDateString("es-CO")}
-                  )
-                </>
-              )}
-              .
-            </p>
-            <div className="flex gap-1.5">
+          {!archivosExistentes[pregunta.fp_id] &&
+            !respuestas[pregunta.fp_id]?.nombre_archivo &&
+            !readOnly &&
+            (!documentoClienteDisponible || ofrecerReutilizarOmitido) && (
               <button
                 type="button"
+                disabled={!!procesandoArchivo}
                 onClick={() => {
-                  setArchivosExistentes((prev) => ({
-                    ...prev,
-                    [pregunta.fp_id]: {
-                      sa_nombre_original:
-                        documentoClienteDisponible.ca_nombre_original,
-                      sa_ruta_almacenamiento:
-                        documentoClienteDisponible.ca_ruta_almacenamiento,
-                      sd_fecha_emision:
-                        documentoClienteDisponible.ca_fecha_emision,
-                      sa_origen: "cliente_archivo_pendiente",
-                      ca_id: documentoClienteDisponible.ca_id,
-                    },
-                  }));
+                  const tempInput = document.createElement("input");
+                  tempInput.type = "file";
+                  tempInput.accept = ".pdf,application/pdf";
+                  tempInput.onchange = (event) => {
+                    const target = event.target as HTMLInputElement;
+                    const file = target.files?.[0];
+                    if (file) {
+                      procesarArchivoSeleccionado(file);
+                    }
+                  };
+                  tempInput.click();
                 }}
-                className="inline-flex items-center text-xs px-2 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium"
-              >
-                Usar este documento
+                className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+                  hasError
+                    ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
+                    : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
+                }`}>
+                <Upload className="h-3.5 w-3.5 flex-shrink-0" />
+                Seleccionar archivo
               </button>
-              <button
-                type="button"
-                onClick={() => setOfrecerReutilizarOmitido(true)}
-                className="inline-flex items-center text-xs px-2 py-1 bg-white text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200"
-              >
-                Subir uno nuevo
-              </button>
-            </div>
-          </div>
-        )}
+            )}
 
-      {!archivosExistentes[pregunta.fp_id] &&
-        !respuestas[pregunta.fp_id]?.nombre_archivo &&
-        !readOnly &&
-        (!documentoClienteDisponible || ofrecerReutilizarOmitido) && (
-        <button
-          type="button"
-          disabled={procesandoArchivo}
-          onClick={() => {
-            const tempInput = document.createElement("input");
-            tempInput.type = "file";
-            tempInput.accept = ".pdf,application/pdf";
-            tempInput.onchange = (event) => {
-              const target = event.target as HTMLInputElement;
-              const file = target.files?.[0];
-              if (file) {
-                procesarArchivoSeleccionado(file);
-              }
-            };
-            tempInput.click();
-          }}
-          className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
-            hasError
-              ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
-              : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
-          }`}
-        >
-          <Upload className="h-3.5 w-3.5 flex-shrink-0" />
-          Seleccionar archivo
-        </button>
-      )}
-
-      {mostrarCampoFecha && (
-        <CampoFechaVigencia
-          fechaInputValue={fechaInputValue}
-          hoy={hoy}
-          esReglaAnio={esReglaAnio}
-          vigenciaDias={vigenciaDias}
-          documento={documento}
-          resumenVigencia={resumenVigencia}
-          resumenAnio={resumenAnio}
-          preguntaFechaAsociada={preguntaFechaAsociada}
-          readOnly={readOnly}
-          hasError={hasError}
-          onChange={guardarFecha}
-        />
-      )}
+          {mostrarCampoFecha && (
+            <CampoFechaVigencia
+              fechaInputValue={fechaInputValue}
+              hoy={hoy}
+              esReglaAnio={esReglaAnio}
+              vigenciaDias={vigenciaDias}
+              documento={documento}
+              resumenVigencia={resumenVigencia}
+              resumenAnio={resumenAnio}
+              preguntaFechaAsociada={preguntaFechaAsociada}
+              readOnly={readOnly}
+              hasError={hasError}
+              onChange={guardarFecha}
+            />
+          )}
+        </div>
       </div>
-    </div>
 
-      <LoadingModal isOpen={procesandoArchivo} message="Cargando archivo..." />
+      <LoadingModal isOpen={procesandoArchivo === "loading"} message="Cargando archivo..." />
+      <SuccessModal
+        isOpen={procesandoArchivo === "ready"}
+        title="Archivo cargado"
+        message="El archivo quedó listo en el formulario. Puedes continuar completando la solicitud."
+        actionText="Aceptar"
+        onAction={() => setProcesandoArchivo(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmarEliminarArchivo}
+        title="Eliminar archivo"
+        message="¿Eliminar archivo? No podrás recuperarlo."
+        confirmText="Eliminar"
+        isDangerous
+        onConfirm={handleEliminarArchivo}
+        onCancel={() => setConfirmarEliminarArchivo(false)}
+      />
     </div>
   );
 }

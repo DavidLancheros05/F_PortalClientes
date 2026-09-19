@@ -1,29 +1,28 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { clientesService } from "@/services/clientes/clientes.service";
-import {
-  centrosOperacionService,
-  type CentroOperacion,
-} from "@/services/centros-operacion/centros-operacion.service";
 import type { ClienteListResponse } from "@/types/api.types";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, formatDateTime } from "@/lib/date-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { PackageOpen, ShieldCheck } from "lucide-react";
-import { LoadingModal } from "@/components/modals";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   calcularDiasRestantes,
   DiasRestantesBadge,
 } from "@/components/badges/DiasRestantesBadge";
+import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
@@ -42,6 +41,10 @@ interface Solicitud {
   fecha_creacion: string;
   fecha_estimada_respuesta_comercial: string | null;
   fecha_real_respuesta_comercial: string | null;
+  sol_fecha_envio?: string | null;
+  // Fecha en que Auxiliar Servicio Cliente (etapa anterior a Oficial de
+  // Cumplimiento en el flujo) registró su gestión.
+  sol_fecha_real_auxiliar_servicio_cliente?: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
   sa_sol_id?: number;
@@ -66,22 +69,15 @@ export default function GestionOficialCumplimientoPage() {
   const { user } = useAuth();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
-  const [loadingCentros, setLoadingCentros] = useState(true);
   const [loadingClientes, setLoadingClientes] = useState(false);
-  const [centros, setCentros] = useState<CentroOperacion[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [clientes, setClientes] = useState<ClienteListResponse[]>([]);
   const [ejecutivos, setEjecutivos] = useState<EjecutivoNegocio[]>([]);
-  // Filtros y página inicializados desde la URL (?centro=&cliente=&ejecutivo=&numero=&pagina=)
+  // Filtros y página inicializados desde la URL (?cliente=&ejecutivo=&numero=&pagina=)
   // para que "Volver" desde /gestionar restaure la búsqueda en vez de
   // reiniciar el formulario — antes todo esto vivía solo en useState local,
   // que se perdía al desmontar/remontar la página (mismo patrón que
   // gestion-auxiliar-servicio-al-cliente/page.tsx).
-  const [centroSeleccionado, setCentroSeleccionado] = useState<number | null>(
-    () => {
-      const v = searchParams.get("centro");
-      return v ? Number(v) : null;
-    },
-  );
   const [clienteSeleccionado, setClienteSeleccionado] = useState<
     number | null
   >(() => {
@@ -89,6 +85,8 @@ export default function GestionOficialCumplimientoPage() {
     return v ? Number(v) : null;
   });
   const [clienteBusqueda, setClienteBusqueda] = useState("");
+  const [mostrarClientes, setMostrarClientes] = useState(false);
+  const clienteRef = useRef<HTMLDivElement>(null);
   const [ejecutivoSeleccionado, setEjecutivoSeleccionado] = useState<
     number | null
   >(() => {
@@ -96,6 +94,35 @@ export default function GestionOficialCumplimientoPage() {
     return v ? Number(v) : null;
   });
   const [ejecutivoBusqueda, setEjecutivoBusqueda] = useState("");
+  const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
+  const ejecutivoRef = useRef<HTMLDivElement>(null);
+
+  // Cierra los dropdowns de Cliente/Ejecutivo al hacer clic afuera — mismo
+  // mecanismo que SuggestField (el onBlur del input no basta: el clic sobre
+  // un ítem de la lista dispara blur antes que el click, y el ítem nunca
+  // llega a seleccionarse).
+  useEffect(() => {
+    if (!mostrarClientes && !mostrarEjecutivos) return;
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        mostrarClientes &&
+        clienteRef.current &&
+        !clienteRef.current.contains(target)
+      ) {
+        setMostrarClientes(false);
+      }
+      if (
+        mostrarEjecutivos &&
+        ejecutivoRef.current &&
+        !ejecutivoRef.current.contains(target)
+      ) {
+        setMostrarEjecutivos(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarClientes, mostrarEjecutivos]);
   const [numeroFiltro, setNumeroFiltro] = useState(
     () => searchParams.get("numero") || "",
   );
@@ -108,47 +135,11 @@ export default function GestionOficialCumplimientoPage() {
   const autoBuscoRef = useRef(false);
 
   useEffect(() => {
-    async function cargarCentros() {
-      try {
-        setLoadingCentros(true);
-        const data = await centrosOperacionService.getAll();
-        setCentros(data);
-      } catch (error) {
-        console.error("Error cargando centros:", error);
-      } finally {
-        setLoadingCentros(false);
-      }
-    }
-
-    cargarCentros();
-  }, []);
-
-  useEffect(() => {
-    if (!user?.co_id) return;
-    if (centroSeleccionado !== null) return;
-    const centroId = Number(user.co_id);
-    if (!isNaN(centroId)) {
-      setCentroSeleccionado(centroId);
-    }
-  }, [user?.co_id, centroSeleccionado]);
-
-  useEffect(() => {
     async function cargarClientes() {
-      if (!centroSeleccionado) {
-        setClientes([]);
-        setClienteSeleccionado(null);
-        setClienteBusqueda("");
-        return;
-      }
-
       try {
         setLoadingClientes(true);
         const data = await clientesService.getAll();
-        const filtered = (Array.isArray(data) ? data : []).filter((c: any) => {
-          const centroIds = c.centro_operacion_ids || [];
-          return centroIds.includes(centroSeleccionado);
-        });
-        setClientes(filtered);
+        setClientes(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error cargando clientes:", error);
       } finally {
@@ -157,7 +148,7 @@ export default function GestionOficialCumplimientoPage() {
     }
 
     cargarClientes();
-  }, [centroSeleccionado]);
+  }, []);
 
   useEffect(() => {
     async function cargarEjecutivos() {
@@ -224,7 +215,6 @@ export default function GestionOficialCumplimientoPage() {
   const sincronizarUrl = (pagina: number) => {
     const params = new URLSearchParams();
     params.set("buscado", "1");
-    if (centroSeleccionado) params.set("centro", String(centroSeleccionado));
     if (clienteSeleccionado)
       params.set("cliente", String(clienteSeleccionado));
     if (ejecutivoSeleccionado)
@@ -240,7 +230,7 @@ export default function GestionOficialCumplimientoPage() {
       const usuarioId = obtenerUsuarioId();
 
       if (!usuarioId) {
-        alert("No hay usuario autenticado");
+        setErrorMessage("No hay usuario autenticado");
         return;
       }
 
@@ -252,12 +242,6 @@ export default function GestionOficialCumplimientoPage() {
         .map((s: Solicitud) => ({
           ...s,
         }))
-        .filter((s: Solicitud) => {
-          const cumpleCentro = centroSeleccionado
-            ? s.sol_co_id === centroSeleccionado
-            : true;
-          return cumpleCentro;
-        })
         .filter((s: Solicitud) => {
           const cumpleCliente = clienteSeleccionado
             ? s.sol_cliente_id === clienteSeleccionado
@@ -286,7 +270,7 @@ export default function GestionOficialCumplimientoPage() {
       sincronizarUrl(paginaFinal);
     } catch (error) {
       // console.error("Error buscando solicitudes:", error);
-      alert("Error al cargar solicitudes");
+      setErrorMessage("Error al cargar solicitudes");
     } finally {
       setLoadingSolicitudes(false);
     }
@@ -294,19 +278,15 @@ export default function GestionOficialCumplimientoPage() {
 
   // Si se vuelve desde /gestionar con una búsqueda ya hecha (marcador
   // "buscado=1" en la URL), repetirla automáticamente para restaurar la
-  // tabla en vez de dejar el listado vacío pidiendo buscar de nuevo. El
-  // centro es obligatorio para esta búsqueda, así que esperamos a que
-  // termine de resolverse el centro por defecto (usuario con co_id) antes de
-  // disparar; si el usuario no tiene co_id, no hay nada que esperar.
+  // tabla en vez de dejar el listado vacío pidiendo buscar de nuevo.
   useEffect(() => {
     if (autoBuscoRef.current) return;
     if (searchParams.get("buscado") !== "1") return;
     if (!user) return;
-    if (centroSeleccionado === null && user?.co_id) return;
     autoBuscoRef.current = true;
     buscar({ preservePagina: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, centroSeleccionado]);
+  }, [user]);
 
   const irAPagina = (page: number) => {
     setPaginaActual(page);
@@ -322,6 +302,15 @@ export default function GestionOficialCumplimientoPage() {
   const indiceFin = indiceInicio + pageSize;
   const solicitudesActuales = solicitudes.slice(indiceInicio, indiceFin);
 
+  // Pool crudo de sugerencias para el campo de número de solicitud — se
+  // arma antes de aplicar el filtro de texto (buscar() ya filtra por
+  // numeroFiltro al construir `solicitudes`, pero mientras no se haya
+  // acotado por número, este array sigue siendo el listado completo).
+  const numeroSugerencias = useMemo(
+    () => solicitudes.map((s) => s.sol_numero_solicitud || s.numero_solicitud || ""),
+    [solicitudes],
+  );
+
   async function exportarExcel() {
     if (solicitudes.length === 0) return;
 
@@ -335,6 +324,8 @@ export default function GestionOficialCumplimientoPage() {
       "Resultado Etapa",
       "Consumo Proyectado (COP)",
       "Observaciones Ejecutivo",
+      "Fecha de Envío",
+      "Fecha Gestión Auxiliar",
       "Fecha Estimada Respuesta",
       "Dias Faltantes",
     ];
@@ -354,6 +345,8 @@ export default function GestionOficialCumplimientoPage() {
           ? `$${s.consumo_mensual_proyectado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
           : "-",
         s.observacionesComercial || "-",
+        formatDateTime(s.sol_fecha_envio),
+        formatDateTime(s.sol_fecha_real_auxiliar_servicio_cliente),
         formatDate(fechaEstimada),
         diasRestantes !== null ? diasRestantes : "-",
       ];
@@ -368,10 +361,6 @@ export default function GestionOficialCumplimientoPage() {
     );
   }
 
-  if (loadingCentros) {
-    return <LoadingModal isOpen message="Cargando centros..." />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-[115rem] mx-auto">
@@ -381,94 +370,27 @@ export default function GestionOficialCumplimientoPage() {
           title="Pendientes — Gestión Oficial de Cumplimiento"
           onBack={() => router.back()}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            <FilterField label="Centro de operacion *">
-              <select
-                value={centroSeleccionado ? String(centroSeleccionado) : ""}
-                onChange={(e) =>
-                  setCentroSeleccionado(
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona un centro</option>
-                {centros.map((centro, index) => (
-                  <option
-                    key={`centro-${centro.cop_id}-${index}`}
-                    value={String(centro.cop_id)}
-                  >
-                    {centro.cop_nombre}
-                  </option>
-                ))}
-              </select>
-            </FilterField>
-            <FilterField label="Cliente" className="relative">
-              <input
-                type="text"
-                placeholder={
-                  !centroSeleccionado
-                    ? "Selecciona un centro primero"
-                    : "Buscar cliente..."
-                }
-                value={clienteBusqueda}
-                onChange={(e) => {
-                  setClienteBusqueda(e.target.value);
-                  setClienteSeleccionado(null);
-                }}
-                disabled={!centroSeleccionado || loadingClientes}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-              />
-              {clienteBusqueda && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
-                  <div
-                    onClick={() => {
-                      setClienteSeleccionado(null);
-                      setClienteBusqueda("");
-                    }}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                  >
-                    Limpiar selección
-                  </div>
-                  {clientesFiltrados.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Sin resultados
-                    </div>
-                  ) : (
-                    clientesFiltrados.map((cliente) => (
-                      <div
-                        key={cliente.cli_id}
-                        onClick={() => {
-                          setClienteSeleccionado(Number(cliente.cli_id));
-                          setClienteBusqueda(cliente.cli_razon_social);
-                        }}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                      >
-                        {cliente.cli_razon_social}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </FilterField>
-
-            <FilterField label="Ejecutivo" className="relative">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <FilterField label="Ejecutivo" className="relative" ref={ejecutivoRef}>
               <input
                 type="text"
                 placeholder="Buscar ejecutivo..."
                 value={ejecutivoBusqueda}
+                onFocus={() => setMostrarEjecutivos(true)}
                 onChange={(e) => {
                   setEjecutivoBusqueda(e.target.value);
                   setEjecutivoSeleccionado(null);
+                  setMostrarEjecutivos(true);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              {ejecutivoBusqueda && (
+              {mostrarEjecutivos && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
                   <div
                     onClick={() => {
                       setEjecutivoSeleccionado(null);
                       setEjecutivoBusqueda("");
+                      setMostrarEjecutivos(false);
                     }}
                     className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
                   >
@@ -485,6 +407,7 @@ export default function GestionOficialCumplimientoPage() {
                         onClick={() => {
                           setEjecutivoSeleccionado(ejecutivo.ejng_id);
                           setEjecutivoBusqueda(ejecutivo.ejng_nombre);
+                          setMostrarEjecutivos(false);
                         }}
                         className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
                       >
@@ -495,15 +418,63 @@ export default function GestionOficialCumplimientoPage() {
                 </div>
               )}
             </FilterField>
-            <FilterField label="Numero de solicitud">
+
+            <FilterField label="Cliente" className="relative" ref={clienteRef}>
               <input
                 type="text"
-                value={numeroFiltro}
-                onChange={(e) => setNumeroFiltro(e.target.value)}
-                placeholder="Ej: SOL-00123"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Buscar cliente..."
+                value={clienteBusqueda}
+                onFocus={() => setMostrarClientes(true)}
+                onChange={(e) => {
+                  setClienteBusqueda(e.target.value);
+                  setClienteSeleccionado(null);
+                  setMostrarClientes(true);
+                }}
+                disabled={loadingClientes}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
               />
+              {mostrarClientes && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                  <div
+                    onClick={() => {
+                      setClienteSeleccionado(null);
+                      setClienteBusqueda("");
+                      setMostrarClientes(false);
+                    }}
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
+                  >
+                    Limpiar selección
+                  </div>
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      Sin resultados
+                    </div>
+                  ) : (
+                    clientesFiltrados.map((cliente) => (
+                      <div
+                        key={cliente.cli_id}
+                        onClick={() => {
+                          setClienteSeleccionado(Number(cliente.cli_id));
+                          setClienteBusqueda(cliente.cli_razon_social);
+                          setMostrarClientes(false);
+                        }}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
+                      >
+                        {cliente.cli_razon_social}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </FilterField>
+            <SuggestField
+              label="Numero de solicitud"
+              placeholder="Ej: SOL-00123"
+              value={numeroFiltro}
+              onChange={setNumeroFiltro}
+              suggestions={numeroSugerencias}
+              onEnter={() => buscar()}
+            />
             <FilterActions className="col-span-full">
               <button
                 onClick={() => buscar()}
@@ -524,8 +495,7 @@ export default function GestionOficialCumplimientoPage() {
         ) : !hasSearched ? (
           <EmptyStateCard
             icon={PackageOpen}
-            title="Selecciona un centro y presiona Buscar para ver las solicitudes."
-            subtitle="El centro de operación es obligatorio."
+            title="Presiona Buscar para cargar tus solicitudes pendientes."
           />
         ) : solicitudes.length === 0 ? (
           <EmptyStateCard icon={PackageOpen} title="No se encontraron solicitudes." />
@@ -541,42 +511,22 @@ export default function GestionOficialCumplimientoPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Numero Solicitud
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Centro de Operacion
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Etapa Actual
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Resultado Etapa
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Ver Formulario
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Consumo Proyectado (COP)
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Observaciones Ejecutivo
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Fecha Estimada Respuesta
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Dias Faltantes
-                      </th>
-                      <th className="sticky right-0 z-10 bg-gray-50 px-6 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                      <Th>Numero Solicitud</Th>
+                      {/* <Th>Centro de Operacion</Th> */}
+                      <Th>Cliente</Th>
+                      <Th>Estado</Th>
+                      <Th>Etapa Actual</Th>
+                      <Th>Resultado Etapa</Th>
+                      <Th>Ver Formulario</Th>
+                      <Th>Consumo Proyectado (COP)</Th>
+                      <Th>Observaciones Ejecutivo</Th>
+                      <Th>Fecha de Envío</Th>
+                      <Th>Fecha Gestión Auxiliar</Th>
+                      <Th>Fecha Estimada Respuesta</Th>
+                      <Th>Dias Faltantes</Th>
+                      <Th sticky align="right">
                         Acción
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -587,21 +537,18 @@ export default function GestionOficialCumplimientoPage() {
                         solicitud.fecha_estimada_respuesta_comercial;
 
                       return (
-                        <tr
-                          key={solicitud.sol_id ?? solicitud.sa_sol_id}
-                          className="group hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                        <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
+                          <Td className="whitespace-nowrap font-medium text-blue-600">
                             {solicitud.sol_numero_solicitud ||
                               solicitud.numero_solicitud}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td> */}
+                          <Td className="whitespace-nowrap">
                             {solicitud.cliente_nombre}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
                                 solicitud.sol_estado_id ?? solicitud.estado_id,
@@ -611,14 +558,14 @@ export default function GestionOficialCumplimientoPage() {
                                 solicitud.sol_estado_id ?? solicitud.estado_id
                               ] || "Desconocido"}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.etapa_nombre || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.resultado_nombre || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          </Td>
+                          <Td className="whitespace-nowrap font-medium">
                             <button
                               onClick={() =>
                                 router.push(
@@ -629,8 +576,8 @@ export default function GestionOficialCumplimientoPage() {
                             >
                               Ver formulario
                             </button>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.consumo_mensual_proyectado
                               ? `$${solicitud.consumo_mensual_proyectado.toLocaleString(
                                   "es-CO",
@@ -640,17 +587,25 @@ export default function GestionOficialCumplimientoPage() {
                                   },
                                 )}`
                               : "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {solicitud.observacionesComercial || "-"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
+                            {formatDateTime(solicitud.sol_fecha_envio)}
+                          </Td>
+                          <Td className="whitespace-nowrap">
+                            {formatDateTime(
+                              solicitud.sol_fecha_real_auxiliar_servicio_cliente,
+                            )}
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             {formatDate(fechaEstimada)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          </Td>
+                          <Td className="whitespace-nowrap">
                             <DiasRestantesBadge fecha={fechaEstimada} />
-                          </td>
-                          <td className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium text-right shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">
+                          </Td>
+                          <Td sticky align="right" className="whitespace-nowrap font-medium">
                             <button
                               onClick={() =>
                                 router.push(
@@ -661,8 +616,8 @@ export default function GestionOficialCumplimientoPage() {
                             >
                               Gestionar
                             </button>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       );
                     })}
                   </tbody>
@@ -681,6 +636,12 @@ export default function GestionOficialCumplimientoPage() {
           </>
         )}
       </div>
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

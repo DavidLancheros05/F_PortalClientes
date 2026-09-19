@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { formulariosService } from "@/services/parametrizacion/formularios.service";
+import { SuccessModal, ErrorModal } from "@/components/modals";
 
 interface CopiaInfo {
   [fp_id: number]: {
@@ -26,6 +27,8 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
     sol_id?: number;
     sol_numero_solicitud?: string;
   } | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -90,11 +93,11 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
         })),
       );
 
-      alert("Solicitud creada correctamente");
+      setShowSuccess(true);
       setRespuestas({});
     } catch (err) {
       console.error(err);
-      alert("Error al crear la solicitud");
+      setErrorMessage("Error al crear la solicitud");
     } finally {
       setLoading(false);
     }
@@ -138,6 +141,20 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
       <button disabled={loading}>
         {loading ? "Guardando..." : "Enviar solicitud"}
       </button>
+
+      <SuccessModal
+        isOpen={showSuccess}
+        title="¡Éxito!"
+        message="Solicitud creada correctamente."
+        actionText="Aceptar"
+        onAction={() => setShowSuccess(false)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </form>
   );
 }

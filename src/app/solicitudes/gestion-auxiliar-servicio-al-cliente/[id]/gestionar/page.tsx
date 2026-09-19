@@ -4,8 +4,9 @@ import { ESTADOS } from "@/lib/workflow-labels";
 import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
+import { DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -77,6 +78,7 @@ export default function GestionarSolicitudPage() {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hayDocumentosVencidos, setHayDocumentosVencidos] = useState(false);
   const {
     loading: loadingCupo,
@@ -110,22 +112,29 @@ export default function GestionarSolicitudPage() {
   }, [hayDocumentosMarcados, gestion.aprobado]);
 
   useEffect(() => {
-    async function cargarDatos() {
-      if (!solicitudId) return;
+    let cancelled = false;
 
+    async function cargarDatos(id: number) {
       try {
         setLoading(true);
-        const solicitudData = await solicitudesService.getById(solicitudId);
+        const solicitudData = await solicitudesService.getById(id);
+        if (cancelled) return;
         setSolicitud(solicitudData);
       } catch (error) {
+        if (cancelled) return;
         console.error("Error cargando datos:", error);
-        alert("Error al cargar la solicitud");
+        setErrorMessage("No se pudo cargar la solicitud. Intenta de nuevo.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
-    cargarDatos();
+    if (solicitudId) {
+      cargarDatos(solicitudId);
+    }
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId]);
 
   const obtenerUsuarioId = () => {
@@ -149,12 +158,12 @@ export default function GestionarSolicitudPage() {
 
     const usuarioId = obtenerUsuarioId();
     if (!usuarioId) {
-      alert("No hay usuario autenticado para registrar la decision.");
+      setErrorMessage("No hay usuario autenticado para registrar la decisión.");
       return;
     }
 
     if (!gestion.aprobado && !gestion.modo_solucion) {
-      alert("Selecciona un modo de solución.");
+      setErrorMessage("Selecciona un modo de solución.");
       return;
     }
 
@@ -193,7 +202,7 @@ export default function GestionarSolicitudPage() {
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Error guardando:", error);
-      alert("Error al guardar");
+      setErrorMessage("No se pudo guardar la decisión. Intenta de nuevo.");
       setShowConfirmModal(false);
     } finally {
       setGestion((prev) => ({ ...prev, guardando: false }));
@@ -307,11 +316,14 @@ export default function GestionarSolicitudPage() {
                     <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                       Fecha estimada respuesta
                     </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">
+                    <p className="text-sm font-bold text-[#0f172a] m-0 mb-1.5">
                       {fechaEstimada
                         ? new Date(fechaEstimada).toLocaleDateString("es-CO")
                         : "-"}
                     </p>
+                    {fechaEstimada && (
+                      <DiasRestantesBadge fecha={fechaEstimada} />
+                    )}
                   </div>
                 </div>
 
@@ -586,6 +598,12 @@ export default function GestionarSolicitudPage() {
         onAction={() =>
           router.push("/solicitudes/gestion-auxiliar-servicio-al-cliente")
         }
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
       />
     </div>
   );

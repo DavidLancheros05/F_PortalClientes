@@ -19,6 +19,7 @@ import {
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 export default function FormulariosPage() {
   const router = useRouter();
@@ -31,6 +32,10 @@ export default function FormulariosPage() {
     "TODOS" | "ACTIVO" | "INACTIVO"
   >("TODOS");
   const [loading, setLoading] = useState(true);
+  const [formularioAEliminar, setFormularioAEliminar] =
+    useState<Formulario | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const cargarFormularios = async (texto = "", estado = "TODOS") => {
     setLoading(true);
@@ -54,24 +59,29 @@ export default function FormulariosPage() {
     await cargarFormularios("", "TODOS");
   };
 
-  const total = formularios.length;
-  const activos = formularios.filter((f) => f.frm_activo).length;
-  const inactivos = total - activos;
 
-  const eliminarFormulario = async (formulario: Formulario) => {
-    const confirmar = confirm(
-      `¿Eliminar el formulario "${formulario.frm_nombre}"?\n\nEsta acción eliminará sus versiones y preguntas asociadas.`,
-    );
+  const eliminarFormulario = (formulario: Formulario) => {
+    setFormularioAEliminar(formulario);
+  };
 
-    if (!confirmar) return;
-
+  const confirmarEliminarFormulario = async () => {
+    if (!formularioAEliminar) return;
+    setEliminando(true);
     try {
-      await formulariosService.eliminar(formulario.frm_id);
+      await formulariosService.eliminar(formularioAEliminar.frm_id);
+      setFormularioAEliminar(null);
       await cargarFormularios();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Error eliminando formulario");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Error eliminando formulario",
+      );
+      setFormularioAEliminar(null);
+    } finally {
+      setEliminando(false);
     }
   };
+
+  const total = formularios.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
@@ -251,34 +261,24 @@ export default function FormulariosPage() {
               )}
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                Total
-              </p>
-              <p className="text-2xl font-semibold text-slate-800 mt-1">
-                {total}
-              </p>
-            </div>
-            <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-emerald-600 font-semibold">
-                Activos
-              </p>
-              <p className="text-2xl font-semibold text-emerald-700 mt-1">
-                {activos}
-              </p>
-            </div>
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                Inactivos
-              </p>
-              <p className="text-2xl font-semibold text-slate-700 mt-1">
-                {inactivos}
-              </p>
-            </div>
-          </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!formularioAEliminar}
+        title="Eliminar formulario"
+        message={`¿Eliminar el formulario "${formularioAEliminar?.frm_nombre}"? Esta acción eliminará sus versiones y preguntas asociadas.`}
+        confirmText="Eliminar"
+        isDangerous
+        isLoading={eliminando}
+        onConfirm={confirmarEliminarFormulario}
+        onCancel={() => setFormularioAEliminar(null)}
+      />
+
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage || ""}
+        onAction={() => setErrorMessage(null)}
+      />
     </div>
   );
 }

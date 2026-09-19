@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, FileText, AlertTriangle, CheckCircle } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
@@ -8,7 +8,7 @@ import { ESTADOS } from "@/lib/workflow-labels";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -57,24 +57,33 @@ export default function RechazoEjecutivoDetallePage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
+  const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
   const { historial } = useHistorialWorkflow(
     Number.isFinite(solicitudId) ? solicitudId : null,
   );
 
+  // Token de la petición en curso: si `solicitudId` cambia o el
+  // componente se desmonta antes de que responda, una respuesta tardía no
+  // debe pisar el estado de la solicitud actual.
+  const requestIdRef = useRef(0);
+
   const cargarDatos = async () => {
+    const requestId = ++requestIdRef.current;
     try {
       setLoading(true);
       const [solicitudData, rechazoData] = await Promise.all([
         solicitudesService.getById(solicitudId),
         solicitudesService.getRechazoEjecutivoDetalle(solicitudId),
       ]);
+      if (requestIdRef.current !== requestId) return;
       setSolicitud(solicitudData);
       setRechazo(rechazoData);
     } catch (err) {
+      if (requestIdRef.current !== requestId) return;
       console.error("Error cargando detalle de rechazo:", err);
       setError("Error al cargar los datos de la solicitud");
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   };
 
@@ -94,7 +103,7 @@ export default function RechazoEjecutivoDetallePage() {
       await cargarDatos();
     } catch (err) {
       console.error("Error finalizando gestión de rechazo:", err);
-      alert("No se pudo finalizar la gestión");
+      setActionErrorMessage("No se pudo finalizar la gestión");
       setShowConfirmModal(false);
     } finally {
       setFinalizando(false);
@@ -277,6 +286,12 @@ export default function RechazoEjecutivoDetallePage() {
         autoClose={true}
         autoCloseDelay={3000}
         onAction={() => setShowSuccessModal(false)}
+      />
+
+      <ErrorModal
+        isOpen={!!actionErrorMessage}
+        message={actionErrorMessage || ""}
+        onAction={() => setActionErrorMessage(null)}
       />
     </div>
   );
