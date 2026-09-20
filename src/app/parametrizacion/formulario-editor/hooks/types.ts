@@ -82,7 +82,6 @@ export type Formulario = {
   frm_nombre: string;
   frm_descripcion: string;
   // Aliases para compatibilidad con código existente
-  frm_id?: number;
   formulario_nombre?: string;
   formulario_descripcion?: string;
   // true si la versión solicitada ya tiene solicitudes asociadas: el backend
