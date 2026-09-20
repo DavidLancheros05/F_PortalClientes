@@ -217,12 +217,21 @@ export function useMenuModel(modulos: Modulo[], isAdmin: boolean) {
     });
   };
 
-  const tieneHijosConPermiso = (modulo: Modulo): boolean => {
+  const tieneHijosConPermiso = (
+    modulo: Modulo,
+    visitados: Set<number> = new Set(),
+  ): boolean => {
+    // Guarda contra ciclos en mod_padre_id (ej. un módulo mal configurado
+    // que termina siendo su propio ancestro) — sin esto, un dato corrupto
+    // del backend cuelga el navegador con "Maximum call stack size
+    // exceeded" en vez de simplemente no mostrar ese módulo.
+    if (visitados.has(modulo.mod_id)) return false;
+    visitados.add(modulo.mod_id);
     const hijos = getSubModulosConFallback(modulo);
     return hijos.some((hijo) => {
       if (hijo.mod_activo === false) return false;
       if (hijo.permisos?.ver) return true;
-      return tieneHijosConPermiso(hijo);
+      return tieneHijosConPermiso(hijo, visitados);
     });
   };
 
@@ -250,10 +259,13 @@ export function useMenuModel(modulos: Modulo[], isAdmin: boolean) {
   // importar en qué nivel de anidamiento esté.
   const getFlatSearchableItems = (): { modulo: Modulo; breadcrumb: string[] }[] => {
     const resultado: { modulo: Modulo; breadcrumb: string[] }[] = [];
+    const visitados = new Set<number>();
 
     const visitar = (items: Modulo[], breadcrumb: string[]) => {
       for (const item of sortModulosByOrden(items)) {
         if (item.mod_activo === false) continue;
+        if (visitados.has(item.mod_id)) continue; // guarda contra ciclos
+        visitados.add(item.mod_id);
         const ruta = resolveModuloRoute(item);
         if (item.permisos?.ver && ruta) {
           resultado.push({ modulo: item, breadcrumb });
