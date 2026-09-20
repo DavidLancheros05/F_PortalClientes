@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -81,9 +81,32 @@ export default function GestionarPQRSPage() {
   const [respuestaComentario, setRespuestaComentario] = useState("");
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
 
+  // Token de la petición en curso: `loadPQRSDetails` también se llama
+  // manualmente tras comentar o cambiar de estado, así que además de
+  // proteger la carga inicial (pqrsId/desmontaje), evita que una llamada
+  // manual vieja pise el resultado de una más nueva.
+  const pqrsRequestIdRef = useRef(0);
+
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadEstados() {
+      try {
+        const data = await pqrsService.getEstados();
+        if (cancelled) return;
+        setEstados(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error cargando estados:", err);
+      }
+    }
+
     loadPQRSDetails();
     loadEstados();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pqrsId, user]);
 
   useEffect(() => {
@@ -94,6 +117,7 @@ export default function GestionarPQRSPage() {
 
   const loadPQRSDetails = async () => {
     if (!user || !pqrsId) return;
+    const requestId = ++pqrsRequestIdRef.current;
     try {
       setLoading(true);
       setError(null);
@@ -102,6 +126,7 @@ export default function GestionarPQRSPage() {
         pqrsService.getComentarios(pqrsId),
         pqrsService.getHistorial(pqrsId),
       ]);
+      if (pqrsRequestIdRef.current !== requestId) return;
       setPqrs(pqrsData);
 
       const comentariosConNombres = Array.isArray(comentariosData)
@@ -118,19 +143,11 @@ export default function GestionarPQRSPage() {
       setComentarios(comentariosConNombres);
       setHistorial(Array.isArray(historialData) ? historialData : []);
     } catch (err) {
+      if (pqrsRequestIdRef.current !== requestId) return;
       console.error("Error cargando detalles:", err);
       setError("No se pudieron cargar los detalles de la PQRS");
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadEstados = async () => {
-    try {
-      const data = await pqrsService.getEstados();
-      setEstados(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error cargando estados:", err);
+      if (pqrsRequestIdRef.current === requestId) setLoading(false);
     }
   };
 

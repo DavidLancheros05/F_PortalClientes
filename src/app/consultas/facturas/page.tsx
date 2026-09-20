@@ -8,8 +8,11 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   facturasService,
@@ -132,6 +135,18 @@ export default function FacturasPage() {
     });
   }, [facturas, filtroNumero, filtroDescripcion, filtroFechaDesde, filtroFechaHasta]);
 
+  const numeroSugerencias = useMemo(
+    () => facturas.map((f) => f.numeroDocumento ?? ""),
+    [facturas],
+  );
+  const descripcionSugerencias = useMemo(
+    () => [
+      ...facturas.map((f) => f.descripcionItem ?? ""),
+      ...facturas.map((f) => f.referencia ?? ""),
+    ],
+    [facturas],
+  );
+
   const facturasPaginadas = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return facturasFiltradas.slice(start, start + pageSize);
@@ -224,24 +239,22 @@ export default function FacturasPage() {
           onBack={() => router.push("/consultas")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <FilterField label="Número de documento">
-              <input
-                type="text"
-                value={filtroNumeroInput}
-                onChange={(e) => setFiltroNumeroInput(e.target.value)}
-                placeholder="Ej: FEV-00098211"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
-            <FilterField label="Referencia o descripción">
-              <input
-                type="text"
-                value={filtroDescripcionInput}
-                onChange={(e) => setFiltroDescripcionInput(e.target.value)}
-                placeholder="Ej: CAJA CJ 3550"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Número de documento"
+              placeholder="Ej: FEV-00098211"
+              value={filtroNumeroInput}
+              onChange={setFiltroNumeroInput}
+              suggestions={numeroSugerencias}
+              onEnter={handleBuscar}
+            />
+            <SuggestField
+              label="Referencia o descripción"
+              placeholder="Ej: CAJA CJ 3550"
+              value={filtroDescripcionInput}
+              onChange={setFiltroDescripcionInput}
+              suggestions={descripcionSugerencias}
+              onEnter={handleBuscar}
+            />
             <FilterField label="Fecha desde">
               <input
                 type="date"
@@ -310,75 +323,74 @@ export default function FacturasPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Documento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Número</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">NIT</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Pedido</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Remisión</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Orden de compra</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ítem</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Referencia</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Descripción</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cantidad</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Peso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ciudad</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Punto de envío</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio unitario</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio por peso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Plan 001</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Plan 003</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">SEC</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">SSE</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor subtotal</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor impuesto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor neto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Bodega</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Centro operación</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vendedor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vendedor cliente</th>
+                    <Th className="whitespace-nowrap">Documento</Th>
+                    <Th className="whitespace-nowrap">Número</Th>
+                    <Th className="whitespace-nowrap">NIT</Th>
+                    <Th className="whitespace-nowrap">Cliente</Th>
+                    <Th className="whitespace-nowrap">Fecha</Th>
+                    <Th className="whitespace-nowrap">Pedido</Th>
+                    <Th className="whitespace-nowrap">Remisión</Th>
+                    <Th className="whitespace-nowrap">Orden de compra</Th>
+                    <Th className="whitespace-nowrap">Ítem</Th>
+                    <Th className="whitespace-nowrap">Referencia</Th>
+                    <Th className="whitespace-nowrap">Descripción</Th>
+                    <Th className="whitespace-nowrap">Cantidad</Th>
+                    <Th className="whitespace-nowrap">Peso</Th>
+                    <Th className="whitespace-nowrap">Ciudad</Th>
+                    <Th className="whitespace-nowrap">Punto de envío</Th>
+                    <Th className="whitespace-nowrap">Precio unitario</Th>
+                    <Th className="whitespace-nowrap">Precio cliente</Th>
+                    <Th className="whitespace-nowrap">Precio por peso</Th>
+                    <Th className="whitespace-nowrap">Plan 001</Th>
+                    <Th className="whitespace-nowrap">Plan 003</Th>
+                    <Th className="whitespace-nowrap">SEC</Th>
+                    <Th className="whitespace-nowrap">SSE</Th>
+                    <Th className="whitespace-nowrap">Valor subtotal</Th>
+                    <Th className="whitespace-nowrap">Valor impuesto</Th>
+                    <Th className="whitespace-nowrap">Valor neto</Th>
+                    <Th className="whitespace-nowrap">Bodega</Th>
+                    <Th className="whitespace-nowrap">Centro operación</Th>
+                    <Th className="whitespace-nowrap">Vendedor</Th>
+                    <Th className="whitespace-nowrap">Vendedor cliente</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {facturasPaginadas.map((factura, index) => (
-                    <tr
+                    <Tr
                       key={`${factura.numeroDocumento}-${factura.item}-${index}`}
-                      className="hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                      <Td className="whitespace-nowrap font-medium">
                         {factura.numeroDocumento}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.numero}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.nit}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.clienteRazonSocial}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatFecha(factura.fecha)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.pedidoDocumento || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.documentoRemision || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.ordenCompra || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.item}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.referencia}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.descripcionItem}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(factura.cantidad)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(factura.peso)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.ciudad || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.descripcionPuntoEnvio || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(factura.precioUnitario)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(factura.precioCliente)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(factura.precioPeso)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.plan001 || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.plan003 || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.sec || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.sse || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(factura.valorSubtotal)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(factura.valorImpuesto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(factura.valorNeto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.bodega}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.centroOperacion}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.vendedor}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{factura.vendedorClienteNombre || "-"}</td>
-                    </tr>
+                      </Td>
+                      <Td className="whitespace-nowrap">{factura.numero}</Td>
+                      <Td className="whitespace-nowrap">{factura.nit}</Td>
+                      <Td className="whitespace-nowrap">{factura.clienteRazonSocial}</Td>
+                      <Td className="whitespace-nowrap">{formatFecha(factura.fecha)}</Td>
+                      <Td className="whitespace-nowrap">{factura.pedidoDocumento || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.documentoRemision || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.ordenCompra || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.item}</Td>
+                      <Td className="whitespace-nowrap">{factura.referencia}</Td>
+                      <Td className="whitespace-nowrap">{factura.descripcionItem}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(factura.cantidad)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(factura.peso)}</Td>
+                      <Td className="whitespace-nowrap">{factura.ciudad || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.descripcionPuntoEnvio || "-"}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(factura.precioUnitario)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(factura.precioCliente)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(factura.precioPeso)}</Td>
+                      <Td className="whitespace-nowrap">{factura.plan001 || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.plan003 || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.sec || "-"}</Td>
+                      <Td className="whitespace-nowrap">{factura.sse || "-"}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(factura.valorSubtotal)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(factura.valorImpuesto)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(factura.valorNeto)}</Td>
+                      <Td className="whitespace-nowrap">{factura.bodega}</Td>
+                      <Td className="whitespace-nowrap">{factura.centroOperacion}</Td>
+                      <Td className="whitespace-nowrap">{factura.vendedor}</Td>
+                      <Td className="whitespace-nowrap">{factura.vendedorClienteNombre || "-"}</Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>

@@ -15,6 +15,12 @@ export interface UltimaSolicitud {
 interface UseUltimaSolicitudProps {
   clienteId?: number | null;
   enabled?: boolean;
+  // Resultado que un componente padre ya obtuvo con su propia llamada a
+  // este mismo hook (mismo clienteId) — si viene definido (incluye null),
+  // este hook no vuelve a pedirle lo mismo al backend, solo recalcula los
+  // flags derivados a partir de este valor. undefined = "no me lo pasaron",
+  // comportamiento normal (fetch propio).
+  prefetched?: UltimaSolicitud | null;
 }
 
 interface UseUltimaSolicitudResult {
@@ -34,14 +40,22 @@ interface UseUltimaSolicitudResult {
 export function useUltimaSolicitud({
   clienteId,
   enabled = true,
+  prefetched,
 }: UseUltimaSolicitudProps): UseUltimaSolicitudResult {
+  const tienePrefetch = prefetched !== undefined;
   const [ultimaSolicitud, setUltimaSolicitud] =
-    useState<UltimaSolicitud | null>(null);
+    useState<UltimaSolicitud | null>(tienePrefetch ? prefetched : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // console.log(`[🔴 EFECTO useUltimaSolicitud] NUEVA EJECUCIÓN - enabled=${enabled}, clienteId=${clienteId}, timestamp=${Date.now()}`);
+
+    if (tienePrefetch) {
+      setUltimaSolicitud(prefetched);
+      setError(null);
+      return;
+    }
 
     if (!enabled || !clienteId) {
       // console.log(`[⚪ EFECTO] Saltando - enabled=${enabled}, clienteId=${clienteId}`);
@@ -120,7 +134,7 @@ export function useUltimaSolicitud({
     return () => {
       cancelled = true;
     };
-  }, [clienteId, enabled]);
+  }, [clienteId, enabled, tienePrefetch, prefetched]);
 
   const noTieneSolicitudes = ultimaSolicitud === null;
   const estadoActual = ultimaSolicitud?.sol_estado_id ?? null;

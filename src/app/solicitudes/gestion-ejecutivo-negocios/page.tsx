@@ -17,12 +17,16 @@ import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { Th, Td } from "@/components/tables/TableCell";
 import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import type { ClienteListResponse } from "@/types/api.types";
+import { cachedRequest } from "@/services/core/requestCache";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   calcularDiasRestantes,
   DiasRestantesBadge,
 } from "@/components/badges/DiasRestantesBadge";
+import { TipoSolicitudBadge } from "@/components/badges/TipoSolicitudBadge";
+import { getTipoSolicitud } from "@/lib/tipo-solicitud.util";
 
 interface Solicitud {
   sol_id: number;
@@ -40,6 +44,8 @@ interface Solicitud {
   resultado_nombre?: string;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
+  sol_cupo_solicitado?: number | null;
+  es_ampliacion_cupo?: boolean | number | null;
   ejecutivo_nombre: string;
   sol_fecha_real_ejecutivo?: string | null;
   // Fallback fields for compatibility
@@ -82,6 +88,9 @@ export default function ConceptoEjecutivoPage() {
     const v = searchParams.get("ejecutivo");
     return v ? Number(v) : null;
   });
+  const [ejecutivoBusqueda, setEjecutivoBusqueda] = useState("");
+  const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
+  const ejecutivoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const modulo = modulosService
@@ -106,6 +115,30 @@ export default function ConceptoEjecutivoPage() {
     cargarEjecutivos();
   }, [esEjecutivo, puedeEditar]);
 
+  // Si la búsqueda llega preseleccionada desde la URL (?ejecutivo=), muestra
+  // su nombre en el input apenas se termine de cargar la lista.
+  useEffect(() => {
+    if (!ejecutivoSeleccionado) return;
+    const encontrado = ejecutivos.find(
+      (e) => e.ejng_id === ejecutivoSeleccionado,
+    );
+    if (encontrado) setEjecutivoBusqueda(encontrado.ejng_nombre);
+  }, [ejecutivos, ejecutivoSeleccionado]);
+
+  useEffect(() => {
+    if (!mostrarEjecutivos) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        ejecutivoRef.current &&
+        !ejecutivoRef.current.contains(event.target as Node)
+      ) {
+        setMostrarEjecutivos(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarEjecutivos]);
+
   // Filtros inicializados desde la URL (?cliente=&desde=&hasta=) para que
   // "Volver" desde /registrar restaure la búsqueda en vez de reiniciar el
   // formulario — antes todo esto vivía solo en useState local, que se
@@ -114,12 +147,46 @@ export default function ConceptoEjecutivoPage() {
   const [clienteFiltro, setClienteFiltro] = useState(
     () => searchParams.get("cliente") || "",
   );
+  const [clienteBusqueda, setClienteBusqueda] = useState(
+    () => searchParams.get("cliente") || "",
+  );
+  const [mostrarClientes, setMostrarClientes] = useState(false);
+  const clienteRef = useRef<HTMLDivElement>(null);
+  // Catálogo completo (solo para poder buscar por NIT) — el <select> de
+  // clientes sigue acotado a `clientesDisponibles`, los que de verdad
+  // tienen una solicitud pendiente en esta bandeja.
+  const [catalogoClientes, setCatalogoClientes] = useState<
+    ClienteListResponse[]
+  >([]);
+  useEffect(() => {
+    cachedRequest("listado-solicitudes-clientes", () => clientesService.getAll())
+      .then((data) => setCatalogoClientes(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.error("Error cargando catálogo de clientes:", error);
+      });
+  }, []);
+  useEffect(() => {
+    if (!mostrarClientes) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        clienteRef.current &&
+        !clienteRef.current.contains(event.target as Node)
+      ) {
+        setMostrarClientes(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarClientes]);
   const [hasSearched, setHasSearched] = useState(false);
   const [fechaInicio, setFechaInicio] = useState(
     () => searchParams.get("desde") || "",
   );
   const [fechaFin, setFechaFin] = useState(
     () => searchParams.get("hasta") || "",
+  );
+  const [tipoSolicitudFiltro, setTipoSolicitudFiltro] = useState(
+    () => searchParams.get("tipo") || "",
   );
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -153,9 +220,14 @@ export default function ConceptoEjecutivoPage() {
           }
         }
 
-        return matchCliente && matchFecha;
+        const matchTipo =
+          !tipoSolicitudFiltro ||
+          getTipoSolicitud(solicitud.es_ampliacion_cupo) ===
+            (tipoSolicitudFiltro === "AMPLIACION" ? "Ampliación de Cupo" : "Cliente Nuevo");
+
+        return matchCliente && matchFecha && matchTipo;
       }),
-    [solicitudes, clienteFiltro, fechaInicio, fechaFin],
+    [solicitudes, clienteFiltro, fechaInicio, fechaFin, tipoSolicitudFiltro],
   );
 
   // La página se reinicia cuando cambian los filtros o llega una nueva
@@ -172,13 +244,41 @@ export default function ConceptoEjecutivoPage() {
   // Clientes únicos dentro de la bandeja ya cargada (no todos los clientes
   // del sistema) — esta página siempre está acotada a un solo ejecutivo, así
   // que solo tiene sentido dejar elegir entre los clientes que de verdad
-  // tienen una solicitud pendiente en esa bandeja.
+  // tienen una solicitud pendiente en esa bandeja. El NIT se completa desde
+  // el catálogo completo (`catalogoClientes`) solo para poder buscar por él.
   const clientesDisponibles = useMemo(() => {
     const nombres = new Set(
       solicitudes.map((s) => s.cliente_nombre).filter(Boolean),
     );
-    return Array.from(nombres).sort((a, b) => a.localeCompare(b));
-  }, [solicitudes]);
+    return Array.from(nombres)
+      .sort((a, b) => a.localeCompare(b))
+      .map((nombre) => ({
+        nombre,
+        nit: catalogoClientes.find(
+          (c) =>
+            c.cli_razon_social.trim().toLowerCase() ===
+            nombre.trim().toLowerCase(),
+        )?.cli_nro_identificacion,
+      }));
+  }, [solicitudes, catalogoClientes]);
+
+  const clientesFiltrados = useMemo(() => {
+    const term = clienteBusqueda.trim().toLowerCase();
+    if (!term) return clientesDisponibles;
+    return clientesDisponibles.filter(
+      (c) =>
+        c.nombre.toLowerCase().includes(term) ||
+        (c.nit || "").toLowerCase().includes(term),
+    );
+  }, [clientesDisponibles, clienteBusqueda]);
+
+  const ejecutivosFiltrados = useMemo(() => {
+    const term = ejecutivoBusqueda.trim().toLowerCase();
+    if (!term) return ejecutivos;
+    return ejecutivos.filter((e) =>
+      e.ejng_nombre.toLowerCase().includes(term),
+    );
+  }, [ejecutivos, ejecutivoBusqueda]);
 
   async function exportarExcel() {
     if (solicitudesFiltradas.length === 0) return;
@@ -186,6 +286,7 @@ export default function ConceptoEjecutivoPage() {
     const XLSX = await import("xlsx");
     const header = [
       "No. solicitud",
+      "Tipo",
       "Centro de operación",
       "Cliente",
       "Estado",
@@ -200,6 +301,7 @@ export default function ConceptoEjecutivoPage() {
         : null;
       return [
         s.sol_numero_solicitud || s.numero_solicitud || "-",
+        getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
         ESTADOS[s.sol_estado_id ?? s.estado_id] || "Desconocido",
@@ -230,12 +332,14 @@ export default function ConceptoEjecutivoPage() {
     cliente: string;
     desde: string;
     hasta: string;
+    tipo: string;
   }) {
     const params = new URLSearchParams();
     params.set("buscado", "1");
     if (filtros.cliente) params.set("cliente", filtros.cliente);
     if (filtros.desde) params.set("desde", filtros.desde);
     if (filtros.hasta) params.set("hasta", filtros.hasta);
+    if (filtros.tipo) params.set("tipo", filtros.tipo);
     if (!esEjecutivo && ejecutivoSeleccionado)
       params.set("ejecutivo", String(ejecutivoSeleccionado));
     router.replace(`${pathname}?${params.toString()}`);
@@ -243,9 +347,12 @@ export default function ConceptoEjecutivoPage() {
 
   function limpiarFiltros() {
     setClienteFiltro("");
+    setClienteBusqueda("");
     setFechaInicio("");
     setFechaFin("");
+    setTipoSolicitudFiltro("");
     setEjecutivoSeleccionado(null);
+    setEjecutivoBusqueda("");
     setHasSearched(false);
     router.replace(pathname);
   }
@@ -294,6 +401,7 @@ export default function ConceptoEjecutivoPage() {
         cliente: clienteFiltro,
         desde: fechaInicio,
         hasta: fechaFin,
+        tipo: tipoSolicitudFiltro,
       });
     } catch (error) {
       // console.error("Error buscando solicitudes:", error);
@@ -335,7 +443,7 @@ export default function ConceptoEjecutivoPage() {
           onBack={() => router.push("/solicitudes")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <FilterField label="Ejecutivo de Negocios">
+            <FilterField label="Ejecutivo de Negocios" className="relative" ref={ejecutivoRef}>
               {esEjecutivo ? (
                 <input
                   type="text"
@@ -344,22 +452,43 @@ export default function ConceptoEjecutivoPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               ) : puedeEditar ? (
-                <select
-                  value={ejecutivoSeleccionado ?? ""}
-                  onChange={(event) =>
-                    setEjecutivoSeleccionado(
-                      event.target.value ? Number(event.target.value) : null,
-                    )
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Selecciona un ejecutivo</option>
-                  {ejecutivos.map((ejecutivo) => (
-                    <option key={ejecutivo.ejng_id} value={ejecutivo.ejng_id}>
-                      {ejecutivo.ejng_nombre}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <input
+                    type="text"
+                    placeholder="Nombre del ejecutivo..."
+                    value={ejecutivoBusqueda}
+                    onFocus={() => setMostrarEjecutivos(true)}
+                    onChange={(event) => {
+                      setEjecutivoBusqueda(event.target.value);
+                      setEjecutivoSeleccionado(null);
+                      setMostrarEjecutivos(true);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {mostrarEjecutivos && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                      {ejecutivosFiltrados.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          Sin resultados
+                        </div>
+                      ) : (
+                        ejecutivosFiltrados.map((ejecutivo) => (
+                          <div
+                            key={ejecutivo.ejng_id}
+                            onClick={() => {
+                              setEjecutivoSeleccionado(ejecutivo.ejng_id);
+                              setEjecutivoBusqueda(ejecutivo.ejng_nombre);
+                              setMostrarEjecutivos(false);
+                            }}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                          >
+                            {ejecutivo.ejng_nombre}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
               ) : (
                 <input
                   type="text"
@@ -371,19 +500,61 @@ export default function ConceptoEjecutivoPage() {
               )}
             </FilterField>
 
-            <FilterField label="Cliente">
-              <select
-                value={clienteFiltro}
-                onChange={(event) => setClienteFiltro(event.target.value)}
+            <FilterField label="Cliente" className="relative" ref={clienteRef}>
+              <input
+                type="text"
+                placeholder="Nombre o NIT..."
+                value={clienteBusqueda}
+                onFocus={() => setMostrarClientes(true)}
+                onChange={(event) => {
+                  setClienteBusqueda(event.target.value);
+                  setClienteFiltro("");
+                  setMostrarClientes(true);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los clientes</option>
-                {clientesDisponibles.map((nombre) => (
-                  <option key={nombre} value={nombre}>
-                    {nombre}
-                  </option>
-                ))}
-              </select>
+              />
+              {mostrarClientes && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {clienteFiltro && (
+                    <div
+                      onClick={() => {
+                        setClienteFiltro("");
+                        setClienteBusqueda("");
+                        setMostrarClientes(false);
+                      }}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 text-gray-500"
+                    >
+                      Todos
+                    </div>
+                  )}
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      Sin resultados
+                    </div>
+                  ) : (
+                    clientesFiltrados.map((cliente) => (
+                      <div
+                        key={cliente.nombre}
+                        onClick={() => {
+                          setClienteFiltro(cliente.nombre);
+                          setClienteBusqueda(cliente.nombre);
+                          setMostrarClientes(false);
+                        }}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">
+                          {cliente.nombre}
+                        </div>
+                        {cliente.nit && (
+                          <div className="text-xs text-gray-500">
+                            NIT {cliente.nit}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </FilterField>
 
             <FilterField label="Fecha inicio">
@@ -402,6 +573,18 @@ export default function ConceptoEjecutivoPage() {
                 onChange={(event) => setFechaFin(event.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </FilterField>
+
+            <FilterField label="Tipo de Solicitud">
+              <select
+                value={tipoSolicitudFiltro}
+                onChange={(event) => setTipoSolicitudFiltro(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos</option>
+                <option value="NUEVO">Cliente Nuevo</option>
+                <option value="AMPLIACION">Ampliación de Cupo</option>
+              </select>
             </FilterField>
 
             <FilterActions className="col-span-full">
@@ -448,6 +631,7 @@ export default function ConceptoEjecutivoPage() {
                   <thead className="bg-gray-50">
                     <tr>
                       <Th>No. solicitud</Th>
+                      <Th>Tipo</Th>
                       {/* <Th>Centro de operación</Th> */}
                       <Th>Cliente</Th>
                       <Th>Estado</Th>
@@ -469,6 +653,10 @@ export default function ConceptoEjecutivoPage() {
                             <Td className="whitespace-nowrap font-semibold text-blue-700">
                               {solicitud.sol_numero_solicitud ||
                                 solicitud.numero_solicitud}
+                            </Td>
+
+                            <Td className="whitespace-nowrap">
+                              <TipoSolicitudBadge esAmpliacionCupo={solicitud.es_ampliacion_cupo} />
                             </Td>
 
                             {/* <Td className="whitespace-nowrap">

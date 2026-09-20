@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 
 const pedidosFaltantes = [
   {
@@ -62,36 +64,24 @@ export default function PedidosFaltantesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                    Pedido
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                    Cliente
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                    Producto
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                    Cantidad
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                    Prioridad
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                    Fecha límite
-                  </th>
+                  <Th>Pedido</Th>
+                  <Th>Cliente</Th>
+                  <Th>Producto</Th>
+                  <Th>Cantidad</Th>
+                  <Th>Prioridad</Th>
+                  <Th>Fecha límite</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {pedidosFaltantes.map((pedido) => (
-                  <tr key={pedido.pedido_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                  <Tr key={pedido.pedido_id}>
+                    <Td className="font-medium text-gray-900">
                       {pedido.pedido_id}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.cliente}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.producto}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.cantidad.toLocaleString("es-CO")}</td>
-                    <td className="px-4 py-3 text-sm">
+                    </Td>
+                    <Td>{pedido.cliente}</Td>
+                    <Td>{pedido.producto}</Td>
+                    <Td>{pedido.cantidad.toLocaleString("es-CO")}</Td>
+                    <Td>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           pedido.prioridad === "Alta"
@@ -101,9 +91,9 @@ export default function PedidosFaltantesPage() {
                       >
                         {pedido.prioridad}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{pedido.fecha_limite}</td>
-                  </tr>
+                    </Td>
+                    <Td>{pedido.fecha_limite}</Td>
+                  </Tr>
                 ))}
               </tbody>
             </table>

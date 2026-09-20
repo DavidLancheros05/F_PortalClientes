@@ -60,6 +60,14 @@ export type Pregunta = {
   fp_catalogo_columna_condicion?: string | null;
   fp_catalogo_valor_condicion?: string | null;
   fp_oculto_en_formulario?: boolean;
+  // Calculado por el backend (motivoProteccionPregunta), no se edita desde
+  // acá — ver "Documentos Cartonera/documentacion/Funcionalidades/
+  // preguntas-protegidas-editor.md". true si el fp_codigo de esta pregunta
+  // está anclado a lógica hardcodeada del flujo del portal y/o al envío de
+  // datos a SIESA: el backend rechaza cambiarle el tipo de input o
+  // eliminarla.
+  fp_protegida?: boolean;
+  fp_protegida_motivo?: "flujo" | "siesa" | "flujo_siesa" | null;
   opciones?: Opcion[];
 };
 
@@ -74,7 +82,7 @@ export type Formulario = {
   frm_nombre: string;
   frm_descripcion: string;
   // Aliases para compatibilidad con código existente
-  formulario_id?: number;
+  frm_id?: number;
   formulario_nombre?: string;
   formulario_descripcion?: string;
   // true si la versión solicitada ya tiene solicitudes asociadas: el backend
@@ -99,6 +107,12 @@ export type Opcion = {
 
 export type ColumnaTabla = {
   nombre: string;
+  // Identidad estable entre renombrados de `nombre` — la genera solo el
+  // backend (igual que fp_codigo a nivel de pregunta), nunca se edita
+  // desde acá. Debe sobrevivir el round-trip parse→estado→guardar tal
+  // cual llegó, o se pierde en el próximo guardado — ver "Documentos
+  // Cartonera/documentacion/Funcionalidades/codigo-estable-columnas-tabla.md".
+  codigo?: string;
   tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA";
   catalogo_base_datos?: string;
   catalogo_tabla?: string;

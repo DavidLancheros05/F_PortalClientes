@@ -13,8 +13,53 @@ import {
   KeyRound,
   Loader2,
   ShieldCheck,
+  PanelTop,
+  PanelLeft,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useMenuPosition } from "@/hooks/useMenuPosition";
+
+// Preferencia de posición del menú (arriba/izquierda) — se guarda en
+// localStorage de este navegador (no en el perfil de la BD, ver
+// useMenuPosition), así que puede ser distinta en otro dispositivo donde
+// el mismo usuario inicie sesión.
+function MenuPositionSelector() {
+  const [position, setPosition] = useMenuPosition();
+
+  return (
+    <div className="border-t border-gray-100 px-8 py-6">
+      <p className="text-[10.5px] font-bold uppercase tracking-wide text-[#94a3b8] mb-3">
+        Posición del menú
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setPosition("top")}
+          className={`flex items-center gap-2 px-4 py-3 rounded-[11px] border text-sm font-semibold transition-colors ${
+            position === "top"
+              ? "border-brand-600 bg-[#e7edfb] text-brand-600"
+              : "border-[#eef1f6] text-[#475569] hover:bg-[#fafbfd]"
+          }`}
+        >
+          <PanelTop className="w-4 h-4" />
+          Arriba
+        </button>
+        <button
+          type="button"
+          onClick={() => setPosition("left")}
+          className={`flex items-center gap-2 px-4 py-3 rounded-[11px] border text-sm font-semibold transition-colors ${
+            position === "left"
+              ? "border-brand-600 bg-[#e7edfb] text-brand-600"
+              : "border-[#eef1f6] text-[#475569] hover:bg-[#fafbfd]"
+          }`}
+        >
+          <PanelLeft className="w-4 h-4" />
+          Izquierda
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function DatoCard({
   icon: Icon,
@@ -117,6 +162,8 @@ export default function PerfilPage() {
                 Cambiar contraseña
               </Link>
             </div>
+
+            <MenuPositionSelector />
           </div>
         </div>
       </div>
@@ -195,6 +242,8 @@ export default function PerfilPage() {
               Cambiar contraseña
             </Link>
           </div>
+
+          <MenuPositionSelector />
         </div>
       </div>
     </div>

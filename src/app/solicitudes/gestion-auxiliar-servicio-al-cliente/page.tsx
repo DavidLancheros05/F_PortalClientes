@@ -17,11 +17,11 @@ import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { SuggestField } from "@/components/filters/SuggestField";
+import { ClienteFilterField } from "@/components/filters/ClienteFilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
-import {
-  calcularDiasRestantes,
-  DiasRestantesBadge,
-} from "@/components/badges/DiasRestantesBadge";
+import { calcularDiasRestantes, DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
+import { TipoSolicitudBadge } from "@/components/badges/TipoSolicitudBadge";
+import { getTipoSolicitud } from "@/lib/tipo-solicitud.util";
 import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
@@ -47,6 +47,8 @@ interface Solicitud {
   sol_fecha_real_ejecutivo?: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
+  sol_cupo_solicitado?: number | null;
+  es_ampliacion_cupo?: boolean | number | null;
   sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
@@ -73,24 +75,19 @@ export default function AprobacionDesaprobacionPage() {
   // para que "Volver" desde /gestionar restaure la búsqueda en vez de
   // reiniciar el formulario — antes todo esto vivía solo en useState local,
   // que se perdía al desmontar/remontar la página.
-  const [ejecutivoSeleccionado, setEjecutivoSeleccionado] = useState<
-    number | null
-  >(() => {
+  const [ejecutivoSeleccionado, setEjecutivoSeleccionado] = useState<number | null>(() => {
     const v = searchParams.get("ejecutivo");
     return v ? Number(v) : null;
   });
   const [ejecutivoBusqueda, setEjecutivoBusqueda] = useState("");
   const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const ejecutivoRef = useRef<HTMLDivElement>(null);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<
-    number | null
-  >(() => {
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<number | null>(() => {
     const v = searchParams.get("cliente");
     return v ? Number(v) : null;
   });
-  const [numeroFiltro, setNumeroFiltro] = useState(
-    () => searchParams.get("numero") || "",
-  );
+  const [numeroFiltro, setNumeroFiltro] = useState(() => searchParams.get("numero") || "");
+  const [tipoSolicitudFiltro, setTipoSolicitudFiltro] = useState(() => searchParams.get("tipo") || "");
   const [hasSearched, setHasSearched] = useState(false);
   const [paginaActual, setPaginaActual] = useState(() => {
     const v = searchParams.get("pagina");
@@ -139,9 +136,7 @@ export default function AprobacionDesaprobacionPage() {
 
   const ejecutivosFiltrados = useMemo(() => {
     if (!ejecutivoBusqueda) return ejecutivos;
-    return ejecutivos.filter((e) =>
-      e.ejng_nombre.toLowerCase().includes(ejecutivoBusqueda.toLowerCase()),
-    );
+    return ejecutivos.filter((e) => e.ejng_nombre.toLowerCase().includes(ejecutivoBusqueda.toLowerCase()));
   }, [ejecutivos, ejecutivoBusqueda]);
 
   // "Cliente" depende del "Ejecutivo" seleccionado: sin ejecutivo elegido no
@@ -156,9 +151,7 @@ export default function AprobacionDesaprobacionPage() {
   // selección de cliente en vez de dejar un filtro imposible de cumplir.
   useEffect(() => {
     if (!clienteSeleccionado) return;
-    const sigueSiendoValido = clientesDelEjecutivo.some(
-      (c) => Number(c.cli_id) === clienteSeleccionado,
-    );
+    const sigueSiendoValido = clientesDelEjecutivo.some((c) => Number(c.cli_id) === clienteSeleccionado);
     if (!sigueSiendoValido) setClienteSeleccionado(null);
   }, [clientesDelEjecutivo, clienteSeleccionado]);
 
@@ -168,10 +161,7 @@ export default function AprobacionDesaprobacionPage() {
   useEffect(() => {
     if (!mostrarEjecutivos) return;
     function handleClickOutside(event: MouseEvent) {
-      if (
-        ejecutivoRef.current &&
-        !ejecutivoRef.current.contains(event.target as Node)
-      ) {
+      if (ejecutivoRef.current && !ejecutivoRef.current.contains(event.target as Node)) {
         setMostrarEjecutivos(false);
       }
     }
@@ -180,8 +170,7 @@ export default function AprobacionDesaprobacionPage() {
   }, [mostrarEjecutivos]);
 
   const obtenerUsuarioId = () => {
-    const directId =
-      (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
+    const directId = (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
     if (directId) return directId;
 
     if (typeof window === "undefined") return null;
@@ -200,10 +189,10 @@ export default function AprobacionDesaprobacionPage() {
   const sincronizarUrl = (pagina: number) => {
     const params = new URLSearchParams();
     params.set("buscado", "1");
-    if (ejecutivoSeleccionado)
-      params.set("ejecutivo", String(ejecutivoSeleccionado));
+    if (ejecutivoSeleccionado) params.set("ejecutivo", String(ejecutivoSeleccionado));
     if (clienteSeleccionado) params.set("cliente", String(clienteSeleccionado));
     if (numeroFiltro.trim()) params.set("numero", numeroFiltro.trim());
+    if (tipoSolicitudFiltro) params.set("tipo", tipoSolicitudFiltro);
     params.set("pagina", String(pagina));
     router.replace(`${pathname}?${params.toString()}`);
   };
@@ -218,10 +207,7 @@ export default function AprobacionDesaprobacionPage() {
         return;
       }
 
-      const data =
-        await solicitudesService.getSolicitudesPendientesAuxiliarServicioCliente(
-          usuarioId,
-        );
+      const data = await solicitudesService.getSolicitudesPendientesAuxiliarServicioCliente(usuarioId);
 
       const numeroBuscado = numeroFiltro.trim().toLowerCase();
 
@@ -230,24 +216,25 @@ export default function AprobacionDesaprobacionPage() {
           ...s,
         }))
         .filter((s: Solicitud) => {
-          const cumpleEjecutivo = ejecutivoSeleccionado
-            ? s.sol_ejecutivo_id === ejecutivoSeleccionado
-            : true;
+          const cumpleEjecutivo = ejecutivoSeleccionado ? s.sol_ejecutivo_id === ejecutivoSeleccionado : true;
           return cumpleEjecutivo;
         })
         .filter((s: Solicitud) => {
-          const cumpleCliente = clienteSeleccionado
-            ? s.sol_cliente_id === clienteSeleccionado
-            : true;
+          const cumpleCliente = clienteSeleccionado ? s.sol_cliente_id === clienteSeleccionado : true;
           return cumpleCliente;
         })
         .filter((s: Solicitud) => {
           const cumpleNumero = numeroBuscado
-            ? (s.sol_numero_solicitud || s.numero_solicitud || "")
-                .toLowerCase()
-                .includes(numeroBuscado)
+            ? (s.sol_numero_solicitud || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
             : true;
           return cumpleNumero;
+        })
+        .filter((s: Solicitud) => {
+          const cumpleTipo = tipoSolicitudFiltro
+            ? getTipoSolicitud(s.es_ampliacion_cupo) ===
+              (tipoSolicitudFiltro === "AMPLIACION" ? "Ampliación de Cupo" : "Cliente Nuevo")
+            : true;
+          return cumpleTipo;
         });
 
       setSolicitudes(mapped);
@@ -303,6 +290,7 @@ export default function AprobacionDesaprobacionPage() {
     const XLSX = await import("xlsx");
     const header = [
       "Numero Solicitud",
+      "Tipo",
       "Centro de Operacion",
       "Cliente",
       "Estado",
@@ -317,11 +305,11 @@ export default function AprobacionDesaprobacionPage() {
     ];
     const data = solicitudes.map((s) => {
       const fechaEstimada =
-        (s as any).sol_fecha_estimada_auxiliar_servicio_cliente ||
-        s.fecha_estimada_respuesta_comercial;
+        (s as any).sol_fecha_estimada_auxiliar_servicio_cliente || s.fecha_estimada_respuesta_comercial;
       const diasRestantes = calcularDiasRestantes(fechaEstimada);
       return [
         s.sol_numero_solicitud || s.numero_solicitud || "-",
+        getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
         ESTADOS[s.sol_estado_id ?? s.estado_id] || "Desconocido",
@@ -341,10 +329,7 @@ export default function AprobacionDesaprobacionPage() {
     const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Auxiliar Servicio Cliente");
-    XLSX.writeFile(
-      wb,
-      `solicitudes-auxiliar-servicio-cliente-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, `solicitudes-auxiliar-servicio-cliente-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   return (
@@ -354,8 +339,7 @@ export default function AprobacionDesaprobacionPage() {
           icon={Headset}
           eyebrow="Solicitudes"
           title="Pendientes — Auxiliar Servicio al Cliente"
-          onBack={() => router.back()}
-        >
+          onBack={() => router.back()}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <FilterField label="Ejecutivo" className="relative" ref={ejecutivoRef}>
               <input
@@ -378,14 +362,11 @@ export default function AprobacionDesaprobacionPage() {
                       setEjecutivoBusqueda("");
                       setMostrarEjecutivos(false);
                     }}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                  >
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200">
                     Limpiar selección
                   </div>
                   {ejecutivosFiltrados.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Sin resultados
-                    </div>
+                    <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
                   ) : (
                     ejecutivosFiltrados.map((ejecutivo) => (
                       <div
@@ -395,8 +376,7 @@ export default function AprobacionDesaprobacionPage() {
                           setEjecutivoBusqueda(ejecutivo.ejng_nombre);
                           setMostrarEjecutivos(false);
                         }}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                      >
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100">
                         {ejecutivo.ejng_nombre}
                       </div>
                     ))
@@ -405,46 +385,36 @@ export default function AprobacionDesaprobacionPage() {
               )}
             </FilterField>
 
-            <FilterField label="Cliente">
-              <select
-                value={clienteSeleccionado ?? ""}
-                onChange={(e) =>
-                  setClienteSeleccionado(
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                disabled={loadingClientes || !ejecutivoSeleccionado}
-              >
-                <option value="">
-                  {ejecutivoSeleccionado
-                    ? "Todos los clientes"
-                    : "Selecciona un ejecutivo primero"}
-                </option>
-                {clientesDelEjecutivo.map((cliente, index) => (
-                  <option
-                    key={`cliente-${cliente.cli_id}-${index}`}
-                    value={cliente.cli_id}
-                  >
-                    {cliente.cli_razon_social}
-                  </option>
-                ))}
-              </select>
-            </FilterField>
+            <ClienteFilterField
+              clientes={clientesDelEjecutivo}
+              value={clienteSeleccionado ? String(clienteSeleccionado) : ""}
+              onChange={(cliId) => setClienteSeleccionado(cliId ? Number(cliId) : null)}
+              disabled={loadingClientes || !ejecutivoSeleccionado}
+              placeholder={ejecutivoSeleccionado ? "Nombre o NIT..." : "Selecciona un ejecutivo primero"}
+            />
             <SuggestField
               label="Numero de solicitud"
-              placeholder="Ej: SOL-00123"
+              placeholder="Ej: 40"
               value={numeroFiltro}
               onChange={setNumeroFiltro}
               suggestions={numeroSugerencias}
               onEnter={() => buscar()}
             />
+            <FilterField label="Tipo de Solicitud">
+              <select
+                value={tipoSolicitudFiltro}
+                onChange={(event) => setTipoSolicitudFiltro(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                <option value="NUEVO">Cliente Nuevo</option>
+                <option value="AMPLIACION">Ampliación de Cupo</option>
+              </select>
+            </FilterField>
             <FilterActions className="col-span-full">
               <button
                 onClick={() => buscar()}
                 disabled={loadingSolicitudes}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Buscar
               </button>
             </FilterActions>
@@ -457,134 +427,104 @@ export default function AprobacionDesaprobacionPage() {
             <p className="text-gray-600">Cargando solicitudes...</p>
           </div>
         ) : !hasSearched ? (
-          <EmptyStateCard
-            icon={PackageOpen}
-            title="Presiona Buscar para cargar tus solicitudes pendientes."
-          />
+          <EmptyStateCard icon={PackageOpen} title="Presiona Buscar para cargar tus solicitudes pendientes." />
         ) : solicitudes.length === 0 ? (
           <EmptyStateCard icon={PackageOpen} title="No se encontraron solicitudes." />
         ) : (
           <>
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-              <ResultsToolbar
-                count={solicitudes.length}
-                onExport={exportarExcel}
-              />
+              <ResultsToolbar count={solicitudes.length} onExport={exportarExcel} />
               <TableContainer>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <Th>Numero Solicitud</Th>
-                      {/* <Th>Centro de Operacion</Th> */}
-                      <Th>Cliente</Th>
-                      <Th>Estado</Th>
-                      <Th>Etapa Actual</Th>
-                      <Th>Resultado Etapa</Th>
-                      <Th>Ver Formulario</Th>
-                      <Th>Consumo Proyectado (COP)</Th>
-                      <Th>Observaciones Ejecutivo</Th>
-                      <Th>Fecha de Envío</Th>
-                      <Th>Fecha Gestión Ejecutivo</Th>
-                      <Th>Fecha Estimada Respuesta</Th>
-                      <Th>Dias Faltantes</Th>
-                      <Th sticky align="right">
-                        Acción
-                      </Th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {solicitudesActuales.map((solicitud) => {
-                      const fechaEstimada =
-                        (solicitud as any)
-                          .sol_fecha_estimada_auxiliar_servicio_cliente ||
-                        solicitud.fecha_estimada_respuesta_comercial;
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <Th>Numero Solicitud</Th>
+                        <Th>Tipo</Th>
+                        {/* <Th>Centro de Operacion</Th> */}
+                        <Th>Cliente</Th>
+                        <Th>Estado</Th>
+                        <Th>Etapa Actual</Th>
+                        <Th>Resultado Etapa</Th>
+                        <Th>Ver Formulario</Th>
+                        <Th>Consumo Proyectado (COP)</Th>
+                        <Th>Observaciones Ejecutivo</Th>
+                        <Th>Fecha de Envío</Th>
+                        <Th>Fecha Gestión Ejecutivo</Th>
+                        <Th>Fecha Estimada Respuesta</Th>
+                        <Th>Dias Faltantes</Th>
+                        <Th sticky align="right">
+                          Acción
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {solicitudesActuales.map((solicitud) => {
+                        const fechaEstimada =
+                          (solicitud as any).sol_fecha_estimada_auxiliar_servicio_cliente ||
+                          solicitud.fecha_estimada_respuesta_comercial;
 
-                      return (
-                        <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
-                          <Td className="whitespace-nowrap font-medium text-blue-600">
-                            {solicitud.sol_numero_solicitud ||
-                              solicitud.numero_solicitud}
-                          </Td>
-                          {/* <Td className="whitespace-nowrap">
+                        return (
+                          <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
+                            <Td className="whitespace-nowrap font-medium text-blue-600">
+                              {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                            </Td>
+                            <Td className="whitespace-nowrap">
+                              <TipoSolicitudBadge esAmpliacionCupo={solicitud.es_ampliacion_cupo} />
+                            </Td>
+                            {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}
                           </Td> */}
-                          <Td className="whitespace-nowrap">
-                            {solicitud.cliente_nombre}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
-                                solicitud.sol_estado_id ?? solicitud.estado_id,
-                              )}`}
-                            >
-                              {ESTADOS[
-                                solicitud.sol_estado_id ?? solicitud.estado_id
-                              ] || "Desconocido"}
-                            </span>
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.etapa_nombre || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.resultado_nombre || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap font-medium">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
-                                )
-                              }
-                              className="text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                              Ver formulario
-                            </button>
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.consumo_mensual_proyectado
-                              ? `$${solicitud.consumo_mensual_proyectado.toLocaleString(
-                                  "es-CO",
-                                  {
+                            <Td className="whitespace-nowrap">{solicitud.cliente_nombre}</Td>
+                            <Td className="whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
+                                  solicitud.sol_estado_id ?? solicitud.estado_id,
+                                )}`}>
+                                {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] || "Desconocido"}
+                              </span>
+                            </Td>
+                            <Td className="whitespace-nowrap">{solicitud.etapa_nombre || "-"}</Td>
+                            <Td className="whitespace-nowrap">{solicitud.resultado_nombre || "-"}</Td>
+                            <Td className="whitespace-nowrap font-medium">
+                              <button
+                                onClick={() => router.push(`/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`)}
+                                className="text-blue-600 hover:text-blue-800 transition-colors">
+                                Ver formulario
+                              </button>
+                            </Td>
+                            <Td className="whitespace-nowrap">
+                              {solicitud.consumo_mensual_proyectado
+                                ? `$${solicitud.consumo_mensual_proyectado.toLocaleString("es-CO", {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
-                                  },
-                                )}`
-                              : "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.observacionesComercial || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {formatDateTime(solicitud.sol_fecha_envio)}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {formatDateTime(solicitud.sol_fecha_real_ejecutivo)}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {formatDate(fechaEstimada)}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            <DiasRestantesBadge fecha={fechaEstimada} />
-                          </Td>
-                          <Td sticky align="right" className="whitespace-nowrap font-medium">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/solicitudes/gestion-auxiliar-servicio-al-cliente/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
-                                )
-                              }
-                              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-                            >
-                              Gestionar
-                            </button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                  })}`
+                                : "-"}
+                            </Td>
+                            <Td className="whitespace-nowrap">{solicitud.observacionesComercial || "-"}</Td>
+                            <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_envio)}</Td>
+                            <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_real_ejecutivo)}</Td>
+                            <Td className="whitespace-nowrap">{formatDate(fechaEstimada)}</Td>
+                            <Td className="whitespace-nowrap">
+                              <DiasRestantesBadge fecha={fechaEstimada} />
+                            </Td>
+                            <Td sticky align="right" className="whitespace-nowrap font-medium">
+                              <button
+                                onClick={() =>
+                                  router.push(
+                                    `/solicitudes/gestion-auxiliar-servicio-al-cliente/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
+                                  )
+                                }
+                                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium">
+                                Gestionar
+                              </button>
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </TableContainer>
 
               <TablePagination
@@ -599,11 +539,7 @@ export default function AprobacionDesaprobacionPage() {
         )}
       </div>
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

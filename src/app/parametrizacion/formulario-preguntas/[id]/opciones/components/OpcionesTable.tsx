@@ -1,6 +1,8 @@
 "use client";
 
 import { updateOpcion } from "@/services/parametrizacion/opciones.service";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 
 interface Props {
   fp_id: number;
@@ -18,26 +20,26 @@ export default function OpcionesTable({
   if (loading) {
     return (
       <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 text-left">Valor</th>
-            <th className="p-2">Estado</th>
-            <th className="p-2">Acciones</th>
+        <thead className="bg-gray-50">
+          <tr>
+            <Th>Valor</Th>
+            <Th align="center">Estado</Th>
+            <Th align="center">Acciones</Th>
           </tr>
         </thead>
         <tbody>
           {Array.from({ length: 3 }).map((_, i) => (
-            <tr key={i} className="border-t animate-pulse">
-              <td className="p-2">
+            <Tr key={i} className="border-t animate-pulse">
+              <Td>
                 <div className="h-4 bg-gray-200 rounded w-32" />
-              </td>
-              <td className="p-2 text-center">
+              </Td>
+              <Td align="center">
                 <div className="h-4 bg-gray-200 rounded w-16 mx-auto" />
-              </td>
-              <td className="p-2 text-center">
+              </Td>
+              <Td align="center">
                 <div className="h-4 bg-gray-200 rounded w-24 mx-auto" />
-              </td>
-            </tr>
+              </Td>
+            </Tr>
           ))}
         </tbody>
       </table>
@@ -54,29 +56,29 @@ export default function OpcionesTable({
 
   return (
     <table className="w-full border">
-      <thead>
-        <tr className="bg-gray-100">
-          <th className="p-2 text-left">Valor</th>
-          <th className="p-2">Estado</th>
-          <th className="p-2">Acciones</th>
+      <thead className="bg-gray-50">
+        <tr>
+          <Th>Valor</Th>
+          <Th align="center">Estado</Th>
+          <Th align="center">Acciones</Th>
         </tr>
       </thead>
       <tbody>
         {opciones.map((op) => (
-          <tr key={op.fpo_id} className="border-t">
-            <td className="p-2">{op.fpo_valor}</td>
-            <td className="p-2 text-center">
+          <Tr key={op.fpo_id} className="border-t">
+            <Td>{op.fpo_valor}</Td>
+            <Td align="center">
               {op.fpo_estado ? "Activo" : "Inactivo"}
-            </td>
-            <td className="p-2 text-center">
+            </Td>
+            <Td align="center">
               <button
                 onClick={() => toggleEstado(op)}
                 className="text-blue-600 underline"
               >
                 Cambiar estado
               </button>
-            </td>
-          </tr>
+            </Td>
+          </Tr>
         ))}
       </tbody>
     </table>

@@ -6,7 +6,12 @@ import {
   solicitudesService,
   type EvidenciaPersona,
 } from "@/services/solicitudes.service";
-import { LoadingModal, ConfirmModal, ErrorModal } from "@/components/modals";
+import {
+  LoadingModal,
+  SuccessModal,
+  ConfirmModal,
+  ErrorModal,
+} from "@/components/modals";
 
 interface TablaPersonaConEvidenciaProps {
   solicitudId: number;
@@ -35,6 +40,7 @@ export function TablaPersonaConEvidencia({
   );
   const [loading, setLoading] = useState(true);
   const [subiendoFila, setSubiendoFila] = useState<number | null>(null);
+  const [subidoOk, setSubidoOk] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [evidenciaAEliminar, setEvidenciaAEliminar] = useState<
     { filaIndex: number; sepId: number } | null
@@ -87,6 +93,7 @@ export function TablaPersonaConEvidencia({
         next.set(filaIndex, evidencia);
         return next;
       });
+      setSubidoOk(true);
     } catch (error) {
       console.error("Error subiendo evidencia de persona:", error);
       setErrorMessage("No se pudo subir el archivo de evidencia.");
@@ -219,6 +226,13 @@ export function TablaPersonaConEvidencia({
       <LoadingModal
         isOpen={subiendoFila !== null}
         message="Subiendo evidencia..."
+      />
+      <SuccessModal
+        isOpen={subidoOk}
+        title="Evidencia subida"
+        message="El archivo de evidencia quedó adjunto a la fila."
+        actionText="Aceptar"
+        onAction={() => setSubidoOk(false)}
       />
 
       <ConfirmModal

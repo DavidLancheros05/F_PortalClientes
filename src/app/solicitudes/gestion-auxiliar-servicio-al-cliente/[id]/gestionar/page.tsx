@@ -1,6 +1,7 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ESTADOS } from "@/lib/workflow-labels";
+import { formatDate } from "@/lib/date-utils";
 import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
@@ -19,6 +20,7 @@ interface Solicitud {
   sol_numero_solicitud: string;
   sol_cliente_id: number;
   cliente_nombre: string;
+  cliente_nit?: string;
   sol_co_id: number;
   centro_operacion_nombre: string;
   sol_estado_id: number;
@@ -27,6 +29,7 @@ interface Solicitud {
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_fecha_creacion: string;
+  sol_fecha_envio: string | null;
   sol_fecha_estimada_respuesta_comercial: string | null;
   sol_fecha_real_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
@@ -39,6 +42,7 @@ interface Solicitud {
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
   ejecutivo_id_nombre?: number;
+  sol_fecha_real_ejecutivo?: string | null;
   usuario_revision?: string;
   fecha_revision?: string;
   fecha_creacion?: string;
@@ -244,6 +248,20 @@ export default function GestionarSolicitudPage() {
                 </p>
               )}
             </div>
+
+            {fechaEstimada && (
+              <div className="ml-auto flex-shrink-0 bg-white/[0.14] border border-white/[0.18] rounded-2xl px-5 py-2.5 text-right">
+                <p className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#c3d5f5] m-0 mb-1">
+                  Fecha estimada respuesta
+                </p>
+                <div className="flex items-center justify-end gap-2.5">
+                  <p className="text-[17px] font-extrabold text-white m-0 leading-none">
+                    {new Date(fechaEstimada).toLocaleDateString("es-CO")}
+                  </p>
+                  <DiasRestantesBadge fecha={fechaEstimada} />
+                </div>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -265,18 +283,23 @@ export default function GestionarSolicitudPage() {
             <>
               {/* Info block */}
               <div className="px-7 py-[26px] border-b border-[#eef1f6]">
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                       Cliente
                     </p>
                     <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
+                    {solicitud.cliente_nit && (
+                      <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Centro de operación
+                      Envío de la solicitud
                     </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.centro_operacion_nombre}</p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">
+                      {formatDate(solicitud.sol_fecha_envio)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
@@ -310,19 +333,6 @@ export default function GestionarSolicitudPage() {
                       >
                         {tipoSolicitud || "Cliente Nuevo"}
                       </span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Fecha estimada respuesta
-                    </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0 mb-1.5">
-                      {fechaEstimada
-                        ? new Date(fechaEstimada).toLocaleDateString("es-CO")
-                        : "-"}
-                    </p>
-                    {fechaEstimada && (
-                      <DiasRestantesBadge fecha={fechaEstimada} />
                     )}
                   </div>
                 </div>
@@ -382,9 +392,33 @@ export default function GestionarSolicitudPage() {
 
                     {/* Concepto del ejecutivo de negocios */}
                     <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
-                      <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] mb-3">
-                        Concepto del ejecutivo de negocios
-                      </p>
+                      <div className="flex items-baseline justify-between gap-3 mb-3">
+                        <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] m-0">
+                          Concepto del ejecutivo de negocios
+                        </p>
+                        {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_real_ejecutivo) && (
+                          <p className="text-[11px] text-[#94a3b8] m-0 whitespace-nowrap">
+                            {solicitud.ejecutivo_nombre || "-"}
+                            {solicitud.sol_fecha_real_ejecutivo && (
+                              <>
+                                {` · ${formatDate(solicitud.sol_fecha_real_ejecutivo)}`}
+                                {!Number.isNaN(
+                                  new Date(solicitud.sol_fecha_real_ejecutivo).getTime(),
+                                ) && (
+                                  <span className="text-[10px] text-[#cbd5e1]">
+                                    {` ${new Date(
+                                      solicitud.sol_fecha_real_ejecutivo,
+                                    ).toLocaleTimeString("es-CO", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}`}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </p>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
                         <div>
                           <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo mensual proyectado</p>
@@ -417,8 +451,8 @@ export default function GestionarSolicitudPage() {
                 )}
               </div>
 
-              {/* Cuerpo: documentos + decisión | historial */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 p-7">
+              {/* Cuerpo: documentos + decisión, historial abajo */}
+              <div className="grid grid-cols-1 gap-6 p-7">
                 <div className="min-w-0">
                   <h2 className="text-base font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                     <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
@@ -430,6 +464,7 @@ export default function GestionarSolicitudPage() {
                   <div className="mb-[18px]">
                     <DocumentosCargadosSolicitud
                       solicitudId={solicitud.sol_id}
+                      mostrarTitulo={false}
                       editable
                       documentosMarcados={gestion.documentos_faltantes}
                       onToggleMarcado={(tdoId) =>

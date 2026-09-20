@@ -4,6 +4,7 @@ interface LoginPayload {
   identifier: string;
   password: string;
   accessType: "cliente" | "usuario";
+  captchaToken?: string;
 }
 
 interface LoginResponse {
@@ -22,7 +23,7 @@ export const loginService = {
   forgotPassword: async (payload: {
     identifier: string;
     accessType: "cliente" | "usuario";
-  }): Promise<{ ok: boolean; mensaje: string }> => {
+  }): Promise<{ ok: boolean; mensaje: string; correoEnmascarado?: string }> => {
     const res = await api.post("/auth/forgot-password", payload);
     return res.data;
   },

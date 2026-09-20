@@ -1,14 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
-import {
-  formularioPreguntasService,
-  type Opcion,
-} from "@/services/parametrizacion/formulario-preguntas.service";
-import {
-  maestrosService,
-  type DocumentoCatalogo,
-} from "@/services/parametrizacion/maestros.service";
+import { formularioPreguntasService, type Opcion } from "@/services/parametrizacion/formulario-preguntas.service";
+import { maestrosService, type DocumentoCatalogo } from "@/services/parametrizacion/maestros.service";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
 import type {
   ColumnaTabla,
@@ -28,23 +22,14 @@ const TIPOS_CON_OPCIONES_FIJAS: Pregunta["fp_tipo"][] = [
   TIPOS_PREGUNTA.MULTISELECT,
   TIPOS_PREGUNTA.SELECT_CONDICIONAL,
 ];
-const TIPOS_CATALOGO_DOCUMENTOS: Pregunta["fp_tipo"][] = [
-  TIPOS_PREGUNTA.ARCHIVO,
-  TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-];
-const TIPOS_SIN_REQUERIDA: Pregunta["fp_tipo"][] = [
-  TIPOS_PREGUNTA.NOTA,
-  TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-];
+const TIPOS_CATALOGO_DOCUMENTOS: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA];
+const TIPOS_SIN_REQUERIDA: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL];
 const TIPOS_CON_SINCRONIZACION_OPCIONES: Pregunta["fp_tipo"][] = [
   TIPOS_PREGUNTA.SELECT,
   TIPOS_PREGUNTA.MULTISELECT,
   TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
 ];
-const TIPOS_SELECT_MULTISELECT: Pregunta["fp_tipo"][] = [
-  TIPOS_PREGUNTA.SELECT,
-  TIPOS_PREGUNTA.MULTISELECT,
-];
+const TIPOS_SELECT_MULTISELECT: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.SELECT, TIPOS_PREGUNTA.MULTISELECT];
 
 const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   descripcion: "",
@@ -112,9 +97,7 @@ export function usePreguntaEditor({
 }: PreguntaEditorDeps) {
   const [editandoPregunta, setEditandoPregunta] = useState<number | null>(null);
   const [nuevaPregunta, setNuevaPregunta] = useState(false);
-  const [formPregunta, setFormPregunta] = useState<FormPreguntaState>(
-    FORM_PREGUNTA_DEFAULT,
-  );
+  const [formPregunta, setFormPregunta] = useState<FormPreguntaState>(FORM_PREGUNTA_DEFAULT);
   const [opciones, setOpciones] = useState<Opcion[]>([]);
   const [nuevaOpcion, setNuevaOpcion] = useState("");
   const [loading_opciones, setLoading_opciones] = useState(false);
@@ -122,19 +105,13 @@ export function usePreguntaEditor({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<"creada" | "editada" | null>(null);
   const [guardandoPregunta, setGuardandoPregunta] = useState(false);
-  const [mostrarConfirmarGuardarPregunta, setMostrarConfirmarGuardarPregunta] =
-    useState(false);
+  const [mostrarConfirmarGuardarPregunta, setMostrarConfirmarGuardarPregunta] = useState(false);
   const [opcionAEliminar, setOpcionAEliminar] = useState<number | null>(null);
-  const [preguntaAEliminar, setPreguntaAEliminar] = useState<number | null>(
-    null,
-  );
+  const [preguntaAEliminar, setPreguntaAEliminar] = useState<number | null>(null);
   const [opcionEditandoId, setOpcionEditandoId] = useState<number | null>(null);
   const [opcionEditandoValor, setOpcionEditandoValor] = useState("");
-  const [opcionesPreguntaPadre, setOpcionesPreguntaPadre] = useState<Opcion[]>(
-    [],
-  );
-  const [loadingOpcionesPreguntaPadre, setLoadingOpcionesPreguntaPadre] =
-    useState(false);
+  const [opcionesPreguntaPadre, setOpcionesPreguntaPadre] = useState<Opcion[]>([]);
+  const [loadingOpcionesPreguntaPadre, setLoadingOpcionesPreguntaPadre] = useState(false);
 
   // Catalogo state
   const [catalogoBases, setCatalogoBases] = useState<string[]>([]);
@@ -143,11 +120,8 @@ export function usePreguntaEditor({
   const [loadingCatalogoBases, setLoadingCatalogoBases] = useState(false);
   const [loadingCatalogoTablas, setLoadingCatalogoTablas] = useState(false);
   const [loadingCatalogoColumnas, setLoadingCatalogoColumnas] = useState(false);
-  const [documentosCatalogo, setDocumentosCatalogo] = useState<
-    DocumentoCatalogo[]
-  >([]);
-  const [loadingDocumentosCatalogo, setLoadingDocumentosCatalogo] =
-    useState(false);
+  const [documentosCatalogo, setDocumentosCatalogo] = useState<DocumentoCatalogo[]>([]);
+  const [loadingDocumentosCatalogo, setLoadingDocumentosCatalogo] = useState(false);
   const [filtroBaseDatos, setFiltroBaseDatos] = useState("");
   const [filtroTabla, setFiltroTabla] = useState("");
   const [filtroColumna, setFiltroColumna] = useState("");
@@ -162,16 +136,10 @@ export function usePreguntaEditor({
   // catálogo cuando "Sin precarga" está seleccionado pisaban en silencio lo
   // que "Selección desde tabla" acababa de cargar — el filtro quedaba vacío
   // aunque la tabla/columna ya estuviera guardada.
-  const [catalogoPrecargaTablas, setCatalogoPrecargaTablas] = useState<
-    string[]
-  >([]);
-  const [catalogoPrecargaColumnas, setCatalogoPrecargaColumnas] = useState<
-    string[]
-  >([]);
-  const [loadingCatalogoPrecargaTablas, setLoadingCatalogoPrecargaTablas] =
-    useState(false);
-  const [loadingCatalogoPrecargaColumnas, setLoadingCatalogoPrecargaColumnas] =
-    useState(false);
+  const [catalogoPrecargaTablas, setCatalogoPrecargaTablas] = useState<string[]>([]);
+  const [catalogoPrecargaColumnas, setCatalogoPrecargaColumnas] = useState<string[]>([]);
+  const [loadingCatalogoPrecargaTablas, setLoadingCatalogoPrecargaTablas] = useState(false);
+  const [loadingCatalogoPrecargaColumnas, setLoadingCatalogoPrecargaColumnas] = useState(false);
   const [filtroPrecargaTabla, setFiltroPrecargaTabla] = useState("");
   const [filtroPrecargaColumna, setFiltroPrecargaColumna] = useState("");
 
@@ -184,32 +152,22 @@ export function usePreguntaEditor({
 
   const basesFiltradas = useMemo(() => {
     const filtro = normalizarFiltro(filtroBaseDatos);
-    return catalogoBases.filter(
-      (base) => !filtro || normalizarFiltro(String(base)).includes(filtro),
-    );
+    return catalogoBases.filter((base) => !filtro || normalizarFiltro(String(base)).includes(filtro));
   }, [catalogoBases, filtroBaseDatos]);
 
   const tablasFiltradas = useMemo(() => {
     const filtro = normalizarFiltro(filtroTabla);
-    return catalogoTablas.filter(
-      (tabla) => !filtro || normalizarFiltro(String(tabla)).includes(filtro),
-    );
+    return catalogoTablas.filter((tabla) => !filtro || normalizarFiltro(String(tabla)).includes(filtro));
   }, [catalogoTablas, filtroTabla]);
 
   const columnasFiltradas = useMemo(() => {
     const filtro = normalizarFiltro(filtroColumna);
-    return catalogoColumnas.filter(
-      (columna) =>
-        !filtro || normalizarFiltro(String(columna)).includes(filtro),
-    );
+    return catalogoColumnas.filter((columna) => !filtro || normalizarFiltro(String(columna)).includes(filtro));
   }, [catalogoColumnas, filtroColumna]);
 
   const llaveFiltrada = useMemo(() => {
     const filtro = normalizarFiltro(filtroLlave);
-    return catalogoColumnas.filter(
-      (columna) =>
-        !filtro || normalizarFiltro(String(columna)).includes(filtro),
-    );
+    return catalogoColumnas.filter((columna) => !filtro || normalizarFiltro(String(columna)).includes(filtro));
   }, [catalogoColumnas, filtroLlave]);
 
   const cargarBasesCatalogo = async () => {
@@ -272,10 +230,7 @@ export function usePreguntaEditor({
     }
   };
 
-  const cargarColumnasPrecargaCatalogo = async (
-    baseDatos: string,
-    tabla: string,
-  ) => {
+  const cargarColumnasPrecargaCatalogo = async (baseDatos: string, tabla: string) => {
     if (!tabla.trim()) {
       setCatalogoPrecargaColumnas([]);
       return;
@@ -298,10 +253,7 @@ export function usePreguntaEditor({
       const data = await maestrosService.getCatalogoDocumentos();
       setDocumentosCatalogo(data);
     } catch (error) {
-      console.error(
-        "❌ [EDITOR] Error cargando catálogo de documentos:",
-        error,
-      );
+      console.error("❌ [EDITOR] Error cargando catálogo de documentos:", error);
       setDocumentosCatalogo([]);
     } finally {
       setLoadingDocumentosCatalogo(false);
@@ -312,20 +264,12 @@ export function usePreguntaEditor({
   // (SELECT/MULTISELECT/SELECT_CONDICIONAL), cargamos sus opciones reales
   // para que "Respuesta que dispara" sea un selector, no texto libre.
   useEffect(() => {
-    if (
-      !formPregunta.dependiente ||
-      !formPregunta.dependencia_pregunta_id ||
-      (!nuevaPregunta && !editandoPregunta)
-    ) {
+    if (!formPregunta.dependiente || !formPregunta.dependencia_pregunta_id || (!nuevaPregunta && !editandoPregunta)) {
       setOpcionesPreguntaPadre([]);
       return;
     }
-    const preguntaPadre = preguntas.find(
-      (p) => p.fp_id === formPregunta.dependencia_pregunta_id,
-    );
-    const esDeOpciones = Boolean(
-      preguntaPadre && TIPOS_CON_OPCIONES_FIJAS.includes(preguntaPadre.fp_tipo),
-    );
+    const preguntaPadre = preguntas.find((p) => p.fp_id === formPregunta.dependencia_pregunta_id);
+    const esDeOpciones = Boolean(preguntaPadre && TIPOS_CON_OPCIONES_FIJAS.includes(preguntaPadre.fp_tipo));
     if (!esDeOpciones) {
       setOpcionesPreguntaPadre([]);
       return;
@@ -335,49 +279,24 @@ export function usePreguntaEditor({
       .getOpciones(formPregunta.dependencia_pregunta_id)
       .then((data) => setOpcionesPreguntaPadre(data))
       .catch((error) => {
-        console.error(
-          "❌ Error cargando opciones de la pregunta padre:",
-          error,
-        );
+        console.error("❌ Error cargando opciones de la pregunta padre:", error);
         setOpcionesPreguntaPadre([]);
       })
       .finally(() => setLoadingOpcionesPreguntaPadre(false));
-  }, [
-    formPregunta.dependiente,
-    formPregunta.dependencia_pregunta_id,
-    nuevaPregunta,
-    editandoPregunta,
-    preguntas,
-  ]);
+  }, [formPregunta.dependiente, formPregunta.dependencia_pregunta_id, nuevaPregunta, editandoPregunta, preguntas]);
 
   useEffect(() => {
-    if (
-      formPregunta.tipo !== TIPOS_PREGUNTA.SELECT_TABLA ||
-      (!nuevaPregunta && !editandoPregunta)
-    )
-      return;
+    if (formPregunta.tipo !== TIPOS_PREGUNTA.SELECT_TABLA || (!nuevaPregunta && !editandoPregunta)) return;
     cargarBasesCatalogo();
   }, [formPregunta.tipo, nuevaPregunta, editandoPregunta]);
 
   useEffect(() => {
-    if (
-      formPregunta.tipo !== TIPOS_PREGUNTA.SELECT_TABLA ||
-      (!nuevaPregunta && !editandoPregunta)
-    )
-      return;
+    if (formPregunta.tipo !== TIPOS_PREGUNTA.SELECT_TABLA || (!nuevaPregunta && !editandoPregunta)) return;
     cargarTablasCatalogo(formPregunta.catalogo_base_datos || "");
-  }, [
-    formPregunta.tipo,
-    formPregunta.catalogo_base_datos,
-    nuevaPregunta,
-    editandoPregunta,
-  ]);
+  }, [formPregunta.tipo, formPregunta.catalogo_base_datos, nuevaPregunta, editandoPregunta]);
 
   useEffect(() => {
-    if (
-      !TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo) ||
-      (!nuevaPregunta && !editandoPregunta)
-    ) {
+    if (!TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo) || (!nuevaPregunta && !editandoPregunta)) {
       return;
     }
     cargarDocumentosCatalogo();
@@ -385,11 +304,7 @@ export function usePreguntaEditor({
 
   useEffect(() => {
     if (!nuevaPregunta && !editandoPregunta) return;
-    if (
-      !["cliente", "cliente_primero", "ultima_primero"].includes(
-        formPregunta.precarga_fuente,
-      )
-    ) {
+    if (!["cliente", "cliente_primero", "ultima_primero"].includes(formPregunta.precarga_fuente)) {
       return;
     }
     cargarBasesCatalogo();
@@ -397,11 +312,7 @@ export function usePreguntaEditor({
 
   useEffect(() => {
     if (!nuevaPregunta && !editandoPregunta) return;
-    if (
-      !["cliente", "cliente_primero", "ultima_primero"].includes(
-        formPregunta.precarga_fuente,
-      )
-    ) {
+    if (!["cliente", "cliente_primero", "ultima_primero"].includes(formPregunta.precarga_fuente)) {
       setCatalogoPrecargaTablas([]);
       setCatalogoPrecargaColumnas([]);
       setFiltroPrecargaTabla("");
@@ -416,20 +327,11 @@ export function usePreguntaEditor({
       return;
     }
     cargarTablasPrecargaCatalogo(formPregunta.precarga_base_datos);
-  }, [
-    formPregunta.precarga_fuente,
-    formPregunta.precarga_base_datos,
-    nuevaPregunta,
-    editandoPregunta,
-  ]);
+  }, [formPregunta.precarga_fuente, formPregunta.precarga_base_datos, nuevaPregunta, editandoPregunta]);
 
   useEffect(() => {
     if (!nuevaPregunta && !editandoPregunta) return;
-    if (
-      !["cliente", "cliente_primero", "ultima_primero"].includes(
-        formPregunta.precarga_fuente,
-      )
-    ) {
+    if (!["cliente", "cliente_primero", "ultima_primero"].includes(formPregunta.precarga_fuente)) {
       setCatalogoPrecargaColumnas([]);
       setFiltroPrecargaColumna("");
       return;
@@ -439,10 +341,7 @@ export function usePreguntaEditor({
       setFiltroPrecargaColumna("");
       return;
     }
-    cargarColumnasPrecargaCatalogo(
-      formPregunta.precarga_base_datos || "",
-      formPregunta.precarga_tabla || "",
-    );
+    cargarColumnasPrecargaCatalogo(formPregunta.precarga_base_datos || "", formPregunta.precarga_tabla || "");
   }, [
     formPregunta.precarga_fuente,
     formPregunta.precarga_base_datos,
@@ -452,23 +351,14 @@ export function usePreguntaEditor({
   ]);
 
   useEffect(() => {
-    if (
-      formPregunta.tipo !== "SELECT_TABLA" ||
-      (!nuevaPregunta && !editandoPregunta)
-    )
-      return;
+    if (formPregunta.tipo !== "SELECT_TABLA" || (!nuevaPregunta && !editandoPregunta)) return;
     if (!String(formPregunta.catalogo_tabla || "").trim()) {
       setCatalogoColumnas([]);
       setFiltroColumna("");
-      setFormPregunta((prev) =>
-        prev.catalogo_columna ? { ...prev, catalogo_columna: "" } : prev,
-      );
+      setFormPregunta((prev) => (prev.catalogo_columna ? { ...prev, catalogo_columna: "" } : prev));
       return;
     }
-    cargarColumnasCatalogo(
-      formPregunta.catalogo_base_datos || "",
-      formPregunta.catalogo_tabla || "",
-    );
+    cargarColumnasCatalogo(formPregunta.catalogo_base_datos || "", formPregunta.catalogo_tabla || "");
   }, [
     formPregunta.tipo,
     formPregunta.catalogo_base_datos,
@@ -482,41 +372,25 @@ export function usePreguntaEditor({
   // el formulario no esté en un estado guardable.
   const puedeGuardarPregunta = useMemo(() => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
-    const requiereDescripcion =
-      formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
+    const requiereDescripcion = formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
     if ((requiereDescripcion && !descripcionNormalizada) || !targetSeccionId) {
       return false;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
-      !String(formPregunta.catalogo_tabla || "").trim()
-    ) {
+    if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA && !String(formPregunta.catalogo_tabla || "").trim()) {
       return false;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
-      !String(formPregunta.catalogo_columna || "").trim()
-    ) {
+    if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA && !String(formPregunta.catalogo_columna || "").trim()) {
       return false;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
-      !String(formPregunta.catalogo_pk_column || "").trim()
-    ) {
+    if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA && !String(formPregunta.catalogo_pk_column || "").trim()) {
       return false;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA &&
-      !formPregunta.tipo_documento_id
-    ) {
+    if (formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && !formPregunta.tipo_documento_id) {
       return false;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO &&
-      !formPregunta.tipo_documento_id
-    ) {
+    if (formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO && !formPregunta.tipo_documento_id) {
       return false;
     }
     if (
@@ -537,71 +411,36 @@ export function usePreguntaEditor({
       return false;
     }
     return true;
-  }, [
-    formPregunta,
-    seccionSeleccionada,
-    formularioIdNumber,
-    editandoPregunta,
-    opciones,
-    opcionesNuevas,
-  ]);
+  }, [formPregunta, seccionSeleccionada, formularioIdNumber, editandoPregunta, opciones, opcionesNuevas]);
 
   const guardarPregunta = () => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
-    const requiereDescripcion =
-      formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
+    const requiereDescripcion = formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
     if ((requiereDescripcion && !descripcionNormalizada) || !targetSeccionId) {
-      setError(
-        requiereDescripcion
-          ? "Descripción y sección son requeridos"
-          : "Sección es requerida",
-      );
+      setError(requiereDescripcion ? "Descripción y sección son requeridos" : "Sección es requerida");
       return;
     }
 
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
-      !String(formPregunta.catalogo_tabla || "").trim()
-    ) {
+    if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA && !String(formPregunta.catalogo_tabla || "").trim()) {
       setError("Para 'Selección desde tabla' debes indicar la tabla");
       return;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
-      !String(formPregunta.catalogo_columna || "").trim()
-    ) {
-      setError(
-        "Para 'Selección desde tabla' debes indicar la columna a mostrar",
-      );
+    if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA && !String(formPregunta.catalogo_columna || "").trim()) {
+      setError("Para 'Selección desde tabla' debes indicar la columna a mostrar");
       return;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA &&
-      !String(formPregunta.catalogo_pk_column || "").trim()
-    ) {
-      setError(
-        "Para 'Selección desde tabla' debes indicar la primary key (PK)",
-      );
+    if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA && !String(formPregunta.catalogo_pk_column || "").trim()) {
+      setError("Para 'Selección desde tabla' debes indicar la primary key (PK)");
       return;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA &&
-      !formPregunta.tipo_documento_id
-    ) {
-      setError(
-        "Para 'Documentos desde tabla' debes seleccionar un tipo de documento",
-      );
+    if (formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && !formPregunta.tipo_documento_id) {
+      setError("Para 'Documentos desde tabla' debes seleccionar un tipo de documento");
       return;
     }
-    if (
-      formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO &&
-      !formPregunta.tipo_documento_id
-    ) {
-      setError(
-        "Para 'Archivo / Documento' debes seleccionar un tipo de documento",
-      );
+    if (formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO && !formPregunta.tipo_documento_id) {
+      setError("Para 'Archivo / Documento' debes seleccionar un tipo de documento");
       return;
     }
     if (
@@ -617,9 +456,7 @@ export function usePreguntaEditor({
         ? opciones.filter((o) => o.fpo_estado).length === 0
         : opcionesNuevas.filter((v) => v.trim()).length === 0)
     ) {
-      setError(
-        "Para preguntas de selección debes agregar al menos una opción de respuesta",
-      );
+      setError("Para preguntas de selección debes agregar al menos una opción de respuesta");
       return;
     }
     if (!formularioIdNumber) {
@@ -632,38 +469,27 @@ export function usePreguntaEditor({
 
   const confirmarGuardarPregunta = async () => {
     const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
-    const descripcionPersistida =
-      formPregunta.descripcion.trim() || "Fecha y hora actual";
+    const descripcionPersistida = formPregunta.descripcion.trim() || "Fecha y hora actual";
 
     setGuardandoPregunta(true);
     try {
-      const preguntaEnEdicion = editandoPregunta
-        ? preguntas.find((p) => p.fp_id === editandoPregunta)
-        : null;
+      const preguntaEnEdicion = editandoPregunta ? preguntas.find((p) => p.fp_id === editandoPregunta) : null;
       const ordenActualEnSeccion = preguntas
         .filter((p) => p.fp_id !== editandoPregunta)
         .filter((p) => p.seccion_id === targetSeccionId)
         .map((p) => p.fp_orden);
-      const nuevoOrden =
-        ordenActualEnSeccion.length > 0
-          ? Math.max(...ordenActualEnSeccion) + 1
-          : 1;
-      const conservarOrdenActual =
-        !!preguntaEnEdicion && preguntaEnEdicion.seccion_id === targetSeccionId;
-      const ordenFinal = conservarOrdenActual
-        ? preguntaEnEdicion.fp_orden
-        : nuevoOrden;
+      const nuevoOrden = ordenActualEnSeccion.length > 0 ? Math.max(...ordenActualEnSeccion) + 1 : 1;
+      const conservarOrdenActual = !!preguntaEnEdicion && preguntaEnEdicion.seccion_id === targetSeccionId;
+      const ordenFinal = conservarOrdenActual ? preguntaEnEdicion.fp_orden : nuevoOrden;
 
       const payload: any = {
         fp_descripcion: descripcionPersistida,
         fp_tipo: formPregunta.tipo,
         fp_estado: true,
-        fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo)
-          ? false
-          : formPregunta.requerida,
+        fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
         fp_orden: ordenFinal,
         seccion_id: targetSeccionId,
-        formulario_id: formularioIdNumber,
+        frm_id: formularioIdNumber,
         fp_version: version ? parseInt(version) : 1,
         fp_catalogo_base_datos:
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
@@ -691,57 +517,48 @@ export function usePreguntaEditor({
               : null,
         fp_catalogo_columna_condicion:
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
-            ? String(formPregunta.catalogo_columna_condicion || "").trim() ||
-              null
+            ? String(formPregunta.catalogo_columna_condicion || "").trim() || null
             : null,
         fp_catalogo_valor_condicion:
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
-            ? String(formPregunta.catalogo_valor_condicion || "").trim() ||
-              null
+            ? String(formPregunta.catalogo_valor_condicion || "").trim() || null
             : null,
-        fp_tipo_documento_id: TIPOS_CATALOGO_DOCUMENTOS.includes(
-          formPregunta.tipo,
-        )
+        fp_tipo_documento_id: TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo)
           ? formPregunta.tipo_documento_id
           : null,
-        fp_pregunta_padre_id: formPregunta.dependiente
-          ? formPregunta.dependencia_pregunta_id
-          : null,
+        fp_pregunta_padre_id: formPregunta.dependiente ? formPregunta.dependencia_pregunta_id : null,
         fp_valor_padre_disparador: formPregunta.dependiente
           ? String(formPregunta.dependencia_valor || "").trim() || null
           : null,
-        fp_precarga_fuente:
-          String(formPregunta.precarga_fuente || "").trim() || null,
-        fp_precarga_campo_cliente:
-          String(formPregunta.precarga_campo_cliente || "").trim() || null,
+        fp_precarga_fuente: String(formPregunta.precarga_fuente || "").trim() || null,
+        fp_precarga_campo_cliente: String(formPregunta.precarga_campo_cliente || "").trim() || null,
         fp_tabla_columnas:
           formPregunta.tipo === TIPOS_PREGUNTA.TABLA
             ? JSON.stringify(
                 formPregunta.tabla_columnas
                   .map((c) => ({
                     nombre: c.nombre.trim(),
+                    // Se preserva tal cual llegó (nunca se genera ni edita
+                    // acá) — si se omite, se pierde en cada guardado y
+                    // ClienteDatosNormalizadosService pierde su ancla
+                    // estable para esta columna.
+                    codigo: c.codigo,
                     tipo: c.tipo,
                     ...(c.tipo === "CATALOGO"
                       ? {
-                          catalogo_base_datos:
-                            c.catalogo_base_datos || undefined,
+                          catalogo_base_datos: c.catalogo_base_datos || undefined,
                           catalogo_tabla: c.catalogo_tabla || undefined,
                           catalogo_columna: c.catalogo_columna || undefined,
                           catalogo_pk_column: c.catalogo_pk_column || undefined,
-                          catalogo_columna_padre:
-                            c.catalogo_columna_padre || undefined,
+                          catalogo_columna_padre: c.catalogo_columna_padre || undefined,
                           catalogo_columna_filtro: c.catalogo_columna_padre
                             ? c.catalogo_columna_filtro || undefined
                             : undefined,
-                          catalogo_columna_condicion:
-                            c.catalogo_columna_condicion || undefined,
-                          catalogo_valor_condicion:
-                            c.catalogo_valor_condicion || undefined,
+                          catalogo_columna_condicion: c.catalogo_columna_condicion || undefined,
+                          catalogo_valor_condicion: c.catalogo_valor_condicion || undefined,
                         }
                       : {}),
-                    ...(c.tipo === "NUMERO"
-                      ? { minimo: c.minimo, maximo: c.maximo }
-                      : {}),
+                    ...(c.tipo === "NUMERO" ? { minimo: c.minimo, maximo: c.maximo } : {}),
                   }))
                   .filter((c) => Boolean(c.nombre)),
               )
@@ -750,49 +567,40 @@ export function usePreguntaEditor({
         fp_oculto_en_formulario: formPregunta.oculto_en_formulario,
         ...(formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
           ? {
-              fp_catalogo_filtro_columna:
-                formPregunta.catalogo_filtro_dependiente
-                  ? String(formPregunta.catalogo_filtro_columna || "").trim() ||
-                    null
-                  : null,
-              fp_catalogo_filtro_pregunta_id:
-                formPregunta.catalogo_filtro_dependiente
-                  ? formPregunta.catalogo_filtro_pregunta_id
-                  : null,
-              fp_catalogo_filtro_reglas:
-                formPregunta.catalogo_filtro_dependiente
-                  ? JSON.stringify(
-                      formPregunta.catalogo_filtro_reglas
-                        .map((r) => ({
-                          valor: r.valor.trim(),
-                          valor_filtro: r.valor_filtro.trim(),
-                        }))
-                        .filter((r) => Boolean(r.valor) && Boolean(r.valor_filtro)),
-                    )
-                  : null,
+              fp_catalogo_filtro_columna: formPregunta.catalogo_filtro_dependiente
+                ? String(formPregunta.catalogo_filtro_columna || "").trim() || null
+                : null,
+              fp_catalogo_filtro_pregunta_id: formPregunta.catalogo_filtro_dependiente
+                ? formPregunta.catalogo_filtro_pregunta_id
+                : null,
+              fp_catalogo_filtro_reglas: formPregunta.catalogo_filtro_dependiente
+                ? JSON.stringify(
+                    formPregunta.catalogo_filtro_reglas
+                      .map((r) => ({
+                        valor: r.valor.trim(),
+                        valor_filtro: r.valor_filtro.trim(),
+                      }))
+                      .filter((r) => Boolean(r.valor) && Boolean(r.valor_filtro)),
+                  )
+                : null,
             }
           : {}),
         ...(formPregunta.tipo === TIPOS_PREGUNTA.TABLA
           ? {
               fp_maximo:
-                formPregunta.tabla_limite_modo === "FIJO" &&
-                formPregunta.tabla_limite_fijo.trim()
+                formPregunta.tabla_limite_modo === "FIJO" && formPregunta.tabla_limite_fijo.trim()
                   ? parseInt(formPregunta.tabla_limite_fijo, 10)
                   : null,
               fp_tabla_limite_modo: formPregunta.tabla_limite_modo,
               fp_tabla_limite_pregunta_id:
-                formPregunta.tabla_limite_modo === "CONDICIONAL"
-                  ? formPregunta.tabla_limite_pregunta_id
-                  : null,
+                formPregunta.tabla_limite_modo === "CONDICIONAL" ? formPregunta.tabla_limite_pregunta_id : null,
               fp_tabla_limite_reglas:
                 formPregunta.tabla_limite_modo === "CONDICIONAL"
                   ? JSON.stringify(
                       formPregunta.tabla_limite_reglas
                         .map((r) => ({
                           valor: r.valor.trim(),
-                          limite: r.limite.trim()
-                            ? parseInt(r.limite, 10)
-                            : null,
+                          limite: r.limite.trim() ? parseInt(r.limite, 10) : null,
                         }))
                         .filter((r) => Boolean(r.valor)),
                     )
@@ -801,16 +609,13 @@ export function usePreguntaEditor({
           : {}),
         ...(formPregunta.tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA
           ? {
-              fp_maximo: formPregunta.espacio_lineas.trim()
-                ? parseInt(formPregunta.espacio_lineas, 10)
-                : 5,
+              fp_maximo: formPregunta.espacio_lineas.trim() ? parseInt(formPregunta.espacio_lineas, 10) : 5,
             }
           : {}),
         ...(formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO
           ? {
               fp_maximo:
-                formPregunta.archivo_maximo.trim() &&
-                parseInt(formPregunta.archivo_maximo, 10) > 1
+                formPregunta.archivo_maximo.trim() && parseInt(formPregunta.archivo_maximo, 10) > 1
                   ? parseInt(formPregunta.archivo_maximo, 10)
                   : null,
             }
@@ -818,18 +623,12 @@ export function usePreguntaEditor({
       };
 
       if (formPregunta.tipo === TIPOS_PREGUNTA.SELECT) {
-        payload.fp_subtipo =
-          formPregunta.subtipo === "CHECK" ? "CHECK" : "LISTA";
-      } else if (
-        formPregunta.tipo === TIPOS_PREGUNTA.NUMERO ||
-        formPregunta.tipo === TIPOS_PREGUNTA.FECHA
-      ) {
+        payload.fp_subtipo = formPregunta.subtipo === "CHECK" ? "CHECK" : "LISTA";
+      } else if (formPregunta.tipo === TIPOS_PREGUNTA.NUMERO || formPregunta.tipo === TIPOS_PREGUNTA.FECHA) {
         payload.fp_subtipo = formPregunta.subtipo || null;
       } else if (formPregunta.tipo === TIPOS_PREGUNTA.TEXTO) {
         payload.fp_subtipo = formPregunta.subtipo || null;
-        payload.fp_patron = formPregunta.subtipo
-          ? formPregunta.patron || null
-          : null;
+        payload.fp_patron = formPregunta.subtipo ? formPregunta.patron || null : null;
       } else if (
         preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.SELECT ||
         preguntaEnEdicion?.fp_tipo === TIPOS_PREGUNTA.NUMERO ||
@@ -845,36 +644,25 @@ export function usePreguntaEditor({
         // Actualizar el estado local en lugar de recargar todo
         setPreguntas((prev) =>
           prev.map((p) =>
-            p.fp_id === editandoPregunta
-              ? { ...p, ...payload, fp_descripcion: descripcionPersistida }
-              : p,
+            p.fp_id === editandoPregunta ? { ...p, ...payload, fp_descripcion: descripcionPersistida } : p,
           ),
         );
         setSuccessMessage("editada");
       } else {
         const creada = await formularioPreguntasService.create(payload);
 
-        const documentoSeleccionado = documentosCatalogo.find(
-          (doc) => doc.tdo_id === formPregunta.tipo_documento_id,
-        );
-        const requiereFechaEmision =
-          documentoSeleccionado?.tdo_vigencia_dias !== null;
+        const documentoSeleccionado = documentosCatalogo.find((doc) => doc.tdo_id === formPregunta.tipo_documento_id);
+        const requiereFechaEmision = documentoSeleccionado?.tdo_vigencia_dias !== null;
 
-        if (
-          formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO &&
-          creada?.fp_id &&
-          requiereFechaEmision
-        ) {
+        if (formPregunta.tipo === TIPOS_PREGUNTA.ARCHIVO && creada?.fp_id && requiereFechaEmision) {
           const payloadFechaDependiente: any = {
             fp_descripcion: `${descripcionPersistida} - Fecha de emisión`,
             fp_tipo: TIPOS_PREGUNTA.FECHA,
             fp_estado: true,
-            fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo)
-              ? false
-              : formPregunta.requerida,
+            fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
             fp_orden: nuevoOrden + 1,
             seccion_id: targetSeccionId,
-            formulario_id: formularioIdNumber,
+            frm_id: formularioIdNumber,
             fp_version: version ? parseInt(version) : 1,
             fp_pregunta_padre_id: creada.fp_id,
             fp_valor_padre_disparador: null,
@@ -883,30 +671,19 @@ export function usePreguntaEditor({
         }
 
         let opcionesCreadas: Opcion[] = [];
-        if (
-          creada?.fp_id &&
-          TIPOS_CON_SINCRONIZACION_OPCIONES.includes(formPregunta.tipo)
-        ) {
-          await formularioPreguntasService.syncOpciones(
-            creada.fp_id,
-            opcionesNuevas,
-          );
+        if (creada?.fp_id && TIPOS_CON_SINCRONIZACION_OPCIONES.includes(formPregunta.tipo)) {
+          await formularioPreguntasService.syncOpciones(creada.fp_id, opcionesNuevas);
           // syncOpciones no devuelve las opciones creadas — sin este fetch,
           // la pregunta quedaba en el estado local con el `creada` de antes
           // de sincronizar opciones (sin `opciones`), mostrando "Sin
           // opciones configuradas" en la lista hasta refrescar la página
           // aunque sí se hubieran guardado en el backend.
-          opcionesCreadas = await formularioPreguntasService.getOpciones(
-            creada.fp_id,
-          );
+          opcionesCreadas = await formularioPreguntasService.getOpciones(creada.fp_id);
         }
 
         // Agregar la nueva pregunta al estado local
         if (creada) {
-          setPreguntas((prev) => [
-            ...prev,
-            { ...creada, opciones: opcionesCreadas },
-          ]);
+          setPreguntas((prev) => [...prev, { ...creada, opciones: opcionesCreadas }]);
           setSuccessMessage("creada");
         }
       }
@@ -922,11 +699,7 @@ export function usePreguntaEditor({
       setMostrarConfirmarGuardarPregunta(false);
     } catch (error) {
       console.error("Error guardando pregunta:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "No se pudo guardar la pregunta",
-      );
+      setError(error instanceof Error ? error.message : "No se pudo guardar la pregunta");
       setMostrarConfirmarGuardarPregunta(false);
     } finally {
       setGuardandoPregunta(false);
@@ -936,9 +709,7 @@ export function usePreguntaEditor({
   const iniciarEdicionPregunta = async (pregunta: Pregunta) => {
     console.log("🧪 PREGUNTA DESDE BACKEND:", pregunta);
 
-    const preguntaPadre = preguntas.find(
-      (p) => p.fp_id === pregunta.fp_pregunta_padre_id,
-    );
+    const preguntaPadre = preguntas.find((p) => p.fp_id === pregunta.fp_pregunta_padre_id);
     setFormPregunta({
       descripcion: pregunta.fp_descripcion,
       tipo: pregunta.fp_tipo,
@@ -950,10 +721,7 @@ export function usePreguntaEditor({
               pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO
             ? (pregunta.fp_subtipo ?? "")
             : "",
-      patron:
-        pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO
-          ? (pregunta.fp_patron ?? "")
-          : "",
+      patron: pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO ? (pregunta.fp_patron ?? "") : "",
       seccion_id: pregunta.seccion_id ?? null,
       requerida: Boolean(pregunta.fp_requerida),
       tipo_documento_id: pregunta.fp_tipo_documento_id ?? null,
@@ -983,6 +751,7 @@ export function usePreguntaEditor({
             const col = c as ColumnaTabla;
             return {
               nombre: col.nombre,
+              codigo: col.codigo,
               tipo: col.tipo || "TEXTO",
               catalogo_base_datos: col.catalogo_base_datos,
               catalogo_tabla: col.catalogo_tabla,
@@ -1000,34 +769,21 @@ export function usePreguntaEditor({
           return [];
         }
       })(),
-      ancho_columnas: (
-        pregunta.fp_ancho_columnas === 2 || pregunta.fp_ancho_columnas === 3
-          ? pregunta.fp_ancho_columnas
-          : 1
-      ) as 1 | 2 | 3,
+      ancho_columnas: (pregunta.fp_ancho_columnas === 2 || pregunta.fp_ancho_columnas === 3
+        ? pregunta.fp_ancho_columnas
+        : 1) as 1 | 2 | 3,
       oculto_en_formulario: Boolean(pregunta.fp_oculto_en_formulario),
-      tabla_limite_modo:
-        (pregunta.fp_tabla_limite_modo as
-          | "SIN_LIMITE"
-          | "FIJO"
-          | "CONDICIONAL") || "SIN_LIMITE",
+      tabla_limite_modo: (pregunta.fp_tabla_limite_modo as "SIN_LIMITE" | "FIJO" | "CONDICIONAL") || "SIN_LIMITE",
       tabla_limite_fijo:
-        pregunta.fp_tabla_limite_modo === "FIJO" && pregunta.fp_maximo != null
-          ? String(pregunta.fp_maximo)
-          : "",
+        pregunta.fp_tabla_limite_modo === "FIJO" && pregunta.fp_maximo != null ? String(pregunta.fp_maximo) : "",
       espacio_lineas:
-        pregunta.fp_tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA &&
-        pregunta.fp_maximo != null
+        pregunta.fp_tipo === TIPOS_PREGUNTA.ESPACIO_FIRMA && pregunta.fp_maximo != null
           ? String(pregunta.fp_maximo)
           : "",
       archivo_maximo:
-        pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO &&
-        pregunta.fp_maximo != null
-          ? String(pregunta.fp_maximo)
-          : "",
+        pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO && pregunta.fp_maximo != null ? String(pregunta.fp_maximo) : "",
       tabla_limite_seccion_id:
-        preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id)
-          ?.seccion_id ?? null,
+        preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id)?.seccion_id ?? null,
       tabla_limite_pregunta_id: pregunta.fp_tabla_limite_pregunta_id ?? null,
       tabla_limite_reglas: (() => {
         if (!pregunta.fp_tabla_limite_reglas) return [];
@@ -1035,10 +791,7 @@ export function usePreguntaEditor({
           const parsed = JSON.parse(pregunta.fp_tabla_limite_reglas);
           if (!Array.isArray(parsed)) return [];
           return parsed.map(
-            (r: {
-              valor?: string;
-              limite?: number | null;
-            }): ReglaLimiteTabla => ({
+            (r: { valor?: string; limite?: number | null }): ReglaLimiteTabla => ({
               valor: String(r.valor ?? ""),
               limite: r.limite != null ? String(r.limite) : "",
             }),
@@ -1047,15 +800,10 @@ export function usePreguntaEditor({
           return [];
         }
       })(),
-      catalogo_filtro_dependiente: Boolean(
-        pregunta.fp_catalogo_filtro_pregunta_id,
-      ),
+      catalogo_filtro_dependiente: Boolean(pregunta.fp_catalogo_filtro_pregunta_id),
       catalogo_filtro_seccion_id:
-        preguntas.find(
-          (p) => p.fp_id === pregunta.fp_catalogo_filtro_pregunta_id,
-        )?.seccion_id ?? null,
-      catalogo_filtro_pregunta_id:
-        pregunta.fp_catalogo_filtro_pregunta_id ?? null,
+        preguntas.find((p) => p.fp_id === pregunta.fp_catalogo_filtro_pregunta_id)?.seccion_id ?? null,
+      catalogo_filtro_pregunta_id: pregunta.fp_catalogo_filtro_pregunta_id ?? null,
       catalogo_filtro_columna: pregunta.fp_catalogo_filtro_columna ?? "",
       catalogo_filtro_reglas: (() => {
         if (!pregunta.fp_catalogo_filtro_reglas) return [];
@@ -1063,10 +811,7 @@ export function usePreguntaEditor({
           const parsed = JSON.parse(pregunta.fp_catalogo_filtro_reglas);
           if (!Array.isArray(parsed)) return [];
           return parsed.map(
-            (r: {
-              valor?: string;
-              valor_filtro?: string;
-            }): ReglaFiltroCatalogo => ({
+            (r: { valor?: string; valor_filtro?: string }): ReglaFiltroCatalogo => ({
               valor: String(r.valor ?? ""),
               valor_filtro: String(r.valor_filtro ?? ""),
             }),
@@ -1085,36 +830,24 @@ export function usePreguntaEditor({
     setFiltroColumna(pregunta.fp_catalogo_columna ?? "");
     setFiltroLlave(pregunta.fp_catalogo_pk_column ?? "");
 
-    if (
-      TIPOS_SELECT_MULTISELECT.includes(pregunta.fp_tipo) &&
-      Array.isArray(pregunta.opciones)
-    ) {
+    if (TIPOS_SELECT_MULTISELECT.includes(pregunta.fp_tipo) && Array.isArray(pregunta.opciones)) {
       // El listado de preguntas ya trae las opciones precargadas (endpoint
       // "completo" batched), asi que no hace falta otra llamada de red aqui.
       setOpciones(pregunta.opciones);
       setOpcionesNuevas(
         pregunta.opciones
           .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
-          .filter((item: string | undefined): item is string =>
-            Boolean(item?.trim()),
-          ),
+          .filter((item: string | undefined): item is string => Boolean(item?.trim())),
       );
-    } else if (
-      TIPOS_CON_SINCRONIZACION_OPCIONES.includes(pregunta.fp_tipo) &&
-      !readonly
-    ) {
+    } else if (TIPOS_CON_SINCRONIZACION_OPCIONES.includes(pregunta.fp_tipo) && !readonly) {
       try {
         setLoading_opciones(true);
-        const data = await formularioPreguntasService.getOpciones(
-          pregunta.fp_id,
-        );
+        const data = await formularioPreguntasService.getOpciones(pregunta.fp_id);
         setOpciones(data);
         setOpcionesNuevas(
           data
             .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
-            .filter((item: string | undefined): item is string =>
-              Boolean(item?.trim()),
-            ),
+            .filter((item: string | undefined): item is string => Boolean(item?.trim())),
         );
         console.log("✅ Opciones cargadas:", data);
       } catch (error) {
@@ -1139,18 +872,13 @@ export function usePreguntaEditor({
       return;
     }
     try {
-      const nuevaOp = await formularioPreguntasService.createOpcion(
-        editandoPregunta,
-        nuevaOpcion,
-      );
+      const nuevaOp = await formularioPreguntasService.createOpcion(editandoPregunta, nuevaOpcion);
       setOpciones([...opciones, nuevaOp]);
       setNuevaOpcion("");
       console.log("✅ Opción agregada:", nuevaOp);
     } catch (error) {
       console.error("❌ Error agregando opción:", error);
-      setError(
-        error instanceof Error ? error.message : "Error al agregar opción",
-      );
+      setError(error instanceof Error ? error.message : "Error al agregar opción");
     }
   };
 
@@ -1159,15 +887,12 @@ export function usePreguntaEditor({
   const obtenerPreguntasDependientesDeOpcion = (fpoId: number): Pregunta[] => {
     if (!editandoPregunta) return [];
     const opcion = opciones.find((o) => o.fpo_id === fpoId);
-    const valorOpcion = (opcion?.fpo_valor || opcion?.op_descripcion || "")
-      .trim()
-      .toLowerCase();
+    const valorOpcion = (opcion?.fpo_valor || opcion?.op_descripcion || "").trim().toLowerCase();
     if (!valorOpcion) return [];
     return preguntas.filter(
       (p) =>
         p.fp_pregunta_padre_id === editandoPregunta &&
-        (p.fp_valor_padre_disparador || "").trim().toLowerCase() ===
-          valorOpcion,
+        (p.fp_valor_padre_disparador || "").trim().toLowerCase() === valorOpcion,
     );
   };
 
@@ -1189,37 +914,23 @@ export function usePreguntaEditor({
       return;
     }
     const opcionActual = opciones.find((o) => o.fpo_id === opcionEditandoId);
-    const valorAnterior = (
-      opcionActual?.fpo_valor ||
-      opcionActual?.op_descripcion ||
-      ""
-    ).trim();
+    const valorAnterior = (opcionActual?.fpo_valor || opcionActual?.op_descripcion || "").trim();
 
     try {
-      const actualizada = await formularioPreguntasService.updateOpcion(
-        editandoPregunta,
-        opcionEditandoId,
-        { fpo_valor: valorNuevo },
-      );
+      const actualizada = await formularioPreguntasService.updateOpcion(editandoPregunta, opcionEditandoId, {
+        fpo_valor: valorNuevo,
+      });
       setOpciones(
-        opciones.map((o) =>
-          o.fpo_id === opcionEditandoId
-            ? { ...o, ...actualizada, fpo_valor: valorNuevo }
-            : o,
-        ),
+        opciones.map((o) => (o.fpo_id === opcionEditandoId ? { ...o, ...actualizada, fpo_valor: valorNuevo } : o)),
       );
 
       // Si esta opción es el valor que dispara alguna pregunta dependiente,
       // le actualizamos el texto también para que la dependencia no se rompa.
-      if (
-        valorAnterior &&
-        valorAnterior.toLowerCase() !== valorNuevo.toLowerCase()
-      ) {
+      if (valorAnterior && valorAnterior.toLowerCase() !== valorNuevo.toLowerCase()) {
         const dependientes = preguntas.filter(
           (p) =>
             p.fp_pregunta_padre_id === editandoPregunta &&
-            (p.fp_valor_padre_disparador || "").trim().toLowerCase() ===
-              valorAnterior.toLowerCase(),
+            (p.fp_valor_padre_disparador || "").trim().toLowerCase() === valorAnterior.toLowerCase(),
         );
         if (dependientes.length > 0) {
           await Promise.all(
@@ -1247,9 +958,7 @@ export function usePreguntaEditor({
       setOpcionEditandoValor("");
     } catch (error) {
       console.error("❌ Error editando opción:", error);
-      setError(
-        error instanceof Error ? error.message : "Error al editar opción",
-      );
+      setError(error instanceof Error ? error.message : "Error al editar opción");
     }
   };
 
@@ -1279,9 +988,7 @@ export function usePreguntaEditor({
       console.log("✅ Opción eliminada:", opcionId);
     } catch (error) {
       console.error("❌ Error eliminando opción:", error);
-      setError(
-        error instanceof Error ? error.message : "Error al eliminar opción",
-      );
+      setError(error instanceof Error ? error.message : "Error al eliminar opción");
     }
   };
 
@@ -1309,9 +1016,7 @@ export function usePreguntaEditor({
       setPreguntas((prev) => prev.filter((p) => p.fp_id !== preguntaId));
     } catch (error) {
       console.error("Error eliminando pregunta:", error);
-      setError(
-        error instanceof Error ? error.message : "Error al eliminar pregunta",
-      );
+      setError(error instanceof Error ? error.message : "Error al eliminar pregunta");
     }
   };
 
@@ -1330,11 +1035,7 @@ export function usePreguntaEditor({
       );
     } catch (error) {
       console.error("Error guardando orden de preguntas:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Error al guardar el orden de las preguntas",
-      );
+      setError(error instanceof Error ? error.message : "Error al guardar el orden de las preguntas");
     }
   };
 
@@ -1343,36 +1044,24 @@ export function usePreguntaEditor({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const lista = preguntasDeSeccion;
-    const oldIndex = lista.findIndex(
-      (p) => `pregunta-${p.fp_id}` === active.id,
-    );
+    const oldIndex = lista.findIndex((p) => `pregunta-${p.fp_id}` === active.id);
     const newIndex = lista.findIndex((p) => `pregunta-${p.fp_id}` === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    const reordenadas = arrayMove(lista, oldIndex, newIndex).map(
-      (pregunta, index) => ({
-        ...pregunta,
-        fp_orden: index + 1,
-      }),
-    );
+    const reordenadas = arrayMove(lista, oldIndex, newIndex).map((pregunta, index) => ({
+      ...pregunta,
+      fp_orden: index + 1,
+    }));
     const nuevasPreguntas = preguntas.map((pregunta) => {
       const encontrada = reordenadas.find((p) => p.fp_id === pregunta.fp_id);
-      return encontrada
-        ? { ...pregunta, fp_orden: encontrada.fp_orden }
-        : pregunta;
+      return encontrada ? { ...pregunta, fp_orden: encontrada.fp_orden } : pregunta;
     });
     setPreguntas(nuevasPreguntas);
     await guardarOrdenPreguntas(reordenadas);
   };
 
-  const cambiarOrdenPregunta = async (
-    preguntaId: number,
-    direccion: "arriba" | "abajo",
-  ) => {
+  const cambiarOrdenPregunta = async (preguntaId: number, direccion: "arriba" | "abajo") => {
     const index = preguntasDeSeccion.findIndex((p) => p.fp_id === preguntaId);
-    if (
-      (direccion === "arriba" && index === 0) ||
-      (direccion === "abajo" && index === preguntasDeSeccion.length - 1)
-    ) {
+    if ((direccion === "arriba" && index === 0) || (direccion === "abajo" && index === preguntasDeSeccion.length - 1)) {
       return;
     }
     const swapIndex = direccion === "arriba" ? index - 1 : index + 1;

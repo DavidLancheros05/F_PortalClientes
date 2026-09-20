@@ -1,32 +1,25 @@
 import api from "@/services/core/api";
 
 export interface FormularioSeccion {
-  fse_id: number;
-  formulario_id: number;
-  fse_nombre: string;
-  fse_descripcion?: string;
-  fse_orden: number;
-  fse_estado: boolean;
-  created_at?: string;
-  updated_at?: string;
+  fs_id: number;
+  fs_nombre: string;
+  fs_descripcion: string | null;
+  fs_orden: number;
+  fs_activo: boolean;
+  fs_oculta_en_formulario: boolean;
 }
 
 export const formularioSeccionesService = {
-  getAll: async (params?: {
-    formulario_id?: number;
-  }): Promise<FormularioSeccion[]> => {
-    const res = await api.get("/parametrizacion/formulario-secciones", {
-      params,
-    });
+  getAll: async (): Promise<FormularioSeccion[]> => {
+    const res = await api.get("/parametrizacion/formulario-secciones");
     return res.data;
   },
 
   create: async (payload: {
-    formulario_id: number;
-    fse_nombre: string;
-    fse_descripcion?: string;
-    fse_orden: number;
-    fse_estado?: boolean;
+    seccion_nombre: string;
+    seccion_descripcion?: string;
+    seccion_orden: number;
+    seccion_oculta_en_formulario?: boolean;
   }): Promise<FormularioSeccion> => {
     const res = await api.post(
       "/parametrizacion/formulario-secciones",
@@ -38,10 +31,11 @@ export const formularioSeccionesService = {
   update: async (
     id: number,
     payload: Partial<{
-      fse_nombre: string;
-      fse_descripcion: string;
-      fse_orden: number;
-      fse_estado: boolean;
+      seccion_nombre: string;
+      seccion_descripcion: string;
+      seccion_orden: number;
+      seccion_activo: boolean;
+      seccion_oculta_en_formulario: boolean;
     }>,
   ): Promise<FormularioSeccion> => {
     const res = await api.put(
@@ -51,14 +45,15 @@ export const formularioSeccionesService = {
     return res.data;
   },
 
+  // No existe un endpoint PATCH .../estado en el backend — el estado se
+  // cambia con el mismo PUT de actualizar, mandando solo seccion_activo.
   toggleEstado: async (
     id: number,
     estado: boolean,
   ): Promise<FormularioSeccion> => {
-    const res = await api.patch(
-      `/parametrizacion/formulario-secciones/${id}/estado`,
-      { fse_estado: estado },
-    );
+    const res = await api.put(`/parametrizacion/formulario-secciones/${id}`, {
+      seccion_activo: estado,
+    });
     return res.data;
   },
 

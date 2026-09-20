@@ -1,11 +1,17 @@
 "use client";
 
-import { Suspense, useState, useContext } from "react";
+import { Suspense, useState, useContext, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import ReCAPTCHA from "react-google-recaptcha";
 import { AuthContext } from "@/context/AuthContext";
 import { loginService } from "@/services/auth/login.service";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
+
+// Mientras no se configure esta env var (ver B_PortalClientes/.env,
+// RECAPTCHA_SECRET_KEY), el widget no se muestra y el login sigue
+// funcionando sin captcha.
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
 
 type AccessType = "cliente" | "usuario";
 
@@ -31,6 +37,9 @@ function LoginForm() {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState("");
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const validateForm = () => {
     let isValid = true;
@@ -63,6 +72,12 @@ function LoginForm() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    if (RECAPTCHA_SITE_KEY && !captchaToken) {
+      setCaptchaError("Confirma que no eres un robot");
+      return;
+    }
+    setCaptchaError("");
+
     setLoading(true);
 
     try {
@@ -75,6 +90,7 @@ function LoginForm() {
         identifier,
         password,
         accessType,
+        captchaToken: captchaToken || undefined,
       });
       // console.log("[LoginPage] login response:", data);
 
@@ -112,6 +128,8 @@ function LoginForm() {
         err?.response?.data?.message ||
         "Error al conectar con el servidor";
       setLoginError(errorMessage);
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -240,6 +258,27 @@ function LoginForm() {
               </p>
             )}
           </div>
+
+          {RECAPTCHA_SITE_KEY && (
+            <div>
+              <div className="flex justify-center">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={RECAPTCHA_SITE_KEY}
+                  onChange={(token) => {
+                    setCaptchaToken(token);
+                    if (captchaError) setCaptchaError("");
+                  }}
+                  onExpired={() => setCaptchaToken(null)}
+                />
+              </div>
+              {captchaError && (
+                <p className="mt-2 text-sm text-[#003366] bg-[#003366]/10 px-3 py-2 rounded-lg text-center">
+                  {captchaError}
+                </p>
+              )}
+            </div>
+          )}
 
           {loginError && (
             <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">

@@ -3,42 +3,35 @@
 // DocumentosForm.tsx (editor de la plantilla, con chips de colores) y
 // PlantillaEditor.tsx (el editor en sí), para que ambos usen exactamente la
 // misma regex y las mismas etiquetas legibles.
+//
+// El catálogo de variables "fijas" (cliente_nombre, cupo_aprobado, etc.) ya
+// NO vive hardcodeado acá — se administra desde Parametrización > Variables
+// de Plantilla (`param_variables_plantilla`, ver
+// services/admin/parametrizacion/variables-plantilla.service.ts). Este
+// archivo solo construye la regex/etiquetas a partir de la lista que le
+// pasen, y sigue resolviendo por su cuenta los placeholders dinámicos
+// {{pregunta|...}}, que no son parte del catálogo (salen de
+// Formulario_pregunta, no se crean/borran desde esa pantalla).
 
-export const VARIABLES_FIJAS = [
-  { label: "Nombre del cliente", placeholder: "{{cliente_nombre}}" },
-  { label: "NIT del cliente", placeholder: "{{cliente_nit}}" },
-  { label: "Número de solicitud", placeholder: "{{numero_solicitud}}" },
-  {
-    label: "Nombre representante legal",
-    placeholder: "{{representante_legal_nombre}}",
-  },
-  {
-    label: "Cédula representante legal",
-    placeholder: "{{representante_legal_cedula}}",
-  },
-];
-
-// Variables exclusivas de la Carta de Vinculación (param_carta_pdf_vinculacion,
-// ver parametrizacion/carta-pdf-vinculacion/page.tsx) — solo existen después
-// de la aprobación del Comité de Crédito 2 (BACKEND::enviarCartaVinculacionPorCorreo),
-// por eso viven separadas de VARIABLES_FIJAS: no tienen sentido en una
-// plantilla de Tipos de documentos (esas se resuelven con respuestas del
-// formulario del cliente, que se llena ANTES de que exista aprobación/cupo).
-// Solo se agregan acá para que PlantillaEditor las reconozca y las pinte
-// como chip; no se ofrecen como botón de inserción en DocumentosForm.tsx.
-export const VARIABLES_CARTA_VINCULACION = [
-  { label: "Cupo aprobado", placeholder: "{{cupo_aprobado}}" },
-  { label: "Forma de pago", placeholder: "{{forma_pago}}" },
-  { label: "Plazo", placeholder: "{{plazo}}" },
-  { label: "Fecha de aprobación", placeholder: "{{fecha_aprobacion}}" },
-  { label: "Tasa de interés", placeholder: "{{tasa_interes}}" },
-];
+export interface VariableCatalogo {
+  label: string;
+  placeholder: string;
+}
 
 // Nota: excluye a propósito {{size:N}} / {{/size}} (marcador de tamaño de
 // letra puntual, ver botón "Tamaño") — esos se muestran como texto plano en
 // el editor, no como variable/chip.
-export const REGEX_VARIABLE_PLANTILLA =
-  /\{\{(?:cliente_nombre|cliente_nit|numero_solicitud|representante_legal_nombre|representante_legal_cedula|cupo_aprobado|forma_pago|plazo|fecha_aprobacion|tasa_interes|pregunta\|[^{}]*)\}\}/g;
+export function buildRegexVariablePlantilla(
+  variables: VariableCatalogo[],
+): RegExp {
+  // Los nombres ya están validados en el backend como [a-z][a-z0-9_]* (ver
+  // CreateVariablePlantillaDto), así que no hace falta escapar regex.
+  const nombres = variables
+    .map((v) => v.placeholder.replace(/^\{\{|\}\}$/g, ""))
+    .filter(Boolean);
+  const alternativas = [...nombres, String.raw`pregunta\|[^{}]*`].join("|");
+  return new RegExp(String.raw`\{\{(?:${alternativas})\}\}`, "g");
+}
 
 /** Nombre legible para mostrar en el chip / en "Usadas en esta plantilla".
  * `etiquetaPorCodigo` traduce los placeholders anclados a fp_codigo
@@ -47,15 +40,11 @@ export const REGEX_VARIABLE_PLANTILLA =
 export function construirEtiquetaVariable(
   placeholder: string,
   seccionPorId: Map<string, string>,
-  etiquetaPorCodigo?: Map<string, string>,
+  etiquetaPorCodigo: Map<string, string> | undefined,
+  variables: VariableCatalogo[],
 ): string {
-  const fija = VARIABLES_FIJAS.find((v) => v.placeholder === placeholder);
-  if (fija) return fija.label;
-
-  const cartaVinculacion = VARIABLES_CARTA_VINCULACION.find(
-    (v) => v.placeholder === placeholder,
-  );
-  if (cartaVinculacion) return cartaVinculacion.label;
+  const delCatalogo = variables.find((v) => v.placeholder === placeholder);
+  if (delCatalogo) return delCatalogo.label;
 
   const matchCodigo = placeholder.match(
     /^\{\{pregunta\|cod:([A-Za-z0-9_-]+)(?:\|col:([^|{}]*))?\}\}$/,

@@ -5,5 +5,7 @@ export {
   ErrorModal,
   WarningModal,
   InfoModal,
+  DetalleModal,
   ModalPortal,
 } from "./ModalesGenericos";
+export type { DetalleCampo } from "./ModalesGenericos";

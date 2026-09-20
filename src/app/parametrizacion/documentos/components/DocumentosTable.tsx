@@ -5,6 +5,8 @@ import { useState } from "react";
 import { TipoDocumento } from "@/services/admin/parametrizacion/documentos.types";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ConfirmModal } from "@/components/modals";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 
 interface Props {
   items: TipoDocumento[];
@@ -72,62 +74,38 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
       <table className="w-full min-w-[980px]">
-        <thead className="bg-blue-700 text-white">
+        <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Nombre
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Descripcion
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Aplica fecha emisión
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Vigencia
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Genera documento
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-              Estado
-            </th>
-            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">
+            <Th>Nombre</Th>
+            <Th>Descripcion</Th>
+            <Th>Aplica fecha emisión</Th>
+            <Th>Vigencia</Th>
+            <Th>Genera documento</Th>
+            <Th>Estado</Th>
+            <Th align="center" sticky>
               Acciones
-            </th>
+            </Th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 bg-white">
           {items.length === 0 ? (
             <tr>
-              <td
-                colSpan={7}
-                className="px-4 py-8 text-center text-xs text-slate-500"
-              >
+              <Td colSpan={7} align="center" className="text-slate-500">
                 No hay tipos de documentos para mostrar.
-              </td>
+              </Td>
             </tr>
           ) : (
             items.map((tipo) => (
-              <tr
-                key={tipo.tipoDocumentoId}
-                className="transition-colors hover:bg-slate-50"
-              >
-                <td className="px-4 py-3 text-xs font-medium text-slate-800">
-                  {tipo.nombre}
-                </td>
-                <td className="px-4 py-3 text-xs text-slate-700 max-w-[360px]">
+              <Tr key={tipo.tipoDocumentoId}>
+                <Td className="font-medium text-slate-800">{tipo.nombre}</Td>
+                <Td className="max-w-[360px]">
                   <p className="whitespace-pre-wrap break-words">
                     {tipo.descripcion || "-"}
                   </p>
-                </td>
-                <td className="px-4 py-3 text-xs text-slate-700">
-                  {tipo.aplicaFechaEmision ? "Sí" : "No"}
-                </td>
-                <td className="px-4 py-3 text-xs text-slate-700">
-                  {getVigenciaDisplay(tipo)}
-                </td>
-                <td className="px-4 py-3 text-xs">
+                </Td>
+                <Td>{tipo.aplicaFechaEmision ? "Sí" : "No"}</Td>
+                <Td>{getVigenciaDisplay(tipo)}</Td>
+                <Td>
                   {tipo.tienePlantilla ? (
                     <span
                       className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
@@ -138,8 +116,8 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
                   ) : (
                     <span className="text-slate-500">No</span>
                   )}
-                </td>
-                <td className="px-4 py-3 text-xs">
+                </Td>
+                <Td>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
                       tipo.estado
@@ -149,8 +127,8 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
                   >
                     {tipo.estado ? "Activo" : "Inactivo"}
                   </span>
-                </td>
-                <td className="px-4 py-3">
+                </Td>
+                <Td align="center" sticky>
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => onEdit(tipo)}
@@ -167,8 +145,8 @@ export default function DocumentosTable({ items, onEdit, onReload }: Props) {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ))
           )}
         </tbody>

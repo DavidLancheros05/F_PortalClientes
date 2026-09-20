@@ -8,8 +8,10 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
-import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   existenciasService,
@@ -124,6 +126,23 @@ export default function ExistenciasPage() {
     });
   }, [existencias, filtroItem, filtroBodega, filtroUbicacion]);
 
+  const itemSugerencias = useMemo(
+    () => [
+      ...existencias.map((e) => e.item ?? ""),
+      ...existencias.map((e) => e.referencia ?? ""),
+      ...existencias.map((e) => e.descripcionItem ?? ""),
+    ],
+    [existencias],
+  );
+  const bodegaSugerencias = useMemo(
+    () => existencias.map((e) => e.bodega ?? ""),
+    [existencias],
+  );
+  const ubicacionSugerencias = useMemo(
+    () => existencias.map((e) => e.ubicacion ?? ""),
+    [existencias],
+  );
+
   const existenciasPaginadas = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return existenciasFiltradas.slice(start, start + pageSize);
@@ -186,33 +205,30 @@ export default function ExistenciasPage() {
           onBack={() => router.push("/consultas")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FilterField label="Ítem, referencia o descripción">
-              <input
-                type="text"
-                value={filtroItemInput}
-                onChange={(e) => setFiltroItemInput(e.target.value)}
-                placeholder="Ej: CAJA CJ 3550"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
-            <FilterField label="Bodega">
-              <input
-                type="text"
-                value={filtroBodegaInput}
-                onChange={(e) => setFiltroBodegaInput(e.target.value)}
-                placeholder="Ej: 01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
-            <FilterField label="Ubicación">
-              <input
-                type="text"
-                value={filtroUbicacionInput}
-                onChange={(e) => setFiltroUbicacionInput(e.target.value)}
-                placeholder="Ej: A-01-03"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Ítem, referencia o descripción"
+              placeholder="Ej: CAJA CJ 3550"
+              value={filtroItemInput}
+              onChange={setFiltroItemInput}
+              suggestions={itemSugerencias}
+              onEnter={handleBuscar}
+            />
+            <SuggestField
+              label="Bodega"
+              placeholder="Ej: 01"
+              value={filtroBodegaInput}
+              onChange={setFiltroBodegaInput}
+              suggestions={bodegaSugerencias}
+              onEnter={handleBuscar}
+            />
+            <SuggestField
+              label="Ubicación"
+              placeholder="Ej: A-01-03"
+              value={filtroUbicacionInput}
+              onChange={setFiltroUbicacionInput}
+              suggestions={ubicacionSugerencias}
+              onEnter={handleBuscar}
+            />
             <FilterActions className="col-span-full">
               <button
                 onClick={limpiarFiltros}
@@ -265,45 +281,44 @@ export default function ExistenciasPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ítem</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Referencia</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Descripción</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Lote</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Bodega</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ubicación</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Existencia</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Disponible</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Peso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Volumen</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha lote</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Última entrada</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ejecutivo</th>
+                    <Th className="whitespace-nowrap">Ítem</Th>
+                    <Th className="whitespace-nowrap">Referencia</Th>
+                    <Th className="whitespace-nowrap">Descripción</Th>
+                    <Th className="whitespace-nowrap">Cliente</Th>
+                    <Th className="whitespace-nowrap">Lote</Th>
+                    <Th className="whitespace-nowrap">Bodega</Th>
+                    <Th className="whitespace-nowrap">Ubicación</Th>
+                    <Th className="whitespace-nowrap">Existencia</Th>
+                    <Th className="whitespace-nowrap">Disponible</Th>
+                    <Th className="whitespace-nowrap">Peso</Th>
+                    <Th className="whitespace-nowrap">Volumen</Th>
+                    <Th className="whitespace-nowrap">Fecha lote</Th>
+                    <Th className="whitespace-nowrap">Última entrada</Th>
+                    <Th className="whitespace-nowrap">Ejecutivo</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {existenciasPaginadas.map((existencia, index) => (
-                    <tr
+                    <Tr
                       key={`${existencia.item}-${existencia.lote}-${existencia.bodega}-${index}`}
-                      className="hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                      <Td className="whitespace-nowrap font-medium">
                         {existencia.item}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.referencia}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.descripcionItem}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.cliente}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.lote || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.bodega}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.ubicacion || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(existencia.cantidadExistencia)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(existencia.cantidadDisponible)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(existencia.peso)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(existencia.volumen)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatFecha(existencia.fechaLote)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatFecha(existencia.fechaUltimaEntrada)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{existencia.ejecutivoNegocio || "-"}</td>
-                    </tr>
+                      </Td>
+                      <Td className="whitespace-nowrap">{existencia.referencia}</Td>
+                      <Td className="whitespace-nowrap">{existencia.descripcionItem}</Td>
+                      <Td className="whitespace-nowrap">{existencia.cliente}</Td>
+                      <Td className="whitespace-nowrap">{existencia.lote || "-"}</Td>
+                      <Td className="whitespace-nowrap">{existencia.bodega}</Td>
+                      <Td className="whitespace-nowrap">{existencia.ubicacion || "-"}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(existencia.cantidadExistencia)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(existencia.cantidadDisponible)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(existencia.peso)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(existencia.volumen)}</Td>
+                      <Td className="whitespace-nowrap">{formatFecha(existencia.fechaLote)}</Td>
+                      <Td className="whitespace-nowrap">{formatFecha(existencia.fechaUltimaEntrada)}</Td>
+                      <Td className="whitespace-nowrap">{existencia.ejecutivoNegocio || "-"}</Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>

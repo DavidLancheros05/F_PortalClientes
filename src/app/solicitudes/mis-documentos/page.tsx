@@ -2,7 +2,8 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, FileText, Upload, Trash2, Download, Search } from "lucide-react";
+import { FileText, Upload, Trash2, Download, Search, RefreshCw } from "lucide-react";
+import { PdfIcon } from "@/components/icons/FileIcons";
 import { AuthContext } from "@/context/AuthContext";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { cachedRequest } from "@/services/core/requestCache";
@@ -10,7 +11,6 @@ import {
   misDocumentosService,
   type MiDocumento,
   type MisDocumentosResponse,
-  type DocumentoDiferido,
 } from "@/services/mis-documentos.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import {
@@ -28,25 +28,22 @@ import {
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ConfirmModal, LoadingModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 
 async function abrirPdfSolicitud(
   solicitudId: number,
   nombreDocumento: string,
   clienteNombre?: string | null,
+  tdoId?: number | null,
 ) {
-  const blob = await solicitudesService.downloadPdf(solicitudId);
+  const blob = await solicitudesService.downloadPdf(solicitudId, tdoId);
   descargarPdfBlob(
     blob,
     construirNombreDescargaPdf(nombreDocumento, clienteNombre),
   );
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "-";
-  const fecha = typeof value === "string" ? value.split("T")[0] : value;
-  const date = new Date(fecha);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("es-CO");
 }
 
 function requiereFecha(doc: MiDocumento) {
@@ -179,19 +176,13 @@ export default function MisDocumentosPage() {
   const [documentos, setDocumentos] = useState<MiDocumento[]>([]);
   const [puedeCorregir, setPuedeCorregir] = useState(false);
   const [rechazadoPorAuxiliar, setRechazadoPorAuxiliar] = useState(false);
-  const [documentosDiferidos, setDocumentosDiferidos] =
-    useState<DocumentoDiferido[]>([]);
   const [representanteLegal, setRepresentanteLegal] = useState<{
     nombre: string;
     identificacion: string;
   } | null>(null);
-  const [uploadingDiferidoFpId, setUploadingDiferidoFpId] = useState<
-    number | null
-  >(null);
   const [generandoPlantillaId, setGenerandoPlantillaId] = useState<
     number | null
   >(null);
-  const [enviandoDiferidos, setEnviandoDiferidos] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmEliminar, setConfirmEliminar] = useState<MiDocumento | null>(
     null,
@@ -212,28 +203,15 @@ export default function MisDocumentosPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [busquedaInput, setBusquedaInput] = useState("");
   const [busqueda, setBusqueda] = useState("");
-  // Mientras el panel de "Documentos pendientes por generar y subir" siga
-  // visible (documentosDiferidos no vacío — ver comentario en el backend,
-  // solicitudes.controller.ts::getMisDocumentos: se muestra hasta que el
-  // cliente pulsa "Enviar e informar a Cartonera", aunque ya estén todos
-  // subidos), esos mismos documentos también aparecen como archivo real en
-  // la tabla de abajo — se ven duplicados en pantalla. Se ocultan de la
-  // tabla mientras el panel siga arriba; al enviar, documentosDiferidos
-  // queda vacío y pasan a mostrarse solo ahí, sin duplicado.
-  const fpIdsDiferidos = new Set(documentosDiferidos.map((d) => d.fp_id));
-  const documentosSinDuplicarDiferidos =
-    fpIdsDiferidos.size > 0
-      ? documentos.filter((doc) => !fpIdsDiferidos.has(doc.fp_id))
-      : documentos;
   const documentosFiltrados = busqueda.trim()
-    ? documentosSinDuplicarDiferidos.filter((doc) => {
+    ? documentos.filter((doc) => {
         const termino = busqueda.trim().toLowerCase();
         return (
           doc.tdo_nombre?.toLowerCase().includes(termino) ||
           doc.sa_nombre_original?.toLowerCase().includes(termino)
         );
       })
-    : documentosSinDuplicarDiferidos;
+    : documentos;
 
   const cargar = async () => {
     try {
@@ -246,7 +224,6 @@ export default function MisDocumentosPage() {
       setDocumentos(data.documentos);
       setPuedeCorregir(data.puedeCorregir);
       setRechazadoPorAuxiliar(data.rechazadoPorAuxiliar);
-      setDocumentosDiferidos(data.documentosDiferidos || []);
     } catch (error) {
       console.error("[MisDocumentosPage] Error cargando:", error);
       setErrorMessage("No se pudieron cargar tus documentos.");
@@ -394,6 +371,7 @@ export default function MisDocumentosPage() {
           solicitud.sol_id,
           doc.tdo_nombre || doc.sa_nombre_original,
           solicitud.cliente_nombre,
+          doc.tdo_id,
         );
       } else {
         const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
@@ -506,116 +484,6 @@ export default function MisDocumentosPage() {
     }
   };
 
-  const handleGenerarPlantilla = async (doc: DocumentoDiferido) => {
-    if (!solicitud) return;
-    if (doc.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !doc.tdo_plantilla_contenido) return;
-    try {
-      setGenerandoPlantillaId(doc.tdo_id);
-      if (doc.tdo_tipo_plantilla === "PDF_SOLICITUD") {
-        await abrirPdfSolicitud(
-          solicitud.sol_id,
-          doc.tdo_nombre,
-          solicitud.cliente_nombre,
-        );
-      } else {
-        const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
-        let respuestasPregunta: Record<string, string> | undefined;
-        if (/\{\{pregunta\|/.test(doc.tdo_plantilla_contenido!)) {
-          const renderizable = await solicitudesService.getFormularioRenderizable(
-            solicitud.sol_id,
-          );
-          respuestasPregunta = construirMapaRespuestasPregunta(
-            renderizable.preguntas,
-          );
-        }
-        await generarPlantillaDocumentoPdf({
-          tdoNombre: doc.tdo_nombre,
-          tdoPlantillaContenido: doc.tdo_plantilla_contenido!,
-          clienteNombre: solicitud.cliente_nombre,
-          clienteNit: solicitud.cliente_nit,
-          numeroSolicitud: solicitud.sol_numero_solicitud,
-          representanteLegalNombre: repLegal?.nombre,
-          representanteLegalCedula: repLegal?.identificacion,
-          formatoCodigo: doc.tdo_formato_codigo,
-          formatoCodigoSecundario: doc.tdo_formato_codigo_secundario,
-          revision: doc.tdo_revision,
-          paginasTotal: doc.tdo_paginas_total,
-          respuestasPregunta,
-          revisiones: await obtenerRevisionesPdf(doc.tdo_id),
-          encabezadoTipo: doc.tdo_encabezado_tipo,
-          encabezadoImagenUrl: doc.tdo_encabezado_imagen_url,
-          piePaginaTipo: doc.tdo_pie_pagina_tipo,
-          piePaginaTexto: doc.tdo_pie_pagina_texto,
-          piePaginaImagenUrl: doc.tdo_pie_pagina_imagen_url,
-        });
-      }
-    } catch (error) {
-      console.error("[MisDocumentosPage] Error generando plantilla:", error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : `No se pudo generar la plantilla de "${doc.tdo_nombre}".`,
-      );
-    } finally {
-      setGenerandoPlantillaId(null);
-    }
-  };
-
-  const handleSeleccionarArchivoDiferido = async (
-    doc: DocumentoDiferido,
-    file: File,
-  ) => {
-    if (!solicitud) return;
-    setUploadingDiferidoFpId(doc.fp_id);
-    try {
-      await formularioRespuestasService.guardarArchivoRespuesta(
-        solicitud.sol_id,
-        doc.fp_id,
-        file,
-      );
-      await cargar();
-    } catch (error) {
-      console.error(
-        "[MisDocumentosPage] Error subiendo documento diferido:",
-        error,
-      );
-      setErrorMessage(`No se pudo subir "${doc.tdo_nombre}".`);
-    } finally {
-      setUploadingDiferidoFpId(null);
-    }
-  };
-
-  const handleEnviarDocumentosDiferidos = async () => {
-    if (!solicitud) return;
-    try {
-      setEnviandoDiferidos(true);
-
-      const resultado = await misDocumentosService.verificarDocumentosDiferidos(
-        solicitud.sol_id,
-      );
-
-      if (resultado.avanzo) {
-        setShowSuccessModal(true);
-      } else if (resultado.documentosDiferidosFaltantes.length > 0) {
-        setErrorMessage(
-          `Aún faltan por subir: ${resultado.documentosDiferidosFaltantes
-            .map((d) => d.tdo_nombre)
-            .join(", ")}.`,
-        );
-      }
-
-      await cargar();
-    } catch (error) {
-      console.error(
-        "[MisDocumentosPage] Error enviando documentos diferidos:",
-        error,
-      );
-      setErrorMessage("No se pudieron enviar los documentos generados.");
-    } finally {
-      setEnviandoDiferidos(false);
-    }
-  };
-
   const handleEliminar = async () => {
     if (!solicitud || !confirmEliminar) return;
     try {
@@ -631,80 +499,59 @@ export default function MisDocumentosPage() {
     }
   };
 
-  const documentosDiferidosListos = documentosDiferidos.filter(
-    (doc) => doc.yaSubido,
-  ).length;
-
   if (debeElegirCliente) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-        <div className="max-w-[90%] mx-auto mt-2 px-2">
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg m-0">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-xl">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.push("/solicitudes/cliente")}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
-                >
-                  <ArrowLeft size={16} />
-                  Volver
-                </button>
-                <div className="bg-white/20 rounded-full p-2 flex-shrink-0">
-                  <FileText className="text-white" size={22} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-lg md:text-xl font-bold text-white">
-                    Documentos de la Solicitud
-                  </h1>
-                  <p className="text-xs md:text-sm text-blue-100 truncate">
-                    Elige el cliente cuyos documentos quieres ver.
-                  </p>
-                </div>
-              </div>
-            </div>
+      <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+        <div className="max-w-3xl mx-auto">
+          <PageHeaderCard
+            icon={FileText}
+            eyebrow="Documentos"
+            title="Documentos de la Solicitud"
+            subtitle="Elige el cliente cuyos documentos quieres ver."
+            onBack={() => router.push("/solicitudes/cliente")}
+          />
 
-            <div className="px-8 py-10 flex flex-col items-center">
-              <div className="w-full max-w-md" ref={clienteSelectorRef}>
-                <Search className="h-10 w-10 text-blue-600 mx-auto mb-4" />
-                <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">
-                  ¿De qué cliente son los documentos?
-                </h2>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar cliente..."
-                    value={busquedaCliente}
-                    onFocus={() => setMostrarListaClientes(true)}
-                    onChange={(event) => {
-                      setBusquedaCliente(event.target.value);
-                      setMostrarListaClientes(true);
-                    }}
-                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {mostrarListaClientes && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-64 overflow-y-auto">
-                      {clientesFiltrados.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">
-                          Sin resultados
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 flex flex-col items-center">
+            <div className="w-full max-w-md" ref={clienteSelectorRef}>
+              <Search className="h-10 w-10 text-brand-600 mx-auto mb-4" />
+              <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">
+                ¿De qué cliente son los documentos?
+              </h2>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar cliente..."
+                  value={busquedaCliente}
+                  onFocus={() => setMostrarListaClientes(true)}
+                  onChange={(event) => {
+                    setBusquedaCliente(event.target.value);
+                    setMostrarListaClientes(true);
+                  }}
+                  className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {mostrarListaClientes && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {clientesFiltrados.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        Sin resultados
+                      </div>
+                    ) : (
+                      clientesFiltrados.map((cliente) => (
+                        <div
+                          key={cliente.cli_id}
+                          onClick={() => {
+                            setClienteSeleccionado(cliente);
+                            setBusquedaCliente(cliente.cli_razon_social);
+                            setMostrarListaClientes(false);
+                          }}
+                          className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
+                        >
+                          {cliente.cli_razon_social}
                         </div>
-                      ) : (
-                        clientesFiltrados.map((cliente) => (
-                          <div
-                            key={cliente.cli_id}
-                            onClick={() => {
-                              setClienteSeleccionado(cliente);
-                              setBusquedaCliente(cliente.cli_razon_social);
-                              setMostrarListaClientes(false);
-                            }}
-                            className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                          >
-                            {cliente.cli_razon_social}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -714,52 +561,48 @@ export default function MisDocumentosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-0">
-      <div className="max-w-[90%] mx-auto mt-2 px-2">
-        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200 shadow-lg overflow-hidden m-0">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  if (modoStaff) {
-                    router.push("/solicitudes/corregir-formulario-asc");
-                  } else if (clienteSeleccionado) {
-                    // Volvió al selector en vez de navegar afuera — este
-                    // usuario no tiene "/solicitudes/cliente" propio.
-                    setClienteSeleccionado(null);
-                    setBusquedaCliente("");
-                  } else {
-                    router.push("/solicitudes/cliente");
-                  }
-                }}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-100 hover:text-white transition-colors flex-shrink-0"
-              >
-                <ArrowLeft size={16} />
-                Volver
-              </button>
-              <div className="bg-white/20 rounded-full p-2 flex-shrink-0">
-                <FileText className="text-white" size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg md:text-xl font-bold text-white">
-                  {modoStaff || clienteSeleccionado
-                    ? "Documentos de la Solicitud"
-                    : "Mis Documentos"}
-                </h1>
-                <p className="text-xs md:text-sm text-blue-100 truncate">
-                  {solicitud
-                    ? modoStaff
-                      ? `Solicitud ${solicitud.sol_numero_solicitud} — ${solicitud.cliente_nombre ?? "cliente"}. Corrige en su nombre los documentos marcados.`
-                      : clienteSeleccionado
-                        ? `Solicitud ${solicitud.sol_numero_solicitud} — ${clienteSeleccionado.cli_razon_social}.`
-                        : `Documentos de la solicitud ${solicitud.sol_numero_solicitud}.`
-                    : "Consulta el estado de tus documentos y corrígelos si hace falta."}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        <PageHeaderCard
+          icon={FileText}
+          eyebrow="Documentos"
+          title={
+            modoStaff || clienteSeleccionado
+              ? "Documentos de la Solicitud"
+              : "Mis Documentos"
+          }
+          subtitle={
+            solicitud
+              ? modoStaff
+                ? `Solicitud ${solicitud.sol_numero_solicitud} — ${solicitud.cliente_nombre ?? "cliente"}. Corrige en su nombre los documentos marcados.`
+                : clienteSeleccionado
+                  ? `Solicitud ${solicitud.sol_numero_solicitud} — ${clienteSeleccionado.cli_razon_social}.`
+                  : `Documentos de la solicitud ${solicitud.sol_numero_solicitud}.`
+              : "Consulta el estado de tus documentos y corrígelos si hace falta."
+          }
+          onBack={() => {
+            if (modoStaff) {
+              router.back();
+            } else if (clienteSeleccionado) {
+              // Volvió al selector en vez de navegar afuera — este
+              // usuario no tiene "/solicitudes/cliente" propio.
+              setClienteSeleccionado(null);
+              setBusquedaCliente("");
+            } else {
+              router.push("/solicitudes/cliente");
+            }
+          }}
+          actions={
+            <button
+              onClick={cargar}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Actualizar
+            </button>
+          }
+        />
 
         {errorMessage && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -798,152 +641,8 @@ export default function MisDocumentosPage() {
           </div>
         )}
 
-        {documentosDiferidos.length > 0 && !loading && (
-          <div className="mb-8 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 rounded-full bg-blue-100 p-3">
-                <FileText className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-base font-semibold text-gray-900">
-                  Documentos pendientes por generar y subir
-                </p>
-                <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
-                  Tu solicitud fue registrada, pero antes de que la vea
-                  Cartonera faltan por generar y subir estos documentos:
-                  descarga la plantilla, fírmala, y súbela aquí mismo.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {documentosDiferidos.map((doc) => {
-                const subiendo = uploadingDiferidoFpId === doc.fp_id;
-                const listo = doc.yaSubido;
-                const archivoUrl =
-                  listo && doc.sa_id
-                    ? getArchivoPreviewUrl(
-                        { sa_id: doc.sa_id },
-                        solicitud?.sol_id,
-                      )
-                    : null;
-                return (
-                  <div
-                    key={doc.tdo_id}
-                    className={`rounded-xl border p-4 transition-colors ${
-                      listo
-                        ? "border-emerald-200 bg-emerald-50/40"
-                        : "border-gray-200 bg-gray-50/70"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div
-                          className={`flex-shrink-0 rounded-full p-2 mt-0.5 ${listo ? "bg-emerald-100" : "bg-red-100"}`}
-                        >
-                          <FileText
-                            className={`h-4 w-4 ${listo ? "text-emerald-600" : "text-red-600"}`}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 break-words">
-                            {doc.tdo_nombre}
-                          </p>
-                          <p
-                            className={`text-xs font-medium mt-1 break-words ${listo ? "text-emerald-700" : "text-red-600"}`}
-                          >
-                            {subiendo
-                              ? "Subiendo..."
-                              : listo
-                                ? `✓ ${doc.sa_nombre_original || "Ya subido anteriormente"}`
-                                : "Pendiente: falta generar y subir"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {(doc.tdo_plantilla_contenido ||
-                          doc.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
-                          <button
-                            type="button"
-                            onClick={() => handleGenerarPlantilla(doc)}
-                            disabled={generandoPlantillaId === doc.tdo_id}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-60"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            {generandoPlantillaId === doc.tdo_id
-                              ? "Generando..."
-                              : "Descargar plantilla"}
-                          </button>
-                        )}
-                        {archivoUrl && (
-                          <a
-                            href={archivoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                          >
-                            Ver archivo
-                          </a>
-                        )}
-                        <label
-                          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                            listo
-                              ? "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                              : "bg-blue-600 text-white shadow-sm hover:bg-blue-700"
-                          }`}
-                        >
-                          <Upload className="h-3.5 w-3.5" />
-                          {subiendo
-                            ? "Subiendo..."
-                            : listo
-                              ? "Reemplazar"
-                              : "Subir firmado"}
-                          <input
-                            type="file"
-                            accept=".pdf,application/pdf,image/*"
-                            className="hidden"
-                            disabled={subiendo}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file)
-                                handleSeleccionarArchivoDiferido(doc, file);
-                              e.target.value = "";
-                            }}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">
-                  {documentosDiferidosListos} de {documentosDiferidos.length}
-                </span>{" "}
-                documentos listos para enviar
-              </p>
-              <button
-                onClick={handleEnviarDocumentosDiferidos}
-                disabled={
-                  enviandoDiferidos ||
-                  uploadingDiferidoFpId !== null ||
-                  documentosDiferidos.some((doc) => !doc.yaSubido)
-                }
-                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none"
-              >
-                {enviandoDiferidos
-                  ? "Enviando..."
-                  : "Enviar e informar a Cartonera"}
-              </button>
-            </div>
-          </div>
-        )}
-
         {loading ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             <div className="border-b border-gray-100 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
               Cargando tus documentos...
             </div>
@@ -961,15 +660,19 @@ export default function MisDocumentosPage() {
             </div>
           </div>
         ) : !solicitud ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
-            {clienteSeleccionado
-              ? `${clienteSeleccionado.cli_razon_social} aún no tiene ninguna solicitud con documentos.`
-              : "Aún no tienes ninguna solicitud con documentos."}
-          </div>
+          <EmptyStateCard
+            icon={FileText}
+            title={
+              clienteSeleccionado
+                ? `${clienteSeleccionado.cli_razon_social} aún no tiene ninguna solicitud con documentos.`
+                : "Aún no tienes ninguna solicitud con documentos."
+            }
+          />
         ) : documentos.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
-            No hay documentos cargados en esta solicitud.
-          </div>
+          <EmptyStateCard
+            icon={FileText}
+            title="No hay documentos cargados en esta solicitud."
+          />
         ) : (
           <>
             <form
@@ -988,7 +691,7 @@ export default function MisDocumentosPage() {
               />
               <button
                 type="submit"
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
               >
                 Buscar
               </button>
@@ -1007,26 +710,30 @@ export default function MisDocumentosPage() {
             </form>
 
             {documentosFiltrados.length === 0 ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-600">
-                {busqueda
-                  ? `Ningún documento coincide con "${busqueda}".`
-                  : "Todos tus documentos están en la sección de arriba, pendientes por enviar."}
-              </div>
+              <EmptyStateCard
+                icon={Search}
+                title={
+                  busqueda
+                    ? `Ningún documento coincide con "${busqueda}".`
+                    : "No hay documentos cargados en esta solicitud."
+                }
+              />
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-x-auto">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+                <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      <th className="px-4 py-3">Documento</th>
-                      <th className="px-4 py-3">Archivo</th>
-                      <th className="px-4 py-3">Fecha Carga</th>
-                      <th className="px-4 py-3">Fecha Emisión Doc</th>
-                      <th className="px-4 py-3">Estado</th>
-                      <th className="px-4 py-3">Fecha Vencimiento</th>
-                      <th className="px-4 py-3">Acciones</th>
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <Th>Documento</Th>
+                      <Th>Fecha Emisión Doc</Th>
+                      <Th>Estado</Th>
+                      <Th>Fecha Vencimiento</Th>
+                      <Th align="center" sticky>
+                        Acciones
+                      </Th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {documentosFiltrados.map((doc) => {
                   const estado = getEstadoVigencia(doc);
                   const editable = esDocumentoEditable(
@@ -1045,41 +752,17 @@ export default function MisDocumentosPage() {
                   );
 
                   return (
-                    <tr
-                      key={doc.sa_id}
-                      className="border-b border-gray-100 last:border-0 align-top"
-                    >
-                      <td className="px-4 py-3 min-w-[220px]">
+                    <Tr key={doc.sa_id} className="align-top">
+                      <Td className="min-w-[220px]">
                         <div className="flex items-start gap-2">
                           <FileText className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <p className="font-medium text-gray-900 break-words">
                             {doc.tdo_nombre || doc.sa_nombre_original}
                           </p>
                         </div>
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-3 min-w-[160px]">
-                        {archivoUrl ? (
-                          <a
-                            href={archivoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-medium text-blue-600 hover:text-blue-800 break-words"
-                          >
-                            {doc.sa_nombre_original}
-                          </a>
-                        ) : (
-                          <p className="text-xs text-gray-500 break-words">
-                            {doc.sa_nombre_original}
-                          </p>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {formatDate(doc.fecha_carga)}
-                      </td>
-
-                      <td className="px-4 py-3">
+                      <Td>
                         {requiereFecha(doc) ? (
                           <input
                             type="date"
@@ -1101,9 +784,9 @@ export default function MisDocumentosPage() {
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-3">
+                      <Td>
                         <div className="flex flex-col items-start gap-1">
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${estado.className}`}
@@ -1116,14 +799,25 @@ export default function MisDocumentosPage() {
                             </span>
                           )}
                         </div>
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                      <Td className="text-xs whitespace-nowrap">
                         {estado.detalle}
-                      </td>
+                      </Td>
 
-                      <td className="px-4 py-3">
+                      <Td sticky>
                         <div className="flex flex-wrap items-center gap-3">
+                          {archivoUrl && (
+                            <a
+                              href={archivoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Ver ${doc.sa_nombre_original}`}
+                              className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                            >
+                              <PdfIcon />
+                            </a>
+                          )}
                           {editable &&
                             doc.tdo_tiene_plantilla &&
                             (doc.tdo_plantilla_contenido ||
@@ -1177,12 +871,13 @@ export default function MisDocumentosPage() {
                             )
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   );
                 })}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </>
@@ -1196,7 +891,7 @@ export default function MisDocumentosPage() {
               <button
                 onClick={handleActualizarEInformar}
                 disabled={!huboCambios || enviando}
-                className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 {enviando
                   ? "Actualizando..."
@@ -1206,8 +901,6 @@ export default function MisDocumentosPage() {
               </button>
             </div>
           )}
-          </div>
-        </div>
       </div>
 
       <LoadingModal
@@ -1216,7 +909,7 @@ export default function MisDocumentosPage() {
       />
 
       <LoadingModal
-        isOpen={uploadingSaId !== null || uploadingDiferidoFpId !== null}
+        isOpen={uploadingSaId !== null}
         message="Subiendo archivo..."
       />
 

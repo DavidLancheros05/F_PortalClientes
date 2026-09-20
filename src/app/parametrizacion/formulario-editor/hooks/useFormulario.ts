@@ -25,7 +25,9 @@ export function useFormulario(formularioId: string | null, version: string | nul
       }
 
       // console.log("📥 [EDITOR] Cargando secciones...");
-      const seccionesOrdenadas = data.secciones.sort((a: Seccion, b: Seccion) => (a.fs_orden || a.seccion_orden || 0) - (b.fs_orden || b.seccion_orden || 0));
+      const seccionesOrdenadas = data.secciones.sort(
+        (a: Seccion, b: Seccion) => (a.fs_orden || a.seccion_orden || 0) - (b.fs_orden || b.seccion_orden || 0),
+      );
       // console.log("📋 [EDITOR] Secciones cargadas:", seccionesOrdenadas);
       setSecciones(seccionesOrdenadas);
 
@@ -39,9 +41,8 @@ export function useFormulario(formularioId: string | null, version: string | nul
       let preguntasFiltradas: Pregunta[] = [];
       if (formularioIdNumber) {
         preguntasFiltradas = data.preguntas.filter(
-          (p: Pregunta & { formulario_id?: number; fp_version?: number }) =>
-            p.formulario_id === formularioIdNumber &&
-            (version ? p.fp_version === parseInt(version) : true),
+          (p: Pregunta & { frm_id?: number; fp_version?: number }) =>
+            p.frm_id === formularioIdNumber && (version ? p.fp_version === parseInt(version) : true),
         );
       }
 

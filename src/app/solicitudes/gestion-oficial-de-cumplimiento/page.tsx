@@ -17,11 +17,11 @@ import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { SuggestField } from "@/components/filters/SuggestField";
+import { ClienteFilterField } from "@/components/filters/ClienteFilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
-import {
-  calcularDiasRestantes,
-  DiasRestantesBadge,
-} from "@/components/badges/DiasRestantesBadge";
+import { calcularDiasRestantes, DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
+import { TipoSolicitudBadge } from "@/components/badges/TipoSolicitudBadge";
+import { getTipoSolicitud } from "@/lib/tipo-solicitud.util";
 import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
@@ -47,6 +47,8 @@ interface Solicitud {
   sol_fecha_real_auxiliar_servicio_cliente?: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
+  sol_cupo_solicitado?: number | null;
+  es_ampliacion_cupo?: boolean | number | null;
   sa_sol_id?: number;
   numero_solicitud?: string;
   cliente_id?: number;
@@ -59,10 +61,7 @@ interface EjecutivoNegocio {
 }
 
 export default function GestionOficialCumplimientoPage() {
-  console.log(
-    "[GestionOficial] Página renderizada en:",
-    new Date().toISOString(),
-  );
+  console.log("[GestionOficial] Página renderizada en:", new Date().toISOString());
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -78,18 +77,11 @@ export default function GestionOficialCumplimientoPage() {
   // reiniciar el formulario — antes todo esto vivía solo en useState local,
   // que se perdía al desmontar/remontar la página (mismo patrón que
   // gestion-auxiliar-servicio-al-cliente/page.tsx).
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<
-    number | null
-  >(() => {
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<number | null>(() => {
     const v = searchParams.get("cliente");
     return v ? Number(v) : null;
   });
-  const [clienteBusqueda, setClienteBusqueda] = useState("");
-  const [mostrarClientes, setMostrarClientes] = useState(false);
-  const clienteRef = useRef<HTMLDivElement>(null);
-  const [ejecutivoSeleccionado, setEjecutivoSeleccionado] = useState<
-    number | null
-  >(() => {
+  const [ejecutivoSeleccionado, setEjecutivoSeleccionado] = useState<number | null>(() => {
     const v = searchParams.get("ejecutivo");
     return v ? Number(v) : null;
   });
@@ -97,35 +89,23 @@ export default function GestionOficialCumplimientoPage() {
   const [mostrarEjecutivos, setMostrarEjecutivos] = useState(false);
   const ejecutivoRef = useRef<HTMLDivElement>(null);
 
-  // Cierra los dropdowns de Cliente/Ejecutivo al hacer clic afuera — mismo
-  // mecanismo que SuggestField (el onBlur del input no basta: el clic sobre
-  // un ítem de la lista dispara blur antes que el click, y el ítem nunca
-  // llega a seleccionarse).
+  // Cierra el dropdown de Ejecutivo al hacer clic afuera — mismo mecanismo
+  // que SuggestField (el onBlur del input no basta: el clic sobre un ítem
+  // de la lista dispara blur antes que el click, y el ítem nunca llega a
+  // seleccionarse). El de Cliente lo maneja internamente ClienteFilterField.
   useEffect(() => {
-    if (!mostrarClientes && !mostrarEjecutivos) return;
+    if (!mostrarEjecutivos) return;
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (
-        mostrarClientes &&
-        clienteRef.current &&
-        !clienteRef.current.contains(target)
-      ) {
-        setMostrarClientes(false);
-      }
-      if (
-        mostrarEjecutivos &&
-        ejecutivoRef.current &&
-        !ejecutivoRef.current.contains(target)
-      ) {
+      if (mostrarEjecutivos && ejecutivoRef.current && !ejecutivoRef.current.contains(target)) {
         setMostrarEjecutivos(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [mostrarClientes, mostrarEjecutivos]);
-  const [numeroFiltro, setNumeroFiltro] = useState(
-    () => searchParams.get("numero") || "",
-  );
+  }, [mostrarEjecutivos]);
+  const [numeroFiltro, setNumeroFiltro] = useState(() => searchParams.get("numero") || "");
+  const [tipoSolicitudFiltro, setTipoSolicitudFiltro] = useState(() => searchParams.get("tipo") || "");
   const [hasSearched, setHasSearched] = useState(false);
   const [paginaActual, setPaginaActual] = useState(() => {
     const v = searchParams.get("pagina");
@@ -163,40 +143,23 @@ export default function GestionOficialCumplimientoPage() {
     cargarEjecutivos();
   }, []);
 
-  // Si el cliente/ejecutivo llegó preseleccionado desde la URL (?cliente=&
-  // ejecutivo=, al volver desde /gestionar), una vez cargado el catálogo
-  // correspondiente se resuelve el texto a mostrar en el buscador.
-  useEffect(() => {
-    if (!clienteSeleccionado || clienteBusqueda) return;
-    const match = clientes.find(
-      (c) => Number(c.cli_id) === clienteSeleccionado,
-    );
-    if (match) setClienteBusqueda(match.cli_razon_social);
-  }, [clientes, clienteSeleccionado, clienteBusqueda]);
-
+  // Si el ejecutivo llegó preseleccionado desde la URL (?ejecutivo=, al
+  // volver desde /gestionar), una vez cargado el catálogo correspondiente
+  // se resuelve el texto a mostrar en el buscador. (El de cliente lo
+  // resuelve internamente ClienteFilterField a partir de `value`.)
   useEffect(() => {
     if (!ejecutivoSeleccionado || ejecutivoBusqueda) return;
     const match = ejecutivos.find((e) => e.ejng_id === ejecutivoSeleccionado);
     if (match) setEjecutivoBusqueda(match.ejng_nombre);
   }, [ejecutivos, ejecutivoSeleccionado, ejecutivoBusqueda]);
 
-  const clientesFiltrados = useMemo(() => {
-    if (!clienteBusqueda) return clientes;
-    return clientes.filter((c) =>
-      c.cli_razon_social.toLowerCase().includes(clienteBusqueda.toLowerCase()),
-    );
-  }, [clientes, clienteBusqueda]);
-
   const ejecutivosFiltrados = useMemo(() => {
     if (!ejecutivoBusqueda) return ejecutivos;
-    return ejecutivos.filter((e) =>
-      e.ejng_nombre.toLowerCase().includes(ejecutivoBusqueda.toLowerCase()),
-    );
+    return ejecutivos.filter((e) => e.ejng_nombre.toLowerCase().includes(ejecutivoBusqueda.toLowerCase()));
   }, [ejecutivos, ejecutivoBusqueda]);
 
   const obtenerUsuarioId = () => {
-    const directId =
-      (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
+    const directId = (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
     if (directId) return directId;
 
     if (typeof window === "undefined") return null;
@@ -215,11 +178,10 @@ export default function GestionOficialCumplimientoPage() {
   const sincronizarUrl = (pagina: number) => {
     const params = new URLSearchParams();
     params.set("buscado", "1");
-    if (clienteSeleccionado)
-      params.set("cliente", String(clienteSeleccionado));
-    if (ejecutivoSeleccionado)
-      params.set("ejecutivo", String(ejecutivoSeleccionado));
+    if (clienteSeleccionado) params.set("cliente", String(clienteSeleccionado));
+    if (ejecutivoSeleccionado) params.set("ejecutivo", String(ejecutivoSeleccionado));
     if (numeroFiltro.trim()) params.set("numero", numeroFiltro.trim());
+    if (tipoSolicitudFiltro) params.set("tipo", tipoSolicitudFiltro);
     params.set("pagina", String(pagina));
     router.replace(`${pathname}?${params.toString()}`);
   };
@@ -243,24 +205,25 @@ export default function GestionOficialCumplimientoPage() {
           ...s,
         }))
         .filter((s: Solicitud) => {
-          const cumpleCliente = clienteSeleccionado
-            ? s.sol_cliente_id === clienteSeleccionado
-            : true;
+          const cumpleCliente = clienteSeleccionado ? s.sol_cliente_id === clienteSeleccionado : true;
           return cumpleCliente;
         })
         .filter((s: Solicitud) => {
-          const cumpleEjecutivo = ejecutivoSeleccionado
-            ? s.sol_ejecutivo_id === ejecutivoSeleccionado
-            : true;
+          const cumpleEjecutivo = ejecutivoSeleccionado ? s.sol_ejecutivo_id === ejecutivoSeleccionado : true;
           return cumpleEjecutivo;
         })
         .filter((s: Solicitud) => {
           const cumpleNumero = numeroBuscado
-            ? (s.sol_numero_solicitud || s.numero_solicitud || "")
-                .toLowerCase()
-                .includes(numeroBuscado)
+            ? (s.sol_numero_solicitud || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
             : true;
           return cumpleNumero;
+        })
+        .filter((s: Solicitud) => {
+          const cumpleTipo = tipoSolicitudFiltro
+            ? getTipoSolicitud(s.es_ampliacion_cupo) ===
+              (tipoSolicitudFiltro === "AMPLIACION" ? "Ampliación de Cupo" : "Cliente Nuevo")
+            : true;
+          return cumpleTipo;
         });
 
       setSolicitudes(mapped);
@@ -317,6 +280,7 @@ export default function GestionOficialCumplimientoPage() {
     const XLSX = await import("xlsx");
     const header = [
       "Numero Solicitud",
+      "Tipo",
       "Centro de Operacion",
       "Cliente",
       "Estado",
@@ -330,12 +294,11 @@ export default function GestionOficialCumplimientoPage() {
       "Dias Faltantes",
     ];
     const data = solicitudes.map((s) => {
-      const fechaEstimada =
-        (s as any).sol_fecha_estimada_oficial_cumplimiento ||
-        s.fecha_estimada_respuesta_comercial;
+      const fechaEstimada = (s as any).sol_fecha_estimada_oficial_cumplimiento || s.fecha_estimada_respuesta_comercial;
       const diasRestantes = calcularDiasRestantes(fechaEstimada);
       return [
         s.sol_numero_solicitud || s.numero_solicitud || "-",
+        getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
         ESTADOS[s.sol_estado_id ?? s.estado_id] || "Desconocido",
@@ -355,10 +318,7 @@ export default function GestionOficialCumplimientoPage() {
     const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Oficial Cumplimiento");
-    XLSX.writeFile(
-      wb,
-      `solicitudes-oficial-cumplimiento-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, `solicitudes-oficial-cumplimiento-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   return (
@@ -368,8 +328,7 @@ export default function GestionOficialCumplimientoPage() {
           icon={ShieldCheck}
           eyebrow="Solicitudes"
           title="Pendientes — Gestión Oficial de Cumplimiento"
-          onBack={() => router.back()}
-        >
+          onBack={() => router.back()}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <FilterField label="Ejecutivo" className="relative" ref={ejecutivoRef}>
               <input
@@ -392,14 +351,11 @@ export default function GestionOficialCumplimientoPage() {
                       setEjecutivoBusqueda("");
                       setMostrarEjecutivos(false);
                     }}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                  >
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200">
                     Limpiar selección
                   </div>
                   {ejecutivosFiltrados.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Sin resultados
-                    </div>
+                    <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
                   ) : (
                     ejecutivosFiltrados.map((ejecutivo) => (
                       <div
@@ -409,8 +365,7 @@ export default function GestionOficialCumplimientoPage() {
                           setEjecutivoBusqueda(ejecutivo.ejng_nombre);
                           setMostrarEjecutivos(false);
                         }}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                      >
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100">
                         {ejecutivo.ejng_nombre}
                       </div>
                     ))
@@ -419,68 +374,35 @@ export default function GestionOficialCumplimientoPage() {
               )}
             </FilterField>
 
-            <FilterField label="Cliente" className="relative" ref={clienteRef}>
-              <input
-                type="text"
-                placeholder="Buscar cliente..."
-                value={clienteBusqueda}
-                onFocus={() => setMostrarClientes(true)}
-                onChange={(e) => {
-                  setClienteBusqueda(e.target.value);
-                  setClienteSeleccionado(null);
-                  setMostrarClientes(true);
-                }}
-                disabled={loadingClientes}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-              />
-              {mostrarClientes && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
-                  <div
-                    onClick={() => {
-                      setClienteSeleccionado(null);
-                      setClienteBusqueda("");
-                      setMostrarClientes(false);
-                    }}
-                    className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                  >
-                    Limpiar selección
-                  </div>
-                  {clientesFiltrados.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Sin resultados
-                    </div>
-                  ) : (
-                    clientesFiltrados.map((cliente) => (
-                      <div
-                        key={cliente.cli_id}
-                        onClick={() => {
-                          setClienteSeleccionado(Number(cliente.cli_id));
-                          setClienteBusqueda(cliente.cli_razon_social);
-                          setMostrarClientes(false);
-                        }}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                      >
-                        {cliente.cli_razon_social}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </FilterField>
+            <ClienteFilterField
+              clientes={clientes}
+              value={clienteSeleccionado ? String(clienteSeleccionado) : ""}
+              onChange={(cliId) => setClienteSeleccionado(cliId ? Number(cliId) : null)}
+              disabled={loadingClientes}
+            />
             <SuggestField
               label="Numero de solicitud"
-              placeholder="Ej: SOL-00123"
+              placeholder="Ej: 40"
               value={numeroFiltro}
               onChange={setNumeroFiltro}
               suggestions={numeroSugerencias}
               onEnter={() => buscar()}
             />
+            <FilterField label="Tipo de Solicitud">
+              <select
+                value={tipoSolicitudFiltro}
+                onChange={(event) => setTipoSolicitudFiltro(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                <option value="NUEVO">Cliente Nuevo</option>
+                <option value="AMPLIACION">Ampliación de Cupo</option>
+              </select>
+            </FilterField>
             <FilterActions className="col-span-full">
               <button
                 onClick={() => buscar()}
                 disabled={loadingSolicitudes}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Buscar
               </button>
             </FilterActions>
@@ -493,136 +415,106 @@ export default function GestionOficialCumplimientoPage() {
             <p className="text-gray-600">Cargando solicitudes...</p>
           </div>
         ) : !hasSearched ? (
-          <EmptyStateCard
-            icon={PackageOpen}
-            title="Presiona Buscar para cargar tus solicitudes pendientes."
-          />
+          <EmptyStateCard icon={PackageOpen} title="Presiona Buscar para cargar tus solicitudes pendientes." />
         ) : solicitudes.length === 0 ? (
           <EmptyStateCard icon={PackageOpen} title="No se encontraron solicitudes." />
         ) : (
           <>
             <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-              <ResultsToolbar
-                count={solicitudes.length}
-                onExport={exportarExcel}
-              />
+              <ResultsToolbar count={solicitudes.length} onExport={exportarExcel} />
               <TableContainer>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <Th>Numero Solicitud</Th>
-                      {/* <Th>Centro de Operacion</Th> */}
-                      <Th>Cliente</Th>
-                      <Th>Estado</Th>
-                      <Th>Etapa Actual</Th>
-                      <Th>Resultado Etapa</Th>
-                      <Th>Ver Formulario</Th>
-                      <Th>Consumo Proyectado (COP)</Th>
-                      <Th>Observaciones Ejecutivo</Th>
-                      <Th>Fecha de Envío</Th>
-                      <Th>Fecha Gestión Auxiliar</Th>
-                      <Th>Fecha Estimada Respuesta</Th>
-                      <Th>Dias Faltantes</Th>
-                      <Th sticky align="right">
-                        Acción
-                      </Th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {solicitudesActuales.map((solicitud) => {
-                      const fechaEstimada =
-                        (solicitud as any)
-                          .sol_fecha_estimada_oficial_cumplimiento ||
-                        solicitud.fecha_estimada_respuesta_comercial;
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <Th>Numero Solicitud</Th>
+                        <Th>Tipo</Th>
+                        {/* <Th>Centro de Operacion</Th> */}
+                        <Th>Cliente</Th>
+                        <Th>Estado</Th>
+                        <Th>Etapa Actual</Th>
+                        <Th>Resultado Etapa</Th>
+                        <Th>Ver Formulario</Th>
+                        <Th>Consumo Proyectado (COP)</Th>
+                        <Th>Observaciones Ejecutivo</Th>
+                        <Th>Fecha de Envío</Th>
+                        <Th>Fecha Gestión Auxiliar</Th>
+                        <Th>Fecha Estimada Respuesta</Th>
+                        <Th>Dias Faltantes</Th>
+                        <Th sticky align="right">
+                          Acción
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {solicitudesActuales.map((solicitud) => {
+                        const fechaEstimada =
+                          (solicitud as any).sol_fecha_estimada_oficial_cumplimiento ||
+                          solicitud.fecha_estimada_respuesta_comercial;
 
-                      return (
-                        <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
-                          <Td className="whitespace-nowrap font-medium text-blue-600">
-                            {solicitud.sol_numero_solicitud ||
-                              solicitud.numero_solicitud}
-                          </Td>
-                          {/* <Td className="whitespace-nowrap">
+                        return (
+                          <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
+                            <Td className="whitespace-nowrap font-medium text-blue-600">
+                              {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                            </Td>
+                            <Td className="whitespace-nowrap">
+                              <TipoSolicitudBadge esAmpliacionCupo={solicitud.es_ampliacion_cupo} />
+                            </Td>
+                            {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}
                           </Td> */}
-                          <Td className="whitespace-nowrap">
-                            {solicitud.cliente_nombre}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
-                                solicitud.sol_estado_id ?? solicitud.estado_id,
-                              )}`}
-                            >
-                              {ESTADOS[
-                                solicitud.sol_estado_id ?? solicitud.estado_id
-                              ] || "Desconocido"}
-                            </span>
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.etapa_nombre || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.resultado_nombre || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap font-medium">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`,
-                                )
-                              }
-                              className="text-blue-600 hover:text-blue-800 transition-colors"
-                            >
-                              Ver formulario
-                            </button>
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.consumo_mensual_proyectado
-                              ? `$${solicitud.consumo_mensual_proyectado.toLocaleString(
-                                  "es-CO",
-                                  {
+                            <Td className="whitespace-nowrap">{solicitud.cliente_nombre}</Td>
+                            <Td className="whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
+                                  solicitud.sol_estado_id ?? solicitud.estado_id,
+                                )}`}>
+                                {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] || "Desconocido"}
+                              </span>
+                            </Td>
+                            <Td className="whitespace-nowrap">{solicitud.etapa_nombre || "-"}</Td>
+                            <Td className="whitespace-nowrap">{solicitud.resultado_nombre || "-"}</Td>
+                            <Td className="whitespace-nowrap font-medium">
+                              <button
+                                onClick={() => router.push(`/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}`)}
+                                className="text-blue-600 hover:text-blue-800 transition-colors">
+                                Ver formulario
+                              </button>
+                            </Td>
+                            <Td className="whitespace-nowrap">
+                              {solicitud.consumo_mensual_proyectado
+                                ? `$${solicitud.consumo_mensual_proyectado.toLocaleString("es-CO", {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
-                                  },
-                                )}`
-                              : "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.observacionesComercial || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {formatDateTime(solicitud.sol_fecha_envio)}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {formatDateTime(
-                              solicitud.sol_fecha_real_auxiliar_servicio_cliente,
-                            )}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {formatDate(fechaEstimada)}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            <DiasRestantesBadge fecha={fechaEstimada} />
-                          </Td>
-                          <Td sticky align="right" className="whitespace-nowrap font-medium">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/solicitudes/gestion-oficial-de-cumplimiento/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
-                                )
-                              }
-                              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-                            >
-                              Gestionar
-                            </button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                  })}`
+                                : "-"}
+                            </Td>
+                            <Td className="whitespace-nowrap">{solicitud.observacionesComercial || "-"}</Td>
+                            <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_envio)}</Td>
+                            <Td className="whitespace-nowrap">
+                              {formatDateTime(solicitud.sol_fecha_real_auxiliar_servicio_cliente)}
+                            </Td>
+                            <Td className="whitespace-nowrap">{formatDate(fechaEstimada)}</Td>
+                            <Td className="whitespace-nowrap">
+                              <DiasRestantesBadge fecha={fechaEstimada} />
+                            </Td>
+                            <Td sticky align="right" className="whitespace-nowrap font-medium">
+                              <button
+                                onClick={() =>
+                                  router.push(
+                                    `/solicitudes/gestion-oficial-de-cumplimiento/${solicitud.sol_id ?? solicitud.sa_sol_id}/gestionar`,
+                                  )
+                                }
+                                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium">
+                                Gestionar
+                              </button>
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </TableContainer>
 
               <TablePagination
@@ -637,11 +529,7 @@ export default function GestionOficialCumplimientoPage() {
         )}
       </div>
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

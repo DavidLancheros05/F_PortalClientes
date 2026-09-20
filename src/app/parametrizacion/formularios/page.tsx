@@ -2,20 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  FileText,
-  History,
-  CheckCircle,
-  Eye,
-  Search,
-  RefreshCw,
-  X,
-  Trash2,
-} from "lucide-react";
-import {
-  formulariosService,
-  type Formulario,
-} from "@/services/parametrizacion/formularios.service";
+import { FileText, History, CheckCircle, Eye, Search, RefreshCw, X, Trash2 } from "lucide-react";
+import { formulariosService, type Formulario } from "@/services/parametrizacion/formularios.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
@@ -24,16 +12,11 @@ import { ConfirmModal, ErrorModal } from "@/components/modals";
 export default function FormulariosPage() {
   const router = useRouter();
   const [formularios, setFormularios] = useState<Formulario[]>([]);
-  const [formulariosFiltrados, setFormulariosFiltrados] = useState<
-    Formulario[]
-  >([]);
+  const [formulariosFiltrados, setFormulariosFiltrados] = useState<Formulario[]>([]);
   const [filtroTexto, setFiltroTexto] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<
-    "TODOS" | "ACTIVO" | "INACTIVO"
-  >("TODOS");
+  const [filtroEstado, setFiltroEstado] = useState<"TODOS" | "ACTIVO" | "INACTIVO">("TODOS");
   const [loading, setLoading] = useState(true);
-  const [formularioAEliminar, setFormularioAEliminar] =
-    useState<Formulario | null>(null);
+  const [formularioAEliminar, setFormularioAEliminar] = useState<Formulario | null>(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -59,7 +42,6 @@ export default function FormulariosPage() {
     await cargarFormularios("", "TODOS");
   };
 
-
   const eliminarFormulario = (formulario: Formulario) => {
     setFormularioAEliminar(formulario);
   };
@@ -72,9 +54,7 @@ export default function FormulariosPage() {
       setFormularioAEliminar(null);
       await cargarFormularios();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Error eliminando formulario",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Error eliminando formulario");
       setFormularioAEliminar(null);
     } finally {
       setEliminando(false);
@@ -90,8 +70,7 @@ export default function FormulariosPage() {
           icon={FileText}
           eyebrow="Parametrización"
           title="Formularios"
-          subtitle="Administra formularios, versiones y edición de contenido"
-        >
+          subtitle="Administra formularios, versiones y edición de contenido">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <FilterField label="Buscar formulario" className="md:col-span-2">
               <input
@@ -106,13 +85,8 @@ export default function FormulariosPage() {
             <FilterField label="Estado">
               <select
                 value={filtroEstado}
-                onChange={(e) =>
-                  setFiltroEstado(
-                    e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
-                  )
-                }
-                className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
+                onChange={(e) => setFiltroEstado(e.target.value as "TODOS" | "ACTIVO" | "INACTIVO")}
+                className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="TODOS">Todos</option>
                 <option value="ACTIVO">Activos</option>
                 <option value="INACTIVO">Inactivos</option>
@@ -122,15 +96,13 @@ export default function FormulariosPage() {
             <FilterActions className="col-span-full">
               <button
                 onClick={limpiarFiltros}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-              >
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white">
                 <X className="h-4 w-4" />
                 Limpiar
               </button>
               <button
                 onClick={buscarFormularios}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
-              >
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors">
                 <Search className="h-4 w-4" />
                 Buscar
               </button>
@@ -138,129 +110,104 @@ export default function FormulariosPage() {
           </div>
         </PageHeaderCard>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base md:text-lg font-semibold text-slate-800">
-                    Formularios registrados
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {total} formulario{total !== 1 ? "s" : ""} en el sistema
-                  </p>
-                </div>
-                <button
-                  onClick={() => cargarFormularios()}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Actualizar
-                </button>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base md:text-lg font-semibold text-slate-800">Formularios registrados</h2>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {total} formulario{total !== 1 ? "s" : ""} en el sistema
+                </p>
               </div>
-            </div>
-
-            <div className="p-4 md:p-6">
-              {loading ? (
-                <div className="grid gap-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-pulse"
-                    >
-                      <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
-                      <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
-                      <div className="h-3 bg-gray-100 rounded w-1/2" />
-                    </div>
-                  ))}
-                </div>
-              ) : formulariosFiltrados.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">
-                    No hay resultados para los filtros aplicados
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {formulariosFiltrados.map((formulario) => (
-                    <div
-                      key={formulario.frm_id}
-                      className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6 hover:shadow-xl transition"
-                    >
-                      <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-3 mb-2">
-                            <FileText className="h-5 w-5 text-brand-600" />
-                            <h3 className="text-lg md:text-xl font-semibold text-gray-800">
-                              {formulario.frm_nombre}
-                            </h3>
-                            {formulario.frm_activo ? (
-                              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
-                                <CheckCircle className="h-4 w-4" />
-                                Activo
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                                Inactivo
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-600 mb-3">
-                            {formulario.frm_descripcion || "Sin descripción"}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                            <span>
-                              Versión actual: v{formulario.formulario_version}
-                            </span>
-                            <span>•</span>
-                            <span>
-                              {formulario.Formulario_versiones_totales}{" "}
-                              versiones totales
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <button
-                            onClick={() =>
-                              router.push(
-                                `/parametrizacion/formularios/${formulario.frm_id}/versiones`,
-                              )
-                            }
-                            className="inline-flex min-w-[104px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-                            title="Gestionar versiones"
-                          >
-                            <History className="h-4 w-4" />
-                            Gestionar versiones
-                          </button>
-                          <button
-                            onClick={() =>
-                              router.push(
-                                `/parametrizacion/formulario-editor?formulario_id=${formulario.frm_id}&version=${formulario.formulario_version}&readonly=true`,
-                              )
-                            }
-                            className="inline-flex min-w-[92px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-                            title="Vista previa del formulario"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Vista previa
-                          </button>
-                          <button
-                            onClick={() => eliminarFormulario(formulario)}
-                            className="inline-flex min-w-[96px] items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
-                            title="Eliminar formulario"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Eliminar
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <button
+                onClick={() => cargarFormularios()}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300">
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </button>
             </div>
           </div>
+
+          <div className="p-4 md:p-6">
+            {loading ? (
+              <div className="grid gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-pulse">
+                    <div className="h-5 bg-gray-200 rounded w-1/3 mb-3" />
+                    <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : formulariosFiltrados.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600">No hay resultados para los filtros aplicados</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {formulariosFiltrados.map((formulario) => (
+                  <div
+                    key={formulario.frm_id}
+                    className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6 hover:shadow-xl transition">
+                    <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                          <FileText className="h-5 w-5 text-brand-600" />
+                          <h3 className="text-lg md:text-xl font-semibold text-gray-800">{formulario.frm_nombre}</h3>
+                          {formulario.frm_activo ? (
+                            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                              <CheckCircle className="h-4 w-4" />
+                              Activo
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                              Inactivo
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 mb-3">{formulario.frm_descripcion || "Sin descripción"}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                          <span>Versión actual: v{formulario.formulario_version}</span>
+                          <span>•</span>
+                          <span>{formulario.Formulario_versiones_totales} versiones totales</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          onClick={() => router.push(`/parametrizacion/formularios/${formulario.frm_id}/versiones`)}
+                          className="inline-flex min-w-[104px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                          title="Gestionar versiones">
+                          <History className="h-4 w-4" />
+                          Gestionar versiones
+                        </button>
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/parametrizacion/formulario-editor?frm_id=${formulario.frm_id}&version=${formulario.formulario_version}&readonly=true`,
+                            )
+                          }
+                          className="inline-flex min-w-[92px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                          title="Vista previa del formulario">
+                          <Eye className="h-4 w-4" />
+                          Vista previa
+                        </button>
+                        <button
+                          onClick={() => eliminarFormulario(formulario)}
+                          className="inline-flex min-w-[96px] items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+                          title="Eliminar formulario">
+                          <Trash2 className="h-4 w-4" />
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <ConfirmModal
@@ -274,11 +221,7 @@ export default function FormulariosPage() {
         onCancel={() => setFormularioAEliminar(null)}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

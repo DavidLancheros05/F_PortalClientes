@@ -33,16 +33,12 @@ export default function NuevoFormularioPage() {
       const nuevoId = Number(data?.frm_id);
       if (!Number.isFinite(nuevoId) || nuevoId <= 0) {
         setShowConfirmModal(false);
-        setErrorMessage(
-          "Se creó el formulario, pero no fue posible abrir el editor",
-        );
+        setErrorMessage("Se creó el formulario, pero no fue posible abrir el editor");
         router.push("/parametrizacion/formularios");
         return;
       }
 
-      router.replace(
-        `/parametrizacion/formulario-editor?formulario_id=${nuevoId}&version=1`,
-      );
+      router.replace(`/parametrizacion/formulario-editor?frm_id=${nuevoId}&version=1`);
     } catch (error: any) {
       console.error("Error creando formulario:", error);
       setShowConfirmModal(false);
@@ -59,16 +55,13 @@ export default function NuevoFormularioPage() {
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
             <button
               onClick={() => router.push("/parametrizacion/formularios")}
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-            >
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4">
               <ArrowLeft className="h-4 w-4" />
               Volver
             </button>
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-3">
-              <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">
-                Nuevo formulario
-              </p>
+              <p className="text-2xl md:text-3xl font-bold text-blue-800 leading-tight">Nuevo formulario</p>
               <button
                 onClick={iniciarCreacion}
                 disabled={submitting || !nombre.trim()}
@@ -76,8 +69,7 @@ export default function NuevoFormularioPage() {
                   submitting || !nombre.trim()
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "text-white bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
+                }`}>
                 {submitting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -96,9 +88,7 @@ export default function NuevoFormularioPage() {
 
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nombre del formulario
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del formulario</label>
                 <input
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
@@ -108,9 +98,7 @@ export default function NuevoFormularioPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Descripción
-                </label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
                 <textarea
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
@@ -127,8 +115,7 @@ export default function NuevoFormularioPage() {
                   submitting || !nombre.trim()
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "text-white bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
+                }`}>
                 <Plus className="h-4 w-4" />
                 {submitting ? "Creando..." : "Crear formulario"}
               </button>
@@ -148,11 +135,7 @@ export default function NuevoFormularioPage() {
         onCancel={() => setShowConfirmModal(false)}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage}
-        onAction={() => setErrorMessage("")}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage} onAction={() => setErrorMessage("")} />
     </div>
   );
 }

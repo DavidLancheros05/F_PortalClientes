@@ -2,6 +2,12 @@
 
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   indicadoresService,
   type DashboardData,
@@ -44,7 +50,7 @@ function KpiCard({
   color: string;
 }) {
   const colors: Record<string, { bg: string; text: string; icon: string }> = {
-    blue: { bg: "bg-blue-50", text: "text-blue-700", icon: "text-blue-500" },
+    blue: { bg: "bg-brand-600/5", text: "text-brand-700", icon: "text-brand-600" },
     green: {
       bg: "bg-green-50",
       text: "text-green-700",
@@ -188,7 +194,7 @@ function DetalleModal({
         <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin" />
             </div>
           ) : filtradas.length === 0 ? (
             <div className="text-center py-12 text-gray-400 text-sm">
@@ -198,59 +204,39 @@ function DetalleModal({
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    N° Solicitud
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Razón social
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
-                    F. envío
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
-                    F. estimada
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
-                    F. real
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Días reales
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Desvío
-                  </th>
+                  <Th>N° Solicitud</Th>
+                  <Th>Razón social</Th>
+                  <Th align="center">F. envío</Th>
+                  <Th align="center">F. estimada</Th>
+                  <Th align="center">F. real</Th>
+                  <Th align="center">Días reales</Th>
+                  <Th align="center">Desvío</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtradas.map((s) => (
-                  <tr
+                  <Tr
                     key={s.sol_id}
-                    className={`hover:bg-gray-50 transition-colors ${
-                      s.estado === "vencida" ? "bg-red-50/30" : ""
-                    }`}
+                    className={s.estado === "vencida" ? "bg-red-50/30" : ""}
                   >
-                    <td className="px-4 py-3 text-sm font-medium text-blue-700">
+                    <Td className="font-medium text-brand-600">
                       {s.numero_solicitud}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate">
+                    </Td>
+                    <Td className="max-w-[200px] truncate">
                       {s.razon_social || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 text-center">
-                      {s.fecha_envio}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 text-center">
-                      {s.fecha_estimada}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 text-center font-medium">
+                    </Td>
+                    <Td align="center">{s.fecha_envio}</Td>
+                    <Td align="center">{s.fecha_estimada}</Td>
+                    <Td align="center" className="font-medium">
                       {s.fecha_real}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-blue-600 text-center">
+                    </Td>
+                    <Td align="center" className="text-brand-600">
                       {s.dias_reales} d
-                    </td>
-                    <td className="px-4 py-3 text-center">
+                    </Td>
+                    <Td align="center">
                       <DiferenciaBadge diferencia={s.diferencia} />
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))}
               </tbody>
             </table>
@@ -288,13 +274,13 @@ export default function IndicadoresPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading]);
 
-  async function buscar() {
+  async function buscar(desde: string = fechaDesde, hasta: string = fechaHasta) {
     setLoading(true);
     setError(null);
     try {
       const params: Record<string, string> = {};
-      if (fechaDesde) params.fecha_desde = fechaDesde;
-      if (fechaHasta) params.fecha_hasta = fechaHasta;
+      if (desde) params.fecha_desde = desde;
+      if (hasta) params.fecha_hasta = hasta;
       const res = await indicadoresService.getDashboard(params);
       setData(res);
       setHasSearched(true);
@@ -303,6 +289,12 @@ export default function IndicadoresPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function limpiarFiltros() {
+    setFechaDesde("");
+    setFechaHasta("");
+    buscar("", "");
   }
 
   const chartAreaData =
@@ -331,69 +323,64 @@ export default function IndicadoresPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-xl">
-            <BarChart2 className="w-6 h-6 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Dashboard de Indicadores
-            </h1>
-            <p className="text-sm text-gray-500">
-              Tiempos de respuesta y cumplimiento por área
-            </p>
-          </div>
-        </div>
-
-        {/* Filtros */}
-        <div className="bg-white rounded-2xl shadow-sm border p-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Fecha desde
-              </label>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={BarChart2}
+          eyebrow="Indicadores"
+          title="Dashboard de Indicadores"
+          subtitle="Tiempos de respuesta y cumplimiento por área"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FilterField label="Fecha desde">
               <input
                 type="date"
                 value={fechaDesde}
                 onChange={(e) => setFechaDesde(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Fecha hasta
-              </label>
+            </FilterField>
+            <FilterField label="Fecha hasta">
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={(e) => setFechaHasta(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <button
-              onClick={buscar}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              <Search className="w-4 h-4" />
-              {loading ? "Consultando..." : "Consultar"}
-            </button>
-          </div>
-        </div>
+            </FilterField>
 
+            <FilterActions className="col-span-full">
+              <button
+                onClick={() => buscar()}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Search className="w-4 h-4" />
+                {loading ? "Buscando..." : "Buscar"}
+              </button>
+              <button
+                onClick={limpiarFiltros}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+            </FilterActions>
+          </div>
+        </PageHeaderCard>
+
+        <div className="space-y-6 mt-4">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-700">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {loading && (
           <div className="flex justify-center py-12">
-            <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin" />
           </div>
         )}
 
@@ -549,58 +536,42 @@ export default function IndicadoresPage() {
                 <table className="min-w-full divide-y divide-gray-100">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Área
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Total
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        A tiempo
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Vencidas
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Días prom. real
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Días prom. meta
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Cumplimiento
-                      </th>
-                      <th className="px-4 py-3 w-8" />
+                      <Th>Área</Th>
+                      <Th align="right">Total</Th>
+                      <Th align="right">A tiempo</Th>
+                      <Th align="right">Vencidas</Th>
+                      <Th align="right">Días prom. real</Th>
+                      <Th align="right">Días prom. meta</Th>
+                      <Th>Cumplimiento</Th>
+                      <Th className="w-8" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {data.por_area
                       .filter((a) => a.total > 0)
                       .map((a: AreaKPI) => (
-                        <tr
+                        <Tr
                           key={a.area}
                           onClick={() => setAreaDetalle(a)}
-                          className="hover:bg-blue-50 cursor-pointer transition-colors"
+                          className="hover:bg-brand-600/5 cursor-pointer"
                         >
-                          <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                          <Td className="font-medium text-gray-800">
                             {a.label}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700 text-right">
-                            {a.total}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-green-600 text-right font-medium">
+                          </Td>
+                          <Td align="right">{a.total}</Td>
+                          <Td align="right" className="text-green-600 font-medium">
                             {a.a_tiempo}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-red-500 text-right font-medium">
+                          </Td>
+                          <Td align="right" className="text-red-500 font-medium">
                             {a.vencidas}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-blue-600 text-right">
+                          </Td>
+                          <Td align="right" className="text-brand-600">
                             {a.dias_promedio_real} d
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500 text-right">
+                          </Td>
+                          <Td align="right">
                             {a.dias_promedio_estimado} d
-                          </td>
-                          <td className="px-4 py-3 w-36">
+                          </Td>
+                          <Td className="w-36">
                             <div className="flex items-center gap-2">
                               <span
                                 className={`text-sm font-semibold ${
@@ -626,21 +597,22 @@ export default function IndicadoresPage() {
                                 />
                               </div>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-gray-400">
+                          </Td>
+                          <Td className="text-gray-400">
                             <ChevronRight className="w-4 h-4" />
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       ))}
                     {data.por_area.filter((a) => a.total > 0).length === 0 && (
                       <tr>
-                        <td
+                        <Td
                           colSpan={8}
-                          className="px-4 py-8 text-center text-gray-400 text-sm"
+                          align="center"
+                          className="text-gray-400"
                         >
                           No hay solicitudes procesadas en el período
                           seleccionado
-                        </td>
+                        </Td>
                       </tr>
                     )}
                   </tbody>
@@ -651,14 +623,12 @@ export default function IndicadoresPage() {
         )}
 
         {!loading && !hasSearched && (
-          <div className="bg-white rounded-2xl shadow-sm border p-12 text-center text-gray-400">
-            <BarChart2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p>
-              Aplica los filtros y presiona <strong>Consultar</strong> para ver
-              los indicadores
-            </p>
-          </div>
+          <EmptyStateCard
+            icon={BarChart2}
+            title="Aplica los filtros y presiona Buscar para ver los indicadores"
+          />
         )}
+        </div>
       </div>
 
       {/* Modal de detalle */}

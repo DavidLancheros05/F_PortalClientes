@@ -27,20 +27,10 @@ import type {
 import { useContext, useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
-import {
-  ConfirmModal,
-  ErrorModal,
-  LoadingModal,
-  SuccessModal,
-} from "@/components/modals";
+import { ConfirmModal, ErrorModal, LoadingModal, SuccessModal } from "@/components/modals";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { clienteArchivoService } from "@/services/cliente-archivo.service";
-import {
-  maestrosService,
-  type Pais,
-  type Departamento,
-  type Ciudad,
-} from "@/services/maestros/maestros.service";
+import { maestrosService, type Pais, type Departamento, type Ciudad } from "@/services/maestros/maestros.service";
 import { TIPOS_PREGUNTA, type TipoPregunta } from "@/constants/tipos-pregunta";
 import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
 import {
@@ -57,6 +47,7 @@ export default function SolicitudFormContent({
   readOnly = false,
   returnTo,
   clienteId: clienteIdProp,
+  ultimaSolicitud: ultimaSolicitudPrefetched,
 }: SolicitudFormContentProps) {
   const router = useRouter();
   const { user, loading: authLoading } = useContext(AuthContext);
@@ -65,9 +56,7 @@ export default function SolicitudFormContent({
   // (page.tsx) o, si no hay uno, el propio cliente logueado.
   const clienteIdEfectivo = clienteIdProp ?? user?.cliente_id ?? null;
 
-  const [seccionSeleccionada, setSeccionSeleccionada] = useState<number | null>(
-    null,
-  );
+  const [seccionSeleccionada, setSeccionSeleccionada] = useState<number | null>(null);
 
   const [isSavingBorrador, setIsSavingBorrador] = useState(false);
   const [isSavingFinal, setIsSavingFinal] = useState(false);
@@ -82,26 +71,17 @@ export default function SolicitudFormContent({
   // solicitud", que se auto-redirige a los pocos segundos (no puede
   // depender de que el usuario haga clic en "Aceptar"). Este es solo para
   // el modal de éxito de "Guardar Borrador", que sí espera confirmación.
-  const [borradorGuardadoMessage, setBorradorGuardadoMessage] =
-    useState<string>("");
+  const [borradorGuardadoMessage, setBorradorGuardadoMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [archivosExistentes, setArchivosExistentes] = useState<
-    Record<number, any>
-  >({});
-  const [documentosCatalogoMap, setDocumentosCatalogoMap] = useState<
-    Record<number, DocumentoCatalogo>
-  >({});
+  const [archivosExistentes, setArchivosExistentes] = useState<Record<number, any>>({});
+  const [documentosCatalogoMap, setDocumentosCatalogoMap] = useState<Record<number, DocumentoCatalogo>>({});
   // Documentos que el cliente ya tiene en su archivo consolidado
   // (Cliente_archivo), indexados por tdo_id — ofrecidos para reutilizar en
   // vez de volver a subirlos (ver DocumentoTablaField). Solo tiene sentido
   // en una solicitud nueva: si ya se está editando una, archivosExistentes
   // ya refleja lo que esa solicitud tiene guardado.
-  const [documentosClienteMap, setDocumentosClienteMap] = useState<
-    Record<number, any>
-  >({});
-  const [estadoIdSolicitud, setEstadoIdSolicitud] = useState<number | null>(
-    null,
-  );
+  const [documentosClienteMap, setDocumentosClienteMap] = useState<Record<number, any>>({});
+  const [estadoIdSolicitud, setEstadoIdSolicitud] = useState<number | null>(null);
   const isGuardandoRef = useRef(false);
   const lastSavedResponses = useRef<any>({});
   const [showConfirmGuardar, setShowConfirmGuardar] = useState(false);
@@ -114,9 +94,7 @@ export default function SolicitudFormContent({
   const [paises, setPaises] = useState<Pais[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
-  const [formularioVersionObjetivo, setFormularioVersionObjetivo] = useState<
-    number | null
-  >(null);
+  const [formularioVersionObjetivo, setFormularioVersionObjetivo] = useState<number | null>(null);
   const {
     preguntas,
     paises: paisesFromHook,
@@ -126,14 +104,12 @@ export default function SolicitudFormContent({
   } = usePreguntasFormulario({
     solicitudId,
     formularioVersionObjetivo,
-    setFormularioVersionObjetivo: (version) =>
-      setFormularioVersionObjetivo(version),
+    setFormularioVersionObjetivo: (version) => setFormularioVersionObjetivo(version),
   });
   const [numeroSolicitud, setNumeroSolicitud] = useState<string | null>(null);
-  const { respuestas, setRespuestas, handleInputChange } =
-    useRespuestasFormulario({
-      preguntas,
-    });
+  const { respuestas, setRespuestas, handleInputChange } = useRespuestasFormulario({
+    preguntas,
+  });
   // Catálogos de preguntas SELECT_TABLA cuyas opciones dependen de la
   // respuesta de otra pregunta (ej. "Condición de Pago" solo debe listar
   // condiciones de crédito si "¿Solicitud de Crédito?" = Si) — configurado
@@ -177,14 +153,8 @@ export default function SolicitudFormContent({
     // PRINCIPAL...", "Tabla represéntate legal" (sic), etc.) — no matchea
     // la tabla de suplentes porque esa no dice "legal".
     const preguntaRepLegal =
-      preguntas.find(
-        (p) => p.fp_tipo === "TABLA" && p.fp_codigo === "REP_LEGAL_TABLA",
-      ) ||
-      preguntas.find(
-        (p) =>
-          p.fp_tipo === "TABLA" &&
-          /repres.*legal/i.test(p.fp_descripcion || ""),
-      );
+      preguntas.find((p) => p.fp_tipo === "TABLA" && p.fp_codigo === "REP_LEGAL_TABLA") ||
+      preguntas.find((p) => p.fp_tipo === "TABLA" && /repres.*legal/i.test(p.fp_descripcion || ""));
     if (!preguntaRepLegal) return null;
 
     const valorTexto = respuestas[preguntaRepLegal.fp_id]?.valor_texto;
@@ -194,10 +164,8 @@ export default function SolicitudFormContent({
       const filas = JSON.parse(valorTexto);
       if (!Array.isArray(filas) || filas.length === 0) return null;
       const principal = filas[0] as Record<string, string>;
-      const nombre =
-        principal["Apellidos y Nombre"] || principal["Nombre"] || "";
-      const identificacion =
-        principal["Identificacion"] || principal["Identificación"] || "";
+      const nombre = principal["Apellidos y Nombre"] || principal["Nombre"] || "";
+      const identificacion = principal["Identificacion"] || principal["Identificación"] || "";
       if (!nombre && !identificacion) return null;
       return { nombre, identificacion };
     } catch {
@@ -218,6 +186,7 @@ export default function SolicitudFormContent({
   } = useUltimaSolicitud({
     clienteId: clienteIdEfectivo,
     enabled: !solicitudId && !!clienteIdEfectivo,
+    prefetched: ultimaSolicitudPrefetched,
   });
 
   // Candidato a "Ampliación de Cupo" y fuente de precarga: la última
@@ -286,9 +255,7 @@ export default function SolicitudFormContent({
           // que ClienteArchivoService.tieneDocumentosVencidos en el
           // backend. Sin fecha de vencimiento (documento sin regla de
           // vigencia) siempre se puede reutilizar.
-          const vencimiento = doc.ca_fecha_vencimiento
-            ? new Date(doc.ca_fecha_vencimiento)
-            : null;
+          const vencimiento = doc.ca_fecha_vencimiento ? new Date(doc.ca_fecha_vencimiento) : null;
           if (vencimiento && vencimiento < hoy) {
             return;
           }
@@ -316,15 +283,10 @@ export default function SolicitudFormContent({
 
   // Aplicar respuestas precargadas basadas en configuración
   useEffect(() => {
-    const respuestasCount = respuestasPrecargadas
-      ? Object.keys(respuestasPrecargadas).length
-      : 0;
+    const respuestasCount = respuestasPrecargadas ? Object.keys(respuestasPrecargadas).length : 0;
     // console.log(`[🔵 EFECTO] Precarga de respuestas - count=${respuestasCount}`);
 
-    if (
-      !respuestasPrecargadas ||
-      Object.keys(respuestasPrecargadas).length === 0
-    ) {
+    if (!respuestasPrecargadas || Object.keys(respuestasPrecargadas).length === 0) {
       // console.log(`[⚪ EFECTO] Sin respuestas precargadas`);
       return;
     }
@@ -355,21 +317,15 @@ export default function SolicitudFormContent({
       return;
     }
 
-    const tipoSolicitudPregunta = preguntas.find(
-      (p) => p.fp_codigo === "TIPO_SOLICITUD",
-    );
+    const tipoSolicitudPregunta = preguntas.find((p) => p.fp_codigo === "TIPO_SOLICITUD");
     if (!tipoSolicitudPregunta) {
       console.log(`[⚠️ EFECTO] No encontrada pregunta con fp_codigo=TIPO_SOLICITUD`);
       return;
     }
 
-    const opciones = Array.isArray(tipoSolicitudPregunta.opciones)
-      ? tipoSolicitudPregunta.opciones
-      : [];
+    const opciones = Array.isArray(tipoSolicitudPregunta.opciones) ? tipoSolicitudPregunta.opciones : [];
 
-    const clienteNuevoOpcion = opciones.find((o) =>
-      o.op_descripcion?.toLowerCase().includes("cliente nuevo"),
-    );
+    const clienteNuevoOpcion = opciones.find((o) => o.op_descripcion?.toLowerCase().includes("cliente nuevo"));
     const ampliacionCupoOpcion = opciones.find(
       (o) =>
         o.op_descripcion?.toLowerCase().includes("ampliación") ||
@@ -381,9 +337,7 @@ export default function SolicitudFormContent({
     }
 
     // REGLA: Si tiene solicitudes previas → "Ampliación de cupo", sino → "Cliente Nuevo"
-    const opcionAUsar = tieneSolicitudesPrevias
-      ? ampliacionCupoOpcion
-      : clienteNuevoOpcion;
+    const opcionAUsar = tieneSolicitudesPrevias ? ampliacionCupoOpcion : clienteNuevoOpcion;
 
     if (!opcionAUsar) {
       return;
@@ -415,9 +369,7 @@ export default function SolicitudFormContent({
   useEffect(() => {
     if (solicitudId) return;
 
-    const preguntasFechaActual = preguntas.filter(
-      (p) => p.fp_tipo === "FECHA" && p.fp_subtipo === "ACTUAL",
-    );
+    const preguntasFechaActual = preguntas.filter((p) => p.fp_tipo === "FECHA" && p.fp_subtipo === "ACTUAL");
     if (preguntasFechaActual.length === 0) return;
 
     const hoy = new Date().toISOString().split("T")[0];
@@ -452,15 +404,10 @@ export default function SolicitudFormContent({
     [fechaHoraActual],
   );
 
-  const getApiErrorMessage = (
-    err: any,
-    fallbackMessage: string,
-    conflictMessage?: string,
-  ) => {
+  const getApiErrorMessage = (err: any, fallbackMessage: string, conflictMessage?: string) => {
     const status = err?.response?.status;
     if (status === 409) {
-      const apiConflictMessage =
-        err?.response?.data?.error || err?.response?.data?.message;
+      const apiConflictMessage = err?.response?.data?.error || err?.response?.data?.message;
       if (typeof apiConflictMessage === "string" && apiConflictMessage.trim()) {
         if (apiConflictMessage.toLowerCase().includes("archivo activo")) {
           return "Ya hay un archivo cargado para este documento. Usa Reemplazar o Eliminar antes de subir otro.";
@@ -483,8 +430,7 @@ export default function SolicitudFormContent({
     );
   };
 
-  const getArchivoPreviewUrl = (archivo: any): string | null =>
-    getArchivoPreviewUrlUtil(archivo, solicitudId);
+  const getArchivoPreviewUrl = (archivo: any): string | null => getArchivoPreviewUrlUtil(archivo, solicitudId);
 
   // Agrupar preguntas por sección
   const secciones: Seccion[] = useMemo(() => {
@@ -496,8 +442,7 @@ export default function SolicitudFormContent({
         if (!seccionesMap.has(pregunta.seccion_id)) {
           seccionesMap.set(pregunta.seccion_id, {
             seccion_id: pregunta.seccion_id,
-            seccion_nombre:
-              pregunta.seccion_nombre || `Sección ${pregunta.seccion_id}`,
+            seccion_nombre: pregunta.seccion_nombre || `Sección ${pregunta.seccion_id}`,
             seccion_descripcion: pregunta.seccion_descripcion,
             seccion_orden: pregunta.seccion_orden || 999,
             preguntas: [],
@@ -509,9 +454,7 @@ export default function SolicitudFormContent({
       }
     });
 
-    return Array.from(seccionesMap.values()).sort(
-      (a, b) => a.seccion_orden - b.seccion_orden,
-    );
+    return Array.from(seccionesMap.values()).sort((a, b) => a.seccion_orden - b.seccion_orden);
   }, [preguntas]);
 
   const seccionActual = seccionSeleccionada
@@ -532,20 +475,15 @@ export default function SolicitudFormContent({
       return null;
     }
 
-    const documento = pregunta.fp_tipo_documento_id
-      ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
-      : null;
+    const documento = pregunta.fp_tipo_documento_id ? documentosCatalogoMap[pregunta.fp_tipo_documento_id] : null;
 
     if (!documento) {
       return opciones[0];
     }
 
     return (
-      opciones.find(
-        (opcion) =>
-          normalizarTexto(opcion.op_descripcion) ===
-          normalizarTexto(documento.tdo_nombre),
-      ) || opciones[0]
+      opciones.find((opcion) => normalizarTexto(opcion.op_descripcion) === normalizarTexto(documento.tdo_nombre)) ||
+      opciones[0]
     );
   };
 
@@ -554,18 +492,12 @@ export default function SolicitudFormContent({
       return null;
     }
     // Buscar en TODAS las preguntas, no solo en la sección actual
-    return (
-      preguntas.find(
-        (p) =>
-          p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
-      ) || null
-    );
+    return preguntas.find((p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id) || null;
   };
 
   const getNotaDisplay = (pregunta: FormularioPregunta) => {
     const descripcion = pregunta.fp_descripcion?.trim() || "";
-    const descripcionAdicional =
-      pregunta.fp_descripcion_adicional?.trim() || "";
+    const descripcionAdicional = pregunta.fp_descripcion_adicional?.trim() || "";
 
     if (!descripcion && !descripcionAdicional) {
       return { titulo: "Nota", subtitulo: "", cuerpo: "" };
@@ -587,8 +519,7 @@ export default function SolicitudFormContent({
   };
 
   const maestroPreguntaIds = useMemo(() => {
-    const normalizar = (texto?: string | null) =>
-      (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const normalizar = (texto?: string | null) => (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
     const esPreguntaSeleccion = (pregunta: FormularioPregunta) =>
       [
@@ -600,9 +531,7 @@ export default function SolicitudFormContent({
 
     const findByDescripcion = (patrones: RegExp[]) =>
       preguntas.find(
-        (p) =>
-          esPreguntaSeleccion(p) &&
-          patrones.some((patron) => patron.test(normalizar(p.fp_descripcion))),
+        (p) => esPreguntaSeleccion(p) && patrones.some((patron) => patron.test(normalizar(p.fp_descripcion))),
       )?.fp_id;
 
     // fp_codigo primero (estable entre versiones del formulario, no se
@@ -610,18 +539,11 @@ export default function SolicitudFormContent({
     // "ciudad" en el texto antes de esta sección) — el regex de texto
     // queda como respaldo para versiones viejas que no tengan estos
     // códigos asignados.
-    const findByCodigo = (codigo: string) =>
-      preguntas.find((p) => p.fp_codigo === codigo)?.fp_id;
+    const findByCodigo = (codigo: string) => preguntas.find((p) => p.fp_codigo === codigo)?.fp_id;
 
-    const paisId =
-      findByCodigo("AUTO_Q1154") ??
-      findByDescripcion([/\bpais\b/, /\bpais de residencia\b/]);
-    const departamentoId =
-      findByCodigo("AUTO_Q1155") ??
-      findByDescripcion([/\bdepartamento\b/, /\bestado\b/]);
-    const ciudadId =
-      findByCodigo("AUTO_Q1156") ??
-      findByDescripcion([/\bciudad\b/, /\bmunicipio\b/]);
+    const paisId = findByCodigo("AUTO_Q1154") ?? findByDescripcion([/\bpais\b/, /\bpais de residencia\b/]);
+    const departamentoId = findByCodigo("AUTO_Q1155") ?? findByDescripcion([/\bdepartamento\b/, /\bestado\b/]);
+    const ciudadId = findByCodigo("AUTO_Q1156") ?? findByDescripcion([/\bciudad\b/, /\bmunicipio\b/]);
 
     if (preguntas.length > 0) {
       const selectPreguntas = preguntas.filter(esPreguntaSeleccion);
@@ -639,19 +561,14 @@ export default function SolicitudFormContent({
     };
   }, [preguntas]);
 
-  const indiceSeccionActual = secciones.findIndex(
-    (s) => s.seccion_id === seccionSeleccionada,
-  );
+  const indiceSeccionActual = secciones.findIndex((s) => s.seccion_id === seccionSeleccionada);
   const isFirstSection = indiceSeccionActual === 0;
   const isLastSection = indiceSeccionActual === secciones.length - 1;
 
   // Obtener reglas de validación para una pregunta
   const getValidationRules = (pregunta: FormularioPregunta): ValidationRule => {
     const rules: ValidationRule = {
-      required: ![
-        TIPOS_PREGUNTA.NOTA,
-        TIPOS_PREGUNTA.FECHA_HORA_ACTUAL,
-      ].includes(pregunta.fp_tipo as any)
+      required: ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(pregunta.fp_tipo as any)
         ? (pregunta.fp_requerida ?? false)
         : false,
     };
@@ -690,11 +607,7 @@ export default function SolicitudFormContent({
       rules.type = "number";
       if (pregunta.fp_minimo !== undefined && pregunta.fp_minimo !== null) {
         rules.custom = (value) => {
-          if (
-            value !== undefined &&
-            value !== null &&
-            Number(value) < pregunta.fp_minimo!
-          ) {
+          if (value !== undefined && value !== null && Number(value) < pregunta.fp_minimo!) {
             return `El número debe ser mayor o igual a ${pregunta.fp_minimo}`;
           }
           return null;
@@ -707,11 +620,7 @@ export default function SolicitudFormContent({
             const minError = customMin(value);
             if (minError) return minError;
           }
-          if (
-            value !== undefined &&
-            value !== null &&
-            Number(value) > pregunta.fp_maximo!
-          ) {
+          if (value !== undefined && value !== null && Number(value) > pregunta.fp_maximo!) {
             return `El número debe ser menor o igual a ${pregunta.fp_maximo}`;
           }
           return null;
@@ -734,12 +643,7 @@ export default function SolicitudFormContent({
           const errorPrevio = customPrevio(value);
           if (errorPrevio) return errorPrevio;
         }
-        if (
-          value !== undefined &&
-          value !== null &&
-          value !== "" &&
-          Number(value) < cupoActualAprobado
-        ) {
+        if (value !== undefined && value !== null && value !== "" && Number(value) < cupoActualAprobado) {
           return `El nuevo cupo solicitado no puede ser menor al cupo actual ($${cupoActualAprobado.toLocaleString("es-CO")})`;
         }
         return null;
@@ -758,11 +662,7 @@ export default function SolicitudFormContent({
       error = "Este campo es obligatorio";
     }
 
-    if (
-      value !== undefined &&
-      value !== null &&
-      Object.values(value).some((v) => v)
-    ) {
+    if (value !== undefined && value !== null && Object.values(value).some((v) => v)) {
       if (rules.type === "number") {
         const numVal = value.valor_numero;
         if (isNaN(Number(numVal))) {
@@ -778,23 +678,16 @@ export default function SolicitudFormContent({
         }
       }
 
-      if (
-        rules.minLength &&
-        String(value.valor_texto).length < rules.minLength
-      ) {
+      if (rules.minLength && String(value.valor_texto).length < rules.minLength) {
         error = `Mínimo ${rules.minLength} caracteres`;
       }
 
-      if (
-        rules.maxLength &&
-        String(value.valor_texto).length > rules.maxLength
-      ) {
+      if (rules.maxLength && String(value.valor_texto).length > rules.maxLength) {
         error = `Máximo ${rules.maxLength} caracteres`;
       }
 
       if (rules.custom) {
-        const valToCheck =
-          value.valor_numero ?? value.valor_texto ?? value.valor_fecha;
+        const valToCheck = value.valor_numero ?? value.valor_texto ?? value.valor_fecha;
         error = rules.custom(valToCheck);
       }
     }
@@ -825,8 +718,7 @@ export default function SolicitudFormContent({
       const rules = getValidationRules(pregunta);
       let currentValue: string | number | null | undefined | number[] = null;
 
-      if (respuestas[pregunta.fp_id]?.valor_texto !== undefined)
-        currentValue = respuestas[pregunta.fp_id].valor_texto;
+      if (respuestas[pregunta.fp_id]?.valor_texto !== undefined) currentValue = respuestas[pregunta.fp_id].valor_texto;
       else if (respuestas[pregunta.fp_id]?.valor_numero !== undefined)
         currentValue = respuestas[pregunta.fp_id].valor_numero;
       else if (respuestas[pregunta.fp_id]?.valor_fecha !== undefined)
@@ -849,16 +741,11 @@ export default function SolicitudFormContent({
       }
 
       if (
-        (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO ||
-          pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN) &&
+        (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO || pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN) &&
         pregunta.fp_requerida
       ) {
-        const tieneArchivoNuevo = respuestaTieneArchivoNuevo(
-          respuestas[pregunta.fp_id],
-        );
-        const tieneArchivoExistente = Boolean(
-          archivosExistentes[pregunta.fp_id],
-        );
+        const tieneArchivoNuevo = respuestaTieneArchivoNuevo(respuestas[pregunta.fp_id]);
+        const tieneArchivoExistente = Boolean(archivosExistentes[pregunta.fp_id]);
 
         if (!tieneArchivoNuevo && !tieneArchivoExistente) {
           newErrors[pregunta.fp_id] = "Este campo es obligatorio";
@@ -867,16 +754,12 @@ export default function SolicitudFormContent({
       }
 
       if (pregunta.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA) {
-        const documento = pregunta.fp_tipo_documento_id
-          ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
-          : null;
+        const documento = pregunta.fp_tipo_documento_id ? documentosCatalogoMap[pregunta.fp_tipo_documento_id] : null;
         const requiereFecha = documentoRequiereFechaEmision(documento);
 
         if (requiereFecha) {
           const preguntaFechaHija = preguntas.find(
-            (p) =>
-              p.fp_tipo === "FECHA" &&
-              p.fp_pregunta_padre_id === pregunta.fp_id,
+            (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
           );
           const fechaEmision =
             archivosExistentes[pregunta.fp_id]?.sd_fecha_emision ||
@@ -885,18 +768,14 @@ export default function SolicitudFormContent({
               : respuestas[pregunta.fp_id]?.valor_fecha);
 
           if (!fechaEmision) {
-            newErrors[pregunta.fp_id] =
-              "Debes indicar la fecha de emisión del documento";
+            newErrors[pregunta.fp_id] = "Debes indicar la fecha de emisión del documento";
             isValid = false;
           }
         }
 
         if (pregunta.fp_requerida) {
-          const tieneArchivoNuevo =
-            respuestas[pregunta.fp_id]?.archivo instanceof File;
-          const tieneArchivoExistente = Boolean(
-            archivosExistentes[pregunta.fp_id],
-          );
+          const tieneArchivoNuevo = respuestas[pregunta.fp_id]?.archivo instanceof File;
+          const tieneArchivoExistente = Boolean(archivosExistentes[pregunta.fp_id]);
 
           if (!tieneArchivoNuevo && !tieneArchivoExistente) {
             newErrors[pregunta.fp_id] = "Debes cargar el archivo del documento";
@@ -905,11 +784,7 @@ export default function SolicitudFormContent({
         }
       }
 
-      if (
-        currentValue !== undefined &&
-        currentValue !== null &&
-        currentValue !== ""
-      ) {
+      if (currentValue !== undefined && currentValue !== null && currentValue !== "") {
         if (rules.type === "number" && isNaN(Number(currentValue))) {
           newErrors[pregunta.fp_id] = "Ingrese un número válido";
           isValid = false;
@@ -954,14 +829,10 @@ export default function SolicitudFormContent({
       return;
     }
 
-    const paisPregunta = preguntas.find(
-      (p) => p.fp_id === maestroPreguntaIds.paisId,
-    );
+    const paisPregunta = preguntas.find((p) => p.fp_id === maestroPreguntaIds.paisId);
     const paisRespuesta = respuestas[maestroPreguntaIds.paisId];
     const paisSeleccionado =
-      paisPregunta?.fp_tipo === "SELECT_TABLA"
-        ? paisRespuesta?.valor_numero
-        : paisRespuesta?.valor_opcion_id;
+      paisPregunta?.fp_tipo === "SELECT_TABLA" ? paisRespuesta?.valor_numero : paisRespuesta?.valor_opcion_id;
 
     if (!paisSeleccionado) {
       setDepartamentos([]);
@@ -986,14 +857,10 @@ export default function SolicitudFormContent({
       return;
     }
 
-    const deptoPregunta = preguntas.find(
-      (p) => p.fp_id === maestroPreguntaIds.departamentoId,
-    );
+    const deptoPregunta = preguntas.find((p) => p.fp_id === maestroPreguntaIds.departamentoId);
     const deptoRespuesta = respuestas[maestroPreguntaIds.departamentoId];
     const deptoSeleccionado =
-      deptoPregunta?.fp_tipo === "SELECT_TABLA"
-        ? deptoRespuesta?.valor_numero
-        : deptoRespuesta?.valor_opcion_id;
+      deptoPregunta?.fp_tipo === "SELECT_TABLA" ? deptoRespuesta?.valor_numero : deptoRespuesta?.valor_opcion_id;
 
     if (!deptoSeleccionado) {
       setCiudades([]);
@@ -1029,10 +896,7 @@ export default function SolicitudFormContent({
         }
 
         const actual = next[pregunta.fp_id];
-        if (
-          actual?.valor_opcion_id !== undefined &&
-          actual?.valor_opcion_id !== null
-        ) {
+        if (actual?.valor_opcion_id !== undefined && actual?.valor_opcion_id !== null) {
           return;
         }
 
@@ -1090,13 +954,10 @@ export default function SolicitudFormContent({
       const isFechaHijaDeArchivo =
         actual.fp_tipo === "FECHA" &&
         Boolean(actual.fp_pregunta_padre_id) &&
-        preguntasById.get(actual.fp_pregunta_padre_id!)?.fp_tipo ===
-          TIPOS_PREGUNTA.ARCHIVO;
+        preguntasById.get(actual.fp_pregunta_padre_id!)?.fp_tipo === TIPOS_PREGUNTA.ARCHIVO;
 
       if (isFechaHijaDeArchivo) {
-        const preguntaArchivo = preguntasById.get(
-          actual.fp_pregunta_padre_id!,
-        );
+        const preguntaArchivo = preguntasById.get(actual.fp_pregunta_padre_id!);
         const documentoId = preguntaArchivo?.fp_tipo_documento_id;
         const requiereFechaPorVigencia = documentoId
           ? documentosCatalogoMap[documentoId]?.tdo_vigencia_dias !== null
@@ -1123,25 +984,18 @@ export default function SolicitudFormContent({
           const respuestaPadre = respuestas[actual.fp_pregunta_padre_id];
 
           if (!respuestaPadre) {
-            visible =
-              preguntaPadre.fp_tipo === "ARCHIVO" &&
-              Boolean(archivosExistentes[actual.fp_pregunta_padre_id]);
+            visible = preguntaPadre.fp_tipo === "ARCHIVO" && Boolean(archivosExistentes[actual.fp_pregunta_padre_id]);
           } else {
-            const valorDisparador = normalize(
-              actual.fp_valor_padre_disparador,
-            );
+            const valorDisparador = normalize(actual.fp_valor_padre_disparador);
 
             if (!valorDisparador) {
               visible = true;
             } else if (respuestaPadre.valor_texto) {
-              visible =
-                normalize(respuestaPadre.valor_texto) === valorDisparador;
+              visible = normalize(respuestaPadre.valor_texto) === valorDisparador;
             } else if (respuestaPadre.valor_numero !== undefined) {
-              visible =
-                normalize(respuestaPadre.valor_numero) === valorDisparador;
+              visible = normalize(respuestaPadre.valor_numero) === valorDisparador;
             } else if (respuestaPadre.valor_fecha) {
-              visible =
-                normalize(respuestaPadre.valor_fecha) === valorDisparador;
+              visible = normalize(respuestaPadre.valor_fecha) === valorDisparador;
             } else if (respuestaPadre.valor_opcion_id !== undefined) {
               const ids = Array.isArray(respuestaPadre.valor_opcion_id)
                 ? respuestaPadre.valor_opcion_id
@@ -1149,9 +1003,7 @@ export default function SolicitudFormContent({
 
               const descripciones = ids
                 .map((id) => {
-                  const opcion = preguntaPadre.opciones?.find(
-                    (o) => String(o.op_id) === String(id),
-                  );
+                  const opcion = preguntaPadre.opciones?.find((o) => String(o.op_id) === String(id));
                   return opcion ? opcion.op_descripcion : id;
                 })
                 .map((value) => normalize(value));
@@ -1188,11 +1040,9 @@ export default function SolicitudFormContent({
     const archivoRegistrado = Boolean(archivosExistentes[pregunta.fp_id]);
 
     if (!respuesta) {
-      return [
-        TIPOS_PREGUNTA.ARCHIVO,
-        TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-        TIPOS_PREGUNTA.IMAGEN,
-      ].includes(pregunta.fp_tipo as any)
+      return [TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA, TIPOS_PREGUNTA.IMAGEN].includes(
+        pregunta.fp_tipo as any,
+      )
         ? archivoRegistrado
         : false;
     }
@@ -1202,9 +1052,7 @@ export default function SolicitudFormContent({
     }
 
     if (pregunta.fp_tipo === "NUMERO") {
-      return (
-        respuesta.valor_numero !== undefined && respuesta.valor_numero !== null
-      );
+      return respuesta.valor_numero !== undefined && respuesta.valor_numero !== null;
     }
 
     if (pregunta.fp_tipo === "FECHA") {
@@ -1212,15 +1060,10 @@ export default function SolicitudFormContent({
     }
 
     if (pregunta.fp_tipo === TIPOS_PREGUNTA.MULTISELECT) {
-      return Array.isArray(respuesta.valor_opcion_id)
-        ? respuesta.valor_opcion_id.length > 0
-        : false;
+      return Array.isArray(respuesta.valor_opcion_id) ? respuesta.valor_opcion_id.length > 0 : false;
     }
 
-    if (
-      pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO ||
-      pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN
-    ) {
+    if (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO || pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN) {
       return respuestaTieneArchivoNuevo(respuesta) || archivoRegistrado;
     }
 
@@ -1232,9 +1075,7 @@ export default function SolicitudFormContent({
         (typeof valorOpcion === "string" && valorOpcion.trim() !== "") ||
         (Array.isArray(valorOpcion) && valorOpcion.length > 0);
 
-      const documento = pregunta.fp_tipo_documento_id
-        ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
-        : null;
+      const documento = pregunta.fp_tipo_documento_id ? documentosCatalogoMap[pregunta.fp_tipo_documento_id] : null;
       const requiereFecha = documentoRequiereFechaEmision(documento);
 
       // Buscar fecha en la pregunta hija, en la misma respuesta, o en archivo existente
@@ -1242,8 +1083,7 @@ export default function SolicitudFormContent({
 
       if (!fechaEmisionValor && requiereFecha) {
         const preguntaFechaHija = preguntas.find(
-          (p) =>
-            p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
+          (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
         );
         if (preguntaFechaHija) {
           fechaEmisionValor = respuestas[preguntaFechaHija.fp_id]?.valor_fecha;
@@ -1259,22 +1099,13 @@ export default function SolicitudFormContent({
       const tieneFechaEmision = Boolean(fechaEmisionValor);
 
       const tieneArchivo =
-        respuesta.archivo instanceof File ||
-        Boolean(respuesta.nombre_archivo?.trim()) ||
-        archivoRegistrado;
+        respuesta.archivo instanceof File || Boolean(respuesta.nombre_archivo?.trim()) || archivoRegistrado;
 
       // Si el documento exige año específico y es obligatorio, una fecha
       // fuera del rango permitido no cuenta como respondida (deja el
       // formulario incompleto en vez de mostrar un bloqueo aparte).
-      if (
-        pregunta.fp_requerida &&
-        documento?.tdo_regla_vigencia === "ANIO" &&
-        fechaEmisionValor
-      ) {
-        const estadoAnio = calcularEstadoAnioDocumento(
-          fechaEmisionValor,
-          documento.tdo_anios_atras_permitidos,
-        );
+      if (pregunta.fp_requerida && documento?.tdo_regla_vigencia === "ANIO" && fechaEmisionValor) {
+        const estadoAnio = calcularEstadoAnioDocumento(fechaEmisionValor, documento.tdo_anios_atras_permitidos);
         if (estadoAnio && !estadoAnio.valido) {
           return false;
         }
@@ -1401,31 +1232,22 @@ export default function SolicitudFormContent({
     return -1;
   };
 
-  const hasValorEnRespuesta = (
-    respuesta: RespuestasState[number] | undefined,
-  ): boolean => {
+  const hasValorEnRespuesta = (respuesta: RespuestasState[number] | undefined): boolean => {
     if (!respuesta) return false;
 
-    if (
-      typeof respuesta.valor_texto === "string" &&
-      respuesta.valor_texto.trim() !== ""
-    ) {
+    if (typeof respuesta.valor_texto === "string" && respuesta.valor_texto.trim() !== "") {
       return true;
     }
 
     if (
-      (typeof respuesta.valor_numero === "number" ||
-        typeof respuesta.valor_numero === "string") &&
+      (typeof respuesta.valor_numero === "number" || typeof respuesta.valor_numero === "string") &&
       String(respuesta.valor_numero).trim() !== "" &&
       !Number.isNaN(Number(respuesta.valor_numero))
     ) {
       return true;
     }
 
-    if (
-      typeof respuesta.valor_fecha === "string" &&
-      respuesta.valor_fecha.trim() !== ""
-    ) {
+    if (typeof respuesta.valor_fecha === "string" && respuesta.valor_fecha.trim() !== "") {
       return true;
     }
 
@@ -1444,9 +1266,7 @@ export default function SolicitudFormContent({
     return false;
   };
 
-  const shouldShowQuestionForCurrentUser = (
-    pregunta: FormularioPregunta,
-  ): boolean => {
+  const shouldShowQuestionForCurrentUser = (pregunta: FormularioPregunta): boolean => {
     if (!shouldShowQuestion(pregunta)) {
       return false;
     }
@@ -1471,30 +1291,21 @@ export default function SolicitudFormContent({
     >();
 
     secciones.forEach((seccion) => {
-      const visibles = seccion.preguntas.filter(
-        shouldShowQuestionForCurrentUser,
-      );
+      const visibles = seccion.preguntas.filter(shouldShowQuestionForCurrentUser);
       const respondibles = visibles.filter(
-        (p) =>
-          ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(
-            p.fp_tipo as any,
-          ),
+        (p) => ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(p.fp_tipo as any),
       );
       const requeridas = respondibles.filter((p) => p.fp_requerida);
       const answered = requeridas.filter(isAnswered).length;
       const required = requeridas.length;
-      const percent =
-        required === 0 ? 100 : Math.round((answered / required) * 100);
+      const percent = required === 0 ? 100 : Math.round((answered / required) * 100);
 
       const visibleTotal = respondibles.length;
       const visibleAnswered = respondibles.filter(isAnswered).length;
       const usesRequired = required > 0;
       const displayTotal = usesRequired ? required : visibleTotal;
       const displayAnswered = usesRequired ? answered : visibleAnswered;
-      const displayPercent =
-        displayTotal === 0
-          ? 100
-          : Math.round((displayAnswered / displayTotal) * 100);
+      const displayPercent = displayTotal === 0 ? 100 : Math.round((displayAnswered / displayTotal) * 100);
 
       progressMap.set(seccion.seccion_id, {
         required,
@@ -1510,13 +1321,7 @@ export default function SolicitudFormContent({
     });
 
     return progressMap;
-  }, [
-    secciones,
-    respuestas,
-    archivosExistentes,
-    documentosCatalogoMap,
-    preguntas,
-  ]);
+  }, [secciones, respuestas, archivosExistentes, documentosCatalogoMap, preguntas]);
 
   const overallProgress = useMemo(() => {
     let totalRequired = 0;
@@ -1527,10 +1332,7 @@ export default function SolicitudFormContent({
       totalAnswered += value.answered;
     });
 
-    const percent =
-      totalRequired === 0
-        ? 100
-        : Math.round((totalAnswered / totalRequired) * 100);
+    const percent = totalRequired === 0 ? 100 : Math.round((totalAnswered / totalRequired) * 100);
 
     return { totalRequired, totalAnswered, percent };
   }, [seccionProgress]);
@@ -1554,9 +1356,7 @@ export default function SolicitudFormContent({
   }, [seccionProgress]);
 
   // Determinar si mostrar el campo adicional condicional
-  const shouldShowConditionalField = (
-    pregunta: FormularioPregunta,
-  ): boolean => {
+  const shouldShowConditionalField = (pregunta: FormularioPregunta): boolean => {
     if (!pregunta.fp_opcion_disparadora || !pregunta.fp_descripcion_adicional) {
       return false;
     }
@@ -1571,16 +1371,11 @@ export default function SolicitudFormContent({
       (o) => String(o.op_id) === String(respuestaActual.valor_opcion_id),
     );
 
-    return (
-      opcionSeleccionada?.op_descripcion === pregunta.fp_opcion_disparadora
-    );
+    return opcionSeleccionada?.op_descripcion === pregunta.fp_opcion_disparadora;
   };
 
   const hasDraftData = useMemo(
-    () =>
-      Object.values(respuestas).some((respuesta) =>
-        hasValorEnRespuesta(respuesta),
-      ),
+    () => Object.values(respuestas).some((respuesta) => hasValorEnRespuesta(respuesta)),
     [respuestas],
   );
 
@@ -1592,11 +1387,7 @@ export default function SolicitudFormContent({
   // como "ya guardadas", el primer "Guardar Borrador" no vería cambios en
   // esos campos y nunca los enviaría al backend, perdiendo la precarga.
   useEffect(() => {
-    if (
-      solicitudId &&
-      Object.keys(respuestas).length > 0 &&
-      Object.keys(lastSavedResponses.current).length === 0
-    ) {
+    if (solicitudId && Object.keys(respuestas).length > 0 && Object.keys(lastSavedResponses.current).length === 0) {
       lastSavedResponses.current = JSON.parse(JSON.stringify(respuestas));
       setHasNewChanges(false);
     }
@@ -1604,8 +1395,7 @@ export default function SolicitudFormContent({
 
   // Detectar cambios nuevos desde el último guardado
   useEffect(() => {
-    const respondAsChanged =
-      JSON.stringify(respuestas) !== JSON.stringify(lastSavedResponses.current);
+    const respondAsChanged = JSON.stringify(respuestas) !== JSON.stringify(lastSavedResponses.current);
     setHasNewChanges(respondAsChanged);
   }, [respuestas]);
 
@@ -1620,7 +1410,11 @@ export default function SolicitudFormContent({
       return;
     }
 
-    router.push("/solicitudes/cliente");
+    // /solicitudes/cliente filtra estrictamente por user.cliente_id — para
+    // un usuario interno (cliente_id null) esa página queda vacía, así que
+    // se lleva al listado interno en su lugar (mismo criterio que el
+    // redirect de éxito más abajo).
+    router.push(isClienteUser ? "/solicitudes/cliente" : "/solicitudes/listado-de-solicitudes");
   };
 
   // Tras un guardado exitoso, los documentos marcados localmente como
@@ -1669,9 +1463,7 @@ export default function SolicitudFormContent({
 
     // Validar última sección antes de guardar
     if (!validateCurrentSection()) {
-      setErrorMessage(
-        "Por favor, completa los campos requeridos en esta sección",
-      );
+      setErrorMessage("Por favor, completa los campos requeridos en esta sección");
       isGuardandoRef.current = false;
       return;
     }
@@ -1684,9 +1476,7 @@ export default function SolicitudFormContent({
 
     // Validar que solicitudId sea válido si estamos editando
     if (solicitudId && isNaN(solicitudId)) {
-      setErrorMessage(
-        "Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.",
-      );
+      setErrorMessage("Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.");
       isGuardandoRef.current = false;
       return;
     }
@@ -1701,16 +1491,14 @@ export default function SolicitudFormContent({
 
     // Validar documentos con vigencia: requieren archivo + fecha
     const documentosConVigencia = preguntas.filter(
-      (p) =>
-        p.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && p.fp_tipo_documento_id,
+      (p) => p.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && p.fp_tipo_documento_id,
     );
 
     for (const doc of documentosConVigencia) {
       if (!doc.fp_tipo_documento_id) continue;
 
       const documento = documentosCatalogoMap?.[doc.fp_tipo_documento_id];
-      const tieneVigencia =
-        documento?.tdo_vigencia_dias && documento.tdo_vigencia_dias > 0;
+      const tieneVigencia = documento?.tdo_vigencia_dias && documento.tdo_vigencia_dias > 0;
 
       if (tieneVigencia) {
         // Verificar si hay archivo (existente o nuevo)
@@ -1719,14 +1507,10 @@ export default function SolicitudFormContent({
         const tieneArchivo = tieneArchivoExistente || tieneArchivoNuevo;
 
         // Verificar si hay fecha (en pregunta hija o en la misma respuesta)
-        const preguntaFechaHija = preguntas.find(
-          (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === doc.fp_id,
-        );
+        const preguntaFechaHija = preguntas.find((p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === doc.fp_id);
         const tieneFecha = !!(
           archivosExistentes[doc.fp_id]?.sd_fecha_emision ||
-          (preguntaFechaHija
-            ? respuestas[preguntaFechaHija.fp_id]?.valor_fecha
-            : respuestas[doc.fp_id]?.valor_fecha)
+          (preguntaFechaHija ? respuestas[preguntaFechaHija.fp_id]?.valor_fecha : respuestas[doc.fp_id]?.valor_fecha)
         );
 
         console.log(`✅ Validando documento ${doc.fp_id}:`, {
@@ -1739,9 +1523,7 @@ export default function SolicitudFormContent({
           const mensajes: string[] = [];
           if (!tieneArchivo) mensajes.push("archivo");
           if (!tieneFecha) mensajes.push("fecha de emisión");
-          setErrorMessage(
-            `El documento "${documento?.tdo_descripcion || "RUT"}" requiere ${mensajes.join(" y ")}.`,
-          );
+          setErrorMessage(`El documento "${documento?.tdo_descripcion || "RUT"}" requiere ${mensajes.join(" y ")}.`);
           isGuardandoRef.current = false;
           return;
         }
@@ -1755,9 +1537,7 @@ export default function SolicitudFormContent({
 
     // Si es cliente, pasar NULL como usuarioId. Si es admin/ejecutivo, pasar usr_id
     const usuarioId = isClienteUser ? null : user.usr_id;
-    const isReturningToAsc = Boolean(
-      returnTo?.includes("corregir-formulario-asc"),
-    );
+    const isReturningToAsc = Boolean(returnTo?.includes("corregir-formulario-asc"));
 
     pendingGuardarParamsRef.current = { usuarioId, isReturningToAsc };
     setShowConfirmGuardar(true);
@@ -1790,22 +1570,25 @@ export default function SolicitudFormContent({
 
       marcarDocumentosReutilizadosComoGuardados();
 
-      const documentosDiferidosFaltantes =
-        (result as any)?.documentosDiferidosFaltantes || [];
+      const documentosDiferidosFaltantes = (result as any)?.documentosDiferidosFaltantes || [];
 
       if (documentosDiferidosFaltantes.length > 0) {
-        const nombres = documentosDiferidosFaltantes
-          .map((d: any) => d.tdo_nombre)
-          .join(", ");
+        const nombres = documentosDiferidosFaltantes.map((d: any) => d.tdo_nombre).join(", ");
         setSuccessTitle("Solicitud registrada");
         setSuccessMessage(
-          `Tu solicitud fue registrada. Aún faltan generar y subir: ${nombres}. Te llevamos a Mis Documentos para continuar.`,
+          `Tu solicitud fue registrada. Aún faltan generar y subir: ${nombres}. Te llevamos al paso "Firmar documentación" para continuar.`,
         );
-        setSuccessRedirect("/solicitudes/mis-documentos");
+        // Sin clienteId, un usuario interno (admin/ejecutivo) cae en la
+        // pantalla de "elegir cliente" de /solicitudes/nueva en vez del
+        // paso de firma — mismo criterio que irAlFormulario en page.tsx.
+        const destinoFirma = isClienteUser
+          ? "/solicitudes/nueva"
+          : `/solicitudes/nueva?clienteId=${getClienteIdForSolicitud()}`;
+        setSuccessRedirect(destinoFirma);
         // Más tiempo que el flujo simple: el modal lista documentos y el
         // usuario necesita alcanzar a leerlos
         setTimeout(() => {
-          router.replace("/solicitudes/mis-documentos");
+          router.replace(destinoFirma);
         }, 6000);
       } else {
         // /solicitudes/cliente filtra estrictamente por user.cliente_id
@@ -1813,13 +1596,8 @@ export default function SolicitudFormContent({
         // null) esa página quedaría vacía, así que se lleva al listado
         // interno en su lugar.
         const redirectUrl =
-          returnTo ||
-          (isClienteUser
-            ? "/solicitudes/cliente"
-            : "/solicitudes/listado-de-solicitudes");
-        setSuccessTitle(
-          !solicitudId ? "Solicitud creada" : "Solicitud guardada",
-        );
+          returnTo || (isClienteUser ? "/solicitudes/cliente" : "/solicitudes/listado-de-solicitudes");
+        setSuccessTitle(!solicitudId ? "Solicitud creada" : "Solicitud guardada");
         setSuccessMessage(
           !solicitudId
             ? "Solicitud creada exitosamente. Redirigiendo..."
@@ -1836,25 +1614,15 @@ export default function SolicitudFormContent({
       console.error("Error completo:", err);
       const apiMessage = (err as any)?.response?.data?.message;
 
-      if (
-        typeof apiMessage === "string" &&
-        apiMessage.includes("cliente_id inválido") &&
-        !isAdminUser
-      ) {
+      if (typeof apiMessage === "string" && apiMessage.includes("cliente_id inválido") && !isAdminUser) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        setErrorMessage(
-          "Tu sesión quedó desactualizada. Por favor inicia sesión nuevamente.",
-        );
+        setErrorMessage("Tu sesión quedó desactualizada. Por favor inicia sesión nuevamente.");
         setTimeout(() => router.push("/login"), 1000);
         return;
       }
 
-      if (
-        typeof apiMessage === "string" &&
-        apiMessage.includes("cliente_id inválido") &&
-        isAdminUser
-      ) {
+      if (typeof apiMessage === "string" && apiMessage.includes("cliente_id inválido") && isAdminUser) {
         setErrorMessage(
           "No se pudo resolver el cliente para este usuario de administración. Verifica la asociación usuario-cliente en configuración.",
         );
@@ -1892,9 +1660,7 @@ export default function SolicitudFormContent({
 
     // Validar que solicitudId sea válido si estamos editando
     if (solicitudId && isNaN(solicitudId)) {
-      setErrorMessage(
-        "Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.",
-      );
+      setErrorMessage("Error: ID de solicitud inválido. Por favor, intenta acceder de nuevo.");
       isGuardandoRef.current = false;
       return;
     }
@@ -1905,9 +1671,7 @@ export default function SolicitudFormContent({
       // (no todo el formulario), para no reprocesar campos que no se tocaron.
       const respuestasCambiadas = Object.fromEntries(
         Object.entries(respuestas).filter(
-          ([fp_id, respuesta]) =>
-            JSON.stringify(respuesta) !==
-            JSON.stringify(lastSavedResponses.current[fp_id]),
+          ([fp_id, respuesta]) => JSON.stringify(respuesta) !== JSON.stringify(lastSavedResponses.current[fp_id]),
         ),
       );
 
@@ -1949,7 +1713,6 @@ export default function SolicitudFormContent({
         router.replace(`/solicitudes/${result.solicitudId}/editar${query}`);
         return;
       }
-
     } catch (err) {
       console.error("Error completo:", err);
       const errorMsg = getApiErrorMessage(
@@ -1968,59 +1731,40 @@ export default function SolicitudFormContent({
   const handleNavegar = (direccion: "siguiente" | "anterior") => {
     // Validar sección actual antes de navegar
     if (!readOnly && !validateCurrentSection()) {
-      setErrorMessage(
-        "Por favor, completa los campos requeridos en esta sección",
-      );
+      setErrorMessage("Por favor, completa los campos requeridos en esta sección");
       return;
     }
 
     setErrorMessage("");
-    const indiceActual = secciones.findIndex(
-      (s) => s.seccion_id === seccionSeleccionada,
-    );
-    const nuevoIndice =
-      direccion === "siguiente" ? indiceActual + 1 : indiceActual - 1;
+    const indiceActual = secciones.findIndex((s) => s.seccion_id === seccionSeleccionada);
+    const nuevoIndice = direccion === "siguiente" ? indiceActual + 1 : indiceActual - 1;
 
     if (nuevoIndice >= 0 && nuevoIndice < secciones.length) {
-      console.log(
-        `Navegando a sección: ${secciones[nuevoIndice].seccion_nombre}`,
-      );
+      console.log(`Navegando a sección: ${secciones[nuevoIndice].seccion_nombre}`);
       setSeccionSeleccionada(secciones[nuevoIndice].seccion_id);
     }
   };
 
   // Restricción: Si hay solicitud activa (BORRADOR, PENDIENTE, REVISIÓN), mostrar mensaje
   if (!solicitudId && tieneActividad && !loadingInitial) {
-    const estadoTexto = tieneBorrador
-      ? "Borrador"
-      : tienePendiente
-        ? "Pendiente"
-        : "Revisión";
+    const estadoTexto = tieneBorrador ? "Borrador" : tienePendiente ? "Pendiente" : "Revisión";
     return (
       <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
         <div className="w-full h-full bg-white border border-gray-200 rounded-xl shadow p-4 flex flex-col items-center justify-center">
           <div className="max-w-md text-center">
             <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
-            <h2 className="text-base font-bold text-gray-900 mb-2">
-              Solicitud en Proceso
-            </h2>
+            <h2 className="text-base font-bold text-gray-900 mb-2">Solicitud en Proceso</h2>
             <p className="text-xs text-gray-600 mb-4">
-              Actualmente tienes una solicitud en estado{" "}
-              <span className="font-semibold">{estadoTexto}</span>
-              {ultimaSolicitud && (
-                <span> ({ultimaSolicitud.sol_numero_solicitud})</span>
-              )}
-              .
+              Actualmente tienes una solicitud en estado <span className="font-semibold">{estadoTexto}</span>
+              {ultimaSolicitud && <span> ({ultimaSolicitud.sol_numero_solicitud})</span>}.
             </p>
             <p className="text-xs text-gray-600 mb-6">
-              No puedes crear una nueva solicitud mientras exista una en estos
-              estados. Por favor, espera a que se resuelva o cancela la
-              solicitud existente.
+              No puedes crear una nueva solicitud mientras exista una en estos estados. Por favor, espera a que se
+              resuelva o cancela la solicitud existente.
             </p>
             <button
               onClick={handleVolver}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
-            >
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100">
               <ArrowLeft className="h-4 w-4" />
               Volver
             </button>
@@ -2039,13 +1783,10 @@ export default function SolicitudFormContent({
         <div className="w-full h-full bg-white border border-gray-200 rounded-xl shadow p-4 flex flex-col items-center justify-center">
           <div className="max-w-md text-center">
             <AlertCircle className="h-12 w-12 text-orange-600 mx-auto mb-4" />
-            <h2 className="text-base font-bold text-gray-900 mb-2">
-              Corrige tus documentos
-            </h2>
+            <h2 className="text-base font-bold text-gray-900 mb-2">Corrige tus documentos</h2>
             <p className="text-xs text-gray-600 mb-6">
-              Esta solicitud fue rechazada por documentos con fecha de emisión
-              incorrecta. Ya no puedes editar el formulario completo; te estamos
-              redirigiendo a &quot;Mis Documentos&quot; para corregirlos ahí.
+              Esta solicitud fue rechazada por documentos con fecha de emisión incorrecta. Ya no puedes editar el
+              formulario completo; te estamos redirigiendo a &quot;Mis Documentos&quot; para corregirlos ahí.
             </p>
           </div>
         </div>
@@ -2066,16 +1807,12 @@ export default function SolicitudFormContent({
   // un instante antes de que llegaran los reales (useSolicitudEdicion los
   // resuelve juntos, ver hooks/useSolicitudEdicion.ts:100-102).
   const versionFormularioMostrar =
-    formularioVersionObjetivo ??
-    formulario?.sol_formulario_version ??
-    formulario?.formulario_version ??
-    null;
+    formularioVersionObjetivo ?? formulario?.sol_formulario_version ?? formulario?.formulario_version ?? null;
   const encabezadoNumeroDescripcion = solicitudId
     ? numeroSolicitud
       ? `${numeroSolicitud} • ${formulario?.frm_descripcion || "Completa el formulario por secciones"}`
       : "Cargando..."
     : formulario?.frm_descripcion || "Completa el formulario por secciones";
-
   return (
     <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
       <div className="w-full max-w-[1400px] mx-auto h-full bg-white border border-gray-200 rounded-xl shadow p-2 flex flex-col overflow-hidden">
@@ -2084,8 +1821,7 @@ export default function SolicitudFormContent({
             <button
               type="button"
               onClick={handleVolver}
-              className="absolute left-0 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-100"
-            >
+              className="absolute left-0 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-100">
               <ArrowLeft className="h-3 w-3" />
               Atrás
             </button>
@@ -2096,9 +1832,7 @@ export default function SolicitudFormContent({
               </h2>
               <p className="text-[11px] text-gray-600 mt-0.5">
                 {encabezadoNumeroDescripcion} · Versión{" "}
-                {versionFormularioMostrar != null
-                  ? Number(versionFormularioMostrar)
-                  : "Cargando..."}
+                {versionFormularioMostrar != null ? Number(versionFormularioMostrar) : "Cargando..."}
               </p>
             </div>
           </div>
@@ -2121,21 +1855,11 @@ export default function SolicitudFormContent({
           onAction={() => setBorradorGuardadoMessage("")}
         />
 
-        <ErrorModal
-          isOpen={!!errorMessage}
-          message={errorMessage}
-          onAction={() => setErrorMessage("")}
-        />
+        <ErrorModal isOpen={!!errorMessage} message={errorMessage} onAction={() => setErrorMessage("")} />
 
-        <LoadingModal
-          isOpen={isSavingBorrador}
-          message="Guardando borrador..."
-        />
+        <LoadingModal isOpen={isSavingBorrador} message="Guardando borrador..." />
 
-        <LoadingModal
-          isOpen={isSavingFinal && !showConfirmGuardar}
-          message="Guardando y enviando tu solicitud..."
-        />
+        <LoadingModal isOpen={isSavingFinal && !showConfirmGuardar} message="Guardando y enviando tu solicitud..." />
 
         <ConfirmModal
           isOpen={showConfirmGuardar}
@@ -2155,9 +1879,7 @@ export default function SolicitudFormContent({
         {cargandoFormulario ? (
           <div className="flex-1 min-h-0 flex items-center justify-center">
             <div className="text-center">
-              <h2 className="text-xs font-semibold mb-1">
-                Cargando formulario...
-              </h2>
+              <h2 className="text-xs font-semibold mb-1">Cargando formulario...</h2>
               <p className="text-[11px] text-gray-600 mb-2">
                 {preguntas.length > 0
                   ? `Preparando ${secciones.length} sección(es) con ${preguntas.length} pregunta(s)...`
@@ -2169,8 +1891,7 @@ export default function SolicitudFormContent({
                   <p>Preguntas recibidas: {preguntas.length}</p>
                   <p>Secciones encontradas: {secciones.length}</p>
                   <p className="mt-1 text-yellow-700">
-                    Las preguntas no están asignadas a secciones. Revisa la
-                    consola del navegador para más detalles.
+                    Las preguntas no están asignadas a secciones. Revisa la consola del navegador para más detalles.
                   </p>
                 </div>
               )}
@@ -2180,112 +1901,96 @@ export default function SolicitudFormContent({
             </div>
           </div>
         ) : (
-        <>
-        <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
-          <SeccionesSidebar
-            secciones={secciones}
-            seccionSeleccionada={seccionSeleccionada}
-            setSeccionSeleccionada={setSeccionSeleccionada}
-            isClienteUser={isClienteUser}
-            shouldShowQuestionForCurrentUser={shouldShowQuestionForCurrentUser}
-            seccionProgress={seccionProgress}
-          />
+          <>
+            <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
+              <SeccionesSidebar
+                secciones={secciones}
+                seccionSeleccionada={seccionSeleccionada}
+                setSeccionSeleccionada={setSeccionSeleccionada}
+                isClienteUser={isClienteUser}
+                shouldShowQuestionForCurrentUser={shouldShowQuestionForCurrentUser}
+                seccionProgress={seccionProgress}
+              />
 
-          {/* PANEL DERECHO - CAMPOS */}
-          <div className="w-[77%] flex h-full min-h-0">
-            {seccionActual && (
-              <div className="w-full h-full bg-white rounded-lg shadow p-2 flex flex-col">
-                <div className="mb-1">
-                  <h2 className="text-xs font-bold">
-                    {seccionActual.seccion_nombre}
-                  </h2>
-                  {seccionActual.seccion_descripcion && (
-                    <p className="text-[11px] text-gray-600 mt-0.5">
-                      {seccionActual.seccion_descripcion}
-                    </p>
-                  )}
-                </div>
+              {/* PANEL DERECHO - CAMPOS */}
+              <div className="w-[77%] flex h-full min-h-0">
+                {seccionActual && (
+                  <div className="w-full h-full bg-white rounded-lg shadow p-2 flex flex-col">
+                    <div className="mb-1">
+                      <h2 className="text-xs font-bold">{seccionActual.seccion_nombre}</h2>
+                      {seccionActual.seccion_descripcion && (
+                        <p className="text-[11px] text-gray-600 mt-0.5">{seccionActual.seccion_descripcion}</p>
+                      )}
+                    </div>
 
-                {/* Preguntas */}
-                <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {seccionActual.preguntas
-                      .filter(shouldShowQuestionForCurrentUser)
-                      .map((pregunta) => (
-                        <PreguntaRenderer
-                          key={pregunta.fp_id}
-                          pregunta={pregunta}
-                          seccionPreguntas={seccionActual.preguntas}
-                          preguntas={preguntas}
-                          documentosCatalogoMap={documentosCatalogoMap}
-                          catalogoDependienteMap={catalogoDependienteMap}
-                          respuestas={respuestas}
-                          errors={errors}
-                          readOnly={
-                            readOnly || pregunta.fp_codigo === "TIPO_SOLICITUD"
-                          }
-                          solicitudId={solicitudId}
-                          archivosExistentes={archivosExistentes}
-                          documentosClienteMap={documentosClienteMap}
-                          maestroPreguntaIds={maestroPreguntaIds}
-                          paises={paises}
-                          departamentos={departamentos}
-                          ciudades={ciudades}
-                          fechaHoraActualFormateada={fechaHoraActualFormateada}
-                          setRespuestas={setRespuestas}
-                          setArchivosExistentes={setArchivosExistentes}
-                          setSuccessMessage={setSuccessMessage}
-                          setErrorMessage={setErrorMessage}
-                          shouldShowQuestionForCurrentUser={
-                            shouldShowQuestionForCurrentUser
-                          }
-                          shouldShowConditionalField={
-                            shouldShowConditionalField
-                          }
-                          getValidationRules={getValidationRules}
-                          validateField={validateField}
-                          handleInputChange={handleInputChange}
-                          getNotaDisplay={getNotaDisplay}
-                          getArchivoPreviewUrl={getArchivoPreviewUrl}
-                          getOpcionDocumentoFija={getOpcionDocumentoFija}
-                          getPreguntaFechaAsociada={getPreguntaFechaAsociada}
-                          calcularVigenciaDocumento={calcularVigenciaDocumento}
-                          calcularEstadoAnioDocumento={
-                            calcularEstadoAnioDocumento
-                          }
-                          representanteLegal={representanteLegal}
-                          clienteInfo={clienteInfo}
-                          numeroSolicitud={numeroSolicitud}
-                          cupoActualAprobado={cupoActualAprobado}
-                        />
-                      ))}
+                    {/* Preguntas */}
+                    <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {seccionActual.preguntas.filter(shouldShowQuestionForCurrentUser).map((pregunta) => (
+                          <PreguntaRenderer
+                            key={pregunta.fp_id}
+                            pregunta={pregunta}
+                            seccionPreguntas={seccionActual.preguntas}
+                            preguntas={preguntas}
+                            documentosCatalogoMap={documentosCatalogoMap}
+                            catalogoDependienteMap={catalogoDependienteMap}
+                            respuestas={respuestas}
+                            errors={errors}
+                            readOnly={readOnly || pregunta.fp_codigo === "TIPO_SOLICITUD"}
+                            solicitudId={solicitudId}
+                            archivosExistentes={archivosExistentes}
+                            documentosClienteMap={documentosClienteMap}
+                            maestroPreguntaIds={maestroPreguntaIds}
+                            paises={paises}
+                            departamentos={departamentos}
+                            ciudades={ciudades}
+                            fechaHoraActualFormateada={fechaHoraActualFormateada}
+                            setRespuestas={setRespuestas}
+                            setArchivosExistentes={setArchivosExistentes}
+                            setSuccessMessage={setSuccessMessage}
+                            setErrorMessage={setErrorMessage}
+                            shouldShowQuestionForCurrentUser={shouldShowQuestionForCurrentUser}
+                            shouldShowConditionalField={shouldShowConditionalField}
+                            getValidationRules={getValidationRules}
+                            validateField={validateField}
+                            handleInputChange={handleInputChange}
+                            getNotaDisplay={getNotaDisplay}
+                            getArchivoPreviewUrl={getArchivoPreviewUrl}
+                            getOpcionDocumentoFija={getOpcionDocumentoFija}
+                            getPreguntaFechaAsociada={getPreguntaFechaAsociada}
+                            calcularVigenciaDocumento={calcularVigenciaDocumento}
+                            calcularEstadoAnioDocumento={calcularEstadoAnioDocumento}
+                            representanteLegal={representanteLegal}
+                            clienteInfo={clienteInfo}
+                            numeroSolicitud={numeroSolicitud}
+                            cupoActualAprobado={cupoActualAprobado}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-        <BarraAccionesFormulario
-          readOnly={readOnly}
-          isFirstSection={isFirstSection}
-          isLastSection={isLastSection}
-          isSavingBorrador={isSavingBorrador}
-          isSavingFinal={isSavingFinal}
-          isBlocked={isSavingBorrador || isSavingFinal}
-          hasDraftData={hasNewChanges}
-          estadoId={
-            solicitudId
-              ? (estadoIdSolicitud ?? ESTADO_SOLICITUD.BORRADOR.id)
-              : ESTADO_SOLICITUD.BORRADOR.id
-          }
-          overallProgress={overallProgress}
-          overallDisplayProgress={overallDisplayProgress}
-          returnTo={returnTo}
-          onNavegar={handleNavegar}
-          onGuardarParcial={handleGuardarParcial}
-          onGuardar={handleGuardar}
-        />
-        </>
+            </div>
+            <BarraAccionesFormulario
+              readOnly={readOnly}
+              isFirstSection={isFirstSection}
+              isLastSection={isLastSection}
+              isSavingBorrador={isSavingBorrador}
+              isSavingFinal={isSavingFinal}
+              isBlocked={isSavingBorrador || isSavingFinal}
+              hasDraftData={hasNewChanges}
+              estadoId={
+                solicitudId ? (estadoIdSolicitud ?? ESTADO_SOLICITUD.BORRADOR.id) : ESTADO_SOLICITUD.BORRADOR.id
+              }
+              overallProgress={overallProgress}
+              overallDisplayProgress={overallDisplayProgress}
+              returnTo={returnTo}
+              onNavegar={handleNavegar}
+              onGuardarParcial={handleGuardarParcial}
+              onGuardar={handleGuardar}
+            />
+          </>
         )}
       </div>
     </div>

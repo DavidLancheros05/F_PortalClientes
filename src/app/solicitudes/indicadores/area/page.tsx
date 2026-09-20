@@ -1,7 +1,14 @@
 "use client";
 
 import { useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import {
   indicadoresService,
   type AreaKPI,
@@ -10,10 +17,10 @@ import {
 import {
   CheckCircle,
   XCircle,
-  Clock,
   AlertCircle,
   BarChart3,
   Search,
+  X,
 } from "lucide-react";
 
 function DiferenciaBadge({ diferencia }: { diferencia: number }) {
@@ -33,6 +40,7 @@ function DiferenciaBadge({ diferencia }: { diferencia: number }) {
 }
 
 export default function IndicadoresAreaPage() {
+  const router = useRouter();
   const { loading: authLoading } = useContext(AuthContext);
   const [areas, setAreas] = useState<AreaKPI[]>([]);
   const [areaSeleccionada, setAreaSeleccionada] = useState("");
@@ -49,6 +57,7 @@ export default function IndicadoresAreaPage() {
   useEffect(() => {
     if (authLoading) return;
     cargarAreas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading]);
 
   async function cargarAreas() {
@@ -95,6 +104,15 @@ export default function IndicadoresAreaPage() {
     await cargarAreas();
   }
 
+  function limpiarFiltros() {
+    setFechaDesde("");
+    setFechaHasta("");
+    setAreaSeleccionada("");
+    setSolicitudes([]);
+    setFiltro("todas");
+    setError(null);
+  }
+
   const filtradas =
     filtro === "todas"
       ? solicitudes
@@ -105,34 +123,27 @@ export default function IndicadoresAreaPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
-        {/* Header + Filtros Card */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">
-              Tiempos por Área
-            </h1>
-            <p className="text-gray-600 text-base mt-1">
-              Consulta cuántos días tomó cada área en diferentes solicitudes
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Área
-              </label>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={BarChart3}
+          eyebrow="Indicadores"
+          title="Tiempos por Área"
+          subtitle="Consulta cuántos días tomó cada área en diferentes solicitudes"
+          onBack={() => router.push("/solicitudes/indicadores")}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FilterField label="Área">
               <select
                 value={areaSeleccionada}
                 onChange={(e) => setAreaSeleccionada(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">Selecciona un área...</option>
                 {areas.map((a) => (
@@ -141,209 +152,193 @@ export default function IndicadoresAreaPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha desde
-              </label>
+            </FilterField>
+            <FilterField label="Fecha desde">
               <input
                 type="date"
                 value={fechaDesde}
                 onChange={(e) => setFechaDesde(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha hasta
-              </label>
+            </FilterField>
+            <FilterField label="Fecha hasta">
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={(e) => setFechaHasta(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div className="flex gap-2">
+            </FilterField>
+
+            <FilterActions className="col-span-full">
               <button
                 onClick={aplicarFiltros}
                 disabled={loadingAreas}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 disabled:opacity-50 rounded-lg transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                {loadingAreas ? "Aplicando..." : "Aplicar"}
+                {loadingAreas ? "Aplicando..." : "Aplicar fechas"}
               </button>
               <button
                 onClick={buscar}
                 disabled={loading || !areaSeleccionada}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-500 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Search className="w-4 h-4" />
+                <Search className="h-4 w-4" />
                 {loading ? "Buscando..." : "Buscar"}
               </button>
-            </div>
+              <button
+                onClick={limpiarFiltros}
+                disabled={loading || loadingAreas}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+            </FilterActions>
           </div>
-        </div>
+        </PageHeaderCard>
 
-        {/* Error */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-
-        {/* Info del área seleccionada */}
-        {areaInfo && solicitudes.length > 0 && (
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-sm mb-2">
-                Solicitudes procesadas
-              </p>
-              <p className="text-4xl font-bold text-gray-900">
-                {areaInfo.total}
-              </p>
+        <div className="space-y-4 mt-4">
+          {/* Error */}
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-sm">{error}</span>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-sm mb-2">A tiempo</p>
-              <p className="text-4xl font-bold text-green-600">
-                {areaInfo.a_tiempo}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-sm mb-2">Vencidas</p>
-              <p className="text-4xl font-bold text-red-600">
-                {areaInfo.vencidas}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <p className="text-gray-600 text-sm mb-2">Cumplimiento</p>
-              <p className="text-4xl font-bold text-blue-600">
-                {areaInfo.pct_cumplimiento}%
-              </p>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Spinner */}
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-          </div>
-        )}
-
-        {/* Resultado - Tabla */}
-        {!loading && solicitudes.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Solicitudes del área {areaInfo?.label}
-              </h2>
-
-              {/* Filtros rápidos */}
-              <div className="flex gap-2 flex-wrap">
-                {(["todas", "a_tiempo", "vencida"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFiltro(f)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      filtro === f
-                        ? f === "vencida"
-                          ? "bg-red-100 text-red-700"
-                          : f === "a_tiempo"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {f === "todas"
-                      ? `Todas (${solicitudes.length})`
-                      : f === "a_tiempo"
-                        ? `A tiempo (${solicitudes.filter((s) => s.estado === "a_tiempo").length})`
-                        : `Vencidas (${solicitudes.filter((s) => s.estado === "vencida").length})`}
-                  </button>
-                ))}
+          {/* Info del área seleccionada */}
+          {areaInfo && solicitudes.length > 0 && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-gray-500 text-sm mb-1">
+                  Solicitudes procesadas
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {areaInfo.total}
+                </p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-gray-500 text-sm mb-1">A tiempo</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {areaInfo.a_tiempo}
+                </p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-gray-500 text-sm mb-1">Vencidas</p>
+                <p className="text-3xl font-bold text-red-600">
+                  {areaInfo.vencidas}
+                </p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <p className="text-gray-500 text-sm mb-1">Cumplimiento</p>
+                <p className="text-3xl font-bold text-brand-600">
+                  {areaInfo.pct_cumplimiento}%
+                </p>
               </div>
             </div>
+          )}
 
-            {/* Tabla */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      N° Solicitud
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Razón social
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                      F. envío
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                      F. estimada
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                      F. real
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                      Días reales
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                      Desvío
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filtradas.map((s) => (
-                    <tr
-                      key={s.sol_id}
-                      className={`hover:bg-gray-50 transition-colors ${
-                        s.estado === "vencida" ? "bg-red-50" : ""
+          {/* Spinner */}
+          {loading && (
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 border-4 border-gray-200 border-t-brand-600 rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* Resultado - Tabla */}
+          {!loading && solicitudes.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-200">
+                <h2 className="text-base font-semibold text-gray-800 mb-3">
+                  Solicitudes del área {areaInfo?.label}
+                </h2>
+
+                {/* Filtros rápidos */}
+                <div className="flex gap-2 flex-wrap">
+                  {(["todas", "a_tiempo", "vencida"] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setFiltro(f)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        filtro === f
+                          ? f === "vencida"
+                            ? "bg-red-100 text-red-700"
+                            : f === "a_tiempo"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      <td className="px-6 py-3 text-sm font-medium text-blue-600">
-                        {s.numero_solicitud}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-700 max-w-[250px] truncate">
-                        {s.razon_social || "—"}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600 text-center">
-                        {s.fecha_envio}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600 text-center">
-                        {s.fecha_estimada}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-900 text-center font-medium">
-                        {s.fecha_real}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-blue-600 text-center font-medium">
-                        {s.dias_reales} d
-                      </td>
-                      <td className="px-6 py-3 text-center">
-                        <DiferenciaBadge diferencia={s.diferencia} />
-                      </td>
-                    </tr>
+                      {f === "todas"
+                        ? `Todas (${solicitudes.length})`
+                        : f === "a_tiempo"
+                          ? `A tiempo (${solicitudes.filter((s) => s.estado === "a_tiempo").length})`
+                          : `Vencidas (${solicitudes.filter((s) => s.estado === "vencida").length})`}
+                    </button>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
 
-            {/* Footer */}
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-              {filtradas.length} solicitud{filtradas.length !== 1 ? "es" : ""}{" "}
-              mostrada{filtradas.length !== 1 ? "s" : ""}
-            </div>
-          </div>
-        )}
+              {/* Tabla */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <Th>N° Solicitud</Th>
+                      <Th>Razón social</Th>
+                      <Th align="center">F. envío</Th>
+                      <Th align="center">F. estimada</Th>
+                      <Th align="center">F. real</Th>
+                      <Th align="center">Días reales</Th>
+                      <Th align="center">Desvío</Th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filtradas.map((s) => (
+                      <Tr
+                        key={s.sol_id}
+                        className={s.estado === "vencida" ? "bg-red-50" : ""}
+                      >
+                        <Td className="font-medium text-brand-600">
+                          {s.numero_solicitud}
+                        </Td>
+                        <Td className="max-w-[250px] truncate">
+                          {s.razon_social || "—"}
+                        </Td>
+                        <Td align="center">{s.fecha_envio}</Td>
+                        <Td align="center">{s.fecha_estimada}</Td>
+                        <Td align="center" className="text-gray-900 font-medium">
+                          {s.fecha_real}
+                        </Td>
+                        <Td align="center" className="text-brand-600 font-medium">
+                          {s.dias_reales} d
+                        </Td>
+                        <Td align="center">
+                          <DiferenciaBadge diferencia={s.diferencia} />
+                        </Td>
+                      </Tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-        {/* Estado inicial */}
-        {!loading && solicitudes.length === 0 && areaSeleccionada && (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <p className="text-gray-600 text-base">
-              Presiona "Buscar" para ver los datos de esta área
-            </p>
-          </div>
-        )}
+              {/* Footer */}
+              <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
+                {filtradas.length} solicitud{filtradas.length !== 1 ? "es" : ""}{" "}
+                mostrada{filtradas.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+          )}
+
+          {/* Estado inicial */}
+          {!loading && solicitudes.length === 0 && areaSeleccionada && (
+            <EmptyStateCard
+              icon={BarChart3}
+              title='Presiona "Buscar" para ver los datos de esta área'
+            />
+          )}
+        </div>
       </div>
     </div>
   );

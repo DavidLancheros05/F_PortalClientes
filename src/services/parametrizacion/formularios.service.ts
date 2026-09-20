@@ -26,7 +26,7 @@ export interface TipoPregunta {
 
 export interface Pregunta {
   fp_id: number;
-  formulario_id: number;
+  frm_id: number;
   seccion_id?: number;
   fp_orden: number;
   fp_descripcion: string;
@@ -39,10 +39,7 @@ export interface Pregunta {
 
 export const formulariosService = {
   // Crear formulario
-  async create(payload: {
-    formulario_nombre: string;
-    formulario_descripcion?: string | null;
-  }): Promise<Formulario> {
+  async create(payload: { formulario_nombre: string; formulario_descripcion?: string | null }): Promise<Formulario> {
     const res = await api.post("/parametrizacion/formularios", payload);
     return res.data;
   },
@@ -56,9 +53,7 @@ export const formulariosService = {
           ...(estado !== "TODOS" && { estado }),
         },
       });
-      return Array.isArray(response.data)
-        ? response.data
-        : (response.data?.data ?? response.data?.formularios ?? []);
+      return Array.isArray(response.data) ? response.data : (response.data?.data ?? response.data?.formularios ?? []);
     } catch (err) {
       console.error("Error cargando formularios:", err);
       return [];
@@ -73,17 +68,14 @@ export const formulariosService = {
       await api.delete(`/parametrizacion/formularios/${id}`);
       return true;
     } catch (error: any) {
-      const mensaje =
-        error?.response?.data?.message || "Error eliminando formulario";
+      const mensaje = error?.response?.data?.message || "Error eliminando formulario";
       throw new Error(mensaje);
     }
   },
 
   // Obtener preguntas activas
   async getPreguntasActivas() {
-    const response = await api.get(
-      "/parametrizacion/formulario-preguntas/activas",
-    );
+    const response = await api.get("/parametrizacion/formulario-preguntas/activas");
     return response.data;
   },
 
@@ -96,9 +88,7 @@ export const formulariosService = {
   // Obtener formulario con versiones
   async getFormularioVersiones(formularioId: number) {
     try {
-      const res = await api.get(
-        `/parametrizacion/formularios/${formularioId}/versiones`,
-      );
+      const res = await api.get(`/parametrizacion/formularios/${formularioId}/versiones`);
       return res.data;
     } catch (error) {
       console.error("Error cargando versiones:", error);
@@ -114,9 +104,7 @@ export const formulariosService = {
   },
 
   // Obtener tipos de pregunta
-  async getTiposPregunta(
-    includeInactivos: boolean = true,
-  ): Promise<TipoPregunta[]> {
+  async getTiposPregunta(includeInactivos: boolean = true): Promise<TipoPregunta[]> {
     const res = await api.get("/parametrizacion/formulario-tipos-pregunta", {
       params: { includeInactivos },
     });
@@ -155,10 +143,7 @@ export const formulariosService = {
   },
 
   // Cargar datos completos del formulario (mantenerlo para backwards compatibility)
-  async cargarFormularioCompleto(
-    formularioId: number | null,
-    version: string | null,
-  ) {
+  async cargarFormularioCompleto(formularioId: number | null, version: string | null) {
     if (!formularioId) {
       return {
         formulario: null,

@@ -7,15 +7,21 @@ import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
+import { variablesPlantillaService } from "@/services/admin/parametrizacion/variables-plantilla.service";
 import {
   generarPlantillaDocumentoPdf,
   construirMapaRespuestasPregunta,
+  construirNombreDescargaPdf,
+  descargarPdfBlob,
 } from "@/lib/carta-pdf.util";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   tdoNombre: string;
+  // "PDF_SOLICITUD" genera contra el backend real (mismo PDF completo que
+  // descarga el cliente), no la plantilla de texto de abajo.
+  tipoPlantilla?: "TEXTO" | "PDF_SOLICITUD";
   tdoPlantillaContenido: string;
   formatoCodigo?: string;
   formatoCodigoSecundario?: string;
@@ -42,6 +48,7 @@ export function GenerarPlantillaModal({
   isOpen,
   onClose,
   tdoNombre,
+  tipoPlantilla = "TEXTO",
   tdoPlantillaContenido,
   formatoCodigo,
   formatoCodigoSecundario,
@@ -128,6 +135,19 @@ export function GenerarPlantillaModal({
     setGenerando(true);
     setError("");
     try {
+      if (tipoPlantilla === "PDF_SOLICITUD") {
+        const blob = await solicitudesService.downloadPdf(
+          solicitudSeleccionada.id,
+          tipoDocumentoId,
+        );
+        descargarPdfBlob(
+          blob,
+          construirNombreDescargaPdf(tdoNombre, clienteSeleccionado.label),
+        );
+        onClose();
+        return;
+      }
+
       let respuestasPregunta: Record<string, string> | undefined;
       let representanteLegalNombre: string | undefined;
       let representanteLegalCedula: string | undefined;
@@ -157,6 +177,21 @@ export function GenerarPlantillaModal({
           representanteLegalCedula =
             primeraFila["Identificacion"] || primeraFila["Identificación"] || "";
         }
+      }
+
+      // Variables con tabla/columna de origen configuradas en Parametrización
+      // → Variables de Plantilla se resuelven solas contra esta solicitud
+      // (ver variables-plantilla.service.ts::resolverParaSolicitud). Si el
+      // catálogo no tiene mapeo para alguna (ej. sigue sin conectar), no
+      // rompe nada: generarPlantillaDocumentoPdf ya trae sus propios
+      // valores fijos como base, este objeto solo los complementa/sustituye.
+      let reemplazosDinamicos: Record<string, string> = {};
+      try {
+        reemplazosDinamicos = await variablesPlantillaService.resolverParaSolicitud(
+          solicitudSeleccionada.id,
+        );
+      } catch (err) {
+        console.error("Error resolviendo variables con mapeo automático:", err);
       }
 
       let revisiones: { revision: string; descripcionCambio: string; fecha: string }[] = [];
@@ -196,6 +231,7 @@ export function GenerarPlantillaModal({
         piePaginaTipo,
         piePaginaTexto,
         piePaginaImagenUrl,
+        reemplazosExtra: reemplazosDinamicos,
       });
 
       onClose();

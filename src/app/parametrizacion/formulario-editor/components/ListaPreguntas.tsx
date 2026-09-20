@@ -6,7 +6,7 @@ import {
   type useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { ChevronDown, ChevronUp, Edit2, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit2, Lock, Trash2 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
 import { SortableItem } from "./SortableItem";
@@ -105,6 +105,21 @@ export function ListaPreguntas({
                           Precarga
                         </span>
                       )}
+                    {pregunta.fp_protegida && (
+                      <span
+                        className="inline-flex items-center gap-0.5 bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                        title={
+                          pregunta.fp_protegida_motivo === "siesa"
+                            ? "Sus datos se envían a SIESA: no se puede cambiar el tipo de input ni eliminarla"
+                            : pregunta.fp_protegida_motivo === "flujo_siesa"
+                              ? "Está ligada al flujo del portal y sus datos se envían a SIESA: no se puede cambiar el tipo de input ni eliminarla"
+                              : "Está ligada al flujo interno del portal: no se puede cambiar el tipo de input ni eliminarla"
+                        }
+                      >
+                        <Lock className="h-2.5 w-2.5" />
+                        Protegida
+                      </span>
+                    )}
                   </div>
 
                   {pregunta.fp_tipo === TIPOS_PREGUNTA.TABLA && (
@@ -193,7 +208,16 @@ export function ListaPreguntas({
                   </button>
                   <button
                     onClick={() => eliminarPregunta(pregunta.fp_id)}
-                    disabled={noEditable || formularioEdicionAbierto}
+                    disabled={
+                      noEditable ||
+                      formularioEdicionAbierto ||
+                      pregunta.fp_protegida
+                    }
+                    title={
+                      pregunta.fp_protegida
+                        ? "No se puede eliminar: es una pregunta protegida"
+                        : undefined
+                    }
                     className="p-0.5 text-gray-400 hover:text-red-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <Trash2 className="h-3 w-3" />

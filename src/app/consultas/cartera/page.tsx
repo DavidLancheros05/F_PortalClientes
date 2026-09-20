@@ -8,8 +8,11 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   carteraService,
@@ -90,6 +93,11 @@ export default function CarteraPage() {
     });
   }, [saldos, filtroNumero, soloVencidos]);
 
+  const numeroSugerencias = useMemo(
+    () => saldos.map((s) => s.numeroDocumento ?? ""),
+    [saldos],
+  );
+
   const saldosPaginados = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return saldosFiltrados.slice(start, start + pageSize);
@@ -156,15 +164,14 @@ export default function CarteraPage() {
           onBack={() => router.push("/consultas")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FilterField label="Número de documento">
-              <input
-                type="text"
-                value={filtroNumeroInput}
-                onChange={(e) => setFiltroNumeroInput(e.target.value)}
-                placeholder="Ej: FEV-00098211"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Número de documento"
+              placeholder="Ej: FEV-00098211"
+              value={filtroNumeroInput}
+              onChange={setFiltroNumeroInput}
+              suggestions={numeroSugerencias}
+              onEnter={handleBuscar}
+            />
             <FilterField label="Filtro adicional">
               <div className="flex items-center gap-2 h-9">
                 <input
@@ -231,42 +238,39 @@ export default function CarteraPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Documento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Auxiliar</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vendedor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">C.O.</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cupo de crédito</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha documento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha vencimiento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Plazo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Días vencidos</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Corriente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ven. 1-15</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ven. 16-30</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ven. 31-60</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ven. +60</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Total</th>
+                    <Th className="whitespace-nowrap">Documento</Th>
+                    <Th className="whitespace-nowrap">Cliente</Th>
+                    <Th className="whitespace-nowrap">Auxiliar</Th>
+                    <Th className="whitespace-nowrap">Vendedor</Th>
+                    <Th className="whitespace-nowrap">C.O.</Th>
+                    <Th className="whitespace-nowrap">Cupo de crédito</Th>
+                    <Th className="whitespace-nowrap">Fecha documento</Th>
+                    <Th className="whitespace-nowrap">Fecha vencimiento</Th>
+                    <Th className="whitespace-nowrap">Plazo</Th>
+                    <Th className="whitespace-nowrap">Días vencidos</Th>
+                    <Th className="whitespace-nowrap">Corriente</Th>
+                    <Th className="whitespace-nowrap">Ven. 1-15</Th>
+                    <Th className="whitespace-nowrap">Ven. 16-30</Th>
+                    <Th className="whitespace-nowrap">Ven. 31-60</Th>
+                    <Th className="whitespace-nowrap">Ven. +60</Th>
+                    <Th className="whitespace-nowrap">Total</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {saldosPaginados.map((saldo, index) => (
-                    <tr
-                      key={`${saldo.numeroDocumento}-${index}`}
-                      className="hover:bg-gray-50"
-                    >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                    <Tr key={`${saldo.numeroDocumento}-${index}`}>
+                      <Td className="whitespace-nowrap font-medium">
                         {saldo.numeroDocumento}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.razonSocialSucursal}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.auxiliar || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.vendedor || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.centroOperacion || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${saldo.cupoCredito || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.fechaDocumento || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.fechaVencimiento || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{saldo.plazo ?? "-"}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      </Td>
+                      <Td className="whitespace-nowrap">{saldo.razonSocialSucursal}</Td>
+                      <Td className="whitespace-nowrap">{saldo.auxiliar || "-"}</Td>
+                      <Td className="whitespace-nowrap">{saldo.vendedor || "-"}</Td>
+                      <Td className="whitespace-nowrap">{saldo.centroOperacion || "-"}</Td>
+                      <Td className="whitespace-nowrap">${saldo.cupoCredito || "-"}</Td>
+                      <Td className="whitespace-nowrap">{saldo.fechaDocumento || "-"}</Td>
+                      <Td className="whitespace-nowrap">{saldo.fechaVencimiento || "-"}</Td>
+                      <Td className="whitespace-nowrap">{saldo.plazo ?? "-"}</Td>
+                      <Td className="whitespace-nowrap">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-semibold ${
                             saldo.diasVencidos > 60
@@ -278,14 +282,14 @@ export default function CarteraPage() {
                         >
                           {saldo.diasVencidos}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${saldo.totalCorriente}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${saldo.vencido1a15}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${saldo.vencido16a30}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${saldo.vencido31a60}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${saldo.vencidoMas60}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">${saldo.total}</td>
-                    </tr>
+                      </Td>
+                      <Td className="whitespace-nowrap">${saldo.totalCorriente}</Td>
+                      <Td className="whitespace-nowrap">${saldo.vencido1a15}</Td>
+                      <Td className="whitespace-nowrap">${saldo.vencido16a30}</Td>
+                      <Td className="whitespace-nowrap">${saldo.vencido31a60}</Td>
+                      <Td className="whitespace-nowrap">${saldo.vencidoMas60}</Td>
+                      <Td className="whitespace-nowrap font-semibold">${saldo.total}</Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>

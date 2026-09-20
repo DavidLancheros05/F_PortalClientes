@@ -1,15 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, RefreshCw, Search, Pencil, Power, Save, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Plus,
+  RefreshCw,
+  Search,
+  Pencil,
+  Power,
+  Save,
+  X,
+  Inbox,
+} from "lucide-react";
 import {
   motivosRechazoService,
   MotivoRechazo,
 } from "@/services/admin/parametrizacion/motivos-rechazo.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { Ban } from "lucide-react";
 
 export default function MotivosRechazoPage() {
@@ -25,6 +40,10 @@ export default function MotivosRechazoPage() {
   const [editandoDescripcion, setEditandoDescripcion] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -46,7 +65,15 @@ export default function MotivosRechazoPage() {
     try {
       const data = await motivosRechazoService.getAll();
       setMotivos(data);
-      setMotivosFiltrados(data);
+      // Si ya se había hecho una búsqueda, reaplicarla contra los datos
+      // frescos — si no, cada recarga (crear/editar/activar-inactivar)
+      // pisaba el filtro aplicado y volvía a mostrar la lista completa
+      // aunque el selector de Estado siguiera mostrando "Activos"/"Inactivos".
+      // Si todavía no se ha buscado, la tabla sigue oculta (no se toca
+      // motivosFiltrados) hasta que el usuario dé clic en "Buscar".
+      if (hasSearched) {
+        aplicarFiltros(data);
+      }
     } catch (error) {
       console.error(error);
       setMotivos([]);
@@ -204,6 +231,12 @@ export default function MotivosRechazoPage() {
     setDescripcion("");
   };
 
+  // Pool crudo de sugerencias — misma columna que consulta el filtro real.
+  const filtroTextoSugerencias = useMemo(
+    () => motivos.map((m) => m.descripcion ?? ""),
+    [motivos],
+  );
+
   const aplicarFiltros = (sourceMotivos: MotivoRechazo[] = motivos) => {
     const texto = filtroTexto.trim().toLowerCase();
 
@@ -218,21 +251,38 @@ export default function MotivosRechazoPage() {
     });
 
     setMotivosFiltrados(resultado);
+    setHasSearched(true);
+    setPaginaActual(1);
   };
 
   const limpiarFiltros = () => {
     setFiltroTexto("");
     setFiltroEstado("TODOS");
-    setMotivosFiltrados(motivos);
+    setMotivosFiltrados([]);
+    setHasSearched(false);
+    setPaginaActual(1);
   };
 
-  const total = motivos.length;
-  const activos = motivos.filter((motivo) => motivo.activo).length;
-  const inactivos = total - activos;
+  const irAPagina = (page: number) => {
+    setPaginaActual(page);
+  };
+
+  const cambiarPageSize = (size: number) => {
+    setPageSize(size);
+    irAPagina(1);
+  };
+
+  const indiceInicio = (paginaActual - 1) * pageSize;
+  const indiceFin = indiceInicio + pageSize;
+  const motivosPagina = motivosFiltrados.slice(indiceInicio, indiceFin);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div
+      className={`min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8 ${
+        !hasSearched && !loading ? "flex items-center justify-center" : ""
+      }`}
+    >
+      <div className="max-w-7xl w-full mx-auto">
         <PageHeaderCard
           icon={Ban}
           eyebrow="Parametrización"
@@ -250,168 +300,149 @@ export default function MotivosRechazoPage() {
               Nuevo
             </button>
           }
-        />
+        >
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <SuggestField
+              label="Buscar por descripción"
+              className="md:col-span-2"
+              placeholder="Ej: documentación incompleta"
+              value={filtroTexto}
+              onChange={setFiltroTexto}
+              suggestions={filtroTextoSugerencias}
+              onEnter={() => aplicarFiltros()}
+            />
+
+            <FilterField label="Estado">
+              <select
+                value={filtroEstado}
+                onChange={(e) =>
+                  setFiltroEstado(
+                    e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
+                  )
+                }
+                className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="TODOS">Todos</option>
+                <option value="ACTIVO">Activos</option>
+                <option value="INACTIVO">Inactivos</option>
+              </select>
+            </FilterField>
+
+            <FilterActions className="col-span-full">
+              <button
+                onClick={() => aplicarFiltros()}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+              <button
+                onClick={limpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={cargarMotivos}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </button>
+            </FilterActions>
+          </div>
+        </PageHeaderCard>
 
         {mostrarNuevo && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Agregar motivo
-                </h2>
-                <p className="text-sm text-gray-600">
-                  Ingresa la descripción del nuevo motivo de rechazo
-                </p>
-              </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Agregar motivo
+              </h2>
+              <p className="text-sm text-gray-600">
+                Ingresa la descripción del nuevo motivo de rechazo
+              </p>
+            </div>
 
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <input
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, crearMotivo)}
-                    placeholder="Ej: Documentación incompleta"
-                    className="md:col-span-2 border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={submitting}
-                  />
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <input
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, crearMotivo)}
+                  placeholder="Ej: Documentación incompleta"
+                  className="md:col-span-2 border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={submitting}
+                />
 
-                  <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      onClick={crearMotivo}
-                      disabled={!descripcion.trim() || submitting}
-                      className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                        !descripcion.trim() || submitting
-                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                          : "bg-brand-600 hover:bg-brand-700 text-white"
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                      {submitting ? "Agregando..." : "Agregar"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        limpiarFormulario();
-                        setMostrarNuevo(false);
-                      }}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-                    >
-                      <X className="h-4 w-4" />
-                      Cerrar
-                    </button>
-                  </div>
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    onClick={crearMotivo}
+                    disabled={!descripcion.trim() || submitting}
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                      !descripcion.trim() || submitting
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-brand-600 hover:bg-brand-700 text-white"
+                    }`}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {submitting ? "Agregando..." : "Agregar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      limpiarFormulario();
+                      setMostrarNuevo(false);
+                    }}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                    Cerrar
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-4 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <FilterField label="Buscar por descripción" className="md:col-span-2">
-                <input
-                  type="text"
-                  value={filtroTexto}
-                  onChange={(e) => setFiltroTexto(e.target.value)}
-                  placeholder="Ej: documentación incompleta"
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </FilterField>
-
-              <FilterField label="Estado">
-                <select
-                  value={filtroEstado}
-                  onChange={(e) =>
-                    setFiltroEstado(
-                      e.target.value as "TODOS" | "ACTIVO" | "INACTIVO",
-                    )
-                  }
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="TODOS">Todos</option>
-                  <option value="ACTIVO">Activos</option>
-                  <option value="INACTIVO">Inactivos</option>
-                </select>
-              </FilterField>
-
-              <FilterActions className="col-span-full">
-                <button
-                  onClick={limpiarFiltros}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-                >
-                  <X className="h-4 w-4" />
-                  Limpiar
-                </button>
-                <button
-                  onClick={() => aplicarFiltros()}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors"
-                >
-                  <Search className="h-4 w-4" />
-                  Buscar
-                </button>
-              </FilterActions>
             </div>
           </div>
+        )}
 
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
+        ) : !hasSearched ? null : motivosFiltrados.length === 0 ? (
+          <EmptyStateCard
+            icon={Inbox}
+            title="No hay resultados para los filtros aplicados."
+          />
+        ) : (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-blue-50/40">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base md:text-lg font-semibold text-slate-800">
-                    Motivos registrados
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {total} motivo{total !== 1 ? "s" : ""} en el sistema
-                  </p>
-                </div>
-                <button
-                  onClick={cargarMotivos}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Actualizar
-                </button>
-              </div>
+              <p className="text-sm text-gray-600">
+                Mostrando{" "}
+                <span className="font-semibold">{motivosFiltrados.length}</span>{" "}
+                motivo{motivosFiltrados.length !== 1 ? "s" : ""}
+              </p>
             </div>
 
-            <div className="overflow-x-auto">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                  <p className="text-gray-600">Cargando motivos...</p>
-                </div>
-              ) : motivosFiltrados.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl text-gray-400">📝</span>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No hay resultados para los filtros aplicados
-                  </h3>
-                  <p className="text-gray-500">
-                    Ajusta los filtros o limpia la búsqueda
-                  </p>
-                </div>
-              ) : (
-                <table className="min-w-full divide-y divide-blue-100">
-                  <thead className="bg-gradient-to-r from-indigo-100 via-blue-100 to-cyan-100">
+            <TableContainer>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                        Descripción
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
+                      <Th>Descripción</Th>
+                      <Th>Estado</Th>
+                      <Th sticky align="right">
                         Acciones
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {motivosFiltrados.map((m) => (
-                      <tr
-                        key={m.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                    {motivosPagina.map((m) => (
+                      <Tr key={m.id}>
+                        <Td>
                           {editandoId === m.id ? (
                             <input
                               type="text"
@@ -428,9 +459,9 @@ export default function MotivosRechazoPage() {
                           ) : (
                             m.descripcion
                           )}
-                        </td>
+                        </Td>
 
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                        <Td>
                           <span
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                               m.activo
@@ -440,9 +471,9 @@ export default function MotivosRechazoPage() {
                           >
                             {m.activo ? "Activo" : "Inactivo"}
                           </span>
-                        </td>
+                        </Td>
 
-                        <td className="px-6 py-4 text-right text-sm">
+                        <Td sticky align="right">
                           {editandoId === m.id ? (
                             <div className="flex items-center justify-end gap-2">
                               <button
@@ -478,41 +509,23 @@ export default function MotivosRechazoPage() {
                               </button>
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))}
                   </tbody>
                 </table>
-              )}
-            </div>
-          </div>
+              </div>
+            </TableContainer>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                Total
-              </p>
-              <p className="text-2xl font-semibold text-slate-800 mt-1">
-                {total}
-              </p>
-            </div>
-            <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-emerald-600 font-semibold">
-                Activos
-              </p>
-              <p className="text-2xl font-semibold text-emerald-700 mt-1">
-                {activos}
-              </p>
-            </div>
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                Inactivos
-              </p>
-              <p className="text-2xl font-semibold text-slate-700 mt-1">
-                {inactivos}
-              </p>
-            </div>
+            <TablePagination
+              page={paginaActual}
+              pageSize={pageSize}
+              totalItems={motivosFiltrados.length}
+              onPageChange={irAPagina}
+              onPageSizeChange={cambiarPageSize}
+            />
           </div>
+        )}
       </div>
 
       {/* Modals */}

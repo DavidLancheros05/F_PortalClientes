@@ -11,7 +11,7 @@ interface Version {
 }
 
 interface Formulario {
-  formulario_id: number;
+  frm_id: number;
   formulario_nombre: string;
   formulario_version: number;
   formulario_activo: boolean;
@@ -24,17 +24,12 @@ export const versionesService = {
   },
 
   async activarVersion(formularioId: number, versionNumero: number) {
-    const response = await api.patch(
-      `/parametrizacion/formularios/${formularioId}/activar-version`,
-      { versionNumero }
-    );
+    const response = await api.patch(`/parametrizacion/formularios/${formularioId}/activar-version`, { versionNumero });
     return response.data;
   },
 
   async eliminarVersion(formularioId: number, versionNumero: number) {
-    const response = await api.delete(
-      `/parametrizacion/formularios/${formularioId}/versiones/${versionNumero}`
-    );
+    const response = await api.delete(`/parametrizacion/formularios/${formularioId}/versiones/${versionNumero}`);
     return response.data;
   },
 };

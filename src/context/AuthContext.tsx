@@ -102,7 +102,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (mounted) {
         setUser(normalizedUser);
-        localStorage.setItem("user", JSON.stringify(normalizedUser));
+        const normalizedJson = JSON.stringify(normalizedUser);
+        localStorage.setItem("user", normalizedJson);
+        // Mantiene userRef sincronizado con lo que esta pestaña ACABA de
+        // escribir (no con el string crudo pre-normalización de arriba) —
+        // si no, la comparación de handleStorageChange queda desfasada
+        // desde el primer render.
+        userRef.current = normalizedJson;
         setLoading(false);
       }
     }
@@ -127,7 +133,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (e.key !== "user" && e.key !== null) return;
 
       const userActual = localStorage.getItem("user");
-      if (userActual !== userRef.current) {
+      if (userActual === userRef.current) return;
+
+      // Comparar identidad real (usr_id), no el JSON completo como string —
+      // cada pestaña re-normaliza y reescribe `user` al cargar (ver
+      // fetchUser arriba), así que dos pestañas con LA MISMA cuenta pueden
+      // terminar con un JSON con forma ligeramente distinta (orden de
+      // claves) sin que la sesión haya cambiado de verdad. Comparar el
+      // string completo disparaba el banner en falso con solo recargar
+      // cualquier otra pestaña abierta.
+      let mismoUsuario = false;
+      try {
+        const anterior = userRef.current ? JSON.parse(userRef.current) : null;
+        const actual = userActual ? JSON.parse(userActual) : null;
+        mismoUsuario = (anterior?.usr_id ?? null) === (actual?.usr_id ?? null);
+      } catch {
+        mismoUsuario = false;
+      }
+
+      userRef.current = userActual;
+      if (!mismoUsuario) {
         setSesionCambiadaEnOtraPestana(true);
       }
     }

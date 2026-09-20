@@ -395,8 +395,8 @@ export default function RegistrarConceptoPage() {
                 )}
               </div>
 
-              {/* Cuerpo: registro + historial */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 p-7">
+              {/* Cuerpo: registro + historial abajo */}
+              <div className="grid grid-cols-1 gap-6 p-7">
                 <div className="min-w-0">
                   <h2 className="text-base font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
                     <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">

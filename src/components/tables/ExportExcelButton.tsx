@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { ExcelIcon } from "@/components/icons/FileIcons";
 
 interface ExportExcelButtonProps {
   onClick: () => void;
@@ -19,9 +19,9 @@ export function ExportExcelButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-lg border border-[#a7f3d0] text-[#059669] hover:bg-[#ecfdf5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg border border-[#a7f3d0] text-[#059669] hover:bg-[#ecfdf5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <Download className="h-4 w-4" />
+      <ExcelIcon />
       {label}
     </button>
   );

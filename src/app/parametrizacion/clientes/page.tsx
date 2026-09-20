@@ -1,14 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { clientesService } from "@/services/clientes/clientes.service";
 
 import {
   Building,
-  FileText,
-  MapPin,
   UserPlus,
   Loader2,
   Eye,
@@ -16,19 +14,29 @@ import {
   Search,
   RefreshCw,
   AlertCircle,
-  Users,
   ShieldCheck,
+  Send,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import ClienteDetalleModal from "./ClienteDetalleModal";
+import SiesaPreviewModal from "./SiesaPreviewModal";
 
 const FILTROS_STORAGE_KEY = "parametrizacion:clientes:filtros";
+// Marca de un solo uso: solo se restaura la búsqueda guardada si el
+// usuario vuelve de ver/editar un cliente (que es quien la deja puesta
+// antes de navegar). Un reload de esta misma página o entrar desde
+// cualquier otro lugar del sitio no la encuentra, así que arranca vacía.
+const RETURN_MARKER_KEY = "parametrizacion:clientes:return-marker";
 
 export default function ClientesPage() {
   const router = useRouter();
@@ -50,6 +58,11 @@ export default function ClientesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewClienteId, setViewClienteId] = useState<number | null>(null);
+  const [siesaCliente, setSiesaCliente] = useState<{
+    id: number;
+    nombre: string;
+  } | null>(null);
 
   const fetchCentros = async () => {
     try {
@@ -92,6 +105,13 @@ export default function ClientesPage() {
 
     if (typeof window === "undefined") return;
     try {
+      // Marca de un solo uso: si no está, esta carga no vino de "Ver"/
+      // "Editar" (fue un reload o una navegación desde otra página), así
+      // que no se restaura nada y la tabla arranca vacía.
+      const hasReturnMarker = sessionStorage.getItem(RETURN_MARKER_KEY);
+      if (!hasReturnMarker) return;
+      sessionStorage.removeItem(RETURN_MARKER_KEY);
+
       const raw = sessionStorage.getItem(FILTROS_STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw);
@@ -152,6 +172,16 @@ export default function ClientesPage() {
     handleSearch();
   };
 
+  // Deja la marca de "un solo uso" antes de ir al detalle/edición de un
+  // cliente, para que al volver el mount effect sepa que sí debe
+  // restaurar la búsqueda guardada (ver RETURN_MARKER_KEY).
+  const goToCliente = (path: string) => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(RETURN_MARKER_KEY, "1");
+    }
+    router.push(path);
+  };
+
   const handleSearch = async () => {
     await fetchClientesList(centroSeleccionado);
     setHasSearched(true);
@@ -185,6 +215,21 @@ export default function ClientesPage() {
       `Clientes_${new Date().toISOString().split("T")[0]}.xlsx`,
     );
   };
+
+  // Pool crudo de sugerencias por campo — cada uno mapea la columna que su
+  // propio filtro (matchesSearch/matchesNit/matchesDireccion) consulta.
+  const razonSocialSugerencias = useMemo(
+    () => clientes.map((c) => c.cli_razon_social ?? ""),
+    [clientes],
+  );
+  const nitSugerencias = useMemo(
+    () => clientes.map((c) => c.cli_nro_identificacion ?? ""),
+    [clientes],
+  );
+  const direccionSugerencias = useMemo(
+    () => clientes.map((c) => c.cli_direccion ?? ""),
+    [clientes],
+  );
 
   // Filtrar clientes
   const filteredClientes = clientes.filter((cliente) => {
@@ -305,38 +350,32 @@ export default function ClientesPage() {
               </select>
             </FilterField>
 
-            <FilterField label="Razón Social">
-              <input
-                type="text"
-                placeholder="Ej: Cartonera..."
-                value={searchInputValue}
-                onChange={(e) => setSearchInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Razón Social"
+              placeholder="Ej: Cartonera..."
+              value={searchInputValue}
+              onChange={setSearchInputValue}
+              suggestions={razonSocialSugerencias}
+              onEnter={handleSearch}
+            />
 
-            <FilterField label="NIT / Documento">
-              <input
-                type="text"
-                placeholder="Ej: 123456789..."
-                value={filterNit}
-                onChange={(e) => setFilterNit(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="NIT / Documento"
+              placeholder="Ej: 123456789..."
+              value={filterNit}
+              onChange={setFilterNit}
+              suggestions={nitSugerencias}
+              onEnter={handleSearch}
+            />
 
-            <FilterField label="Dirección">
-              <input
-                type="text"
-                placeholder="Ej: Calle..."
-                value={filterDireccion}
-                onChange={(e) => setFilterDireccion(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Dirección"
+              placeholder="Ej: Calle..."
+              value={filterDireccion}
+              onChange={setFilterDireccion}
+              suggestions={direccionSugerencias}
+              onEnter={handleSearch}
+            />
 
             <FilterActions className="col-span-full">
               <button
@@ -409,21 +448,13 @@ export default function ClientesPage() {
                     <table className="min-w-full">
                       <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                         <tr>
-                          <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Cliente
-                          </th>
-                          <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Documento
-                          </th>
-                          <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Dirección
-                          </th>
-                          <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Ejecutivo
-                          </th>
-                          <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <Th>Cliente</Th>
+                          <Th>Documento</Th>
+                          <Th>Dirección</Th>
+                          <Th>Ejecutivo</Th>
+                          <Th sticky align="right">
                             Acciones
-                          </th>
+                          </Th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -433,61 +464,30 @@ export default function ClientesPage() {
                             currentPage * itemsPerPage,
                           )
                           .map((cliente) => (
-                            <tr
-                              key={cliente.cli_id}
-                              className="hover:bg-gray-50 transition"
-                            >
-                              <td className="py-4 px-6">
-                                <div className="flex items-center">
-                                  <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center mr-4">
-                                    <Building className="w-5 h-5 text-gray-700" />
-                                  </div>
-                                  <div>
-                                    <div className="font-semibold text-gray-900">
-                                      {cliente.cli_razon_social}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6">
-                                <div className="flex items-center">
-                                  <FileText className="w-4 h-4 text-gray-400 mr-2" />
-                                  <span className="font-mono text-sm">
-                                    {cliente.cli_nro_identificacion || "-"}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6">
-                                <div className="flex items-center">
-                                  <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                                  <span className="text-sm">
-                                    {cliente.cli_direccion || "-"}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="py-4 px-6">
+                            <Tr key={cliente.cli_id}>
+                              <Td className="font-semibold text-gray-900">
+                                {cliente.cli_razon_social}
+                              </Td>
+                              <Td className="font-mono">
+                                {cliente.cli_nro_identificacion || "-"}
+                              </Td>
+                              <Td>{cliente.cli_direccion || "-"}</Td>
+                              <Td>
                                 {cliente.ejecutivo ? (
-                                  <div className="flex items-center">
-                                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-2">
-                                      <Users className="w-4 h-4 text-gray-700" />
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {cliente.ejecutivo.nombre}
-                                    </span>
-                                  </div>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {cliente.ejecutivo.nombre}
+                                  </span>
                                 ) : (
                                   <span className="text-sm text-gray-400 italic">
                                     Sin asignar
                                   </span>
                                 )}
-                              </td>
-                              <td className="py-4 px-6">
-                                <div className="flex space-x-2">
+                              </Td>
+                              <Td sticky align="right">
+                                <div className="flex space-x-2 justify-end">
                                   <button
                                     onClick={() =>
-                                      router.push(
-                                        `/parametrizacion/clientes/${cliente.cli_id}`,
-                                      )
+                                      setViewClienteId(cliente.cli_id)
                                     }
                                     className="p-2 bg-blue-50 text-brand-600 rounded-lg hover:bg-blue-100 transition"
                                     title="Ver detalles"
@@ -496,7 +496,7 @@ export default function ClientesPage() {
                                   </button>
                                   <button
                                     onClick={() =>
-                                      router.push(
+                                      goToCliente(
                                         `/parametrizacion/clientes/${cliente.cli_id}/editar`,
                                       )
                                     }
@@ -505,9 +505,21 @@ export default function ClientesPage() {
                                   >
                                     <Edit className="w-4 h-4" />
                                   </button>
+                                  <button
+                                    onClick={() =>
+                                      setSiesaCliente({
+                                        id: cliente.cli_id,
+                                        nombre: cliente.cli_razon_social,
+                                      })
+                                    }
+                                    className="p-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition"
+                                    title="Crear en SIESA (vista previa, no envía nada)"
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </button>
                                 </div>
-                              </td>
-                            </tr>
+                              </Td>
+                            </Tr>
                           ))}
                       </tbody>
                     </table>
@@ -534,6 +546,26 @@ export default function ClientesPage() {
         onConfirm={() => setModalOpen(false)}
         onCancel={() => setModalOpen(false)}
       />
+
+      {viewClienteId && (
+        <ClienteDetalleModal
+          clienteId={viewClienteId}
+          onClose={() => setViewClienteId(null)}
+          onEdit={() => {
+            const id = viewClienteId;
+            setViewClienteId(null);
+            goToCliente(`/parametrizacion/clientes/${id}/editar`);
+          }}
+        />
+      )}
+
+      {siesaCliente && (
+        <SiesaPreviewModal
+          clienteId={siesaCliente.id}
+          clienteNombre={siesaCliente.nombre}
+          onClose={() => setSiesaCliente(null)}
+        />
+      )}
     </div>
   );
 }

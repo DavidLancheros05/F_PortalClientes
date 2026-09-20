@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
 import { Package, PackageOpen, Search, X } from "lucide-react";
@@ -8,8 +8,11 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   pedidosService,
@@ -148,12 +151,42 @@ export default function MisPedidosPage() {
   };
 
   const clientesDisponibles = useMemo(() => {
-    const nombres = new Set<string>();
+    const porNombre = new Map<string, string>();
     pedidos.forEach((pedido) => {
-      if (pedido.clienteRazonSocial) nombres.add(pedido.clienteRazonSocial);
+      if (pedido.clienteRazonSocial && !porNombre.has(pedido.clienteRazonSocial)) {
+        porNombre.set(pedido.clienteRazonSocial, pedido.nit || "");
+      }
     });
-    return Array.from(nombres).sort((a, b) => a.localeCompare(b));
+    return Array.from(porNombre.entries())
+      .map(([nombre, nit]) => ({ nombre, nit }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [pedidos]);
+
+  const clientesFiltrados = useMemo(() => {
+    const term = filtroClienteInput.trim().toLowerCase();
+    if (!term) return clientesDisponibles;
+    return clientesDisponibles.filter(
+      (c) =>
+        c.nombre.toLowerCase().includes(term) ||
+        c.nit.toLowerCase().includes(term),
+    );
+  }, [clientesDisponibles, filtroClienteInput]);
+
+  const [mostrarClientes, setMostrarClientes] = useState(false);
+  const clienteRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!mostrarClientes) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        clienteRef.current &&
+        !clienteRef.current.contains(event.target as Node)
+      ) {
+        setMostrarClientes(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarClientes]);
 
   const pedidosFiltrados = useMemo(() => {
     const numeroBuscado = filtroNumero.trim().toLowerCase();
@@ -236,6 +269,29 @@ export default function MisPedidosPage() {
     filtroFechaDesde,
     filtroFechaHasta,
   ]);
+
+  // Pool crudo de sugerencias por campo — SuggestField filtra/deduplica
+  // internamente, acá solo se mapea la columna correspondiente.
+  const numeroSugerencias = useMemo(
+    () => pedidos.map((p) => p.numeroDocumento ?? ""),
+    [pedidos],
+  );
+  const descripcionSugerencias = useMemo(
+    () => pedidos.map((p) => p.descripcionItem ?? ""),
+    [pedidos],
+  );
+  const numeroPedidoSugerencias = useMemo(
+    () => pedidos.map((p) => String(p.numero ?? "")),
+    [pedidos],
+  );
+  const ordenCompraSugerencias = useMemo(
+    () => pedidos.map((p) => p.ordenCompra ?? ""),
+    [pedidos],
+  );
+  const referenciaSugerencias = useMemo(
+    () => pedidos.map((p) => p.referencia ?? ""),
+    [pedidos],
+  );
 
   const pedidosPaginados = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -331,28 +387,66 @@ export default function MisPedidosPage() {
           onBack={() => router.push("/pedidos")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <FilterField label="Número de documento">
+            <SuggestField
+              label="Número de documento"
+              placeholder="Ej: PV-00259993"
+              value={filtroNumeroInput}
+              onChange={setFiltroNumeroInput}
+              suggestions={numeroSugerencias}
+              onEnter={handleBuscar}
+            />
+            <FilterField label="Cliente" className="relative" ref={clienteRef}>
               <input
                 type="text"
-                value={filtroNumeroInput}
-                onChange={(e) => setFiltroNumeroInput(e.target.value)}
-                placeholder="Ej: PV-00259993"
+                placeholder="Nombre o NIT..."
+                value={filtroClienteInput}
+                onFocus={() => setMostrarClientes(true)}
+                onChange={(e) => {
+                  setFiltroClienteInput(e.target.value);
+                  setMostrarClientes(true);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </FilterField>
-            <FilterField label="Cliente">
-              <select
-                value={filtroClienteInput}
-                onChange={(e) => setFiltroClienteInput(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los clientes</option>
-                {clientesDisponibles.map((cliente) => (
-                  <option key={cliente} value={cliente}>
-                    {cliente}
-                  </option>
-                ))}
-              </select>
+              {mostrarClientes && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {filtroClienteInput && (
+                    <div
+                      onClick={() => {
+                        setFiltroClienteInput("");
+                        setMostrarClientes(false);
+                      }}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 text-gray-500"
+                    >
+                      Todos
+                    </div>
+                  )}
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      Sin resultados
+                    </div>
+                  ) : (
+                    clientesFiltrados.map((cliente) => (
+                      <div
+                        key={cliente.nombre}
+                        onClick={() => {
+                          setFiltroClienteInput(cliente.nombre);
+                          setMostrarClientes(false);
+                        }}
+                        className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">
+                          {cliente.nombre}
+                        </div>
+                        {cliente.nit && (
+                          <div className="text-xs text-gray-500">
+                            NIT {cliente.nit}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </FilterField>
             <FilterField label="Estado">
               <select
@@ -368,42 +462,38 @@ export default function MisPedidosPage() {
                 ))}
               </select>
             </FilterField>
-            <FilterField label="Descripción">
-              <input
-                type="text"
-                value={filtroDescripcionInput}
-                onChange={(e) => setFiltroDescripcionInput(e.target.value)}
-                placeholder="Ej: CAJA CJ 3550"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
-            <FilterField label="Número de pedido">
-              <input
-                type="text"
-                value={filtroNumeroPedidoInput}
-                onChange={(e) => setFiltroNumeroPedidoInput(e.target.value)}
-                placeholder="Ej: 259993"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
-            <FilterField label="Orden de compra">
-              <input
-                type="text"
-                value={filtroOrdenCompraInput}
-                onChange={(e) => setFiltroOrdenCompraInput(e.target.value)}
-                placeholder="Ej: 19078"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
-            <FilterField label="Referencia">
-              <input
-                type="text"
-                value={filtroReferenciaInput}
-                onChange={(e) => setFiltroReferenciaInput(e.target.value)}
-                placeholder="Ej: BAR00002571571"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Descripción"
+              placeholder="Ej: CAJA CJ 3550"
+              value={filtroDescripcionInput}
+              onChange={setFiltroDescripcionInput}
+              suggestions={descripcionSugerencias}
+              onEnter={handleBuscar}
+            />
+            <SuggestField
+              label="Número de pedido"
+              placeholder="Ej: 259993"
+              value={filtroNumeroPedidoInput}
+              onChange={setFiltroNumeroPedidoInput}
+              suggestions={numeroPedidoSugerencias}
+              onEnter={handleBuscar}
+            />
+            <SuggestField
+              label="Orden de compra"
+              placeholder="Ej: 19078"
+              value={filtroOrdenCompraInput}
+              onChange={setFiltroOrdenCompraInput}
+              suggestions={ordenCompraSugerencias}
+              onEnter={handleBuscar}
+            />
+            <SuggestField
+              label="Referencia"
+              placeholder="Ej: BAR00002571571"
+              value={filtroReferenciaInput}
+              onChange={setFiltroReferenciaInput}
+              suggestions={referenciaSugerencias}
+              onEnter={handleBuscar}
+            />
             <FilterField label="Fecha creación desde">
               <input
                 type="date"
@@ -472,51 +562,50 @@ export default function MisPedidosPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Documento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Número</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">NIT</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Estado</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha creación</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha entrega</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Orden de compra</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ítem</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Referencia</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Descripción</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cant. pedida</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cant. disponible</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cant. remisionada</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cant. pendiente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Peso pendiente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Volumen pendiente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ciudad</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio unitario</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio por peso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Plan</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vlr. pendiente subtotal</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vlr. pendiente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Dirección</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vendedor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor neto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor bruto local</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Peso pedida</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">CDV</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Notas</th>
+                    <Th className="whitespace-nowrap">Documento</Th>
+                    <Th className="whitespace-nowrap">Número</Th>
+                    <Th className="whitespace-nowrap">Cliente</Th>
+                    <Th className="whitespace-nowrap">NIT</Th>
+                    <Th className="whitespace-nowrap">Estado</Th>
+                    <Th className="whitespace-nowrap">Fecha creación</Th>
+                    <Th className="whitespace-nowrap">Fecha entrega</Th>
+                    <Th className="whitespace-nowrap">Orden de compra</Th>
+                    <Th className="whitespace-nowrap">Ítem</Th>
+                    <Th className="whitespace-nowrap">Referencia</Th>
+                    <Th className="whitespace-nowrap">Descripción</Th>
+                    <Th className="whitespace-nowrap">Cant. pedida</Th>
+                    <Th className="whitespace-nowrap">Cant. disponible</Th>
+                    <Th className="whitespace-nowrap">Cant. remisionada</Th>
+                    <Th className="whitespace-nowrap">Cant. pendiente</Th>
+                    <Th className="whitespace-nowrap">Peso pendiente</Th>
+                    <Th className="whitespace-nowrap">Volumen pendiente</Th>
+                    <Th className="whitespace-nowrap">Ciudad</Th>
+                    <Th className="whitespace-nowrap">Precio unitario</Th>
+                    <Th className="whitespace-nowrap">Precio por peso</Th>
+                    <Th className="whitespace-nowrap">Plan</Th>
+                    <Th className="whitespace-nowrap">Vlr. pendiente subtotal</Th>
+                    <Th className="whitespace-nowrap">Vlr. pendiente</Th>
+                    <Th className="whitespace-nowrap">Dirección</Th>
+                    <Th className="whitespace-nowrap">Vendedor</Th>
+                    <Th className="whitespace-nowrap">Valor neto</Th>
+                    <Th className="whitespace-nowrap">Valor bruto local</Th>
+                    <Th className="whitespace-nowrap">Peso pedida</Th>
+                    <Th className="whitespace-nowrap">CDV</Th>
+                    <Th className="whitespace-nowrap">Notas</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {pedidosPaginados.map((pedido, index) => (
-                    <tr
+                    <Tr
                       key={`${pedido.numeroDocumento}-${pedido.item}-${index}`}
-                      className="hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                      <Td className="whitespace-nowrap font-medium">
                         {pedido.numeroDocumento}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.numero}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.clienteRazonSocial}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.nit}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      </Td>
+                      <Td className="whitespace-nowrap">{pedido.numero}</Td>
+                      <Td className="whitespace-nowrap">{pedido.clienteRazonSocial}</Td>
+                      <Td className="whitespace-nowrap">{pedido.nit}</Td>
+                      <Td className="whitespace-nowrap">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-semibold ${
                             pedido.estado === "Cumplido"
@@ -529,33 +618,33 @@ export default function MisPedidosPage() {
                         >
                           {pedido.estado}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatFecha(pedido.fechaCreacion)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatFecha(pedido.fechaEntrega)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.ordenCompra || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.item}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.referencia}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.descripcionItem}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.cantidadPedida)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.cantidadDisponibleInsumo)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.cantidadRemisionada)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.cantidadPendiente)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.pesoPendiente)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.volumenPendiente)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.ciudad}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(pedido.precioUnitario)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.precioPeso)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.plan003 || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(pedido.valorPendienteSubtotal)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(pedido.valorPendiente)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.direccion}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.vendedor}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(pedido.valorNeto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(pedido.valorBrutoLocal)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(pedido.pesoPedida)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.cdv || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{pedido.notas || "-"}</td>
-                    </tr>
+                      </Td>
+                      <Td className="whitespace-nowrap">{formatFecha(pedido.fechaCreacion)}</Td>
+                      <Td className="whitespace-nowrap">{formatFecha(pedido.fechaEntrega)}</Td>
+                      <Td className="whitespace-nowrap">{pedido.ordenCompra || "-"}</Td>
+                      <Td className="whitespace-nowrap">{pedido.item}</Td>
+                      <Td className="whitespace-nowrap">{pedido.referencia}</Td>
+                      <Td className="whitespace-nowrap">{pedido.descripcionItem}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.cantidadPedida)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.cantidadDisponibleInsumo)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.cantidadRemisionada)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.cantidadPendiente)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.pesoPendiente)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.volumenPendiente)}</Td>
+                      <Td className="whitespace-nowrap">{pedido.ciudad}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(pedido.precioUnitario)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.precioPeso)}</Td>
+                      <Td className="whitespace-nowrap">{pedido.plan003 || "-"}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(pedido.valorPendienteSubtotal)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(pedido.valorPendiente)}</Td>
+                      <Td className="whitespace-nowrap">{pedido.direccion}</Td>
+                      <Td className="whitespace-nowrap">{pedido.vendedor}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(pedido.valorNeto)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(pedido.valorBrutoLocal)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(pedido.pesoPedida)}</Td>
+                      <Td className="whitespace-nowrap">{pedido.cdv || "-"}</Td>
+                      <Td className="whitespace-nowrap">{pedido.notas || "-"}</Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>

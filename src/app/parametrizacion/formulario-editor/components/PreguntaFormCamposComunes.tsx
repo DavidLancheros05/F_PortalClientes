@@ -85,6 +85,13 @@ interface PreguntaFormTipoProps {
   setOpcionesNuevas: Dispatch<SetStateAction<string[]>>;
   tiposPregunta: TipoPreguntaCatalogo[];
   editandoPregunta: number | null;
+  // true si la pregunta que se está editando tiene fp_codigo anclado a
+  // lógica hardcodeada del backend (flujo del portal y/o envío a SIESA) —
+  // ver preguntas-protegidas.constant.ts en el backend. El backend ya
+  // rechaza el cambio igual; esto solo evita que el admin llegue a
+  // intentarlo y se lleve un error recién al guardar.
+  protegida?: boolean;
+  protegidaMotivo?: "flujo" | "siesa" | "flujo_siesa" | null;
 }
 
 export function PreguntaFormTipo({
@@ -94,14 +101,28 @@ export function PreguntaFormTipo({
   setOpcionesNuevas,
   tiposPregunta,
   editandoPregunta,
+  protegida,
+  protegidaMotivo,
 }: PreguntaFormTipoProps) {
   return (
     <div className="space-y-1">
       <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
         Tipo de input <span className="text-red-500">*</span>
       </label>
+      {protegida && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-[7px] px-2 py-1 font-medium">
+          🔒 Esta pregunta está{" "}
+          {protegidaMotivo === "siesa"
+            ? "ligada al envío de datos a SIESA"
+            : protegidaMotivo === "flujo_siesa"
+              ? "ligada al flujo del portal y al envío de datos a SIESA"
+              : "ligada al flujo interno del portal"}
+          . No se puede cambiar el tipo de input.
+        </p>
+      )}
       <select
         value={formPregunta.tipo}
+        disabled={protegida}
         onChange={(e) => {
           const tipo = e.target.value as Pregunta["fp_tipo"];
           setOpciones([]);
@@ -195,7 +216,7 @@ export function PreguntaFormTipo({
             };
           });
         }}
-        className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors"
+        className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
       >
         {(() => {
           const tiposActivos = tiposPregunta.filter(

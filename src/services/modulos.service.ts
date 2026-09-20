@@ -31,6 +31,7 @@ interface ModuloManagement {
   mod_icono?: string;
   mod_posicion?: number;
   mod_padre_id?: number | null;
+  mod_es_categoria?: boolean;
   mod_activo?: boolean;
   subModulos: ModuloManagement[];
 }
@@ -112,10 +113,11 @@ export const modulosManagementService = {
 
   async createModulo(data: {
     nombre: string;
-    ruta: string;
+    ruta?: string;
     padre_id: number | null;
     icono: string;
     orden: number;
+    es_categoria?: boolean;
   }): Promise<ModuloManagement> {
     try {
       const response = await api.post("/seguridad/modulos", data);
@@ -130,10 +132,11 @@ export const modulosManagementService = {
     id: number,
     data: {
       nombre: string;
-      ruta: string;
+      ruta?: string;
       padre_id: number | null;
       icono: string;
       orden: number;
+      es_categoria?: boolean;
     },
   ): Promise<ModuloManagement> {
     try {

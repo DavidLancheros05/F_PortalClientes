@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -81,12 +81,20 @@ export default function PQRSDetallePage() {
     "timeline" | "comentarios" | "adjuntos"
   >("timeline");
 
+  // Token de la petición en curso: `loadPQRSDetails` también se llama
+  // manualmente tras comentar, así que además de proteger la carga inicial
+  // (pqrsId/desmontaje), evita que una llamada manual vieja pise el
+  // resultado de una más nueva.
+  const pqrsRequestIdRef = useRef(0);
+
   useEffect(() => {
     loadPQRSDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pqrsId, user]);
 
   const loadPQRSDetails = async () => {
     if (!user || !pqrsId) return;
+    const requestId = ++pqrsRequestIdRef.current;
     try {
       setLoading(true);
       setError(null);
@@ -95,6 +103,7 @@ export default function PQRSDetallePage() {
         pqrsService.getComentarios(pqrsId),
         pqrsService.getHistorial(pqrsId),
       ]);
+      if (pqrsRequestIdRef.current !== requestId) return;
       setPqrs(pqrsData);
 
       // Mapear comentarios y asignar nombres
@@ -112,10 +121,11 @@ export default function PQRSDetallePage() {
       setComentarios(comentariosConNombres);
       setHistorial(Array.isArray(historialData) ? historialData : []);
     } catch (err) {
+      if (pqrsRequestIdRef.current !== requestId) return;
       console.error("Error cargando detalles:", err);
       setError("No se pudieron cargar los detalles de la PQRS");
     } finally {
-      setLoading(false);
+      if (pqrsRequestIdRef.current === requestId) setLoading(false);
     }
   };
 
@@ -155,7 +165,7 @@ export default function PQRSDetallePage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
           <button
-            onClick={() => router.push("/pqrs/mis-pqrs")}
+            onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -182,7 +192,7 @@ export default function PQRSDetallePage() {
                 {error || "No se encontró la PQRS"}
               </p>
               <button
-                onClick={() => router.push("/pqrs/mis-pqrs")}
+                onClick={() => router.back()}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
               >
                 Volver a Mis PQRS

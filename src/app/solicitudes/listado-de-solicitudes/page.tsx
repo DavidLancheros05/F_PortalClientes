@@ -23,13 +23,18 @@ import { TablePagination } from "@/components/tables/TablePagination";
 import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { TipoSolicitudBadge } from "@/components/badges/TipoSolicitudBadge";
+import { getTipoSolicitud } from "@/lib/tipo-solicitud.util";
 
 interface Cliente {
   cli_id: number;
   cli_razon_social: string;
+  cli_nro_identificacion: string;
   ejng_id: number | null;
 }
 
@@ -69,15 +74,9 @@ interface SolicitudListado {
   sol_fecha_real_ejecutivo?: string | null;
   sol_fecha_estimada_auxiliar_servicio_cliente?: string | null;
   sol_fecha_real_auxiliar_servicio_cliente?: string | null;
-  sol_fecha_estimada_comite_credito_1_ejecutivo?: string | null;
-  sol_fecha_real_comite_credito_1_ejecutivo?: string | null;
-  sol_fecha_estimada_comite_credito_2_ejecutivo?: string | null;
-  sol_fecha_real_comite_credito_2_ejecutivo?: string | null;
-  sol_fecha_estimada_comite_credito_1_auxiliar?: string | null;
-  sol_fecha_real_comite_credito_1_auxiliar?: string | null;
-  sol_fecha_estimada_comite_credito_2_auxiliar?: string | null;
-  sol_fecha_real_comite_credito_2_auxiliar?: string | null;
   sol_cupo_aprobado?: number | null;
+  sol_cupo_solicitado?: number | null;
+  es_ampliacion_cupo?: boolean | number | null;
   sol_plazo_pago?: number | null;
   sol_forma_pago?: string | null;
   sol_usuario_aprueba_condiciones?: number | null;
@@ -146,6 +145,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const [estadoId, setEstadoId] = useState("");
   const [etapaId, setEtapaId] = useState("");
   const [resultadoId, setResultadoId] = useState("");
+  const [tipoSolicitud, setTipoSolicitud] = useState("");
 
   useEffect(() => {
     // Esperar a que se resuelva el usuario antes de restaurar filtros desde
@@ -176,6 +176,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       setEtapaId(params.get("etapa_id") || "");
     if (params.has("resultado_etapa_id"))
       setResultadoId(params.get("resultado_etapa_id") || "");
+    if (params.has("tipo_solicitud"))
+      setTipoSolicitud(params.get("tipo_solicitud") || "");
 
     const wasSearched = params.get("hasSearched") === "true";
     if (wasSearched) setHasSearched(true);
@@ -213,6 +215,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           ? clientesData.map((item: any) => ({
               cli_id: Number(item.cli_id ?? item.id ?? 0),
               cli_razon_social: String(item.cli_razon_social ?? ""),
+              cli_nro_identificacion: String(
+                item.cli_nro_identificacion ?? "",
+              ),
               ejng_id: item.ejng_id != null ? Number(item.ejng_id) : null,
             }))
           : [];
@@ -279,6 +284,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       if (urlParams.has("etapa_id")) params.etapa_id = urlParams.get("etapa_id");
       if (urlParams.has("resultado_etapa_id"))
         params.resultado_etapa_id = urlParams.get("resultado_etapa_id");
+      if (urlParams.has("tipo_solicitud"))
+        params.tipo_solicitud = urlParams.get("tipo_solicitud");
 
       console.log("🔵 [FRONTEND] Ejecutando búsqueda con URL params:", params);
       const data = await solicitudesService.getListado(params);
@@ -302,10 +309,11 @@ export default function SolicitudesListadoDeSolicitudesPage() {
         )
       : clientes;
     if (!clienteBusqueda) return porEjecutivo;
-    return porEjecutivo.filter((cliente) =>
-      cliente.cli_razon_social
-        .toLowerCase()
-        .includes(clienteBusqueda.toLowerCase())
+    const term = clienteBusqueda.toLowerCase();
+    return porEjecutivo.filter(
+      (cliente) =>
+        cliente.cli_razon_social.toLowerCase().includes(term) ||
+        cliente.cli_nro_identificacion.toLowerCase().includes(term),
     );
   }, [clientes, clienteBusqueda, ejecutivoId]);
 
@@ -394,6 +402,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       if (estadoId) params.estado_id = estadoId;
       if (etapaId) params.etapa_id = etapaId;
       if (resultadoId) params.resultado_etapa_id = resultadoId;
+      if (tipoSolicitud) params.tipo_solicitud = tipoSolicitud;
 
       // console.log("🔴 [FRONTEND] 2️⃣ Parámetros construidos:", params);
 
@@ -411,6 +420,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       if (estadoId) urlParams.set("estado_id", estadoId);
       if (etapaId) urlParams.set("etapa_id", etapaId);
       if (resultadoId) urlParams.set("resultado_etapa_id", resultadoId);
+      if (tipoSolicitud) urlParams.set("tipo_solicitud", tipoSolicitud);
       urlParams.set("hasSearched", "true");
       window.history.replaceState(null, "", `?${urlParams.toString()}`);
     } catch (error) {
@@ -437,6 +447,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     setEstadoId("");
     setEtapaId("");
     setResultadoId("");
+    setTipoSolicitud("");
     setRows([]);
     setCurrentPage(1);
     setHasSearched(false);
@@ -450,6 +461,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
     const header = [
       "No. solicitud",
+      "Tipo",
       "Cliente",
       "Ejecutivo de negocios",
       "Área Ejecutivo",
@@ -474,6 +486,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
     const data = rows.map((row) => [
       row.sol_numero_solicitud,
+      getTipoSolicitud(row.es_ampliacion_cupo),
       row.cliente_nombre || "-",
       row.ejecutivo_nombre || "-",
       row.ejecutivo_area || "-",
@@ -635,7 +648,12 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                             }}
                             className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
                           >
-                            {cliente.cli_razon_social}
+                            <div>{cliente.cli_razon_social}</div>
+                            {cliente.cli_nro_identificacion && (
+                              <div className="text-[11px] text-gray-500">
+                                NIT {cliente.cli_nro_identificacion}
+                              </div>
+                            )}
                           </div>
                         ))
                       )}
@@ -709,6 +727,18 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   </select>
                 </FilterField>
 
+                <FilterField label="Tipo de Solicitud">
+                  <select
+                    value={tipoSolicitud}
+                    onChange={(event) => setTipoSolicitud(event.target.value)}
+                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    <option value="NUEVO">Cliente Nuevo</option>
+                    <option value="AMPLIACION">Ampliación de Cupo</option>
+                  </select>
+                </FilterField>
+
                 <FilterActions className="col-span-full">
                   <button
                     onClick={limpiarFiltros}
@@ -767,152 +797,112 @@ export default function SolicitudesListadoDeSolicitudesPage() {
               <TableContainer>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-blue-100">
-                  <thead className="bg-blue-100 sticky top-0 z-20">
+                  <thead className="bg-gray-50 sticky top-0 z-20">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        No. solicitud
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Ejecutivo
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Cliente
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Fecha y Hora de creación
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Fecha de envío
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Fecha de aprobación
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Estado
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Etapa Actual
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Resultado Etapa
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Est. Ejecutivo de Negocios
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Ejecutivo de Negocios
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Est. Auxiliar Servicio al Cliente
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Auxiliar Servicio al Cliente
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Est. Cumplimiento
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Cumplimiento
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Est. Crédito 1
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Crédito 1
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Est. Crédito 2
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        F. Real Crédito 2
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Cupo Aprobado
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Plazo Pago
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200">
-                        Forma Pago
-                      </th>
-                      <th className="sticky right-0 z-10 px-4 py-3 text-right text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-blue-200 bg-blue-100">
+                      <Th>No. solicitud</Th>
+                      <Th>Tipo</Th>
+                      <Th>Ejecutivo</Th>
+                      <Th>Cliente</Th>
+                      <Th>Fecha y Hora de creación</Th>
+                      <Th>Fecha de envío</Th>
+                      <Th>Fecha de aprobación</Th>
+                      <Th>Estado</Th>
+                      <Th>Etapa Actual</Th>
+                      <Th>Resultado Etapa</Th>
+                      <Th>F. Est. Ejecutivo de Negocios</Th>
+                      <Th>F. Real Ejecutivo de Negocios</Th>
+                      <Th>F. Est. Auxiliar Servicio al Cliente</Th>
+                      <Th>F. Real Auxiliar Servicio al Cliente</Th>
+                      <Th>F. Est. Cumplimiento</Th>
+                      <Th>F. Real Cumplimiento</Th>
+                      <Th>F. Est. Crédito 1</Th>
+                      <Th>F. Real Crédito 1</Th>
+                      <Th>F. Est. Crédito 2</Th>
+                      <Th>F. Real Crédito 2</Th>
+                      <Th>Cupo Aprobado</Th>
+                      <Th>Plazo Pago</Th>
+                      <Th>Forma Pago</Th>
+                      <Th sticky align="right">
                         Detalle Solicitud
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {paginatedRows.map((row) => (
-                      <tr key={row.sol_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                      <Tr key={row.sol_id}>
+                        <Td>
                           {row.sol_numero_solicitud || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
+                          <TipoSolicitudBadge esAmpliacionCupo={row.es_ampliacion_cupo} />
+                        </Td>
+                        <Td>
                           {row.ejecutivo_nombre || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {row.cliente_nombre || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_creacion)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_envio)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_aprobacion)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {ESTADOS[row.sol_estado_id] || "Desconocido"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {row.etapa_nombre || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {row.resultado_nombre || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_estimada_ejecutivo)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_real_ejecutivo)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(
                             row.sol_fecha_estimada_auxiliar_servicio_cliente,
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(
                             row.sol_fecha_real_auxiliar_servicio_cliente,
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(
                             row.sol_fecha_estimada_oficial_cumplimiento,
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(
                             row.sol_fecha_real_oficial_cumplimiento,
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(
                             row.sol_fecha_estimada_comite_credito_1,
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_real_comite_credito_1)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(
                             row.sol_fecha_estimada_comite_credito_2,
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {formatDateTime(row.sol_fecha_real_comite_credito_2)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {row.sol_cupo_aprobado ? (
                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
                               ${row.sol_cupo_aprobado.toLocaleString("es-CO")}
@@ -920,14 +910,14 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                           ) : (
                             "-"
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {row.sol_plazo_pago || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
+                        </Td>
+                        <Td>
                           {row.sol_forma_pago || "-"}
-                        </td>
-                        <td className="sticky right-0 z-10 px-4 py-3 text-sm bg-white border-l border-gray-100">
+                        </Td>
+                        <Td sticky align="right" className="border-l border-gray-100">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() =>
@@ -955,8 +945,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                               </button>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))}
                   </tbody>
                 </table>

@@ -51,18 +51,30 @@ export function useClienteData({
       return;
     }
 
+    let cancelled = false;
+
     const fetchClienteData = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const [data, tiposIdentificacion]: [
-          ClienteResponse,
-          TipoIdentificacionResponse[],
-        ] = await Promise.all([
+        const [data, tiposResult] = await Promise.all([
           clientesService.getById(clienteId),
-          clientesService.getTiposIdentificacion().catch(() => []),
+          clientesService
+            .getTiposIdentificacion()
+            .then((data) => ({ ok: true as const, data }))
+            .catch((err) => ({ ok: false as const, err })),
         ]);
+        if (cancelled) return;
+
+        const tiposIdentificacion: TipoIdentificacionResponse[] =
+          tiposResult.ok ? tiposResult.data : [];
+        if (!tiposResult.ok) {
+          console.warn(
+            "Error cargando tipos de identificación (precarga de 'Tipo de documento' puede fallar):",
+            tiposResult.err,
+          );
+        }
 
         const tipoId = tiposIdentificacion.find(
           (t) => t.id === Number(data.cli_tipo_identificacion),
@@ -87,15 +99,20 @@ export function useClienteData({
 
         setClienteData(normalizado);
       } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error("Error fetching cliente data")
-        );
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err : new Error("Error fetching cliente data")
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchClienteData();
+    return () => {
+      cancelled = true;
+    };
   }, [clienteId, enabled]);
 
   return {

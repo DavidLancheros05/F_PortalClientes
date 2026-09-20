@@ -33,12 +33,12 @@ export function PageHeaderCard({
   children,
 }: PageHeaderCardProps) {
   return (
-    <div className="bg-white rounded-[22px] border border-[#e9ecf2] shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)] mb-4">
+    <div className="bg-white rounded-[22px] border border-[#e9ecf2] shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)] mb-3">
       {/* overflow-hidden vive en el header (no en la tarjeta completa) a
           propósito: recorta las esquinas del degradado, pero sin cortar
           contenido que se desborda desde `children` (ej. desplegables de
           autocompletar en los filtros) como pasaba antes. */}
-      <div className="bg-brand-gradient rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4">
+      <div className="bg-brand-gradient rounded-t-[22px] overflow-hidden px-7 py-4 flex items-center gap-4">
         {onBack && (
           <button
             onClick={onBack}
@@ -69,7 +69,7 @@ export function PageHeaderCard({
       </div>
 
       {children && (
-        <div className="px-7 py-5 border-t border-[#eef1f6]">{children}</div>
+        <div className="px-7 py-3 border-t border-[#eef1f6]">{children}</div>
       )}
     </div>
   );

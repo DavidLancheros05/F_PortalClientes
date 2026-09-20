@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Trash2, Edit2, Plus, MapPin, Power, Search, X, Users } from "lucide-react";
 import UsuarioModal from "./usuarioModal";
@@ -9,17 +9,18 @@ import {
   usuariosService,
   type Usuario,
 } from "@/services/usuarios/usuarios.service";
-import { rolesService } from "@/services/seguridad/roles.service";
+import { rolesService, type Rol } from "@/services/roles/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
+import { TablePagination } from "@/components/tables/TablePagination";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { ConfirmModal, ErrorModal } from "@/components/modals";
-
-interface Rol {
-  rol_id: number;
-  rol_nombre: string;
-}
 
 const UsuariosPage = () => {
   const searchParams = useSearchParams();
@@ -42,10 +43,21 @@ const UsuariosPage = () => {
   // Filtros
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [rolFiltro, setRolFiltro] = useState<number | "">("");
+  // Autocompletar de nombre de usuario: el input (borrador) alimenta las
+  // sugerencias mientras se escribe; el filtro aplicado recién se actualiza
+  // al elegir una sugerencia o al pulsar Buscar (mismo patrón que
+  // parametrizacion/clientes/acceso).
+  const [usuarioLoginInput, setUsuarioLoginInput] = useState("");
+  const [usuarioLoginFiltro, setUsuarioLoginFiltro] = useState("");
+  const [mostrarUsuarioLista, setMostrarUsuarioLista] = useState(false);
+  const usuarioContainerRef = useRef<HTMLDivElement>(null);
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | "activo" | "inactivo">(
     "todos",
   );
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [modalSinDatosOpen, setModalSinDatosOpen] = useState(false);
 
   // Cargar usuarios y roles al inicio
   useEffect(() => {
@@ -163,33 +175,129 @@ const UsuariosPage = () => {
 
   const handleBuscar = () => {
     setSearchTerm(searchInput.trim());
+    setUsuarioLoginFiltro(usuarioLoginInput.trim());
+    setMostrarUsuarioLista(false);
+    setCurrentPage(1);
   };
 
   const handleLimpiarFiltros = () => {
     setSearchInput("");
     setSearchTerm("");
-    setRolFiltro("");
+    setUsuarioLoginInput("");
+    setUsuarioLoginFiltro("");
     setEstadoFiltro("todos");
+    setCurrentPage(1);
   };
+
+  // Sugerencias de autocompletar — hasta 8 nombres de usuario únicos que
+  // coincidan con lo escrito, de los usuarios ya cargados en memoria.
+  const usuarioLoginSugerencias = useMemo(() => {
+    const term = usuarioLoginInput.trim().toLowerCase();
+    if (!term) return [];
+    const vistos = new Set<string>();
+    const resultado: string[] = [];
+    for (const usuario of usuarios) {
+      const login = usuario.usuario_login ?? "";
+      if (login.toLowerCase().includes(term) && login !== "" && !vistos.has(login)) {
+        vistos.add(login);
+        resultado.push(login);
+        if (resultado.length >= 8) break;
+      }
+    }
+    return resultado;
+  }, [usuarios, usuarioLoginInput]);
+
+  // Cierra el desplegable de sugerencias al hacer clic afuera. No basta con
+  // onBlur del input: el clic sobre un ítem de la lista dispara blur antes
+  // que el click, y el ítem nunca llega a seleccionarse.
+  useEffect(() => {
+    if (!mostrarUsuarioLista) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        usuarioContainerRef.current &&
+        !usuarioContainerRef.current.contains(target)
+      ) {
+        setMostrarUsuarioLista(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mostrarUsuarioLista]);
 
   const usuariosFiltrados = useMemo(() => {
     const term = searchTerm.toLowerCase();
+    const loginTerm = usuarioLoginFiltro.trim().toLowerCase();
+
     return usuarios.filter((usuario) => {
       const matchSearch =
         !term ||
         usuario.nombre?.toLowerCase().includes(term) ||
         usuario.usuario_email?.toLowerCase().includes(term);
 
-      const matchRol = !rolFiltro || usuario.rol?.rol_id === rolFiltro;
+      const matchLogin =
+        !loginTerm || usuario.usuario_login?.toLowerCase().includes(loginTerm);
 
       const matchEstado =
         estadoFiltro === "todos" ||
         (estadoFiltro === "activo" && usuario.usuario_activo) ||
         (estadoFiltro === "inactivo" && !usuario.usuario_activo);
 
-      return matchSearch && matchRol && matchEstado;
+      return matchSearch && matchLogin && matchEstado;
     });
-  }, [usuarios, searchTerm, rolFiltro, estadoFiltro]);
+  }, [usuarios, searchTerm, usuarioLoginFiltro, estadoFiltro]);
+
+  // Pool crudo de sugerencias para "Nombre o email" — combina ambas
+  // columnas ya que el filtro real (matchSearch) también busca en las dos.
+  const searchSugerencias = useMemo(
+    () => usuarios.flatMap((u) => [u.nombre ?? "", u.usuario_email ?? ""]),
+    [usuarios],
+  );
+
+  const usuariosPaginados = useMemo(
+    () =>
+      usuariosFiltrados.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage,
+      ),
+    [usuariosFiltrados, currentPage, itemsPerPage],
+  );
+
+  const handleDownloadExcel = async () => {
+    if (usuariosFiltrados.length === 0) {
+      setModalSinDatosOpen(true);
+      return;
+    }
+
+    const XLSX = await import("xlsx");
+
+    const datos = usuariosFiltrados.map((usuario) => ({
+      Nombre: usuario.nombre,
+      Usuario: usuario.usuario_login || "-",
+      Email: usuario.usuario_email,
+      Estado: usuario.usuario_activo ? "Activo" : "Inactivo",
+      Creado: formatDate(usuario.usuario_created_at),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(datos);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+
+    worksheet["!cols"] = [
+      { wch: 30 },
+      { wch: 18 },
+      { wch: 30 },
+      { wch: 10 },
+      { wch: 14 },
+    ];
+
+    XLSX.writeFile(
+      workbook,
+      `Usuarios_${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
@@ -209,33 +317,50 @@ const UsuariosPage = () => {
             </button>
           }
         >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <FilterField label="Buscar" className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <SuggestField
+              label="Nombre o email"
+              placeholder="Buscar..."
+              value={searchInput}
+              onChange={setSearchInput}
+              suggestions={searchSugerencias}
+              onEnter={handleBuscar}
+            />
+
+            <FilterField
+              label="Usuario"
+              className="relative"
+              ref={usuarioContainerRef}
+            >
               <input
                 type="text"
-                placeholder="Nombre o email"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Nombre de usuario"
+                value={usuarioLoginInput}
+                onFocus={() => setMostrarUsuarioLista(true)}
+                onChange={(e) => {
+                  setUsuarioLoginInput(e.target.value);
+                  setMostrarUsuarioLista(true);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-            </FilterField>
-
-            <FilterField label="Rol">
-              <select
-                value={rolFiltro}
-                onChange={(e) =>
-                  setRolFiltro(e.target.value ? Number(e.target.value) : "")
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <option value="">Todos</option>
-                {roles.map((rol) => (
-                  <option key={rol.rol_id} value={rol.rol_id}>
-                    {rol.rol_nombre}
-                  </option>
-                ))}
-              </select>
+              {mostrarUsuarioLista && usuarioLoginSugerencias.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                  {usuarioLoginSugerencias.map((login) => (
+                    <div
+                      key={login}
+                      onClick={() => {
+                        setUsuarioLoginInput(login);
+                        setUsuarioLoginFiltro(login);
+                        setMostrarUsuarioLista(false);
+                      }}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                    >
+                      {login}
+                    </div>
+                  ))}
+                </div>
+              )}
             </FilterField>
 
             <FilterField label="Estado">
@@ -298,48 +423,38 @@ const UsuariosPage = () => {
         ) : (
           /* Tabla de Usuarios */
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+            <ResultsToolbar
+              count={usuariosFiltrados.length}
+              label="usuario(s)"
+              onExport={handleDownloadExcel}
+            />
+            <TableContainer>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                      Nombre
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                      Rol
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                      Creado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                    <Th>Nombre</Th>
+                    <Th>Usuario</Th>
+                    <Th>Email</Th>
+                    <Th>Estado</Th>
+                    <Th>Creado</Th>
+                    <Th sticky align="right">
                       Acciones
-                    </th>
+                    </Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {usuariosFiltrados.map((usuario) => (
-                    <tr
-                      key={usuario.usr_id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {usuariosPaginados.map((usuario) => (
+                    <Tr key={usuario.usr_id}>
+                      <Td className="whitespace-nowrap font-medium text-gray-900">
                         {usuario.nombre}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      </Td>
+                      <Td className="whitespace-nowrap font-mono">
+                        {usuario.usuario_login || "-"}
+                      </Td>
+                      <Td className="whitespace-nowrap">
                         {usuario.usuario_email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                          {usuario.rol?.rol_nombre || "Desconocido"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      </Td>
+                      <Td className="whitespace-nowrap">
                         {usuario.usuario_activo ? (
                           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                             Activo
@@ -349,12 +464,12 @@ const UsuariosPage = () => {
                             Inactivo
                           </span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      </Td>
+                      <Td className="whitespace-nowrap">
                         {formatDate(usuario.usuario_created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-3">
+                      </Td>
+                      <Td sticky align="right" className="whitespace-nowrap">
+                        <div className="flex gap-3 justify-end">
                           <button
                             onClick={() => handleGestionarCentros(usuario)}
                             title="Gestionar Centros"
@@ -402,12 +517,22 @@ const UsuariosPage = () => {
                             </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableContainer>
+            <TablePagination
+              page={currentPage}
+              pageSize={itemsPerPage}
+              totalItems={usuariosFiltrados.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setItemsPerPage(size);
+                setCurrentPage(1);
+              }}
+            />
           </div>
         )}
       </div>
@@ -461,6 +586,16 @@ const UsuariosPage = () => {
         isOpen={!!actionError}
         message={actionError}
         onAction={() => setActionError("")}
+      />
+
+      <ConfirmModal
+        isOpen={modalSinDatosOpen}
+        title="Sin datos para descargar"
+        message="No hay usuarios para descargar con los filtros actuales."
+        confirmText="Aceptar"
+        isDangerous={false}
+        onConfirm={() => setModalSinDatosOpen(false)}
+        onCancel={() => setModalSinDatosOpen(false)}
       />
     </div>
   );

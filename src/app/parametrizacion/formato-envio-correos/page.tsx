@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   notificacionesService,
   PlantillaNotificacion,
 } from "@/services/admin/parametrizacion/notificaciones.service";
 import { EmailPreview } from "@/components/EmailPreview";
-import { HtmlBodyEditor } from "@/components/HtmlBodyEditor";
+import { HtmlBodyEditor, type HtmlBodyEditorHandle } from "@/components/HtmlBodyEditor";
 import { ConfirmModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import {
   Save,
   Mail,
-  Users,
   Code,
   CheckCircle,
   AlertCircle,
@@ -23,6 +21,7 @@ import {
   EyeOff,
   Plus,
   X,
+  Braces,
 } from "lucide-react";
 
 type FormState = {
@@ -34,6 +33,152 @@ type FormState = {
   destinatarios_cc: string;
   activa: boolean;
 };
+
+// Variables reales que cada evento le pasa a renderTemplate() en el backend
+// (B_PortalClientes/src/notificaciones/notificaciones.service.ts) — no hay
+// forma de listarlas dinámicamente (están hardcodeadas por evento en cada
+// método `notificar*`), así que este mapa se mantiene a mano. Si se agrega
+// una variable nueva en el backend para un evento, hay que agregarla acá
+// también o el admin no la va a poder insertar desde la UI.
+//
+// SOLICITUD_ESTADO_CLIENTE y CARTA_VINCULACION_APROBADA_CLIENTE no están
+// acá a propósito: son plantillas semilla que ningún código del backend
+// llega a enviar hoy (huérfanas) — no tiene caso ofrecer variables para
+// ellas.
+const VARIABLES_POR_EVENTO: Record<string, string[]> = {
+  SOLICITUD_REGISTRADA_CLIENTE: [
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "fecha_creacion",
+    "mensaje_cambios",
+    "portal_url",
+  ],
+  SOLICITUD_REGISTRADA_EJECUTIVO: [
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "fecha_creacion",
+    "ejecutivo_nombre",
+    "portal_url",
+  ],
+  SOLICITUD_RECHAZADA_GESTION_EJECUTIVO: [
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "ejecutivo_nombre",
+    "etapa_rechazo",
+    "motivo_rechazo",
+    "comentario",
+    "portal_url",
+  ],
+  SOLICITUD_RECHAZADA_CLIENTE: [
+    "numero_solicitud",
+    "cliente_nombre",
+    "motivo_rechazo",
+    "documentos_html",
+    "portal_url",
+  ],
+  SOLICITUD_RECHAZADA_DEFINITIVA_CLIENTE: [
+    "numero_solicitud",
+    "cliente_nombre",
+    "motivo_rechazo",
+    "portal_url",
+  ],
+  DOCUMENTOS_VENCIDOS_SEMANAL: [
+    "fecha_reporte",
+    "total_vencidos",
+    "total_por_vencer",
+    "tabla_resumen",
+  ],
+  CONDICIONES_FINANCIERAS_CLIENTE: [
+    "numero_solicitud",
+    "cliente_nombre",
+    "cupo_aprobado",
+    "plazo_pago",
+    "forma_pago",
+    "portal_url",
+  ],
+  USUARIO_CREADO_CREDENCIALES: [
+    "usuario_nombre",
+    "usuario_login",
+    "usuario_email",
+    "usuario_password",
+    "portal_url",
+  ],
+  SOLICITUD_PENDIENTE_ASC: [
+    "usuario_nombre",
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "portal_url",
+  ],
+  SOLICITUD_PENDIENTE_OC: [
+    "usuario_nombre",
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "portal_url",
+  ],
+  SOLICITUD_PENDIENTE_CC1: [
+    "usuario_nombre",
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "portal_url",
+  ],
+  SOLICITUD_PENDIENTE_CC2: [
+    "usuario_nombre",
+    "numero_solicitud",
+    "cliente_nombre",
+    "centro_operacion_nombre",
+    "portal_url",
+  ],
+  RESET_PASSWORD: ["nombre", "reset_url"],
+};
+
+function VariablesDisponibles({
+  codigoEvento,
+  onInsert,
+}: {
+  codigoEvento: string;
+  onInsert: (variable: string) => void;
+}) {
+  const variables = VARIABLES_POR_EVENTO[codigoEvento];
+
+  if (!variables) {
+    return (
+      <p className="text-xs text-gray-500">
+        Este código de evento no tiene variables registradas (puede ser un
+        evento que el sistema todavía no envía). Puedes seguir usando{" "}
+        <code className="font-mono">{"{{variable}}"}</code> a mano si sabes
+        cuál necesitas.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-600">
+        <Braces className="h-3.5 w-3.5" />
+        Variables disponibles — clic para insertar en el campo con foco
+        (Asunto o Cuerpo):
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {variables.map((variable) => (
+          <button
+            key={variable}
+            type="button"
+            onClick={() => onInsert(variable)}
+            className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 font-mono text-xs text-blue-700 transition-colors hover:bg-blue-100"
+          >
+            {`{{${variable}}}`}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function buildForm(item: PlantillaNotificacion): FormState {
   return {
@@ -73,6 +218,61 @@ export default function NotificacionesParametrizacionPage() {
     () => items.find((item) => item.codigo_evento === selectedCodigo) || null,
     [items, selectedCodigo],
   );
+
+  // Recuerda cuál de los dos campos tuvo el foco por última vez en cada
+  // formulario (edición vs. modal "Nueva plantilla" — son dos formularios
+  // independientes, cada uno con su propio par Asunto/Cuerpo), para que el
+  // panel de "Variables disponibles" sepa dónde insertar el clic. Asunto es
+  // un <input> normal, Cuerpo es el editor WYSIWYG (ver
+  // HtmlBodyEditor::insertText).
+  const [campoActivoEdit, setCampoActivoEdit] = useState<"asunto" | "cuerpo">("cuerpo");
+  const asuntoInputRef = useRef<HTMLInputElement>(null);
+  const cuerpoEditorRef = useRef<HtmlBodyEditorHandle>(null);
+
+  const [campoActivoCrear, setCampoActivoCrear] = useState<"asunto" | "cuerpo">("cuerpo");
+  const nuevaAsuntoInputRef = useRef<HTMLInputElement>(null);
+  const nuevaCuerpoEditorRef = useRef<HtmlBodyEditorHandle>(null);
+
+  const insertarVariableEnAsunto = (
+    variable: string,
+    inputRef: React.RefObject<HTMLInputElement | null>,
+    setValue: (updater: (asuntoActual: string) => string) => void,
+  ) => {
+    const texto = `{{${variable}}}`;
+    const input = inputRef.current;
+    if (!input) {
+      setValue((actual) => actual + texto);
+      return;
+    }
+    const inicio = input.selectionStart ?? input.value.length;
+    const fin = input.selectionEnd ?? input.value.length;
+    setValue((actual) => actual.slice(0, inicio) + texto + actual.slice(fin));
+    requestAnimationFrame(() => {
+      input.focus();
+      const nuevaPosicion = inicio + texto.length;
+      input.setSelectionRange(nuevaPosicion, nuevaPosicion);
+    });
+  };
+
+  const insertarVariable = (variable: string) => {
+    if (campoActivoEdit === "asunto") {
+      insertarVariableEnAsunto(variable, asuntoInputRef, (updater) =>
+        setForm((prev) => (prev ? { ...prev, asunto: updater(prev.asunto) } : prev)),
+      );
+    } else {
+      cuerpoEditorRef.current?.insertText(`{{${variable}}}`);
+    }
+  };
+
+  const insertarVariableEnCrear = (variable: string) => {
+    if (campoActivoCrear === "asunto") {
+      insertarVariableEnAsunto(variable, nuevaAsuntoInputRef, (updater) =>
+        setNewPlantilla((prev) => ({ ...prev, asunto: updater(prev.asunto) })),
+      );
+    } else {
+      nuevaCuerpoEditorRef.current?.insertText(`{{${variable}}}`);
+    }
+  };
 
   const cargarPlantillas = async () => {
     setLoading(true);
@@ -203,22 +403,13 @@ export default function NotificacionesParametrizacionPage() {
           title="Plantillas de notificaciones"
           subtitle="Administra asunto, contenido, destinatarios y estado de cada evento"
           actions={
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
-              >
-                <Plus className="h-4 w-4" />
-                Nueva plantilla
-              </button>
-              <Link
-                href="/parametrizacion/correos-por-rol"
-                className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
-              >
-                <Users className="h-4 w-4" />
-                Ver correos por rol
-              </Link>
-            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva plantilla
+            </button>
           }
         />
 
@@ -389,7 +580,9 @@ export default function NotificacionesParametrizacionPage() {
                             Asunto
                           </label>
                           <input
+                            ref={asuntoInputRef}
                             value={form.asunto}
+                            onFocus={() => setCampoActivoEdit("asunto")}
                             onChange={(e) =>
                               setForm((prev) =>
                                 prev
@@ -399,6 +592,13 @@ export default function NotificacionesParametrizacionPage() {
                             }
                             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             placeholder="Asunto del correo"
+                          />
+                        </div>
+
+                        <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+                          <VariablesDisponibles
+                            codigoEvento={form.codigo_evento}
+                            onInsert={insertarVariable}
                           />
                         </div>
 
@@ -454,7 +654,9 @@ export default function NotificacionesParametrizacionPage() {
                             </div>
                           </label>
                           <HtmlBodyEditor
+                            ref={cuerpoEditorRef}
                             value={form.cuerpo_html}
+                            onFocus={() => setCampoActivoEdit("cuerpo")}
                             onChange={(value) =>
                               setForm((prev) =>
                                 prev ? { ...prev, cuerpo_html: value } : prev,
@@ -603,8 +805,10 @@ export default function NotificacionesParametrizacionPage() {
                     Asunto *
                   </label>
                   <input
+                    ref={nuevaAsuntoInputRef}
                     type="text"
                     value={newPlantilla.asunto}
+                    onFocus={() => setCampoActivoCrear("asunto")}
                     onChange={(e) =>
                       setNewPlantilla({
                         ...newPlantilla,
@@ -616,6 +820,15 @@ export default function NotificacionesParametrizacionPage() {
                     disabled={saving}
                   />
                 </div>
+
+                {newPlantilla.codigo_evento && (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+                    <VariablesDisponibles
+                      codigoEvento={newPlantilla.codigo_evento}
+                      onInsert={insertarVariableEnCrear}
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
@@ -665,7 +878,9 @@ export default function NotificacionesParametrizacionPage() {
                     </div>
                   </label>
                   <HtmlBodyEditor
+                    ref={nuevaCuerpoEditorRef}
                     value={newPlantilla.cuerpo_html}
+                    onFocus={() => setCampoActivoCrear("cuerpo")}
                     onChange={(value) =>
                       setNewPlantilla({
                         ...newPlantilla,

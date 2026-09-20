@@ -14,7 +14,8 @@ export interface ClienteListResponse {
   cli_direccion?: string;
   cli_correo?: string;
   cli_estado: string;
-  cli_acceso_portal_clientes: boolean;
+  cli_acceso_pc: boolean;
+  cli_siesa?: boolean;
   ejng_id?: number;
   ejecutivo?: { nombre: string } | null;
 }
@@ -26,7 +27,7 @@ export interface ClienteDetailResponse {
   cli_tipo_identificacion: number;
   cli_direccion: string;
   cli_correo?: string;
-  cli_acceso_portal_clientes: boolean;
+  cli_acceso_pc: boolean;
   cli_estado: string;
   ejng_id?: number;
   pai_id?: number;
@@ -65,35 +66,6 @@ export interface CentroOperacionResponse {
   cop_fecha_usr?: Date;
   cop_usuario?: string;
   f285_id?: string;
-}
-
-// ============================================
-// CORREOS POR ROL
-// ============================================
-
-/**
- * Rol básico para selectores
- * Endpoint: GET /parametrizacion/correos-por-rol/roles
- */
-export interface RolResponse {
-  rol_id: number;
-  rol_nombre: string;
-  rol_codigo: string;
-}
-
-/**
- * Correo por Rol completo
- * Endpoint: GET /parametrizacion/correos-por-rol
- */
-export interface CorreoPorRolResponse {
-  correo_id: number;
-  rol_id: number;
-  rol_nombre: string;
-  rol_codigo: string;
-  email: string;
-  activo: boolean;
-  created_at: string;
-  updated_at?: string | null;
 }
 
 // ============================================
@@ -162,7 +134,7 @@ export interface FormularioPreguntaResponse {
   fp_patron: string | null;
   fp_precarga_fuente: string | null;
   fp_precarga_campo_cliente: string | null;
-  formulario_id: number | null;
+  frm_id: number | null;
   seccion_id: number | null;
   fp_catalogo_base_datos: string | null;
   fp_catalogo_tabla: string | null;

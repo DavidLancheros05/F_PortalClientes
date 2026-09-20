@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, FileText, Pencil, X } from "lucide-react";
+import { FileText, Pencil, X } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import {
@@ -9,6 +9,7 @@ import {
   getArchivoPreviewUrl,
 } from "@/lib/documentos-vigencia.util";
 import { ErrorModal } from "@/components/modals";
+import { PdfIcon } from "@/components/icons/FileIcons";
 
 interface DocumentoCargado {
   sa_id: number;
@@ -39,6 +40,8 @@ interface DocumentosCargadosSolicitudProps {
   onToggleMarcado?: (tdoId: number) => void;
   /** Avisa al padre si algún documento cargado ya tiene el vencimiento vencido. */
   onEstadoDocumentos?: (estado: { hayVencidos: boolean }) => void;
+  /** Oculta el título propio del componente — usar cuando la página ya tiene un encabezado de sección que cubre esta tabla, para no repetir el nombre de la sección. */
+  mostrarTitulo?: boolean;
 }
 
 /**
@@ -56,6 +59,7 @@ export function DocumentosCargadosSolicitud({
   documentosMarcados = [],
   onToggleMarcado,
   onEstadoDocumentos,
+  mostrarTitulo = true,
 }: DocumentosCargadosSolicitudProps) {
   const [documentos, setDocumentos] = useState<DocumentoCargado[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,10 +154,12 @@ export function DocumentosCargadosSolicitud({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-        <FileText size={20} className="text-blue-600" />
-        Documentos cargados por el cliente
-      </h2>
+      {mostrarTitulo && (
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <FileText size={20} className="text-blue-600" />
+          Documentos cargados por el cliente
+        </h2>
+      )}
 
       {loading ? (
         <div className="space-y-2">
@@ -180,12 +186,12 @@ export function DocumentosCargadosSolicitud({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-2 font-medium">Documento</th>
-                <th className="px-4 py-2 font-medium">Fecha de emisión</th>
-                <th className="px-4 py-2 font-medium">Vencimiento</th>
-                <th className="px-4 py-2 font-medium">Ver</th>
+                <th className="px-4 py-1.5 font-medium">Documento</th>
+                <th className="px-4 py-1.5 font-medium">Fecha de emisión</th>
+                <th className="px-4 py-1.5 font-medium">Vencimiento</th>
+                <th className="px-4 py-1.5 font-medium">Ver</th>
                 {editable && (
-                  <th className="px-4 py-2 font-medium">
+                  <th className="px-4 py-1.5 font-medium">
                     Solicitar cambio de documento
                   </th>
                 )}
@@ -202,23 +208,12 @@ export function DocumentosCargadosSolicitud({
                     key={doc.sa_id}
                     className={marcado ? "bg-red-50" : "bg-white"}
                   >
-                    <td className="px-4 py-2.5 align-top">
+                    <td className="px-4 py-1.5 align-top">
                       <p className="font-medium text-gray-900">
                         {doc.tdo_nombre || "Documento"}
                       </p>
-                      <p className="text-xs text-gray-500 truncate max-w-55">
-                        {doc.sa_nombre_original}
-                      </p>
-                      {doc.fecha_carga && (
-                        <p className="text-xs text-gray-400">
-                          Cargado el{" "}
-                          {new Date(doc.fecha_carga).toLocaleDateString(
-                            "es-CO",
-                          )}
-                        </p>
-                      )}
                     </td>
-                    <td className="px-4 py-2.5 align-top">
+                    <td className="px-4 py-1.5 align-top">
                       {editandoId === doc.sa_id ? (
                         <div className="flex items-center gap-2">
                           <input
@@ -269,7 +264,7 @@ export function DocumentosCargadosSolicitud({
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 align-top text-gray-700">
+                    <td className="px-4 py-1.5 align-top text-gray-700">
                       {(() => {
                         if (!aplicaFechaEmision(doc)) {
                           return (
@@ -295,21 +290,21 @@ export function DocumentosCargadosSolicitud({
                         );
                       })()}
                     </td>
-                    <td className="px-4 py-2.5 align-top">
+                    <td className="px-4 py-1.5 align-top">
                       {url && (
                         <a
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Ver documento"
-                          className="inline-flex items-center justify-center h-7 w-7 text-blue-700 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100 transition-colors"
+                          className="inline-flex items-center justify-center h-7 w-7"
                         >
-                          <Eye size={14} />
+                          <PdfIcon className="h-5 w-5" />
                         </a>
                       )}
                     </td>
                     {editable && (
-                      <td className="px-4 py-2.5 align-top">
+                      <td className="px-4 py-1.5 align-top">
                         {doc.tdo_id != null && onToggleMarcado && (
                           <button
                             type="button"

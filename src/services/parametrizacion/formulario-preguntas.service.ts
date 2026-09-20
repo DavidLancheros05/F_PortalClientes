@@ -1,4 +1,4 @@
-import api from '@/services/core/api';
+import api from "@/services/core/api";
 
 function extraerMensajeError(error: any, fallback: string): string {
   return error?.response?.data?.message || fallback;
@@ -15,7 +15,7 @@ export interface FormularioPregunta {
   fp_requerida?: boolean;
   fp_orden?: number;
   fp_version?: number;
-  formulario_id?: number;
+  frm_id?: number;
   fp_pregunta_padre_id?: number | null;
   fp_valor_padre_disparador?: string | null;
   fp_catalogo_base_datos?: string | null;
@@ -37,6 +37,20 @@ export interface Opcion {
   fpo_estado: boolean;
 }
 
+export interface PreguntaReservada {
+  fpr_id: number;
+  fpr_codigo: string;
+  fpr_motivo: "flujo" | "siesa" | "flujo_siesa";
+  fpr_descripcion: string | null;
+  fpr_activo: boolean;
+  // De la pregunta real más reciente con ese fp_codigo, si existe todavía
+  // en alguna versión del formulario — null si nunca se encontró (código
+  // huérfano, ver preguntas-protegidas-editor.md).
+  fp_descripcion: string | null;
+  fp_tipo: string | null;
+  fp_estado: boolean | null;
+}
+
 export const formularioPreguntasService = {
   async getAll(): Promise<FormularioPregunta[]> {
     const res = await api.get("/parametrizacion/formulario-preguntas");
@@ -46,9 +60,12 @@ export const formularioPreguntasService = {
   // Preguntas del formulario activo (última versión), para el selector de
   // variables al editar la plantilla de un tipo de documento.
   async getFormularioActivo(): Promise<FormularioPregunta[]> {
-    const res = await api.get(
-      "/parametrizacion/formulario-preguntas/formulario-activo",
-    );
+    const res = await api.get("/parametrizacion/formulario-preguntas/formulario-activo");
+    return res.data;
+  },
+
+  async getReservadas(): Promise<PreguntaReservada[]> {
+    const res = await api.get("/parametrizacion/formulario-preguntas/reservadas");
     return res.data;
   },
 
@@ -80,10 +97,7 @@ export const formularioPreguntasService = {
   },
 
   async createOpcion(fpId: number, valor: string): Promise<Opcion> {
-    const res = await api.post(
-      `/parametrizacion/formulario-preguntas/${fpId}/opciones`,
-      { fpo_valor: valor },
-    );
+    const res = await api.post(`/parametrizacion/formulario-preguntas/${fpId}/opciones`, { fpo_valor: valor });
     return res.data;
   },
 
@@ -93,10 +107,7 @@ export const formularioPreguntasService = {
     payload: { fpo_valor?: string; fpo_estado?: boolean },
   ): Promise<Opcion> {
     try {
-      const res = await api.put(
-        `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
-        payload,
-      );
+      const res = await api.put(`/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`, payload);
       return res.data;
     } catch (error) {
       throw new Error(extraerMensajeError(error, "Error al editar la opción"));
@@ -105,20 +116,14 @@ export const formularioPreguntasService = {
 
   async deleteOpcion(fpId: number, fpoId: number): Promise<void> {
     try {
-      await api.delete(
-        `/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`,
-      );
+      await api.delete(`/parametrizacion/formulario-preguntas/${fpId}/opciones/${fpoId}`);
     } catch (error) {
       throw new Error(extraerMensajeError(error, "Error al eliminar la opción"));
     }
   },
 
-  async syncOpciones(
-    fpId: number,
-    opcionesTarget: string[],
-  ): Promise<void> {
-    const normalizarOpciones = (values: string[]) =>
-      Array.from(new Set(values.map((v) => v.trim()).filter((v) => v)));
+  async syncOpciones(fpId: number, opcionesTarget: string[]): Promise<void> {
+    const normalizarOpciones = (values: string[]) => Array.from(new Set(values.map((v) => v.trim()).filter((v) => v)));
 
     const objetivo = normalizarOpciones(opcionesTarget);
     const actuales = await this.getOpciones(fpId);
@@ -135,14 +140,10 @@ export const formularioPreguntasService = {
       .map((item) => item.fpo_id);
 
     if (paraCrear.length > 0) {
-      await Promise.all(
-        paraCrear.map((opcion) => this.createOpcion(fpId, opcion)),
-      );
+      await Promise.all(paraCrear.map((opcion) => this.createOpcion(fpId, opcion)));
     }
     if (paraEliminar.length > 0) {
-      await Promise.all(
-        paraEliminar.map((opcionId) => this.deleteOpcion(fpId, opcionId)),
-      );
+      await Promise.all(paraEliminar.map((opcionId) => this.deleteOpcion(fpId, opcionId)));
     }
   },
 };

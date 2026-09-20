@@ -67,7 +67,7 @@ export function useClientes(centroId?: number) {
           nitDocumento: c.cli_nro_identificacion ?? "",
           direccion: c.cli_direccion ?? "",
           telefono: c.telefono ?? "",
-          habilitaAcceso: c.cli_acceso_portal_clientes ?? false,
+          habilitaAcceso: c.cli_acceso_pc ?? false,
         }));
       console.log("[useClientes] Clientes mapeados:", mapped);
       setClientes(mapped);

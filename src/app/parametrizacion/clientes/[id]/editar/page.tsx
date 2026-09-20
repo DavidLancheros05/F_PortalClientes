@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Building,
   FileText,
+  KeyRound,
   Loader2,
   MapPin,
   Mail,
@@ -51,12 +52,15 @@ export default function EditarClientePage() {
   const [ciudadId, setCiudadId] = useState<number>(0);
 
   const [loadingInitial, setLoadingInitial] = useState(true);
-  const [loadingTiposIdentificacion, setLoadingTiposIdentificacion] =
-    useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const [showResetPasswordConfirm, setShowResetPasswordConfirm] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState<string | null>(null);
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
 
   const toggleCentro = (centroId: number) => {
     setCentroOperacionIds((prev) =>
@@ -67,6 +71,8 @@ export default function EditarClientePage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const cargarCliente = async () => {
       if (!Number.isInteger(clienteId) || clienteId <= 0) {
         setError("ID de cliente inválido");
@@ -76,34 +82,54 @@ export default function EditarClientePage() {
 
       try {
         setLoadingInitial(true);
-        setLoadingTiposIdentificacion(true);
-        const [clienteData, centrosData, ejecutivosData, clienteCentrosData, paisesData] =
-          await Promise.all([
-            clientesService.getById(clienteId),
-            centrosOperacionService.getAll(),
-            clientesService.getEjecutivosNegocio(),
-            clientesService.getCentrosOperacion(clienteId),
-            maestrosService.getPaises(),
-          ]);
+        const [
+          clienteData,
+          centrosData,
+          ejecutivosData,
+          clienteCentrosData,
+          paisesData,
+          tiposResult,
+        ] = await Promise.all([
+          clientesService.getById(clienteId),
+          centrosOperacionService.getAll(),
+          clientesService.getEjecutivosNegocio(),
+          clientesService.getCentrosOperacion(clienteId),
+          maestrosService.getPaises(),
+          clientesService
+            .getTiposIdentificacion()
+            .then((data) => ({ ok: true as const, data }))
+            .catch((err) => ({ ok: false as const, err })),
+        ]);
+        if (cancelled) return;
 
-        let tiposData: TipoIdentificacionResponse[] = [];
-        try {
-          tiposData = await clientesService.getTiposIdentificacion();
-        } catch (err) {
-          console.warn("Error cargando tipos de identificación:", err);
+        const tiposData: TipoIdentificacionResponse[] = tiposResult.ok
+          ? tiposResult.data
+          : [];
+        if (!tiposResult.ok) {
+          console.warn(
+            "Error cargando tipos de identificación:",
+            tiposResult.err,
+          );
         }
 
         setRazonSocial(clienteData.cli_razon_social || "");
-        setTiposIdentificacion(tiposData || []);
-        setTipoIdentificacion(
+        setTiposIdentificacion(tiposData);
+        const tipoIdentificacionResuelto =
           clienteData.cli_tipo_identificacion != null
             ? Number(clienteData.cli_tipo_identificacion)
-            : (tiposData?.[0]?.id ? Number(tiposData[0].id) : undefined),
-        );
+            : tiposData[0]?.id != null
+              ? Number(tiposData[0].id)
+              : undefined;
+        setTipoIdentificacion(tipoIdentificacionResuelto);
+        if (tipoIdentificacionResuelto === undefined) {
+          setError(
+            "No se pudo cargar el catálogo de tipos de identificación. Recarga la página antes de guardar.",
+          );
+        }
         setNitDocumento(clienteData.cli_nro_identificacion || "");
         setCorreo(clienteData.cli_correo || "");
         setDireccion(clienteData.cli_direccion || "");
-        setHabilitaAcceso(Boolean(clienteData.cli_acceso_portal_clientes));
+        setHabilitaAcceso(Boolean(clienteData.cli_acceso_pc));
         setCentroOperacionIds(
           Array.isArray(clienteCentrosData)
             ? clienteCentrosData.map((c) => c.cop_id)
@@ -128,14 +154,16 @@ export default function EditarClientePage() {
         setDepartamentoId(clienteData.dpto_id || 0);
         setCiudadId(clienteData.ciu_id || 0);
       } catch (err: any) {
-        setError(err?.message || "Error cargando cliente");
+        if (!cancelled) setError(err?.message || "Error cargando cliente");
       } finally {
-        setLoadingInitial(false);
-        setLoadingTiposIdentificacion(false);
+        if (!cancelled) setLoadingInitial(false);
       }
     };
 
     cargarCliente();
+    return () => {
+      cancelled = true;
+    };
   }, [clienteId]);
 
   // Solo carga las opciones; el reseteo de departamento/ciudad ocurre en el
@@ -207,6 +235,24 @@ export default function EditarClientePage() {
     }
   };
 
+  const handleConfirmResetPassword = async () => {
+    setResettingPassword(true);
+    try {
+      const { message } = await clientesService.resetPassword(clienteId);
+      setShowResetPasswordConfirm(false);
+      setResetPasswordSuccess(message);
+    } catch (err: any) {
+      setShowResetPasswordConfirm(false);
+      setResetPasswordError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Error restableciendo la contraseña",
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   if (loadingInitial) {
     return <LoadingModal isOpen message="Cargando cliente..." />;
   }
@@ -272,6 +318,31 @@ export default function EditarClientePage() {
             onCancel={() => setShowConfirmModal(false)}
           />
 
+          <ConfirmModal
+            isOpen={showResetPasswordConfirm}
+            title="Restablecer contraseña"
+            message={`¿Deseas generar una contraseña nueva para "${razonSocial}"? Se enviará por correo a ${correo || "su correo registrado"} y la contraseña actual dejará de funcionar.`}
+            confirmText="Sí, restablecer"
+            cancelText="Cancelar"
+            isDangerous
+            isLoading={resettingPassword}
+            onConfirm={handleConfirmResetPassword}
+            onCancel={() => setShowResetPasswordConfirm(false)}
+          />
+
+          <SuccessModal
+            isOpen={Boolean(resetPasswordSuccess)}
+            title="Contraseña restablecida"
+            message={resetPasswordSuccess ?? ""}
+            onAction={() => setResetPasswordSuccess(null)}
+          />
+
+          <ErrorModal
+            isOpen={Boolean(resetPasswordError)}
+            message={resetPasswordError ?? ""}
+            onAction={() => setResetPasswordError(null)}
+          />
+
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -303,7 +374,7 @@ export default function EditarClientePage() {
                     setTipoIdentificacion(e.target.value ? Number(e.target.value) : undefined)
                   }
                   required
-                  disabled={saving || success || loadingTiposIdentificacion}
+                  disabled={saving || success}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Selecciona tipo</option>
@@ -457,7 +528,7 @@ export default function EditarClientePage() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-4">
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -473,6 +544,22 @@ export default function EditarClientePage() {
                 >
                   Habilitar acceso al portal cliente
                 </label>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 flex items-center justify-between gap-4">
+                <p className="text-sm text-gray-500">
+                  Genera una contraseña nueva y la envía al correo del
+                  cliente.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowResetPasswordConfirm(true)}
+                  disabled={saving || success || resettingPassword}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 whitespace-nowrap"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Restablecer contraseña
+                </button>
               </div>
             </div>
 

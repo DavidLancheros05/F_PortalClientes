@@ -6,12 +6,17 @@ import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Edit2, Eye } from "lucide-react";
+import { Edit2, Eye, FileEdit, Search, X } from "lucide-react";
 import { TablePagination } from "@/components/tables/TablePagination";
-import { ExportExcelButton } from "@/components/tables/ExportExcelButton";
 import { Th, Td } from "@/components/tables/TableCell";
 import { Tr } from "@/components/tables/TableRow";
 import { ErrorModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { FilterField } from "@/components/filters/FilterField";
+import { FilterActions } from "@/components/filters/FilterActions";
+import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
+import { TableContainer } from "@/components/tables/TableContainer";
 
 interface Solicitud {
   sol_id: number;
@@ -49,15 +54,11 @@ export default function CorregirFormularioASCPage() {
   // Filtros y página inicializados desde la URL (?cliente=&numero=&pagina=)
   // para que "Ver"/"Corregir documentos" y volver restaure la búsqueda en
   // vez de reiniciarla — mismo patrón que gestion-auxiliar-servicio-al-cliente.
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<
-    number | null
-  >(() => {
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<number | null>(() => {
     const v = searchParams.get("cliente");
     return v ? Number(v) : null;
   });
-  const [numeroFiltro, setNumeroFiltro] = useState(
-    () => searchParams.get("numero") || "",
-  );
+  const [numeroFiltro, setNumeroFiltro] = useState(() => searchParams.get("numero") || "");
   const [hasSearched, setHasSearched] = useState(false);
   const [paginaActual, setPaginaActual] = useState(() => {
     const v = searchParams.get("pagina");
@@ -83,8 +84,7 @@ export default function CorregirFormularioASCPage() {
   }, []);
 
   const obtenerUsuarioId = () => {
-    const directId =
-      (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
+    const directId = (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
     if (directId) return directId;
 
     if (typeof window === "undefined") return null;
@@ -146,16 +146,12 @@ export default function CorregirFormularioASCPage() {
           ...s,
         }))
         .filter((s: Solicitud) => {
-          const cumpleCliente = clienteSeleccionado
-            ? s.sol_cliente_id === clienteSeleccionado
-            : true;
+          const cumpleCliente = clienteSeleccionado ? s.sol_cliente_id === clienteSeleccionado : true;
           return cumpleCliente;
         })
         .filter((s: Solicitud) => {
           const cumpleNumero = numeroBuscado
-            ? (s.sol_numero_solicitud || s.numero_solicitud || "")
-                .toLowerCase()
-                .includes(numeroBuscado)
+            ? (s.sol_numero_solicitud || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
             : true;
           return cumpleNumero;
         });
@@ -184,6 +180,14 @@ export default function CorregirFormularioASCPage() {
     buscar({ preservePagina: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const limpiarFiltros = () => {
+    setClienteSeleccionado(null);
+    setNumeroFiltro("");
+    setHasSearched(false);
+    setSolicitudes([]);
+    router.replace(pathname);
+  };
 
   const irAPagina = (page: number) => {
     setPaginaActual(page);
@@ -221,252 +225,187 @@ export default function CorregirFormularioASCPage() {
         ? `$${s.consumo_mensual_proyectado.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         : "-",
       s.observacionesComercial || "-",
-      s.fecha_creacion
-        ? new Date(s.fecha_creacion).toLocaleDateString("es-CO")
-        : "-",
+      s.fecha_creacion ? new Date(s.fecha_creacion).toLocaleDateString("es-CO") : "-",
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Corregir ASC");
-    XLSX.writeFile(
-      wb,
-      `solicitudes-corregir-asc-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, `solicitudes-corregir-asc-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            Volver
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Solicitudes Pendientes de Corrección por el Auxiliar
-          </h1>
-          <p className="text-gray-600">
-            Revisa las solicitudes que fueron rechazadas con modo de solución
-            "Auxiliar Actualiza" — el cliente no puede tocarlas, corrígelas
-            tú aquí
-          </p>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+        <PageHeaderCard
+          icon={FileEdit}
+          eyebrow="Solicitudes"
+          title="Pendientes de Corrección por el Auxiliar"
+          subtitle={`Revisa las solicitudes que fueron rechazadas con modo de solución "Auxiliar Actualiza" — el cliente no puede tocarlas, corrígelas tú aquí`}
+          onBack={() => router.back()}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cliente
-              </label>
+            <FilterField label="Cliente">
               <select
                 value={clienteSeleccionado ?? ""}
-                onChange={(e) =>
-                  setClienteSeleccionado(
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loadingClientes}
-              >
+                onChange={(e) => setClienteSeleccionado(e.target.value === "" ? null : Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                disabled={loadingClientes}>
                 <option value="">Todos los clientes</option>
                 {clientes.map((cliente, index) => (
-                  <option
-                    key={`cliente-${cliente.cli_id}-${index}`}
-                    value={cliente.cli_id}
-                  >
+                  <option key={`cliente-${cliente.cli_id}-${index}`} value={cliente.cli_id}>
                     {cliente.cli_razon_social}
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Numero de solicitud
-              </label>
+            </FilterField>
+            <FilterField label="Número de solicitud">
               <input
                 type="text"
                 value={numeroFiltro}
                 onChange={(e) => setNumeroFiltro(e.target.value)}
-                placeholder="Ej: SOL-00123"
+                placeholder="Ej: 40"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-            <div className="flex items-end justify-end">
+            </FilterField>
+
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                disabled={loadingSolicitudes}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50">
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
               <button
                 onClick={() => buscar()}
                 disabled={loadingSolicitudes}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Buscar
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <Search className="h-4 w-4" />
+                {loadingSolicitudes ? "Buscando..." : "Buscar"}
               </button>
-            </div>
+            </FilterActions>
           </div>
-        </div>
+        </PageHeaderCard>
 
-        {loadingSolicitudes ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando solicitudes...</p>
-          </div>
-        ) : !hasSearched ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600 mb-2">
-              Presiona Buscar para ver las solicitudes.
-            </p>
-          </div>
-        ) : solicitudes.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-600 mb-4">
-              No se encontraron solicitudes pendientes de corrección
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-gray-600">
-                  Mostrando{" "}
-                  <span className="font-semibold">{solicitudes.length}</span>{" "}
-                  solicitud(es)
-                </p>
-                <ExportExcelButton onClick={exportarExcel} />
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <Th>Numero Solicitud</Th>
-                      {/* <Th>Centro de Operacion</Th> */}
-                      <Th>Cliente</Th>
-                      <Th>Estado</Th>
-                      <Th>Etapa Actual</Th>
-                      <Th>Resultado Etapa</Th>
-                      <Th>Consumo Proyectado (COP)</Th>
-                      <Th>Observaciones Ejecutivo</Th>
-                      <Th>Fecha Creación</Th>
-                      <Th align="center">Ver</Th>
-                      <Th align="center">Editar</Th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {solicitudesActuales.map((solicitud) => {
-                      return (
-                        <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
-                          <Td className="whitespace-nowrap font-medium text-blue-600">
-                            {solicitud.sol_numero_solicitud ||
-                              solicitud.numero_solicitud}
-                          </Td>
-                          {/* <Td className="whitespace-nowrap">
+        <div className="mt-4">
+          {loadingSolicitudes ? (
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando solicitudes...</p>
+            </div>
+          ) : !hasSearched ? (
+            <EmptyStateCard icon={FileEdit} title="Presiona Buscar para ver las solicitudes" />
+          ) : solicitudes.length === 0 ? (
+            <EmptyStateCard icon={FileEdit} title="No se encontraron solicitudes pendientes de corrección" />
+          ) : (
+            <>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <ResultsToolbar count={solicitudes.length} onExport={exportarExcel} />
+                <TableContainer>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <Th>Numero Solicitud</Th>
+                          {/* <Th>Centro de Operacion</Th> */}
+                          <Th>Cliente</Th>
+                          <Th>Estado</Th>
+                          <Th>Etapa Actual</Th>
+                          <Th>Resultado Etapa</Th>
+                          <Th>Consumo Proyectado (COP)</Th>
+                          <Th>Observaciones Ejecutivo</Th>
+                          <Th>Fecha Creación</Th>
+                          <Th align="center">Ver</Th>
+                          <Th align="center">Editar</Th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {solicitudesActuales.map((solicitud) => {
+                          return (
+                            <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
+                              <Td className="whitespace-nowrap font-medium text-brand-600">
+                                {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                              </Td>
+                              {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}
                           </Td> */}
-                          <Td className="whitespace-nowrap">
-                            {solicitud.cliente_nombre}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                                (solicitud.sol_estado_id ??
-                                  solicitud.estado_id) === 1
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : (solicitud.sol_estado_id ??
-                                        solicitud.estado_id) === 2
-                                    ? "bg-blue-100 text-blue-800"
-                                    : (solicitud.sol_estado_id ??
-                                          solicitud.estado_id) === 3
-                                      ? "bg-green-100 text-green-800"
-                                      : (solicitud.sol_estado_id ??
-                                            solicitud.estado_id) === 4
-                                        ? "bg-purple-100 text-purple-800"
-                                        : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {ESTADOS[
-                                solicitud.sol_estado_id ?? solicitud.estado_id
-                              ] || "Desconocido"}
-                            </span>
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.etapa_nombre || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.resultado_nombre || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.consumo_mensual_proyectado
-                              ? `$${solicitud.consumo_mensual_proyectado.toLocaleString(
-                                  "es-CO",
-                                  {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  },
-                                )}`
-                              : "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.observacionesComercial || "-"}
-                          </Td>
-                          <Td className="whitespace-nowrap">
-                            {solicitud.fecha_creacion
-                              ? new Date(
-                                  solicitud.fecha_creacion,
-                                ).toLocaleDateString("es-CO")
-                              : "-"}
-                          </Td>
-                          <Td align="center" className="whitespace-nowrap">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}?mode=view`,
-                                )
-                              }
-                              className="text-gray-600 hover:text-blue-600 transition-colors"
-                              title="Ver formulario"
-                            >
-                              <Eye size={18} />
-                            </button>
-                          </Td>
-                          <Td align="center" className="whitespace-nowrap">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/solicitudes/mis-documentos?solicitudId=${solicitud.sol_id ?? solicitud.sa_sol_id}`,
-                                )
-                              }
-                              className="text-blue-600 hover:text-blue-800 transition-colors"
-                              title="Corregir documentos"
-                            >
-                              <Edit2 size={18} />
-                            </button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              <Td className="whitespace-nowrap">{solicitud.cliente_nombre}</Td>
+                              <Td className="whitespace-nowrap">
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                                    (solicitud.sol_estado_id ?? solicitud.estado_id) === 1
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : (solicitud.sol_estado_id ?? solicitud.estado_id) === 2
+                                        ? "bg-blue-100 text-blue-800"
+                                        : (solicitud.sol_estado_id ?? solicitud.estado_id) === 3
+                                          ? "bg-green-100 text-green-800"
+                                          : (solicitud.sol_estado_id ?? solicitud.estado_id) === 4
+                                            ? "bg-purple-100 text-purple-800"
+                                            : "bg-gray-100 text-gray-800"
+                                  }`}>
+                                  {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] || "Desconocido"}
+                                </span>
+                              </Td>
+                              <Td className="whitespace-nowrap">{solicitud.etapa_nombre || "-"}</Td>
+                              <Td className="whitespace-nowrap">{solicitud.resultado_nombre || "-"}</Td>
+                              <Td className="whitespace-nowrap">
+                                {solicitud.consumo_mensual_proyectado
+                                  ? `$${solicitud.consumo_mensual_proyectado.toLocaleString("es-CO", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}`
+                                  : "-"}
+                              </Td>
+                              <Td className="whitespace-nowrap">{solicitud.observacionesComercial || "-"}</Td>
+                              <Td className="whitespace-nowrap">
+                                {solicitud.fecha_creacion
+                                  ? new Date(solicitud.fecha_creacion).toLocaleDateString("es-CO")
+                                  : "-"}
+                              </Td>
+                              <Td align="center" className="whitespace-nowrap">
+                                <button
+                                  onClick={() =>
+                                    router.push(`/solicitudes/${solicitud.sol_id ?? solicitud.sa_sol_id}?mode=view`)
+                                  }
+                                  className="text-gray-600 hover:text-brand-600 transition-colors"
+                                  title="Ver formulario">
+                                  <Eye size={18} />
+                                </button>
+                              </Td>
+                              <Td align="center" className="whitespace-nowrap">
+                                <button
+                                  onClick={() =>
+                                    router.push(
+                                      `/solicitudes/mis-documentos?solicitudId=${solicitud.sol_id ?? solicitud.sa_sol_id}`,
+                                    )
+                                  }
+                                  className="text-brand-600 hover:text-brand-700 transition-colors"
+                                  title="Corregir documentos">
+                                  <Edit2 size={18} />
+                                </button>
+                              </Td>
+                            </Tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </TableContainer>
 
-              <TablePagination
-                page={paginaActual}
-                pageSize={pageSize}
-                totalItems={solicitudes.length}
-                onPageChange={irAPagina}
-                onPageSizeChange={cambiarPageSize}
-              />
-            </div>
-          </>
-        )}
+                <TablePagination
+                  page={paginaActual}
+                  pageSize={pageSize}
+                  totalItems={solicitudes.length}
+                  onPageChange={irAPagina}
+                  onPageSizeChange={cambiarPageSize}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

@@ -20,10 +20,6 @@ export const setupInterceptors = (api: AxiosInstance) => {
     (error) => {
       const method = error.config?.method?.toUpperCase();
       const url = error.config?.url;
-      console.error(
-        `🔴 [API] ${method} ${url} → ${error.response?.status ?? "sin respuesta"}`,
-        error.response?.data ?? error.message,
-      );
 
       // Un 401 en el propio intento de login es una respuesta normal
       // (usuario/cliente inexistente, contraseña incorrecta) que la página
@@ -33,6 +29,17 @@ export const setupInterceptors = (api: AxiosInstance) => {
       // incluido este, tapando el mensaje de error antes de que el usuario
       // llegara a leerlo.
       const esIntentoDeLogin = url?.includes("/auth/login");
+
+      // console.error acá (incluso para un 401 esperado como contraseña
+      // incorrecta) dispara el overlay rojo de errores de Next.js en dev,
+      // aunque el usuario ya vea el mensaje correcto en el formulario —
+      // console.warn no lo dispara y sigue quedando en la consola para
+      // depurar.
+      const logger = esIntentoDeLogin ? console.warn : console.error;
+      logger(
+        `🔴 [API] ${method} ${url} → ${error.response?.status ?? "sin respuesta"}`,
+        error.response?.data ?? error.message,
+      );
 
       if (error.response?.status === 401 && !esIntentoDeLogin) {
         // Log temporal para diagnosticar el bloqueo de cookies de terceros

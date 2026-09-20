@@ -117,8 +117,11 @@ export const solicitudesService = {
     return response.data;
   },
 
-  // Obtener solicitudes pendientes para un ejecutivo
-  async getForEjecutivo(ejecutivoId: number) {
+  // Obtener solicitudes pendientes para un ejecutivo. `verComoEjng` es el
+  // ejng_id de OTRO ejecutivo a consultar en vez del propio — solo lo usan
+  // usuarios con permiso de editar sobre esta página que no son ellos mismos
+  // un Ejecutivo de Negocios (ver gestion-ejecutivo-negocios/page.tsx).
+  async getForEjecutivo(ejecutivoId: number, verComoEjng?: number) {
     console.log("solicitudesService.getForEjecutivo");
     try {
       console.log(
@@ -129,6 +132,7 @@ export const solicitudesService = {
 
       const response = await api.get(
         `/solicitudes/ejecutivo/${ejecutivoId}/pendientes`,
+        verComoEjng ? { params: { verComoEjecutivo: verComoEjng } } : undefined,
       );
       console.log(
         "[solicitudesService] response.data pendientes:",
@@ -453,10 +457,13 @@ export const solicitudesService = {
     await api.delete(`/solicitudes/${id}/evidencias-persona/${sepId}`);
   },
 
-  // Descargar PDF de una solicitud
-  async downloadPdf(id: number) {
+  // Descargar PDF de una solicitud. `tdoId` selecciona la variante cuando
+  // hay más de un tipo de documento PDF_SOLICITUD (ej. normal vs.
+  // distribuidor, con logo distinto).
+  async downloadPdf(id: number, tdoId?: number | null) {
     const response = await api.get(`/solicitudes/${id}/pdf`, {
       responseType: "blob",
+      params: tdoId ? { tdoId } : undefined,
     });
     return response.data;
   },

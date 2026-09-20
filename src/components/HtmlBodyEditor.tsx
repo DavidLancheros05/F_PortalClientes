@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -28,12 +28,22 @@ import {
 } from 'lucide-react';
 import './HtmlBodyEditor.css';
 
+export interface HtmlBodyEditorHandle {
+  // Inserta texto en la posición del cursor (o al final si el editor no
+  // tiene foco) — usado por el panel de "Variables disponibles" en
+  // formato-envio-correos/page.tsx para insertar {{variable}} con un clic
+  // en vez de que el admin tenga que escribirlas a mano.
+  insertText: (text: string) => void;
+}
+
 interface HtmlBodyEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
 }
 
-export function HtmlBodyEditor({ value, onChange }: HtmlBodyEditorProps) {
+export const HtmlBodyEditor = forwardRef<HtmlBodyEditorHandle, HtmlBodyEditorProps>(
+  function HtmlBodyEditor({ value, onChange, onFocus }, ref) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -54,8 +64,17 @@ export function HtmlBodyEditor({ value, onChange }: HtmlBodyEditorProps) {
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    onFocus: () => {
+      onFocus?.();
+    },
     immediatelyRender: false,
   });
+
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      editor?.chain().focus().insertContent(text).run();
+    },
+  }));
 
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
@@ -242,4 +261,5 @@ export function HtmlBodyEditor({ value, onChange }: HtmlBodyEditorProps) {
       </p>
     </div>
   );
-}
+  },
+);

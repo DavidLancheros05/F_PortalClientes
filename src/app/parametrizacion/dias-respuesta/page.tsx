@@ -7,8 +7,10 @@ import {
   DiaRespuesta,
   Area,
 } from "@/services/admin/parametrizacion/dias-respuesta.service";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
@@ -40,17 +42,20 @@ export default function DiasRespuestaPage() {
   const [pageSize, setPageSize] = useState(10);
 
   // Modal states
-  const [modalState, setModalState] = useState<{
-    isOpen: boolean;
-    type: "error" | "success" | "confirm";
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState<{
     title: string;
     message: string;
-    action?: () => void;
+  } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action?: () => void | Promise<void>;
     confirmText?: string;
     isDangerous?: boolean;
   }>({
     isOpen: false,
-    type: "error",
     title: "",
     message: "",
   });
@@ -60,7 +65,15 @@ export default function DiasRespuestaPage() {
     try {
       const data = await diasRespuestaService.getAll();
       setItems(data);
-      setItemsFiltrados(data);
+      // Si ya se había hecho una búsqueda, reaplicarla contra los datos
+      // frescos — si no, cada recarga (crear/editar/activar-inactivar)
+      // pisaba el resultado filtrado con la lista completa aunque los
+      // filtros siguieran mostrando la búsqueda anterior.
+      if (hasSearched) {
+        await aplicarFiltros();
+      } else {
+        setItemsFiltrados(data);
+      }
     } catch (e) {
       console.error(e);
       setItems([]);
@@ -85,18 +98,12 @@ export default function DiasRespuestaPage() {
 
   const crear = () => {
     if (dias <= 0) {
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Datos inválidos",
-        message: "Los días deben ser mayores a 0",
-      });
+      setErrorMessage("Los días deben ser mayores a 0");
       return;
     }
 
-    setModalState({
+    setConfirmModal({
       isOpen: true,
-      type: "confirm",
       title: "Confirmar creación",
       message: `¿Deseas agregar ${dias} día${dias !== 1 ? "s" : ""} de respuesta para el área ${area}?`,
       confirmText: "Sí, agregar",
@@ -113,20 +120,15 @@ export default function DiasRespuestaPage() {
           setArea("COMERCIAL");
           setMostrarNuevo(false);
           await cargarDatos();
-          setModalState({
-            isOpen: true,
-            type: "success",
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setSuccessMessage({
             title: "Creado exitosamente",
             message: "El parámetro de días de respuesta ha sido creado",
           });
         } catch (e) {
           console.error(e);
-          setModalState({
-            isOpen: true,
-            type: "error",
-            title: "Error",
-            message: "Error al crear el parámetro",
-          });
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setErrorMessage("Error al crear el parámetro");
         } finally {
           setSubmitting(false);
         }
@@ -142,9 +144,8 @@ export default function DiasRespuestaPage() {
   const guardarEdicion = () => {
     if (!editandoId || editandoDias <= 0) return;
 
-    setModalState({
+    setConfirmModal({
       isOpen: true,
-      type: "confirm",
       title: "Confirmar cambios",
       message: `¿Deseas guardar ${editandoDias} día${editandoDias !== 1 ? "s" : ""} de respuesta para este parámetro?`,
       confirmText: "Sí, guardar",
@@ -156,20 +157,15 @@ export default function DiasRespuestaPage() {
           });
           setEditandoId(null);
           await cargarDatos();
-          setModalState({
-            isOpen: true,
-            type: "success",
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setSuccessMessage({
             title: "Actualizado exitosamente",
             message: "El parámetro ha sido actualizado",
           });
         } catch (e) {
           console.error(e);
-          setModalState({
-            isOpen: true,
-            type: "error",
-            title: "Error",
-            message: "Error al actualizar el parámetro",
-          });
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setErrorMessage("Error al actualizar el parámetro");
         } finally {
           setSubmitting(false);
         }
@@ -178,9 +174,8 @@ export default function DiasRespuestaPage() {
   };
 
   const toggleEstado = (item: DiaRespuesta) => {
-    setModalState({
+    setConfirmModal({
       isOpen: true,
-      type: "confirm",
       title: item.pdr_estado ? "Inactivar parámetro" : "Activar parámetro",
       message: `¿Deseas ${item.pdr_estado ? "inactivar" : "activar"} este parámetro?`,
       isDangerous: item.pdr_estado,
@@ -192,20 +187,15 @@ export default function DiasRespuestaPage() {
             !item.pdr_estado,
           );
           await cargarDatos();
-          setModalState({
-            isOpen: true,
-            type: "success",
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setSuccessMessage({
             title: "Operación exitosa",
             message: `El parámetro ha sido ${item.pdr_estado ? "inactivado" : "activado"}`,
           });
         } catch (e) {
           console.error(e);
-          setModalState({
-            isOpen: true,
-            type: "error",
-            title: "Error",
-            message: "Error al cambiar el estado del parámetro",
-          });
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          setErrorMessage("Error al cambiar el estado del parámetro");
         }
       },
     });
@@ -237,12 +227,7 @@ export default function DiasRespuestaPage() {
       setPaginaActual(1);
     } catch (e) {
       console.error(e);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Error",
-        message: "Error al buscar parámetros",
-      });
+      setErrorMessage("Error al buscar parámetros");
       setItemsFiltrados([]);
     } finally {
       setLoading(false);
@@ -344,7 +329,7 @@ export default function DiasRespuestaPage() {
               <button
                 onClick={() => aplicarFiltros(items)}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Search className="h-4 w-4" />
                 Buscar
@@ -455,29 +440,23 @@ export default function DiasRespuestaPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Área
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Días
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                      <Th>Área</Th>
+                      <Th>Días</Th>
+                      <Th>Estado</Th>
+                      <Th sticky align="right">
                         Acciones
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {itemsPagina.map((item) => (
-                      <tr key={item.pdr_id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-2.5 whitespace-nowrap text-sm">
+                      <Tr key={item.pdr_id}>
+                        <Td className="whitespace-nowrap">
                           <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-0.5 text-xs font-semibold text-gray-700">
                             {item.pdr_area}
                           </span>
-                        </td>
-                        <td className="px-6 py-2.5 whitespace-nowrap text-sm font-medium text-gray-900">
+                        </Td>
+                        <Td className="whitespace-nowrap font-medium text-gray-900">
                           {editandoId === item.pdr_id ? (
                             <input
                               type="number"
@@ -491,8 +470,8 @@ export default function DiasRespuestaPage() {
                           ) : (
                             item.pdr_dias
                           )}
-                        </td>
-                        <td className="px-6 py-2.5 whitespace-nowrap text-sm">
+                        </Td>
+                        <Td className="whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold ${
                               item.pdr_estado
@@ -502,8 +481,8 @@ export default function DiasRespuestaPage() {
                           >
                             {item.pdr_estado ? "Activo" : "Inactivo"}
                           </span>
-                        </td>
-                        <td className="px-6 py-2.5 whitespace-nowrap text-sm font-medium text-right">
+                        </Td>
+                        <Td sticky align="right" className="whitespace-nowrap font-medium">
                           {editandoId === item.pdr_id ? (
                             <div className="flex items-center justify-end gap-2">
                               <button
@@ -543,8 +522,8 @@ export default function DiasRespuestaPage() {
                               </button>
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))}
                   </tbody>
                 </table>
@@ -563,42 +542,32 @@ export default function DiasRespuestaPage() {
       </div>
 
       {/* Modals */}
-      {modalState.type === "error" && (
-        <ConfirmModal
-          isOpen={modalState.isOpen}
-          title={modalState.title}
-          message={modalState.message}
-          confirmText="Aceptar"
-          isDangerous={true}
-          onConfirm={() => setModalState({ ...modalState, isOpen: false })}
-          onCancel={() => setModalState({ ...modalState, isOpen: false })}
-        />
-      )}
+      <ErrorModal
+        isOpen={!!errorMessage}
+        message={errorMessage}
+        onAction={() => setErrorMessage("")}
+      />
 
-      {modalState.type === "success" && (
-        <SuccessModal
-          isOpen={modalState.isOpen}
-          title={modalState.title}
-          message={modalState.message}
-          actionText="Aceptar"
-          onAction={() => setModalState({ ...modalState, isOpen: false })}
-        />
-      )}
+      <SuccessModal
+        isOpen={!!successMessage}
+        title={successMessage?.title || "Éxito"}
+        message={successMessage?.message || ""}
+        actionText="Aceptar"
+        onAction={() => setSuccessMessage(null)}
+      />
 
-      {modalState.type === "confirm" && (
-        <ConfirmModal
-          isOpen={modalState.isOpen}
-          title={modalState.title}
-          message={modalState.message}
-          confirmText={modalState.confirmText || "Confirmar"}
-          isDangerous={modalState.isDangerous}
-          isLoading={submitting}
-          onConfirm={async () => {
-            if (modalState.action) await modalState.action();
-          }}
-          onCancel={() => setModalState({ ...modalState, isOpen: false })}
-        />
-      )}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText || "Confirmar"}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={submitting}
+        onConfirm={async () => {
+          if (confirmModal.action) await confirmModal.action();
+        }}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

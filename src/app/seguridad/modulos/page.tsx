@@ -27,7 +27,15 @@ import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 // puede crear un módulo que apunte a una página que no existe. Si la
 // página todavía no se ha construido, el orden correcto es: construirla,
 // correr `npm run routes:generate`, y recién ahí crear/editar el módulo.
-const RUTAS_REALES: string[] = appRoutes as string[];
+// Se excluyen las rutas dinámicas (segmentos [algo], ej. /solicitudes/[id])
+// porque nunca sirven como href de un <Link> de menú estático — Next.js las
+// rechaza en runtime ("Dynamic href found in <Link>"). Bug real encontrado
+// 2026-09-20: el módulo "Crear Nueva Solicitud" tenía guardado literalmente
+// "/solicitudes/[id]" como ruta, rompiendo el menú para cualquiera que
+// llegara a esa rama (ver Header.tsx).
+const RUTAS_REALES: string[] = (appRoutes as string[]).filter(
+  (ruta) => !ruta.includes("["),
+);
 
 interface Modulo {
   mod_id: number;
@@ -37,6 +45,7 @@ interface Modulo {
   mod_icono?: string;
   mod_posicion?: number;
   mod_padre_id?: number | null;
+  mod_es_categoria?: boolean;
   mod_activo?: boolean;
   subModulos: Modulo[];
 }
@@ -107,6 +116,7 @@ const ModuloPadreTreeSelect: React.FC<ModuloPadreTreeSelectProps> = ({
           >
             {hasChildren ? (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleExpand(node.mod_id);
@@ -215,13 +225,15 @@ const ModulosPage = () => {
   const [formData, setFormData] = useState({
     nombre: "",
     ruta: "",
+    esCategoria: false,
     padre_id: null as number | null,
     icono: "",
     orden: 0,
   });
 
   const isCreateFormValid =
-    formData.nombre.trim() !== "" && formData.ruta.trim() !== "";
+    formData.nombre.trim() !== "" &&
+    (formData.esCategoria || formData.ruta.trim() !== "");
 
   const moduloNombreById = useMemo(() => {
     const map = new Map<number, string>();
@@ -253,12 +265,15 @@ const ModulosPage = () => {
     return collapsed;
   };
 
-  const parentRouteById = useMemo(() => {
-    const map = new Map<number, string>();
+  const parentInfoById = useMemo(() => {
+    const map = new Map<number, { ruta: string; esCategoria: boolean }>();
 
     const walk = (nodes: Modulo[]) => {
       nodes.forEach((node) => {
-        map.set(node.mod_id, normalizeRoute(node.mod_ruta));
+        map.set(node.mod_id, {
+          ruta: normalizeRoute(node.mod_ruta),
+          esCategoria: !!node.mod_es_categoria,
+        });
         if (Array.isArray(node.subModulos) && node.subModulos.length > 0) {
           walk(node.subModulos);
         }
@@ -270,19 +285,23 @@ const ModulosPage = () => {
   }, [modulos]);
 
   // Rutas que se pueden elegir para el módulo que se está creando/editando:
-  // si tiene padre, solo las páginas que viven bajo la ruta del padre (o la
-  // misma ruta del padre, para el caso de un hijo que reutiliza la página
-  // del padre); si es un módulo raíz, todas las páginas reales.
+  // si tiene padre y el padre es una página real, solo las páginas que
+  // viven bajo la ruta del padre; si el padre es una categoría (ruta
+  // sintética, sin página propia) o si es un módulo raíz, todas las
+  // páginas reales — no tiene sentido exigir que un hijo con página real
+  // viva bajo la ruta autogenerada de una categoría.
   const rutasDisponibles = useMemo(() => {
-    const padreRuta = formData.padre_id
-      ? parentRouteById.get(formData.padre_id)
+    const padreInfo = formData.padre_id
+      ? parentInfoById.get(formData.padre_id)
       : null;
 
-    const base = !padreRuta
-      ? RUTAS_REALES
-      : RUTAS_REALES.filter(
-          (ruta) => ruta === padreRuta || ruta.startsWith(`${padreRuta}/`),
-        );
+    const base =
+      !padreInfo || !padreInfo.ruta || padreInfo.esCategoria
+        ? RUTAS_REALES
+        : RUTAS_REALES.filter(
+            (ruta) =>
+              ruta === padreInfo.ruta || ruta.startsWith(`${padreInfo.ruta}/`),
+          );
 
     // Si la ruta actual del módulo (editando uno existente) ya no está en
     // el listado filtrado, se agrega igual al principio para no perderla
@@ -291,7 +310,7 @@ const ModulosPage = () => {
       return [formData.ruta, ...base];
     }
     return base;
-  }, [formData.padre_id, formData.ruta, parentRouteById]);
+  }, [formData.padre_id, formData.ruta, parentInfoById]);
 
   const getDescendantIds = (modulo: Modulo | null): Set<number> => {
     const ids = new Set<number>();
@@ -483,10 +502,11 @@ const ModulosPage = () => {
 
   const guardarModulo = async (basePayload: {
     nombre: string;
-    ruta: string;
+    ruta?: string;
     padre_id: number | null;
     icono: string;
     orden: number;
+    es_categoria?: boolean;
   }) => {
     try {
       if (editingModulo) {
@@ -503,13 +523,22 @@ const ModulosPage = () => {
           ? "Módulo actualizado correctamente"
           : "Módulo creado correctamente",
       );
-      setFormData({ nombre: "", ruta: "", padre_id: null, icono: "", orden: 0 });
+      setFormData({
+        nombre: "",
+        ruta: "",
+        esCategoria: false,
+        padre_id: null,
+        icono: "",
+        orden: 0,
+      });
       setEditingModulo(null);
       setModalOpen(false);
       await fetchModulos();
     } catch (err: any) {
       console.error("❌ Error:", err);
-      setErrorMessage(err.message || "Error desconocido");
+      setErrorMessage(
+        err.response?.data?.message || err.message || "Error desconocido",
+      );
     }
   };
 
@@ -518,24 +547,36 @@ const ModulosPage = () => {
 
     await guardarModulo({
       nombre: formData.nombre,
-      ruta: formData.ruta,
+      // Categoría: se manda "" a propósito para que el backend genere una
+      // ruta sintética (ver modulos.service.ts#validateJerarquiaYRuta).
+      ruta: formData.esCategoria ? "" : formData.ruta,
       padre_id: formData.padre_id,
       icono: formData.icono,
       orden: Number(formData.orden) || 0,
+      es_categoria: formData.esCategoria,
     });
   };
 
   const openCreateModal = () => {
     setEditingModulo(null);
-    setFormData({ nombre: "", ruta: "", padre_id: null, icono: "", orden: 0 });
+    setFormData({
+      nombre: "",
+      ruta: "",
+      esCategoria: false,
+      padre_id: null,
+      icono: "",
+      orden: 0,
+    });
     setModalOpen(true);
   };
 
   const openEditModal = (modulo: Modulo) => {
     setEditingModulo(modulo);
+    const rutaActual = normalizeRoute(modulo.mod_ruta);
     setFormData({
       nombre: modulo.mod_nombre,
-      ruta: normalizeRoute(modulo.mod_ruta),
+      ruta: rutaActual,
+      esCategoria: !!modulo.mod_es_categoria,
       padre_id: modulo.mod_padre_id || null,
       icono: modulo.mod_icono || "",
       orden: Number(modulo.mod_posicion ?? 0),
@@ -546,7 +587,14 @@ const ModulosPage = () => {
   const closeModal = () => {
     setModalOpen(false);
     setEditingModulo(null);
-    setFormData({ nombre: "", ruta: "", padre_id: null, icono: "", orden: 0 });
+    setFormData({
+      nombre: "",
+      ruta: "",
+      esCategoria: false,
+      padre_id: null,
+      icono: "",
+      orden: 0,
+    });
   };
 
   const performInactivar = async () => {
@@ -1028,18 +1076,27 @@ const ModulosPage = () => {
     });
   };
 
-  // IDs de todos los nodos con hijos (son los únicos que se pueden colapsar)
-  const getNodesWithChildrenIds = (nodes: Modulo[]): Set<number> => {
+  // IDs de los módulos/submódulos con hijos que el usuario puede
+  // colapsar/expandir desde la UI: el botón de flecha existe para
+  // depth 0 (Módulo) y depth 1 (Submódulo), pero no para depth 2
+  // (Sub-submódulo, la columna más profunda que se muestra) — por eso
+  // corta la recursión ahí. Si se marcara un nodo sin botón como
+  // colapsado, quedaría sin forma de reabrirse y sus hijos dejarían de
+  // renderizarse por completo.
+  const getNodesWithChildrenIds = (
+    nodes: Modulo[],
+    depth = 0,
+  ): Set<number> => {
     const ids = new Set<number>();
-    const collectIds = (list: Modulo[]) => {
-      list.forEach((node) => {
-        if (node.subModulos && node.subModulos.length > 0) {
-          ids.add(node.mod_id);
-          collectIds(node.subModulos);
-        }
-      });
-    };
-    collectIds(nodes);
+    if (depth > 1) return ids;
+    nodes.forEach((node) => {
+      if (node.subModulos && node.subModulos.length > 0) {
+        ids.add(node.mod_id);
+        getNodesWithChildrenIds(node.subModulos, depth + 1).forEach((id) =>
+          ids.add(id),
+        );
+      }
+    });
     return ids;
   };
 
@@ -1131,7 +1188,7 @@ const ModulosPage = () => {
 
         {/* Drop Zone */}
         <div
-          data-root-dropzone={draggingRow && draggingRow.depth === 0 ? "true" : undefined}
+          data-root-dropzone="true"
           className={`mb-6 p-4 rounded-xl border-2 border-dashed transition-all ${
             draggingRow && draggingRow.depth > 0
               ? "border-red-300 bg-red-50/50 text-red-500"
@@ -1160,9 +1217,9 @@ const ModulosPage = () => {
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
               <table className="w-full">
-                <thead>
+                <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Módulo
@@ -1172,6 +1229,9 @@ const ModulosPage = () => {
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Sub-submódulo
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Ruta
                     </th>
                     <th className="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       Estado
@@ -1261,10 +1321,12 @@ const ModulosPage = () => {
                                 ) : (
                                   <FolderOpen className="w-4 h-4 text-brand-500" />
                                 ))}
-                              <span className="text-sm text-slate-700">
-                                {modulo}
-                              </span>
-                              {hasChildren && (
+                              {depth === 0 && (
+                                <span className="text-sm font-semibold text-slate-800">
+                                  {modulo}
+                                </span>
+                              )}
+                              {depth === 0 && hasChildren && (
                                 <span className="text-xs text-slate-400 ml-1">
                                   ({node.subModulos.length})
                                 </span>
@@ -1277,12 +1339,39 @@ const ModulosPage = () => {
                               handleRowMouseDown(e, pathIds[1])
                             }
                           >
-                            {submodulo !== "-" ? (
+                            {submodulo !== "" ? (
                               <div className="flex items-center gap-2">
                                 <GripVertical className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <span className="text-sm text-slate-600">
-                                  {submodulo}
-                                </span>
+                                {depth === 1 &&
+                                  (hasChildren ? (
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleCollapse(node.mod_id);
+                                      }}
+                                      className="p-0.5 hover:bg-slate-200 rounded transition-colors"
+                                    >
+                                      {isCollapsed ? (
+                                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                                      ) : (
+                                        <ChevronDown className="w-4 h-4 text-slate-500" />
+                                      )}
+                                    </button>
+                                  ) : (
+                                    <div className="w-5" />
+                                  ))}
+                                {depth === 1 && (
+                                  <span className="text-sm font-medium text-slate-800">
+                                    {submodulo}
+                                  </span>
+                                )}
+                                {depth === 1 && hasChildren && (
+                                  <span className="text-xs text-slate-400 ml-1">
+                                    ({node.subModulos.length})
+                                  </span>
+                                )}
                               </div>
                             ) : (
                               <span className="text-sm text-slate-400">—</span>
@@ -1294,16 +1383,31 @@ const ModulosPage = () => {
                               handleRowMouseDown(e, pathIds[2])
                             }
                           >
-                            {subsubmodulo !== "-" ? (
+                            {subsubmodulo !== "" ? (
                               <div className="flex items-center gap-2 pl-4">
                                 <ChevronRight className="w-3 h-3 text-slate-400" />
-                                <span className="text-sm text-slate-600">
+                                <span className="text-sm font-medium text-slate-800">
                                   {subsubmodulo}
                                 </span>
                               </div>
                             ) : (
                               <span className="text-sm text-slate-400">—</span>
                             )}
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <code className="text-xs text-slate-500 break-all">
+                                {node.mod_ruta || "—"}
+                              </code>
+                              {node.mod_es_categoria && (
+                                <span
+                                  className="shrink-0 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold"
+                                  title="Categoría: ruta sintética, no corresponde a ninguna página real del frontend"
+                                >
+                                  categoría
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-3 text-center">
                             {typeof node.mod_activo === "boolean" ? (
@@ -1372,9 +1476,7 @@ const ModulosPage = () => {
                     )}
                   </div>
                   <h2 className="text-xl font-semibold text-slate-800">
-                    {editingModulo
-                      ? `Editar Módulo [ID: ${editingModulo.mod_id}]`
-                      : "Crear Módulo"}
+                    {editingModulo ? "Editar Módulo" : "Crear Módulo"}
                   </h2>
                 </div>
                 <button
@@ -1436,30 +1538,55 @@ const ModulosPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Ruta *
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.esCategoria}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          esCategoria: e.target.checked,
+                          ruta: "",
+                        })
+                      }
+                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    Es una categoría (agrupa submódulos, sin página propia)
                   </label>
-                  <select
-                    value={formData.ruta}
-                    onChange={(e) =>
-                      setFormData({ ...formData, ruta: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-white"
-                    required
-                  >
-                    <option value="">-- Selecciona una página --</option>
-                    {rutasDisponibles.map((ruta) => (
-                      <option key={ruta} value={ruta}>
-                        {ruta}
-                      </option>
-                    ))}
-                  </select>
                   <p className="text-xs text-slate-400 mt-1">
-                    Solo páginas que ya existen en el frontend. Si la página
-                    todavía no está construida, créala primero y corre{" "}
-                    <code>npm run routes:generate</code>.
+                    Úsalo para un módulo que solo va a servir de carpeta para
+                    otros submódulos en el menú, sin tener su propia página.
+                    La ruta se genera automáticamente.
                   </p>
                 </div>
+
+                {!formData.esCategoria && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Ruta *
+                    </label>
+                    <select
+                      value={formData.ruta}
+                      onChange={(e) =>
+                        setFormData({ ...formData, ruta: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-white"
+                      required
+                    >
+                      <option value="">-- Selecciona una página --</option>
+                      {rutasDisponibles.map((ruta) => (
+                        <option key={ruta} value={ruta}>
+                          {ruta}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Solo páginas que ya existen en el frontend. Si la
+                      página todavía no está construida, créala primero y
+                      corre <code>npm run routes:generate</code>.
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">

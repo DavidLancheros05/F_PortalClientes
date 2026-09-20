@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Save, Copy } from "lucide-react";
 import api from "@/services/core/api";
@@ -25,22 +25,29 @@ export default function NuevaVersionPage() {
     { type: "success" | "error"; message: string } | null
   >(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // Token de la petición en curso: si `formularioId` cambia o el
+  // componente se desmonta antes de que responda, una respuesta tardía no
+  // debe pisar el estado del formulario actual.
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     cargarVersiones();
   }, [formularioId]);
 
   const cargarVersiones = async () => {
+    const requestId = ++requestIdRef.current;
     try {
       const res = await api.get(
         `/parametrizacion/formularios/${formularioId}/versiones`,
       );
+      if (requestIdRef.current !== requestId) return;
       const data = res.data;
       setVersiones(data.versiones || []);
       if (data.versiones && data.versiones.length > 0) {
         setCopiarDe(data.versiones[0].fv_numero);
       }
     } catch (error) {
+      if (requestIdRef.current !== requestId) return;
       console.error("Error cargando versiones:", error);
     }
   };

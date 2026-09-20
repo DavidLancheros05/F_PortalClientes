@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import {
   usuarioRolesService,
@@ -9,6 +9,8 @@ import {
 import { rolesService, type Rol } from "@/services/roles/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { SuggestField } from "@/components/filters/SuggestField";
+import { FilterActions } from "@/components/filters/FilterActions";
 import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 import {
@@ -20,6 +22,7 @@ import {
   ChevronDown,
   Plus,
   X,
+  Search,
 } from "lucide-react";
 
 export default function UsuarioRolesPage() {
@@ -41,6 +44,19 @@ export default function UsuarioRolesPage() {
     rolId: number;
     rolNombre: string;
   } | null>(null);
+
+  // Filtros — un campo por criterio (nombre, correo, usuario) en vez de un
+  // único cuadro combinado, para poder acotar por uno solo sin que los tres
+  // compartan el mismo término de búsqueda.
+  const [nombreInput, setNombreInput] = useState("");
+  const [correoInput, setCorreoInput] = useState("");
+  const [usuarioInput, setUsuarioInput] = useState("");
+  const [nombreTerm, setNombreTerm] = useState("");
+  const [correoTerm, setCorreoTerm] = useState("");
+  const [usuarioTerm, setUsuarioTerm] = useState("");
+  // Tabla oculta hasta el primer clic en Buscar — mismo patrón que
+  // cartera/mis-pqrs/clientes-acceso. "Limpiar" también la oculta de nuevo.
+  const [hasSearched, setHasSearched] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -64,6 +80,57 @@ export default function UsuarioRolesPage() {
       fetchData();
     }
   }, [authLoading]);
+
+  const handleBuscar = () => {
+    setNombreTerm(nombreInput.trim());
+    setCorreoTerm(correoInput.trim());
+    setUsuarioTerm(usuarioInput.trim());
+    setHasSearched(true);
+  };
+  const handleLimpiarFiltros = () => {
+    setNombreInput("");
+    setCorreoInput("");
+    setUsuarioInput("");
+    setNombreTerm("");
+    setCorreoTerm("");
+    setUsuarioTerm("");
+    setHasSearched(false);
+  };
+
+  const usuariosFiltrados = useMemo(() => {
+    const nombre = nombreTerm.toLowerCase();
+    const correo = correoTerm.toLowerCase();
+    const usuarioLogin = usuarioTerm.toLowerCase();
+    if (!nombre && !correo && !usuarioLogin) return usuarios;
+
+    return usuarios.filter((usuario) => {
+      const cumpleNombre = nombre
+        ? usuario.nombre?.toLowerCase().includes(nombre)
+        : true;
+      const cumpleCorreo = correo
+        ? usuario.usuario_correo?.toLowerCase().includes(correo)
+        : true;
+      const cumpleUsuario = usuarioLogin
+        ? usuario.usuario_login?.toLowerCase().includes(usuarioLogin)
+        : true;
+      return cumpleNombre && cumpleCorreo && cumpleUsuario;
+    });
+  }, [usuarios, nombreTerm, correoTerm, usuarioTerm]);
+
+  // Pool crudo de sugerencias por campo — SuggestField filtra/deduplica/
+  // limita internamente, acá solo se mapea la columna correspondiente.
+  const nombreSugerencias = useMemo(
+    () => usuarios.map((u) => u.nombre ?? ""),
+    [usuarios],
+  );
+  const correoSugerencias = useMemo(
+    () => usuarios.map((u) => u.usuario_correo ?? ""),
+    [usuarios],
+  );
+  const usuarioSugerencias = useMemo(
+    () => usuarios.map((u) => u.usuario_login ?? ""),
+    [usuarios],
+  );
 
   const handleSelectUsuario = async (usuarioId: number) => {
     try {
@@ -125,7 +192,53 @@ export default function UsuarioRolesPage() {
               Actualizar
             </button>
           }
-        />
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <SuggestField
+              label="Nombre"
+              placeholder="Buscar por nombre..."
+              value={nombreInput}
+              onChange={setNombreInput}
+              suggestions={nombreSugerencias}
+              onEnter={handleBuscar}
+            />
+
+            <SuggestField
+              label="Correo"
+              placeholder="Buscar por correo..."
+              value={correoInput}
+              onChange={setCorreoInput}
+              suggestions={correoSugerencias}
+              onEnter={handleBuscar}
+            />
+
+            <SuggestField
+              label="Usuario"
+              placeholder="Buscar por usuario..."
+              value={usuarioInput}
+              onChange={setUsuarioInput}
+              suggestions={usuarioSugerencias}
+              onEnter={handleBuscar}
+            />
+
+            <FilterActions className="col-span-full">
+              <button
+                onClick={handleLimpiarFiltros}
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={handleBuscar}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
+          </div>
+        </PageHeaderCard>
 
         {loading && usuarios.length === 0 ? (
           <div className="flex items-center justify-center h-64 bg-white rounded-2xl shadow-lg">
@@ -157,10 +270,21 @@ export default function UsuarioRolesPage() {
             title="No hay usuarios disponibles"
             subtitle="Crea usuarios primero para asignar roles"
           />
+        ) : !hasSearched ? (
+          <EmptyStateCard
+            icon={Search}
+            title="Presiona Buscar para ver los usuarios."
+            subtitle="Opcionalmente puedes filtrar antes de buscar."
+          />
+        ) : usuariosFiltrados.length === 0 ? (
+          <EmptyStateCard
+            icon={Users}
+            title="Ningún usuario coincide con los filtros"
+          />
         ) : (
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             <div className="divide-y divide-gray-200">
-              {usuarios.map((usuario) => (
+              {usuariosFiltrados.map((usuario) => (
                 <div key={usuario.usr_id}>
                   <button
                     onClick={() => handleSelectUsuario(usuario.usr_id)}
@@ -175,7 +299,9 @@ export default function UsuarioRolesPage() {
                           {usuario.nombre}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {usuario.usuario_correo || `ID: ${usuario.usr_id}`}
+                          {usuario.usuario_correo ||
+                            usuario.usuario_login ||
+                            "Sin correo registrado"}
                         </div>
                       </div>
                     </div>

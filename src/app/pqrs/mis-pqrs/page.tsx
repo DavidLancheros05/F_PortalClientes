@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useContext, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Plus,
   Eye,
@@ -14,8 +14,10 @@ import {
 import { AuthContext } from "@/context/AuthContext";
 import { pqrsService } from "@/services/pqrs.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
-import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 
 interface PQRS {
@@ -40,20 +42,42 @@ const ITEMS_PER_PAGE = 10;
 
 export default function MisPQRSPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useContext(AuthContext);
 
   const [pqrsList, setPqrsList] = useState<PQRS[]>([]);
   const [estados, setEstados] = useState<EstadoOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  // Filtros, página y "hasSearched" inicializados desde la URL
+  // (?buscar=&estados=&pagina=&buscado=) para que "Ver detalle" y volver
+  // restaure la búsqueda en vez de reiniciarla — mismo patrón que las
+  // páginas de gestión de solicitudes.
+  const [hasSearched, setHasSearched] = useState(
+    () => searchParams.get("buscado") === "1",
+  );
 
   // Filtros y búsqueda — searchTermInput es lo que se escribe, searchTerm es
   // lo aplicado (solo cambia al presionar Buscar/Limpiar).
-  const [searchTermInput, setSearchTermInput] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedEstados, setSelectedEstados] = useState<number[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTermInput, setSearchTermInput] = useState(
+    () => searchParams.get("buscar") || "",
+  );
+  const [searchTerm, setSearchTerm] = useState(
+    () => searchParams.get("buscar") || "",
+  );
+  const [selectedEstados, setSelectedEstados] = useState<number[]>(() => {
+    const raw = searchParams.get("estados");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((id) => Number(id))
+      .filter((id) => !Number.isNaN(id));
+  });
+  const [currentPage, setCurrentPage] = useState(() => {
+    const v = searchParams.get("pagina");
+    return v ? Number(v) : 1;
+  });
 
   useEffect(() => {
     loadPQRS();
@@ -100,6 +124,16 @@ export default function MisPQRSPage() {
     });
   }, [pqrsList, searchTerm, selectedEstados]);
 
+  // Pool crudo de sugerencias — combina número y asunto, ya que el campo
+  // único de búsqueda filtra por ambas columnas a la vez.
+  const searchSugerencias = useMemo(
+    () => [
+      ...pqrsList.map((p) => p.pqrs_numero ?? ""),
+      ...pqrsList.map((p) => p.pqrs_titulo ?? ""),
+    ],
+    [pqrsList],
+  );
+
   // Paginación
   const totalPages = Math.ceil(filteredPQRS.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -118,20 +152,41 @@ export default function MisPQRSPage() {
     }
   };
 
+  // Refleja los filtros/página actuales en la URL (sin agregar entradas al
+  // historial) para que "Ver detalle" los pueda restaurar al volver.
+  const sincronizarUrl = (overrides: {
+    buscar?: string;
+    estados?: number[];
+    pagina?: number;
+    buscado?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    const buscado = overrides.buscado ?? hasSearched;
+    if (buscado) params.set("buscado", "1");
+    const buscar = overrides.buscar ?? searchTerm;
+    if (buscar.trim()) params.set("buscar", buscar.trim());
+    const estadosIds = overrides.estados ?? selectedEstados;
+    if (estadosIds.length > 0) params.set("estados", estadosIds.join(","));
+    const pagina = overrides.pagina ?? currentPage;
+    params.set("pagina", String(pagina));
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   const toggleEstadoFilter = (estadoId: number) => {
-    setSelectedEstados((prev) =>
-      prev.includes(estadoId)
-        ? prev.filter((id) => id !== estadoId)
-        : [...prev, estadoId],
-    );
+    const nuevosEstados = selectedEstados.includes(estadoId)
+      ? selectedEstados.filter((id) => id !== estadoId)
+      : [...selectedEstados, estadoId];
+    setSelectedEstados(nuevosEstados);
     setHasSearched(true);
     setCurrentPage(1);
+    sincronizarUrl({ estados: nuevosEstados, pagina: 1, buscado: true });
   };
 
   const handleBuscar = () => {
     setSearchTerm(searchTermInput);
     setHasSearched(true);
     setCurrentPage(1);
+    sincronizarUrl({ buscar: searchTermInput, pagina: 1, buscado: true });
   };
 
   const clearFilters = () => {
@@ -140,6 +195,12 @@ export default function MisPQRSPage() {
     setHasSearched(false);
     setSelectedEstados([]);
     setCurrentPage(1);
+    router.replace(pathname);
+  };
+
+  const irAPagina = (page: number) => {
+    setCurrentPage(page);
+    sincronizarUrl({ pagina: page });
   };
 
   const LoadingSkeleton = () => (
@@ -183,19 +244,14 @@ export default function MisPQRSPage() {
         >
           {!(loading || pqrsList.length === 0) && (
             <div className="space-y-4">
-              <FilterField label="Buscar por número o asunto">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por número o asunto..."
-                    value={searchTermInput}
-                    onChange={(e) => setSearchTermInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  />
-                </div>
-              </FilterField>
+              <SuggestField
+                label="Buscar por número o asunto"
+                placeholder="Buscar por número o asunto..."
+                value={searchTermInput}
+                onChange={setSearchTermInput}
+                suggestions={searchSugerencias}
+                onEnter={handleBuscar}
+              />
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -289,40 +345,27 @@ export default function MisPQRSPage() {
               <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden mb-6">
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Número
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Asunto
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Tipo
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Estado
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Fecha
-                        </th>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                        <Th>Número</Th>
+                        <Th>Asunto</Th>
+                        <Th>Tipo</Th>
+                        <Th>Estado</Th>
+                        <Th>Fecha</Th>
+                        <Th align="center" sticky>
                           Acción
-                        </th>
+                        </Th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {paginatedPQRS.map((pqrs) => (
-                        <tr
-                          key={pqrs.pqrs_id}
-                          className="hover:bg-blue-50/50 transition-colors"
-                        >
-                          <td className="px-6 py-4">
+                        <Tr key={pqrs.pqrs_id}>
+                          <Td>
                             <span className="text-sm font-semibold text-brand-600">
                               {pqrs.pqrs_numero}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
+                          </Td>
+                          <Td>
                             <p className="text-sm text-gray-900 font-medium">
                               {pqrs.pqrs_titulo}
                             </p>
@@ -331,13 +374,13 @@ export default function MisPQRSPage() {
                                 {pqrs.pqrs_descripcion}
                               </p>
                             )}
-                          </td>
-                          <td className="px-6 py-4">
+                          </Td>
+                          <Td>
                             <span className="text-sm text-gray-700">
                               {pqrs.tipo?.pt_nombre || "-"}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
+                          </Td>
+                          <Td>
                             <span
                               className="inline-flex px-3 py-1.5 rounded-full text-xs font-semibold text-white"
                               style={{
@@ -347,13 +390,13 @@ export default function MisPQRSPage() {
                             >
                               {pqrs.estado?.pe_nombre || "Desconocido"}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
+                          </Td>
+                          <Td>
                             <span className="text-sm text-gray-600">
                               {formatDate(pqrs.pqrs_fecha_creacion)}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
+                          </Td>
+                          <Td align="center" sticky>
                             <button
                               onClick={() =>
                                 router.push(`/pqrs/${pqrs.pqrs_id}`)
@@ -363,8 +406,8 @@ export default function MisPQRSPage() {
                             >
                               <Eye className="h-4 w-4" />
                             </button>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       ))}
                     </tbody>
                   </table>
@@ -387,7 +430,7 @@ export default function MisPQRSPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
                   <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    onClick={() => irAPagina(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -419,7 +462,7 @@ export default function MisPQRSPage() {
                       return (
                         <button
                           key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
+                          onClick={() => irAPagina(pageNum)}
                           className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             currentPage === pageNum
                               ? "bg-brand-600 text-white"
@@ -434,7 +477,7 @@ export default function MisPQRSPage() {
 
                   <button
                     onClick={() =>
-                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                      irAPagina(Math.min(totalPages, currentPage + 1))
                     }
                     disabled={currentPage === totalPages}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"

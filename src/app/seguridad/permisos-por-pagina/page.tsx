@@ -10,8 +10,8 @@ import {
 } from "@/services/seguridad/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
-import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { SuggestField } from "@/components/filters/SuggestField";
 
 interface Permisos {
   ver: boolean;
@@ -150,6 +150,18 @@ export default function PermisosPorPaginaPage() {
     });
   }, [paginas, search]);
 
+  // Pool crudo de sugerencias — combina lo que también consulta el filtro
+  // real (matchSearch: nombre/ruta/jerarquía de página + nombre de rol).
+  const searchSugerencias = useMemo(
+    () =>
+      paginas.flatMap((p) => [
+        p.mod_nombre ?? "",
+        p.mod_ruta ?? "",
+        ...p.roles.map((r) => r.rolNombre ?? ""),
+      ]),
+    [paginas],
+  );
+
   const handleBuscar = () => setSearch(searchInput.trim());
   const handleLimpiar = () => {
     setSearchInput("");
@@ -167,15 +179,15 @@ export default function PermisosPorPaginaPage() {
           onBack={() => router.push("/seguridad/roles")}
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FilterField label="Buscar" className="md:col-span-2">
-              <input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-                placeholder="Página, ruta o rol"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Buscar"
+              className="md:col-span-2"
+              placeholder="Página, ruta o rol"
+              value={searchInput}
+              onChange={setSearchInput}
+              suggestions={searchSugerencias}
+              onEnter={handleBuscar}
+            />
 
             <FilterActions className="md:col-span-1 flex md:items-end">
               <button

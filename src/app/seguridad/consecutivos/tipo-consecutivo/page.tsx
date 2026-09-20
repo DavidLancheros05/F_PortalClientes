@@ -5,6 +5,8 @@ import { tipoConsecutivosService } from "@/services/tipo-consecutivos.service";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { Plus, Edit2, Trash2, Layers } from "lucide-react";
 
 export default function TipoConsecutivoPage() {
@@ -158,27 +160,29 @@ export default function TipoConsecutivoPage() {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">ID</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Nombre</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Descripción</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Prefijo</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Estado</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actualización</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Acciones</th>
+                  <Th>ID</Th>
+                  <Th>Nombre</Th>
+                  <Th>Descripción</Th>
+                  <Th>Prefijo</Th>
+                  <Th>Estado</Th>
+                  <Th>Actualización</Th>
+                  <Th sticky align="right">
+                    Acciones
+                  </Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {tipos.map((t) => (
-                  <tr key={t.ptc_id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{t.ptc_id}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{t.ptc_nombre}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600 max-w-xs truncate">
+                  <Tr key={t.ptc_id}>
+                    <Td className="font-medium text-slate-900">{t.ptc_id}</Td>
+                    <Td className="font-semibold text-slate-900">{t.ptc_nombre}</Td>
+                    <Td className="max-w-xs truncate">
                       {t.ptc_descripcion || "—"}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-mono font-bold text-brand-600 text-lg">
+                    </Td>
+                    <Td className="font-mono font-bold text-brand-600 text-lg">
                       {t.ptc_prefijo}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
+                    </Td>
+                    <Td>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold inline-block ${
                           t.ptc_estado === "A"
@@ -188,27 +192,27 @@ export default function TipoConsecutivoPage() {
                       >
                         {t.ptc_estado === "A" ? "Activo" : "Inactivo"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(t.ptc_fecha_usr).toLocaleDateString("es-ES")}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleEdit(t.ptc_id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(t.ptc_id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                    </Td>
+                    <Td>{new Date(t.ptc_fecha_usr).toLocaleDateString("es-ES")}</Td>
+                    <Td sticky align="right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(t.ptc_id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(t.ptc_id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </Td>
+                  </Tr>
                 ))}
               </tbody>
             </table>

@@ -22,11 +22,14 @@ export function useHistorialWorkflow(solicitudId: number | null) {
   useEffect(() => {
     if (!solicitudId) return;
 
+    let cancelled = false;
+
     async function cargarHistorial() {
       try {
         setLoading(true);
         const response =
           await solicitudesService.obtenerHistorialWorkflow(solicitudId as number);
+        if (cancelled) return;
         console.log("[useHistorialWorkflow] Response completo:", response);
 
         if (response?.historial && Array.isArray(response.historial)) {
@@ -68,17 +71,21 @@ export function useHistorialWorkflow(solicitudId: number | null) {
           setHistorial([]);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error("Error cargando historial:", err);
         setError(
           err instanceof Error ? err.message : "Error al cargar historial",
         );
         setHistorial([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     cargarHistorial();
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId]);
 
   return { historial, loading, error };

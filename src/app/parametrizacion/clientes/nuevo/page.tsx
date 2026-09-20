@@ -16,26 +16,26 @@ import {
   MapPin,
   Phone,
   Mail,
-  UserPlus,
   Save,
-  ArrowLeft,
   CheckCircle,
   Loader2,
   Shield,
 } from "lucide-react";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
 
 export default function NuevoClientePage() {
   const router = useRouter();
   const [tiposIdentificacion, setTiposIdentificacion] = useState<
     Array<{ id: number; codigo: string; nombre: string }>
   >([]);
-  const [loadingTiposIdentificacion, setLoadingTiposIdentificacion] =
-    useState(true);
   const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
     [],
   );
   const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
-  const [loadingCentros, setLoadingCentros] = useState(true);
+  // Un solo flag: tipos de identificación y centros se piden en el mismo
+  // Promise.all y siempre terminan de cargar juntos, así que dos estados
+  // separados nunca podían diferir entre sí (código muerto redundante).
+  const [loadingCatalogos, setLoadingCatalogos] = useState(true);
   const [ejecutivos, setEjecutivos] = useState<
     Array<{ ejng_id: number; ejng_nombre: string }>
   >([]);
@@ -61,8 +61,7 @@ export default function NuevoClientePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoadingCentros(true);
-        setLoadingTiposIdentificacion(true);
+        setLoadingCatalogos(true);
 
         const [tiposData, centrosData, ejecutivosData, paisesData] =
           await Promise.all([
@@ -92,8 +91,7 @@ export default function NuevoClientePage() {
             "Error cargando datos de configuración del formulario",
         );
       } finally {
-        setLoadingCentros(false);
-        setLoadingTiposIdentificacion(false);
+        setLoadingCatalogos(false);
       }
     };
 
@@ -193,51 +191,17 @@ export default function NuevoClientePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Volver
-          </button>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-5xl mx-auto">
+        <PageHeaderCard
+          icon={Building}
+          eyebrow="Parametrización"
+          title="Nuevo cliente"
+          subtitle="Crea un nuevo cliente en el sistema"
+          onBack={() => router.back()}
+        />
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Nuevo Cliente
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Crea un nuevo cliente en el sistema
-              </p>
-            </div>
-
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <Building className="w-8 h-8 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Form Container */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Form Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-            <div className="flex items-center text-white">
-              <UserPlus className="w-6 h-6 mr-3" />
-              <div>
-                <h2 className="text-xl font-semibold">
-                  Información del Cliente
-                </h2>
-                <p className="text-blue-100 text-sm mt-1">
-                  Complete todos los campos requeridos
-                </p>
-              </div>
-            </div>
-          </div>
-
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
           <SuccessModal
             isOpen={success}
             title="¡Cliente creado exitosamente!"
@@ -263,7 +227,7 @@ export default function NuevoClientePage() {
           />
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8">
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8">
             <div className="space-y-6">
               {/* Razón Social */}
               <div>
@@ -278,7 +242,7 @@ export default function NuevoClientePage() {
                   value={razonSocial}
                   onChange={(e) => setRazonSocial(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                   placeholder="Ej: Empresa S.A."
                   disabled={loading || success}
                 />
@@ -299,8 +263,8 @@ export default function NuevoClientePage() {
                     value={tipoIdentificacion}
                     onChange={(e) => setTipoIdentificacion(Number(e.target.value))}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    disabled={loading || success || loadingTiposIdentificacion}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    disabled={loading || success || loadingCatalogos}
                   >
                     <option value="">Selecciona tipo</option>
                     {tiposIdentificacion.map((tipo) => (
@@ -324,7 +288,7 @@ export default function NuevoClientePage() {
                     value={nit}
                     onChange={(e) => setNit(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     placeholder="Ej: 123456789-0"
                     disabled={loading || success}
                   />
@@ -343,7 +307,7 @@ export default function NuevoClientePage() {
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     placeholder="Ej: 3001234567"
                     disabled={loading || success}
                   />
@@ -361,7 +325,7 @@ export default function NuevoClientePage() {
                     value={correo}
                     onChange={(e) => setCorreo(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     placeholder="correo@empresa.com"
                     disabled={loading || success}
                   />
@@ -381,30 +345,59 @@ export default function NuevoClientePage() {
                   onChange={(e) => setDireccion(e.target.value)}
                   required
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition resize-none"
                   placeholder="Dirección completa de la empresa"
                   disabled={loading || success}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ejecutivo asignado *
-                </label>
-                <select
-                  value={ejecutivoId}
-                  onChange={(e) => setEjecutivoId(Number(e.target.value))}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  disabled={loading || success}
-                >
-                  <option value={0}>Selecciona un ejecutivo</option>
-                  {ejecutivos.map((ej) => (
-                    <option key={ej.ejng_id} value={ej.ejng_id}>
-                      {ej.ejng_nombre}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ejecutivo asignado *
+                  </label>
+                  <select
+                    value={ejecutivoId}
+                    onChange={(e) => setEjecutivoId(Number(e.target.value))}
+                    required
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    disabled={loading || success}
+                  >
+                    <option value={0}>Selecciona un ejecutivo</option>
+                    {ejecutivos.map((ej) => (
+                      <option key={ej.ejng_id} value={ej.ejng_id}>
+                        {ej.ejng_nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Habilitar Acceso */}
+                <div className="p-4 bg-gray-50 rounded-lg border border-slate-200">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="habilita_acceso"
+                      checked={habilita_acceso}
+                      onChange={(e) => setHabilitaAcceso(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      disabled={loading || success}
+                    />
+                    <label
+                      htmlFor="habilita_acceso"
+                      className="ml-3 flex items-center"
+                    >
+                      <Shield className="w-4 h-4 text-gray-600 mr-2" />
+                      <span className="text-sm font-medium text-gray-700">
+                        Habilitar acceso al portal cliente
+                      </span>
+                    </label>
+                  </div>
+                  <p className="mt-2 ml-7 text-sm text-gray-500">
+                    Al habilitar esta opción, el cliente podrá acceder al
+                    sistema con credenciales específicas
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -416,7 +409,7 @@ export default function NuevoClientePage() {
                     value={paisId}
                     onChange={(e) => setPaisId(Number(e.target.value))}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     disabled={loading || success}
                   >
                     <option value={0}>Selecciona un país</option>
@@ -436,7 +429,7 @@ export default function NuevoClientePage() {
                     value={departamentoId}
                     onChange={(e) => setDepartamentoId(Number(e.target.value))}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:bg-gray-100"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition disabled:bg-gray-100"
                     disabled={loading || success || !paisId}
                   >
                     <option value={0}>Selecciona un departamento</option>
@@ -456,7 +449,7 @@ export default function NuevoClientePage() {
                     value={ciudadId}
                     onChange={(e) => setCiudadId(Number(e.target.value))}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:bg-gray-100"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition disabled:bg-gray-100"
                     disabled={loading || success || !departamentoId}
                   >
                     <option value={0}>Selecciona una ciudad</option>
@@ -473,8 +466,8 @@ export default function NuevoClientePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Centros de Operación
                 </label>
-                <div className="border border-gray-300 rounded-xl p-4 bg-gray-50 max-h-56 overflow-y-auto space-y-2">
-                  {loadingCentros ? (
+                <div className="border border-slate-300 rounded-lg p-4 bg-gray-50 max-h-56 overflow-y-auto space-y-2">
+                  {loadingCatalogos ? (
                     <p className="text-sm text-gray-500">Cargando centros...</p>
                   ) : centros.length === 0 ? (
                     <p className="text-sm text-gray-500">
@@ -502,33 +495,6 @@ export default function NuevoClientePage() {
                   Puedes asociar el cliente a uno o varios centros.
                 </p>
               </div>
-
-              {/* Habilitar Acceso */}
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="habilita_acceso"
-                    checked={habilita_acceso}
-                    onChange={(e) => setHabilitaAcceso(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    disabled={loading || success}
-                  />
-                  <label
-                    htmlFor="habilita_acceso"
-                    className="ml-3 flex items-center"
-                  >
-                    <Shield className="w-4 h-4 text-gray-600 mr-2" />
-                    <span className="text-sm font-medium text-gray-700">
-                      Habilitar acceso al portal cliente
-                    </span>
-                  </label>
-                </div>
-                <p className="mt-2 ml-7 text-sm text-gray-500">
-                  Al habilitar esta opción, el cliente podrá acceder al sistema
-                  con credenciales específicas
-                </p>
-              </div>
             </div>
 
             {/* Form Actions */}
@@ -536,7 +502,7 @@ export default function NuevoClientePage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
+                className="px-6 py-3 border border-slate-300 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition font-medium"
                 disabled={loading || success}
               >
                 Cancelar
@@ -544,7 +510,7 @@ export default function NuevoClientePage() {
               <button
                 type="submit"
                 disabled={loading || success}
-                className="flex items-center justify-center px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center px-8 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-[0_6px_16px_rgba(0,61,153,0.22)] transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -568,11 +534,11 @@ export default function NuevoClientePage() {
         </div>
 
         {/* Information Card */}
-        <div className="mt-6 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-6">
+        <div className="mt-4 bg-white border border-gray-200 rounded-2xl p-6">
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-[#eef3ff] rounded-lg">
+                <Building className="w-5 h-5 text-brand-600" />
               </div>
             </div>
             <div className="ml-4">
@@ -581,20 +547,20 @@ export default function NuevoClientePage() {
               </h3>
               <ul className="mt-2 space-y-1 text-sm text-gray-600">
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-brand-600 mr-2">•</span>
                   Los campos marcados con * son obligatorios
                 </li>
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-brand-600 mr-2">•</span>
                   El NIT debe ser único para cada cliente
                 </li>
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-brand-600 mr-2">•</span>
                   Puede habilitar el acceso al portal después de crear el
                   cliente
                 </li>
                 <li className="flex items-start">
-                  <span className="text-blue-500 mr-2">•</span>
+                  <span className="text-brand-600 mr-2">•</span>
                   El tipo de identificación se carga dinámicamente desde
                   parametrización
                 </li>

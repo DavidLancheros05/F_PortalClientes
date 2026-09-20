@@ -7,9 +7,9 @@ interface FilterFieldProps {
 }
 
 // Envuelve un input/select de una fila de filtros con su label. Reserva
-// siempre la misma altura de label (2 líneas de texto) sin importar si el
-// texto ocupa 1 o 2 líneas, para que todos los campos de la fila (incluida
-// FilterActions) arranquen exactamente en la misma Y — ver
+// siempre la misma altura mínima de label (una línea de texto) sin importar
+// si el label de al lado es más corto, para que todos los campos de la fila
+// (incluida FilterActions) arranquen exactamente en la misma Y — ver
 // documentacion/Portal Clientes/parte visual/parte visual.md.
 //
 // Usa forwardRef porque algunos campos (autocompletar de cliente/ejecutivo)
@@ -19,7 +19,7 @@ export const FilterField = forwardRef<HTMLDivElement, FilterFieldProps>(
   function FilterField({ label, className, children }, ref) {
     return (
       <div ref={ref} className={className}>
-        <label className="flex items-end min-h-[2rem] mb-2 text-xs font-semibold text-gray-600">
+        <label className="flex items-end min-h-5 mb-1.5 text-xs font-semibold text-gray-600">
           {label}
         </label>
         {children}

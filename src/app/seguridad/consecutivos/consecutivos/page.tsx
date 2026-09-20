@@ -5,6 +5,8 @@ import { consecutivosService } from "@/services/consecutivos.service";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { Plus, Edit2, Trash2, Hash } from "lucide-react";
 
 export default function ConsecutivosPage() {
@@ -163,23 +165,27 @@ export default function ConsecutivosPage() {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">ID</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Tipo</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Centro Op.</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Nº Actual</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Estado</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Actualización</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700">Acciones</th>
+                  <Th>ID</Th>
+                  <Th>Tipo</Th>
+                  <Th>Centro Op.</Th>
+                  <Th>Nº Actual</Th>
+                  <Th>Estado</Th>
+                  <Th>Actualización</Th>
+                  <Th sticky align="right">
+                    Acciones
+                  </Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {consecutivos.map((c) => (
-                  <tr key={c.cons_id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{c.cons_id}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{c.cons_ptc_id}</td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{c.cons_cop_id || "—"}</td>
-                    <td className="px-6 py-4 text-sm font-mono font-bold text-brand-600">{c.cons_numero_actual}</td>
-                    <td className="px-6 py-4 text-sm">
+                  <Tr key={c.cons_id}>
+                    <Td className="font-medium text-slate-900">{c.cons_id}</Td>
+                    <Td>{c.cons_ptc_id}</Td>
+                    <Td>{c.cons_cop_id || "—"}</Td>
+                    <Td className="font-mono font-bold text-brand-600">
+                      {c.cons_numero_actual}
+                    </Td>
+                    <Td>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold inline-block ${
                           c.cons_estado === "A"
@@ -189,27 +195,27 @@ export default function ConsecutivosPage() {
                       >
                         {c.cons_estado === "A" ? "Activo" : "Inactivo"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(c.cons_fecha_usr).toLocaleDateString("es-ES")}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleEdit(c.cons_id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(c.cons_id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
+                    </Td>
+                    <Td>{new Date(c.cons_fecha_usr).toLocaleDateString("es-ES")}</Td>
+                    <Td sticky align="right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(c.cons_id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded hover:bg-amber-200 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(c.cons_id)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </Td>
+                  </Tr>
                 ))}
               </tbody>
             </table>

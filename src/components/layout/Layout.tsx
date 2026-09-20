@@ -4,14 +4,17 @@ import { useEffect, useState, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
 import type { Modulo } from "@/components/layout/Header";
 import { AuthContext } from "@/context/AuthContext";
+import { useMenuPosition } from "@/hooks/useMenuPosition";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useContext(AuthContext);
   const pathname = usePathname();
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [loadingModulos, setLoadingModulos] = useState(false);
+  const [menuPosition] = useMenuPosition();
 
   const readCachedModulos = (): Modulo[] => {
     try {
@@ -82,18 +85,40 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const rol = user
+    ? typeof user.rol === "string"
+      ? user.rol
+      : (user.rol?.nombre ?? "")
+    : "Usuario";
+
+  if (menuPosition === "left") {
+    return (
+      <div className="min-h-screen bg-gray-100 flex">
+        <Sidebar
+          modulos={modulos}
+          rol={rol}
+          nombreUsuario={user?.nombre || user?.email || "Usuario"}
+        />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <Header
+            modulos={modulos}
+            rol={rol}
+            nombreUsuario={user?.nombre || user?.email || "Usuario"}
+            layout="left"
+          />
+          <main className={isInicioPage ? "flex-1" : "flex-1 p-0"}>{children}</main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
         modulos={modulos}
-        rol={
-          user
-            ? typeof user.rol === "string"
-              ? user.rol
-              : (user.rol?.nombre ?? "")
-            : "Usuario"
-        }
+        rol={rol}
         nombreUsuario={user?.nombre || user?.email || "Usuario"}
+        layout="top"
       />
       <main className={isInicioPage ? "" : "p-0"}>{children}</main>
     </div>

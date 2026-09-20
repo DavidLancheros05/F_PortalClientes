@@ -6,7 +6,6 @@ import {
   useImperativeHandle,
   useRef,
 } from "react";
-import { REGEX_VARIABLE_PLANTILLA } from "@/lib/plantilla-variables.util";
 
 export interface PlantillaEditorHandle {
   /** Inserta el placeholder de una variable como chip en la posición del cursor. */
@@ -26,6 +25,10 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   etiquetaDeVariable: (placeholder: string) => string;
+  /** Regex que reconoce placeholders de variable dentro del texto — armada
+   * con `buildRegexVariablePlantilla` a partir del catálogo cargado desde
+   * `param_variables_plantilla` (ver DocumentosForm.tsx). */
+  regex: RegExp;
   placeholder?: string;
 }
 
@@ -52,10 +55,11 @@ function htmlChip(placeholder: string, etiqueta: string): string {
 function contenidoConChipsAHtml(
   contenido: string,
   etiquetaDeVariable: (p: string) => string,
+  regexVariable: RegExp,
 ): string {
   let html = "";
   let cursor = 0;
-  const regex = new RegExp(REGEX_VARIABLE_PLANTILLA);
+  const regex = new RegExp(regexVariable);
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(contenido))) {
@@ -119,10 +123,14 @@ function segmentarEstilos(texto: string): TramoEstilo[] {
 // Texto plano guardado -> HTML del editor: negrita/tamaño se dibujan como
 // elementos reales (<strong>/<span style>), no como marcadores literales —
 // así se ven en el editor tal cual se van a ver en el PDF descargado.
-function textoAHtml(texto: string, etiquetaDeVariable: (p: string) => string): string {
+function textoAHtml(
+  texto: string,
+  etiquetaDeVariable: (p: string) => string,
+  regexVariable: RegExp,
+): string {
   return segmentarEstilos(texto)
     .map((tramo) => {
-      let html = contenidoConChipsAHtml(tramo.contenido, etiquetaDeVariable);
+      let html = contenidoConChipsAHtml(tramo.contenido, etiquetaDeVariable, regexVariable);
       if (tramo.bold) html = `<strong>${html}</strong>`;
       if (tramo.size != null) html = `<span style="font-size:${tramo.size}px">${html}</span>`;
       return html;
@@ -219,7 +227,7 @@ function domATexto(el: HTMLElement): string {
 }
 
 const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function PlantillaEditor(
-  { value, onChange, etiquetaDeVariable, placeholder },
+  { value, onChange, etiquetaDeVariable, regex, placeholder },
   ref,
 ) {
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -243,6 +251,12 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
   // los chips" más abajo).
   const etiquetaDeVariableRef = useRef(etiquetaDeVariable);
   etiquetaDeVariableRef.current = etiquetaDeVariable;
+  // Mismo criterio que etiquetaDeVariableRef arriba: la regex depende del
+  // catálogo de variables cargado desde el backend (async), así que puede
+  // cambiar de identidad después del primer render sin que eso deba forzar
+  // una reconstrucción total del DOM.
+  const regexRef = useRef(regex);
+  regexRef.current = regex;
 
   useEffect(() => {
     const guardarRangoSiEsDelEditor = () => {
@@ -274,7 +288,11 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
       return;
     }
     if (editorRef.current) {
-      editorRef.current.innerHTML = textoAHtml(value, etiquetaDeVariableRef.current);
+      editorRef.current.innerHTML = textoAHtml(
+        value,
+        etiquetaDeVariableRef.current,
+        regexRef.current,
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
@@ -516,17 +534,42 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
       if (!el) return;
       const rango = obtenerRangoParaOperar();
       posicionarCursorEn(rango);
-      alternarEstiloEnSeleccion(
-        rango,
-        el,
-        (elNodo) => parseInt(elNodo.style?.fontSize || "", 10) === size,
-        () => {
-          const span = document.createElement("span");
-          span.style.fontSize = `${size}px`;
-          return span;
-        },
-        "texto",
-      );
+
+      const esCualquierTamaño = (elNodo: HTMLElement) => !!elNodo.style?.fontSize;
+      const nodosTexto = nodosDeTextoEnRango(rango);
+      const todosYaEnEseTamaño =
+        nodosTexto.length > 0 &&
+        nodosTexto.every((n) => {
+          const ancestro = ancestroDeEstilo(n, el, esCualquierTamaño);
+          return ancestro != null && parseInt(ancestro.style.fontSize, 10) === size;
+        });
+
+      // Quita cualquier tamaño YA aplicado en la selección (sea cual sea su
+      // valor, no solo el que coincida con `size`) antes de envolver de
+      // nuevo — si no, el <span> de tamaño viejo queda anidado DENTRO del
+      // nuevo, y tamañoActivo()/domATexto (arriba) toman el ancestro más
+      // cercano al texto, que sigue siendo el viejo: el usuario sube el
+      // tamaño, el marcador se guarda, pero el que manda al renderizar
+      // sigue siendo el anterior — se veía como si el botón no hiciera nada.
+      const wrappers = new Set<HTMLElement>();
+      nodosTexto.forEach((n) => {
+        const ancestro = ancestroDeEstilo(n, el, esCualquierTamaño);
+        if (ancestro) wrappers.add(ancestro);
+      });
+      wrappers.forEach(desenvolverElemento);
+
+      if (!todosYaEnEseTamaño) {
+        envolverEnElemento(
+          rango,
+          () => {
+            const span = document.createElement("span");
+            span.style.fontSize = `${size}px`;
+            return span;
+          },
+          "texto",
+        );
+      }
+
       emitirCambio();
     },
 

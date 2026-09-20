@@ -8,8 +8,11 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
+import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import {
   remisionesService,
@@ -160,6 +163,18 @@ export default function RemisionesPage() {
     filtroFechaHasta,
   ]);
 
+  const numeroSugerencias = useMemo(
+    () => remisiones.map((r) => r.numeroDocumento ?? ""),
+    [remisiones],
+  );
+  const descripcionSugerencias = useMemo(
+    () => [
+      ...remisiones.map((r) => r.descripcionItem ?? ""),
+      ...remisiones.map((r) => r.referencia ?? ""),
+    ],
+    [remisiones],
+  );
+
   const remisionesPaginadas = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return remisionesFiltradas.slice(start, start + pageSize);
@@ -256,15 +271,14 @@ export default function RemisionesPage() {
           onBack={() => router.push("/consultas")}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <FilterField label="Número de documento">
-              <input
-                type="text"
-                value={filtroNumeroInput}
-                onChange={(e) => setFiltroNumeroInput(e.target.value)}
-                placeholder="Ej: REM-00184532"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Número de documento"
+              placeholder="Ej: REM-00184532"
+              value={filtroNumeroInput}
+              onChange={setFiltroNumeroInput}
+              suggestions={numeroSugerencias}
+              onEnter={handleBuscar}
+            />
             <FilterField label="Estado">
               <select
                 value={filtroEstadoInput}
@@ -279,15 +293,14 @@ export default function RemisionesPage() {
                 ))}
               </select>
             </FilterField>
-            <FilterField label="Referencia o descripción">
-              <input
-                type="text"
-                value={filtroDescripcionInput}
-                onChange={(e) => setFiltroDescripcionInput(e.target.value)}
-                placeholder="Ej: CAJA CJ 3550"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </FilterField>
+            <SuggestField
+              label="Referencia o descripción"
+              placeholder="Ej: CAJA CJ 3550"
+              value={filtroDescripcionInput}
+              onChange={setFiltroDescripcionInput}
+              suggestions={descripcionSugerencias}
+              onEnter={handleBuscar}
+            />
             <FilterField label="Fecha desde">
               <input
                 type="date"
@@ -356,51 +369,50 @@ export default function RemisionesPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Documento</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Número</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Estado</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Pedido</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Factura</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Orden de compra</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ítem</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Referencia</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Descripción</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Lote</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Cantidad</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Peso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Volumen</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ciudad</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ciudad envío</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Punto de envío</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio unitario</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Precio por peso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Plan</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor bruto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor impuesto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Valor neto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Bodega</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vehículo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Conductor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Ident. conductor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Vendedor</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">CDV</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase whitespace-nowrap">Notas</th>
+                    <Th className="whitespace-nowrap">Documento</Th>
+                    <Th className="whitespace-nowrap">Número</Th>
+                    <Th className="whitespace-nowrap">Cliente</Th>
+                    <Th className="whitespace-nowrap">Estado</Th>
+                    <Th className="whitespace-nowrap">Fecha</Th>
+                    <Th className="whitespace-nowrap">Pedido</Th>
+                    <Th className="whitespace-nowrap">Factura</Th>
+                    <Th className="whitespace-nowrap">Orden de compra</Th>
+                    <Th className="whitespace-nowrap">Ítem</Th>
+                    <Th className="whitespace-nowrap">Referencia</Th>
+                    <Th className="whitespace-nowrap">Descripción</Th>
+                    <Th className="whitespace-nowrap">Lote</Th>
+                    <Th className="whitespace-nowrap">Cantidad</Th>
+                    <Th className="whitespace-nowrap">Peso</Th>
+                    <Th className="whitespace-nowrap">Volumen</Th>
+                    <Th className="whitespace-nowrap">Ciudad</Th>
+                    <Th className="whitespace-nowrap">Ciudad envío</Th>
+                    <Th className="whitespace-nowrap">Punto de envío</Th>
+                    <Th className="whitespace-nowrap">Precio unitario</Th>
+                    <Th className="whitespace-nowrap">Precio por peso</Th>
+                    <Th className="whitespace-nowrap">Plan</Th>
+                    <Th className="whitespace-nowrap">Valor bruto</Th>
+                    <Th className="whitespace-nowrap">Valor impuesto</Th>
+                    <Th className="whitespace-nowrap">Valor neto</Th>
+                    <Th className="whitespace-nowrap">Bodega</Th>
+                    <Th className="whitespace-nowrap">Vehículo</Th>
+                    <Th className="whitespace-nowrap">Conductor</Th>
+                    <Th className="whitespace-nowrap">Ident. conductor</Th>
+                    <Th className="whitespace-nowrap">Vendedor</Th>
+                    <Th className="whitespace-nowrap">CDV</Th>
+                    <Th className="whitespace-nowrap">Notas</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {remisionesPaginadas.map((remision, index) => (
-                    <tr
+                    <Tr
                       key={`${remision.numeroDocumento}-${remision.item}-${index}`}
-                      className="hover:bg-gray-50"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                      <Td className="whitespace-nowrap font-medium">
                         {remision.numeroDocumento}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.numero}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.clienteRazonSocial}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      </Td>
+                      <Td className="whitespace-nowrap">{remision.numero}</Td>
+                      <Td className="whitespace-nowrap">{remision.clienteRazonSocial}</Td>
+                      <Td className="whitespace-nowrap">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-semibold ${
                             remision.estado === "Contabilizada y facturada"
@@ -415,35 +427,35 @@ export default function RemisionesPage() {
                         >
                           {remision.estado}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatFecha(remision.fecha)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.pedidoDocumento || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.facturaDocumento || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.ordenCompra || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.item}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.referencia}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.descripcionItem}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.lote || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(remision.cantidad)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(remision.peso)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(remision.volumen)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.ciudad || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.ciudadEnvio || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.descripcionPuntoEnvio || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(remision.precioUnitario)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{formatNumero(remision.precioPeso)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.plan003 || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(remision.valorBruto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(remision.valorImpuesto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">${formatNumero(remision.valorNeto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.bodega}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.vehiculo || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.nombreConductor || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.identificacionConductor || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.vendedor}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.cdv || "-"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{remision.notas || remision.notasMovimiento || "-"}</td>
-                    </tr>
+                      </Td>
+                      <Td className="whitespace-nowrap">{formatFecha(remision.fecha)}</Td>
+                      <Td className="whitespace-nowrap">{remision.pedidoDocumento || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.facturaDocumento || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.ordenCompra || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.item}</Td>
+                      <Td className="whitespace-nowrap">{remision.referencia}</Td>
+                      <Td className="whitespace-nowrap">{remision.descripcionItem}</Td>
+                      <Td className="whitespace-nowrap">{remision.lote || "-"}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(remision.cantidad)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(remision.peso)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(remision.volumen)}</Td>
+                      <Td className="whitespace-nowrap">{remision.ciudad || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.ciudadEnvio || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.descripcionPuntoEnvio || "-"}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(remision.precioUnitario)}</Td>
+                      <Td className="whitespace-nowrap">{formatNumero(remision.precioPeso)}</Td>
+                      <Td className="whitespace-nowrap">{remision.plan003 || "-"}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(remision.valorBruto)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(remision.valorImpuesto)}</Td>
+                      <Td className="whitespace-nowrap">${formatNumero(remision.valorNeto)}</Td>
+                      <Td className="whitespace-nowrap">{remision.bodega}</Td>
+                      <Td className="whitespace-nowrap">{remision.vehiculo || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.nombreConductor || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.identificacionConductor || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.vendedor}</Td>
+                      <Td className="whitespace-nowrap">{remision.cdv || "-"}</Td>
+                      <Td className="whitespace-nowrap">{remision.notas || remision.notasMovimiento || "-"}</Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>

@@ -31,7 +31,7 @@ export function useAuth(requiredRoles?: number | number[]) {
     }
 
     // Validación de cliente habilitado
-    if (parsedUser.rol_id === 2 && !parsedUser.clientes?.[0]?.cli_acceso_portal_clientes) {
+    if (parsedUser.rol_id === 2 && !parsedUser.clientes?.[0]?.cli_acceso_pc) {
       router.push("/unauthorized");
       return;
     }

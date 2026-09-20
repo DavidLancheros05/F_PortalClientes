@@ -105,7 +105,7 @@ type ParteTexto = (
   | { tipo: "subtitulo"; texto: string }
   | { tipo: "parrafo"; texto: string }
   | { tipo: "lista"; lineas: string[] }
-  | { tipo: "vineta"; label: string; resto: string }
+  | { tipo: "vineta"; label: string; restoLineas: string[] }
 ) & {
   // Líneas en blanco de más que el autor de la plantilla dejó ANTES de
   // este bloque, además de la línea en blanco normal que ya separa
@@ -252,18 +252,22 @@ function clasificarBloquesTexto(contenidoOriginal: string): ParteTexto[] {
       partes.push({
         tipo: "vineta",
         label: "",
-        resto: (prefijo + resto.slice(2)).trim(),
+        restoLineas: [(prefijo + resto.slice(2)).trim()],
         espacioExtra,
         sangrado,
       });
       continue;
     }
     if (esBloqueVineta(lineas)) {
+      // Cada línea que el autor escribió después de la etiqueta se
+      // conserva como su propio renglón (ver dibujarVinetaPdf) en vez de
+      // unirse con espacios — un Enter en el editor siempre se ve como un
+      // salto de línea real en el PDF.
       const [primera, ...resto] = lineas;
       partes.push({
         tipo: "vineta",
         label: primera,
-        resto: resto.join(" "),
+        restoLineas: resto,
         espacioExtra,
         sangrado,
       });
@@ -544,13 +548,18 @@ function dibujarVinetaPdf(
   cursor: CursorPdf,
   estilo: EstiloCuerpoPdf,
   label: string,
-  resto: string,
+  restoLineas: string[],
 ) {
   const indent = INDENT_SANGRIA;
   const maxWidth = estilo.contentWidth - indent;
+
+  // Primer renglón físico: etiqueta en negrita + la primera línea de
+  // descripción, envueltos y justificados juntos como siempre (así se ve
+  // igual que antes cuando la descripción es una sola línea).
+  const [primeraLinea, ...siguientesLineas] = restoLineas;
   const palabras: PalabraPdf[] = [
     ...palabrasConEstilosPdf(label, true),
-    ...palabrasConEstilosPdf(resto, false),
+    ...palabrasConEstilosPdf(primeraLinea ?? "", false),
   ];
   const lineas = envolverPalabrasPdf(
     palabras,
@@ -559,6 +568,9 @@ function dibujarVinetaPdf(
     estilo.fontRegular,
     estilo.fontBold,
   );
+  // Sin más líneas de descripción, la última línea envuelta de este
+  // renglón también es la última del bloque (no se justifica).
+  const esUltimoRenglon = siguientesLineas.length === 0;
   lineas.forEach((lineaPalabras, idx) => {
     const alto = altoLineaPdf(lineaPalabras, estilo.fontSizeBody, estilo.lineHeightParrafo);
     estilo.checkSpace(cursor, alto);
@@ -581,10 +593,45 @@ function dibujarVinetaPdf(
       estilo.fontRegular,
       estilo.fontBold,
       estilo.color,
-      idx < lineas.length - 1,
+      idx < lineas.length - 1 || !esUltimoRenglon,
     );
     cursor.y -= alto;
   });
+
+  // Cada línea de descripción SIGUIENTE que el autor escribió después de
+  // la primera (con Enter, sin línea en blanco) se dibuja como su propio
+  // renglón, con el mismo indent — un salto de línea del editor siempre
+  // se ve como un salto de línea real, en vez de fusionarse en un solo
+  // párrafo justificado.
+  siguientesLineas.forEach((linea, i) => {
+    const palabrasLinea = palabrasConEstilosPdf(linea, false);
+    const subLineas = envolverPalabrasPdf(
+      palabrasLinea,
+      maxWidth,
+      estilo.fontSizeBody,
+      estilo.fontRegular,
+      estilo.fontBold,
+    );
+    const esUltimaLineaDelBloque = i === siguientesLineas.length - 1;
+    subLineas.forEach((subLinea, idx) => {
+      const alto = altoLineaPdf(subLinea, estilo.fontSizeBody, estilo.lineHeightParrafo);
+      estilo.checkSpace(cursor, alto);
+      dibujarLineaMixtaPdf(
+        cursor.page,
+        subLinea,
+        estilo.marginLeft + indent,
+        cursor.y,
+        maxWidth,
+        estilo.fontSizeBody,
+        estilo.fontRegular,
+        estilo.fontBold,
+        estilo.color,
+        idx < subLineas.length - 1 || !esUltimaLineaDelBloque,
+      );
+      cursor.y -= alto;
+    });
+  });
+
   cursor.y -= 10;
 }
 
@@ -610,7 +657,7 @@ function dibujarBloquesPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, partes: P
     if (parte.tipo === "subtitulo") dibujarSubtituloPdf(cursor, estiloEfectivo, parte.texto);
     else if (parte.tipo === "parrafo") dibujarParrafoPdf(cursor, estiloEfectivo, parte.texto);
     else if (parte.tipo === "lista") dibujarListaPdf(cursor, estiloEfectivo, parte.lineas);
-    else dibujarVinetaPdf(cursor, estilo, parte.label, parte.resto);
+    else dibujarVinetaPdf(cursor, estilo, parte.label, parte.restoLineas);
   }
 }
 
@@ -1154,17 +1201,20 @@ async function resolverPiePaginaDocumento(
   return { altura: 0, dibujar: () => {} };
 }
 
-// ===== Carta formal simple (encabezado + fecha + destinatario + asunto +
-// cuerpo) — usada por la Carta de Vinculación (botón "Ver Carta") y por
-// cualquier plantilla descargable sin código de FORMATO propio. =====
+// ===== Carta formal simple (encabezado + cuerpo) — usada por la Carta de
+// Vinculación (botón "Ver Carta") y por cualquier plantilla descargable sin
+// código de FORMATO propio. El cuerpo ("contenido") es genérico y 100%
+// autoría del admin en "Contenido de la plantilla" (Parametrización >
+// Documentos) — este generador ya no agrega fecha/destinatario/asunto por
+// su cuenta; si un documento necesita esas líneas, el admin las escribe él
+// mismo en el contenido, con variables como
+// {{cliente_nombre}}/{{numero_solicitud}} si hacen falta datos dinámicos. =====
 
 export interface GenerarCartaPdfOpciones {
-  /** Texto de la carta con los placeholders ya reemplazados por valores reales. */
+  /** Texto completo del documento, con los placeholders ya reemplazados por
+   * valores reales — es lo único que se dibuja como cuerpo, tal cual lo
+   * escribió el admin en "Contenido de la plantilla". */
   contenido: string;
-  /** Línea de "Asunto:" que aparece antes del cuerpo, y título mostrado en el encabezado. */
-  asunto: string;
-  /** Nombre de la persona/empresa destinataria (bloque "Señor(a) / Nombre / Ciudad"). */
-  destinatarioNombre: string;
   /** Nombre del archivo .pdf que se descarga/abre. */
   nombreArchivo: string;
   /** Razón social mostrada en el encabezado (por defecto CARTONERA NACIONAL S.A.). */
@@ -1193,12 +1243,15 @@ export interface GenerarCartaPdfOpciones {
   piePaginaTexto?: string | null;
   /** URL de la imagen de pie de página, cuando piePaginaTipo='IMAGEN'. */
   piePaginaImagenUrl?: string | null;
+  /** true = abrir el PDF en una pestaña nueva (vista previa) en vez de
+   * forzar la descarga — ver descargarPdfBlob más arriba sobre por qué el
+   * default sigue siendo descargar (nombre de archivo real vs. UUID del
+   * blob al guardar desde la pestaña). Default false. */
+  previsualizar?: boolean;
 }
 
 export async function generarCartaPdf({
   contenido,
-  asunto,
-  destinatarioNombre,
   nombreArchivo,
   membreteRazonSocial = "CARTONERA NACIONAL S.A.",
   formatoCodigo = "-",
@@ -1210,6 +1263,7 @@ export async function generarCartaPdf({
   piePaginaTipo = "NINGUNO",
   piePaginaTexto,
   piePaginaImagenUrl,
+  previsualizar = false,
 }: GenerarCartaPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
@@ -1266,82 +1320,6 @@ export async function generarCartaPdf({
     }
   };
 
-  // Fecha
-  const fechaCarta = new Date().toLocaleDateString("es-CO", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const fechaTexto = `Bogotá D.C., ${fechaCarta}`;
-  const fechaWidth = fontRegular.widthOfTextAtSize(fechaTexto, 11);
-  cursor.page.drawText(fechaTexto, {
-    x: marginLeft + contentWidth - fechaWidth,
-    y: cursor.y,
-    size: 11,
-    font: fontRegular,
-    color: negro,
-  });
-  cursor.y -= 26;
-
-  // Destinatario
-  cursor.page.drawText("Señor(a)", {
-    x: marginLeft,
-    y: cursor.y,
-    size: fontSizeBody,
-    font: fontRegular,
-    color: negro,
-  });
-  cursor.y -= 15;
-  cursor.page.drawText(destinatarioNombre || "-", {
-    x: marginLeft,
-    y: cursor.y,
-    size: fontSizeBody,
-    font: fontBold,
-    color: negro,
-  });
-  cursor.y -= 15;
-  cursor.page.drawText("Ciudad", {
-    x: marginLeft,
-    y: cursor.y,
-    size: fontSizeBody,
-    font: fontRegular,
-    color: negro,
-  });
-  cursor.y -= 24;
-
-  // Asunto (etiqueta en negrita + texto normal)
-  const palabrasAsunto: PalabraPdf[] = [
-    { texto: "Asunto:", bold: true },
-    ...asunto
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((t) => ({ texto: t, bold: false })),
-  ];
-  const lineasAsunto = envolverPalabrasPdf(
-    palabrasAsunto,
-    contentWidth,
-    fontSizeBody,
-    fontRegular,
-    fontBold,
-  );
-  lineasAsunto.forEach((linea) => {
-    checkSpace(cursor, 17);
-    dibujarLineaMixtaPdf(
-      cursor.page,
-      linea,
-      marginLeft,
-      cursor.y,
-      contentWidth,
-      fontSizeBody,
-      fontRegular,
-      fontBold,
-      negro,
-      false,
-    );
-    cursor.y -= 17;
-  });
-  cursor.y -= 10;
-
   // Cuerpo
   const estilo: EstiloCuerpoPdf = {
     marginLeft,
@@ -1366,7 +1344,12 @@ export async function generarCartaPdf({
     color: rgb(0.87, 0.87, 0.87),
   });
   cursor.y -= 14;
-  const footerTexto = `Documento generado electrónicamente el ${fechaCarta} · Sistema de Vinculación Comercial`;
+  const fechaGeneracion = new Date().toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const footerTexto = `Documento generado electrónicamente el ${fechaGeneracion} · Sistema de Vinculación Comercial`;
   const footerWidth = fontRegular.widthOfTextAtSize(footerTexto, 8.5);
   cursor.page.drawText(footerTexto, {
     x: marginLeft + (contentWidth - footerWidth) / 2,
@@ -1393,7 +1376,7 @@ export async function generarCartaPdf({
     fontRegular: helvetica,
     fontBold: helveticaBold,
     razonSocial: membreteRazonSocial,
-    tituloDocumento: asunto,
+    tituloDocumento: nombreArchivo,
     formatoCodigo,
     formatoCodigoSecundario,
     revision,
@@ -1407,7 +1390,11 @@ export async function generarCartaPdf({
 
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
-  descargarPdfBlob(blob, nombreArchivo);
+  if (previsualizar) {
+    window.open(URL.createObjectURL(blob), "_blank");
+  } else {
+    descargarPdfBlob(blob, nombreArchivo);
+  }
   return new File([blob], nombreArchivo, { type: "application/pdf" });
 }
 
@@ -1446,6 +1433,9 @@ export interface GenerarFormatoOficialPdfOpciones {
   piePaginaTexto?: string | null;
   /** URL de la imagen de pie de página, cuando piePaginaTipo='IMAGEN'. */
   piePaginaImagenUrl?: string | null;
+  /** true = abrir el PDF en una pestaña nueva (vista previa) en vez de
+   * forzar la descarga. Default false. */
+  previsualizar?: boolean;
 }
 
 export async function generarFormatoOficialPdf({
@@ -1462,6 +1452,7 @@ export async function generarFormatoOficialPdf({
   piePaginaTipo = "NINGUNO",
   piePaginaTexto,
   piePaginaImagenUrl,
+  previsualizar = false,
 }: GenerarFormatoOficialPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
@@ -1559,7 +1550,11 @@ export async function generarFormatoOficialPdf({
 
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
-  descargarPdfBlob(blob, nombreArchivo);
+  if (previsualizar) {
+    window.open(URL.createObjectURL(blob), "_blank");
+  } else {
+    descargarPdfBlob(blob, nombreArchivo);
+  }
   return new File([blob], nombreArchivo, { type: "application/pdf" });
 }
 
@@ -1606,12 +1601,15 @@ export interface GenerarPlantillaDocumentoOpciones {
   piePaginaImagenUrl?: string | null;
   /** Reemplazos adicionales aplicados junto a los fijos de arriba —
    * placeholder -> valor ya resuelto. Pensado para variables que no tienen
-   * sentido como "fijas" de cualquier plantilla (ej. las 5 variables de
+   * sentido como "fijas" de cualquier plantilla (ej. las 4 variables de
    * condiciones financieras de la Carta de Aprobación:
-   * {{cupo_aprobado}}/{{forma_pago}}/{{plazo}}/{{fecha_aprobacion}}/
-   * {{tasa_interes}}, ver VARIABLES_CARTA_VINCULACION en
-   * plantilla-variables.util.ts), sin hardcodearlas acá. */
+   * {{cupo_aprobado}}/{{forma_pago}}/{{plazo}}/{{fecha_aprobacion}}, ver
+   * VARIABLES_CARTA_VINCULACION en plantilla-variables.util.ts), sin
+   * hardcodearlas acá. */
   reemplazosExtra?: Record<string, string>;
+  /** true = abrir el PDF en una pestaña nueva (vista previa) en vez de
+   * forzar la descarga. Default false. */
+  previsualizar?: boolean;
 }
 
 export interface PreguntaRenderizadaParaPlantilla {
@@ -1694,6 +1692,7 @@ export async function generarPlantillaDocumentoPdf({
   piePaginaTexto,
   piePaginaImagenUrl,
   reemplazosExtra,
+  previsualizar,
 }: GenerarPlantillaDocumentoOpciones): Promise<File> {
   const reemplazos: Record<string, string> = {
     "{{cliente_nombre}}": clienteNombre || "",
@@ -1763,13 +1762,12 @@ export async function generarPlantillaDocumentoPdf({
       piePaginaTipo: piePaginaTipo || undefined,
       piePaginaTexto,
       piePaginaImagenUrl,
+      previsualizar,
     });
   }
 
   return generarCartaPdf({
     contenido,
-    asunto: tdoNombre,
-    destinatarioNombre: clienteNombre || "-",
     nombreArchivo,
     revisiones,
     encabezadoTipo: encabezadoTipo || undefined,
@@ -1777,5 +1775,6 @@ export async function generarPlantillaDocumentoPdf({
     piePaginaTipo: piePaginaTipo || undefined,
     piePaginaTexto,
     piePaginaImagenUrl,
+    previsualizar,
   });
 }

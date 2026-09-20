@@ -3,14 +3,11 @@ import api from "@/services/core/api";
 export interface Usuario {
   usr_id: number;
   nombre: string;
+  usuario_login?: string;
   usuario_email: string;
   usuario_activo: boolean;
   usuario_created_at: string;
   usuario_updated_at?: string;
-  rol?: {
-    rol_id: number;
-    rol_nombre: string;
-  };
 }
 
 export const usuariosService = {

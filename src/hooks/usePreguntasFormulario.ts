@@ -141,11 +141,11 @@ export function usePreguntasFormulario({
       .then(async ([data, paisesData, formularioData, documentosData, seccionesData]) => {
         const seccionesMap: Record<number, { seccion_nombre: string; seccion_descripcion: string | null; seccion_orden: number }> = {};
         (seccionesData as any[]).forEach((s) => {
-          if (s.seccion_id != null) {
-            seccionesMap[s.seccion_id] = {
-              seccion_nombre: s.seccion_nombre ?? `Sección ${s.seccion_id}`,
-              seccion_descripcion: s.seccion_descripcion ?? null,
-              seccion_orden: s.seccion_orden ?? 999,
+          if (s.fs_id != null) {
+            seccionesMap[s.fs_id] = {
+              seccion_nombre: s.fs_nombre ?? `Sección ${s.fs_id}`,
+              seccion_descripcion: s.fs_descripcion ?? null,
+              seccion_orden: s.fs_orden ?? 999,
             };
           }
         });

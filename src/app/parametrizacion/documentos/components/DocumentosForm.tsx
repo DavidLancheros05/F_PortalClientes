@@ -13,18 +13,21 @@ import {
   formularioPreguntasService,
   FormularioPregunta,
 } from "@/services/parametrizacion/formulario-preguntas.service";
-import { ConfirmModal } from "@/components/modals";
+import { ConfirmModal, LoadingModal, SuccessModal } from "@/components/modals";
 import PlantillaEditor, { PlantillaEditorHandle } from "./PlantillaEditor";
 import RevisionesTable from "./RevisionesTable";
 import { GenerarPlantillaModal } from "./GenerarPlantillaModal";
 import { SelectorEncabezadoTipo } from "./SelectorEncabezadoTipo";
 import { SelectorPiePaginaTipo } from "./SelectorPiePaginaTipo";
+import { SubidaImagenPdf } from "./SubidaImagenPdf";
 import {
-  VARIABLES_FIJAS,
-  VARIABLES_CARTA_VINCULACION,
-  REGEX_VARIABLE_PLANTILLA,
+  buildRegexVariablePlantilla,
   construirEtiquetaVariable,
 } from "@/lib/plantilla-variables.util";
+import {
+  variablesPlantillaService,
+  VariablePlantilla,
+} from "@/services/admin/parametrizacion/variables-plantilla.service";
 
 interface Props {
   editItem?: TipoDocumento;
@@ -113,6 +116,9 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   const [piePaginaImagenUrl, setPiePaginaImagenUrl] = useState<
     string | null
   >(editItem?.piePaginaImagenUrl ?? null);
+  const [imagenSubidaOk, setImagenSubidaOk] = useState<
+    "encabezado" | "pie_pagina" | null
+  >(null);
 
   const handleSubirEncabezadoImagen = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -129,6 +135,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       );
       setEncabezadoImagenUrl(actualizado.encabezadoImagenUrl);
       setValue("encabezadoTipo", "IMAGEN", { shouldDirty: true });
+      setImagenSubidaOk("encabezado");
     } catch (error) {
       console.error("Error subiendo imagen de encabezado:", error);
       setModalState({
@@ -156,6 +163,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       );
       setPiePaginaImagenUrl(actualizado.piePaginaImagenUrl);
       setValue("piePaginaTipo", "IMAGEN", { shouldDirty: true });
+      setImagenSubidaOk("pie_pagina");
     } catch (error) {
       console.error("Error subiendo imagen de pie de página:", error);
       setModalState({
@@ -223,6 +231,20 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         .finally(() => setCargandoPreguntas(false));
     }
   }, [tienePlantilla, tipoPlantilla]);
+
+  // Catálogo de variables ({{cliente_nombre}}, {{cupo_aprobado}}, etc.) —
+  // ver Parametrización > Variables de Plantilla. Se carga siempre (no solo
+  // cuando hay plantilla) porque se necesita para reconocer/mostrar el
+  // contenido guardado apenas se abre el formulario en modo editar.
+  const [variablesCatalogo, setVariablesCatalogo] = useState<VariablePlantilla[]>(
+    [],
+  );
+  useEffect(() => {
+    variablesPlantillaService
+      .getAll()
+      .then(setVariablesCatalogo)
+      .catch((err) => console.error("Error cargando catálogo de variables:", err));
+  }, []);
 
   const secciones = useMemo(() => {
     const vistas = new Map<string, number>();
@@ -307,17 +329,57 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     return mapa;
   }, [preguntasFormulario]);
 
+  // Para etiqueta/regex se usa TODO el catálogo (incluidas variables
+  // inactivas) — una plantilla guardada antes de inactivar/borrar una
+  // variable debe seguir mostrando su nombre legible, no el placeholder
+  // crudo. Filtrar por estado/resuelta solo aplica a los BOTONES de
+  // inserción (ver más abajo), no al reconocimiento de lo ya escrito.
+  const catalogoParaEtiquetas = useMemo(
+    () =>
+      variablesCatalogo.map((v) => ({
+        label: v.pvp_etiqueta,
+        placeholder: v.pvp_placeholder,
+      })),
+    [variablesCatalogo],
+  );
+
+  const regexVariable = useMemo(
+    () => buildRegexVariablePlantilla(catalogoParaEtiquetas),
+    [catalogoParaEtiquetas],
+  );
+
+  const variablesInsertablesFijas = useMemo(
+    () =>
+      variablesCatalogo.filter(
+        (v) => v.pvp_ambito === "FIJA" && v.pvp_estado && v.pvp_resuelta,
+      ),
+    [variablesCatalogo],
+  );
+
+  const variablesInsertablesCarta = useMemo(
+    () =>
+      variablesCatalogo.filter(
+        (v) => v.pvp_ambito === "CARTA_APROBACION" && v.pvp_estado && v.pvp_resuelta,
+      ),
+    [variablesCatalogo],
+  );
+
   const etiquetaDeVariable = useCallback(
     (placeholder: string) =>
-      construirEtiquetaVariable(placeholder, seccionPorId, etiquetaPorCodigo),
-    [seccionPorId, etiquetaPorCodigo],
+      construirEtiquetaVariable(
+        placeholder,
+        seccionPorId,
+        etiquetaPorCodigo,
+        catalogoParaEtiquetas,
+      ),
+    [seccionPorId, etiquetaPorCodigo, catalogoParaEtiquetas],
   );
 
   const variablesUsadas = useMemo(() => {
     const encontradas: { indice: number; etiqueta: string; placeholder: string }[] =
       [];
 
-    const regex = new RegExp(REGEX_VARIABLE_PLANTILLA);
+    const regex = new RegExp(regexVariable);
     let match: RegExpExecArray | null;
     while ((match = regex.exec(plantillaContenidoWatch))) {
       encontradas.push({
@@ -338,7 +400,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       }
     }
     return resultado;
-  }, [plantillaContenidoWatch, etiquetaDeVariable]);
+  }, [plantillaContenidoWatch, etiquetaDeVariable, regexVariable]);
 
   const handlePlantillaChange = (valor: string) => {
     setValue("plantillaContenido", valor, {
@@ -765,6 +827,28 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             </div>
           )}
 
+          {tienePlantilla && !esCartaAprobacion && tipoPlantilla === "PDF_SOLICITUD" && (
+            <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+              <p className="text-xs font-semibold text-slate-700">
+                Logo del documento
+              </p>
+              <p className="text-xs text-slate-500">
+                Logo que se dibuja en el encabezado de "formato oficial" (junto
+                al código de FORMATO, página y revisión) de todas las páginas
+                de este PDF. Sin uno propio, usa el logo por defecto de
+                Cartonera.
+              </p>
+              <SubidaImagenPdf
+                imagenUrl={encabezadoImagenUrl}
+                tipoDocumentoId={editItem?.tipoDocumentoId}
+                subiendo={subiendoEncabezado}
+                onSubir={handleSubirEncabezadoImagen}
+                altPreview="Logo actual"
+                etiqueta="logo"
+              />
+            </div>
+          )}
+
           {tienePlantilla && esCartaAprobacion && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
               <p className="text-xs font-semibold text-slate-700">
@@ -807,28 +891,6 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 tipoDocumentoId={editItem?.tipoDocumentoId}
                 subiendoEncabezado={subiendoEncabezado}
                 onSubirImagen={handleSubirEncabezadoImagen}
-              />
-            </div>
-          )}
-
-          {tienePlantilla && !esCartaAprobacion && tipoPlantilla === "TEXTO" && (
-            <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-700">
-                Tipo de pie de página
-              </p>
-              <p className="text-xs text-slate-500">
-                Qué se dibuja abajo de cada página del PDF que descarga el
-                cliente — independiente del encabezado y del texto de cierre
-                que ya se muestra una sola vez al final del documento.
-              </p>
-              <SelectorPiePaginaTipo
-                registerProps={register("piePaginaTipo")}
-                piePaginaTipo={piePaginaTipo || "NINGUNO"}
-                registerTextoProps={register("piePaginaTexto")}
-                piePaginaImagenUrl={piePaginaImagenUrl}
-                tipoDocumentoId={editItem?.tipoDocumentoId}
-                subiendoPiePagina={subiendoPiePagina}
-                onSubirImagen={handleSubirPiePaginaImagen}
               />
             </div>
           )}
@@ -900,6 +962,19 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             <RevisionesTable tipoDocumentoId={editItem?.tipoDocumentoId} />
           )}
 
+          {tienePlantilla && tipoPlantilla === "PDF_SOLICITUD" && editItem?.tipoDocumentoId && (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowGenerarPlantilla(true)}
+                title="Generar el PDF con los datos reales de un cliente y una solicitud ya existentes"
+                className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+              >
+                Generar de prueba
+              </button>
+            </div>
+          )}
+
           {tienePlantilla && tipoPlantilla !== "PDF_SOLICITUD" && (
             <div className="mt-3">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
@@ -907,7 +982,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                   Contenido de la plantilla
                 </label>
                 <div className="flex items-center gap-1.5">
-                  {!esCartaAprobacion && editItem?.tipoDocumentoId && (
+                  {editItem?.tipoDocumentoId && (
                     <button
                       type="button"
                       onClick={() => setShowGenerarPlantilla(true)}
@@ -960,6 +1035,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 value={plantillaContenidoWatch}
                 onChange={handlePlantillaChange}
                 etiquetaDeVariable={etiquetaDeVariable}
+                regex={regexVariable}
                 placeholder={
                   "Cordial Saludo:\n\n{{representante_legal_nombre}}, mayor de edad, identificado con cédula de ciudadanía {{representante_legal_cedula}}, en mi calidad de Representante Legal de la Sociedad {{cliente_nombre}}, con NIT {{cliente_nit}}, me permito manifestar que..."
                 }
@@ -991,17 +1067,45 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
                 {esCartaAprobacion && (
                   <div className="flex flex-wrap gap-1.5">
-                    {VARIABLES_CARTA_VINCULACION.map((v) => (
+                    {variablesInsertablesCarta.map((v) => (
                       <button
-                        key={v.placeholder}
+                        key={v.pvp_placeholder}
                         type="button"
-                        onClick={() => insertarVariable(v.placeholder)}
-                        title={v.placeholder}
+                        onClick={() => insertarVariable(v.pvp_placeholder)}
+                        title={v.pvp_placeholder}
                         className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100"
                       >
-                        {v.label}
+                        {v.pvp_etiqueta}
                       </button>
                     ))}
+                    {variablesInsertablesCarta.length === 0 && (
+                      <p className="text-[11px] text-slate-500">
+                        No hay variables activas para Carta de Vinculación.
+                        Administralas en Parametrización → Variables de
+                        Plantilla.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!esCartaAprobacion && variablesInsertablesFijas.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium text-slate-500">
+                      Datos fijos de la solicitud:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {variablesInsertablesFijas.map((v) => (
+                        <button
+                          key={v.pvp_placeholder}
+                          type="button"
+                          onClick={() => insertarVariable(v.pvp_placeholder)}
+                          title={v.pvp_placeholder}
+                          className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100"
+                        >
+                          {v.pvp_etiqueta}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -1120,7 +1224,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                           : `{{pregunta|${base}}}`,
                       );
                     }}
-                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     Insertar
                   </button>
@@ -1142,6 +1246,29 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               </div>
             </div>
           )}
+
+          {tienePlantilla && tipoPlantilla === "TEXTO" && (
+            <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+              <p className="text-xs font-semibold text-slate-700">
+                Tipo de pie de página
+              </p>
+              <p className="text-xs text-slate-500">
+                Qué se dibuja abajo de cada página del PDF generado —
+                independiente del encabezado y del texto de cierre que ya se
+                muestra una sola vez al final del documento. Si no lo
+                configurás, no se dibuja nada.
+              </p>
+              <SelectorPiePaginaTipo
+                registerProps={register("piePaginaTipo")}
+                piePaginaTipo={piePaginaTipo || "NINGUNO"}
+                registerTextoProps={register("piePaginaTexto")}
+                piePaginaImagenUrl={piePaginaImagenUrl}
+                tipoDocumentoId={editItem?.tipoDocumentoId}
+                subiendoPiePagina={subiendoPiePagina}
+                onSubirImagen={handleSubirPiePaginaImagen}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -1149,7 +1276,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {editItem ? "Actualizar" : "Guardar"}
         </button>
@@ -1165,6 +1292,26 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
           Cancelar
         </button>
       </div>
+
+      <LoadingModal
+        isOpen={subiendoEncabezado || subiendoPiePagina}
+        message={
+          subiendoEncabezado
+            ? "Subiendo imagen de encabezado..."
+            : "Subiendo imagen de pie de página..."
+        }
+      />
+      <SuccessModal
+        isOpen={imagenSubidaOk !== null}
+        title="Imagen subida"
+        message={
+          imagenSubidaOk === "encabezado"
+            ? "La imagen de encabezado quedó guardada."
+            : "La imagen de pie de página quedó guardada."
+        }
+        actionText="Aceptar"
+        onAction={() => setImagenSubidaOk(null)}
+      />
 
       <ConfirmModal
         isOpen={modalState.isOpen}
@@ -1197,6 +1344,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         isOpen={showGenerarPlantilla}
         onClose={() => setShowGenerarPlantilla(false)}
         tdoNombre={watch("nombre") || ""}
+        tipoPlantilla={tipoPlantilla}
         tdoPlantillaContenido={plantillaContenidoWatch}
         formatoCodigo={watch("formatoCodigo") || undefined}
         formatoCodigoSecundario={watch("formatoCodigoSecundario") || undefined}

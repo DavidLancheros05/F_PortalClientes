@@ -30,6 +30,15 @@ export interface AreaTimeline {
   vencida: boolean;
 }
 
+export interface SlaGeneral {
+  fecha_estimada: string | null;
+  fecha_real: string | null;
+  dias_meta: number | null;
+  dias_reales: number | null;
+  procesada: boolean;
+  vencida: boolean;
+}
+
 export interface SolicitudTimeline {
   sol_id: number;
   numero_solicitud: string;
@@ -38,6 +47,7 @@ export interface SolicitudTimeline {
   fecha_envio: string;
   centro_operacion: string;
   estado: string;
+  sla_general: SlaGeneral;
   areas: AreaTimeline[];
 }
 
@@ -52,6 +62,17 @@ export interface SolicitudDetalle {
   dias_estimados: number;
   diferencia: number;
   estado: "a_tiempo" | "vencida";
+}
+
+export interface SolicitudSlaListado {
+  sol_id: number;
+  numero_solicitud: string;
+  razon_social: string;
+  fecha_envio: string;
+  estado: string;
+  sla_general: SlaGeneral;
+  pct_cumplimiento: number;
+  en_riesgo: boolean;
 }
 
 export interface DashboardData {
@@ -83,6 +104,17 @@ export const indicadoresService = {
     const res = await api.get("/indicadores/solicitud", { params });
     if (res.data?.message) return null;
     return res.data;
+  },
+
+  getListadoSla: async (params?: {
+    numero?: string;
+    fecha_desde?: string;
+    fecha_hasta?: string;
+    estado?: string;
+    sla?: "vencida" | "en_riesgo" | "a_tiempo";
+  }): Promise<SolicitudSlaListado[]> => {
+    const res = await api.get("/indicadores/solicitudes", { params });
+    return Array.isArray(res.data) ? res.data : [];
   },
 
   getDetalleArea: async (params: {

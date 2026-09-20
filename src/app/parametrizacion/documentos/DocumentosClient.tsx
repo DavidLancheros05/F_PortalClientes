@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, RotateCcw, Search } from "lucide-react";
 import DocumentosTable from "./components/DocumentosTable";
@@ -9,7 +9,16 @@ import { TipoDocumento } from "@/services/admin/parametrizacion/documentos.types
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { SuggestField } from "@/components/filters/SuggestField";
+import { TablePagination } from "@/components/tables/TablePagination";
 import { FileStack } from "lucide-react";
+
+const FILTROS_STORAGE_KEY = "parametrizacion:documentos:filtros";
+// Marca de un solo uso: solo se restaura la búsqueda/página guardada si el
+// usuario vuelve de crear/editar un tipo de documento (que es quien la deja
+// puesta antes de navegar). Un reload de esta página o entrar desde
+// cualquier otro lugar del sitio no la encuentra, así que arranca limpia.
+const RETURN_MARKER_KEY = "parametrizacion:documentos:return-marker";
 
 export default function DocumentosClient() {
   const router = useRouter();
@@ -23,6 +32,9 @@ export default function DocumentosClient() {
   const [estadoFiltro, setEstadoFiltro] = useState<
     "todos" | "activos" | "inactivos"
   >("todos");
+
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -39,11 +51,74 @@ export default function DocumentosClient() {
 
   useEffect(() => {
     cargarDatos();
+
+    if (typeof window === "undefined") return;
+    try {
+      // Si no está la marca, esta carga no vino de "Editar"/"Nuevo" (fue un
+      // reload o una navegación desde otra página) — arranca limpia.
+      const hasReturnMarker = sessionStorage.getItem(RETURN_MARKER_KEY);
+      if (!hasReturnMarker) return;
+      sessionStorage.removeItem(RETURN_MARKER_KEY);
+
+      const raw = sessionStorage.getItem(FILTROS_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      setNombreFiltroInput(saved.nombreFiltroInput ?? "");
+      setEstadoFiltroInput(saved.estadoFiltroInput ?? "todos");
+      setNombreFiltro(saved.nombreFiltro ?? "");
+      setEstadoFiltro(saved.estadoFiltro ?? "todos");
+      setPaginaActual(saved.paginaActual ?? 1);
+      setPageSize(saved.pageSize ?? 10);
+    } catch {
+      // sessionStorage corrupto o no disponible: arranca limpio.
+    }
   }, []);
+
+  const skipNextPersistRef = useRef(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // La primera pasada (montaje) coincide con el efecto que restaura desde
+    // sessionStorage; si escribimos aquí, guardamos los valores por defecto
+    // (aún no actualizados) y pisamos lo que se acaba de restaurar.
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
+    sessionStorage.setItem(
+      FILTROS_STORAGE_KEY,
+      JSON.stringify({
+        nombreFiltroInput,
+        estadoFiltroInput,
+        nombreFiltro,
+        estadoFiltro,
+        paginaActual,
+        pageSize,
+      }),
+    );
+  }, [
+    nombreFiltroInput,
+    estadoFiltroInput,
+    nombreFiltro,
+    estadoFiltro,
+    paginaActual,
+    pageSize,
+  ]);
+
+  // Deja la marca de "un solo uso" antes de ir a crear/editar un tipo de
+  // documento, para que al volver el mount effect sepa que sí debe
+  // restaurar el filtro/página guardados (ver RETURN_MARKER_KEY).
+  const irA = (path: string) => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(RETURN_MARKER_KEY, "1");
+    }
+    router.push(path);
+  };
 
   const handleBuscar = () => {
     setNombreFiltro(nombreFiltroInput.trim().toLowerCase());
     setEstadoFiltro(estadoFiltroInput);
+    setPaginaActual(1);
   };
 
   const handleLimpiar = () => {
@@ -51,7 +126,20 @@ export default function DocumentosClient() {
     setEstadoFiltroInput("todos");
     setNombreFiltro("");
     setEstadoFiltro("todos");
+    setPaginaActual(1);
   };
+
+  const cambiarPageSize = (size: number) => {
+    setPageSize(size);
+    setPaginaActual(1);
+  };
+
+  // Pool crudo de sugerencias — combina ambas columnas que también
+  // consulta el filtro real (matchNombre).
+  const nombreFiltroSugerencias = useMemo(
+    () => items.flatMap((item) => [item.nombre ?? "", item.descripcion ?? ""]),
+    [items],
+  );
 
   const documentosFiltrados = useMemo(() => {
     return items.filter((item) => {
@@ -71,9 +159,9 @@ export default function DocumentosClient() {
     });
   }, [items, nombreFiltro, estadoFiltro]);
 
-  const total = items.length;
-  const activos = items.filter((item) => item.estado).length;
-  const inactivos = total - activos;
+  const indiceInicio = (paginaActual - 1) * pageSize;
+  const indiceFin = indiceInicio + pageSize;
+  const documentosPagina = documentosFiltrados.slice(indiceInicio, indiceFin);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
@@ -85,7 +173,7 @@ export default function DocumentosClient() {
           subtitle="Administra los tipos de documentos disponibles para el formulario de vinculación."
           actions={
             <button
-              onClick={() => router.push("/parametrizacion/documentos/nuevo")}
+              onClick={() => irA("/parametrizacion/documentos/nuevo")}
               className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff]"
             >
               <Plus className="h-4 w-4" />
@@ -94,17 +182,15 @@ export default function DocumentosClient() {
           }
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <FilterField label="Nombre del documento" className="lg:col-span-2">
-              <input
-                type="text"
-                value={nombreFiltroInput}
-                onChange={(event) =>
-                  setNombreFiltroInput(event.target.value)
-                }
-                placeholder="Buscar por nombre..."
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </FilterField>
+            <SuggestField
+              label="Nombre del documento"
+              className="lg:col-span-2"
+              placeholder="Buscar por nombre..."
+              value={nombreFiltroInput}
+              onChange={setNombreFiltroInput}
+              suggestions={nombreFiltroSugerencias}
+              onEnter={handleBuscar}
+            />
 
             <FilterField label="Estado">
               <select
@@ -156,31 +242,25 @@ export default function DocumentosClient() {
                 Cargando...
               </p>
             ) : (
-              <DocumentosTable
-                items={documentosFiltrados}
-                onEdit={(item) =>
-                  router.push(
-                    `/parametrizacion/documentos/${item.tipoDocumentoId}/editar`,
-                  )
-                }
-                onReload={cargarDatos}
-              />
+              <>
+                <DocumentosTable
+                  items={documentosPagina}
+                  onEdit={(item) =>
+                    irA(
+                      `/parametrizacion/documentos/${item.tipoDocumentoId}/editar`,
+                    )
+                  }
+                  onReload={cargarDatos}
+                />
+                <TablePagination
+                  page={paginaActual}
+                  pageSize={pageSize}
+                  totalItems={documentosFiltrados.length}
+                  onPageChange={setPaginaActual}
+                  onPageSizeChange={cambiarPageSize}
+                />
+              </>
             )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mt-6">
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs text-slate-500">Total</p>
-              <p className="text-xl font-bold text-slate-800">{total}</p>
-            </div>
-            <div className="bg-white/80 border border-emerald-100 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs text-slate-500">Activos</p>
-              <p className="text-xl font-bold text-emerald-600">{activos}</p>
-            </div>
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs text-slate-500">Inactivos</p>
-              <p className="text-xl font-bold text-red-500">{inactivos}</p>
-            </div>
           </div>
       </div>
     </div>

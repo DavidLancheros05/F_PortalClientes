@@ -4,6 +4,7 @@ export interface Usuario {
   usr_id: number;
   nombre: string;
   usuario_correo?: string;
+  usuario_login?: string;
 }
 
 export interface Rol {
@@ -21,14 +22,34 @@ export interface UsuarioRol {
   createdAt: string;
 }
 
+export interface Asignacion {
+  usuarioId: number;
+  usuarioNombre: string;
+  usuarioCorreo?: string;
+  usuarioLogin?: string;
+  rolId: number;
+  rolNombre: string;
+  rolCodigo: string;
+}
+
 export const usuarioRolesService = {
   getAllUsuarios: async (): Promise<Usuario[]> => {
     const res = await api.get(`/usuario-roles/usuarios`);
-    return res.data;
+    return res.data.map((u: any) => ({
+      usr_id: u.usr_id,
+      nombre: u.usr_nombre,
+      usuario_correo: u.usr_correo,
+      usuario_login: u.usr_usuario,
+    }));
   },
 
   getByUsuario: async (usuarioId: number): Promise<UsuarioRol[]> => {
     const res = await api.get(`/usuario-roles/${usuarioId}`);
+    return res.data;
+  },
+
+  getAllAsignaciones: async (): Promise<Asignacion[]> => {
+    const res = await api.get(`/usuario-roles/asignaciones`);
     return res.data;
   },
 

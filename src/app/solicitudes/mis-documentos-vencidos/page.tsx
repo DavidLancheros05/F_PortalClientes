@@ -3,6 +3,8 @@ import { solicitudesService } from "@/services/solicitudes.service";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 
 interface DocumentoVencidoRow {
   sa_id: number;
@@ -115,67 +117,39 @@ export default function MisDocumentosVencidosPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Solicitud
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Documento
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Cliente
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Centro
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Fecha carga
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Fecha vencimiento
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Días vencido
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Archivo
-                    </th>
+                    <Th>Solicitud</Th>
+                    <Th>Documento</Th>
+                    <Th>Cliente</Th>
+                    <Th>Centro</Th>
+                    <Th>Fecha carga</Th>
+                    <Th>Fecha vencimiento</Th>
+                    <Th>Días vencido</Th>
+                    <Th>Archivo</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {rows.map((row) => (
-                    <tr key={row.sa_id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {row.sol_numero_solicitud}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {row.documento_nombre || row.sa_nombre_original}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {row.cliente_nombre || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {row.centro_operacion_nombre || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {formatDate(row.fecha_carga)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {formatDate(row.sa_fecha_vencimiento)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
+                    <Tr key={row.sa_id}>
+                      <Td>{row.sol_numero_solicitud}</Td>
+                      <Td>{row.documento_nombre || row.sa_nombre_original}</Td>
+                      <Td>{row.cliente_nombre || "-"}</Td>
+                      <Td>{row.centro_operacion_nombre || "-"}</Td>
+                      <Td>{formatDate(row.fecha_carga)}</Td>
+                      <Td>{formatDate(row.sa_fecha_vencimiento)}</Td>
+                      <Td>
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
                           {row.dias_vencido ?? 0}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
+                      </Td>
+                      <Td>
                         <button
                           onClick={() => abrirArchivo(row.sa_id)}
                           className="text-blue-600 hover:text-blue-800 font-medium"
                         >
                           Ver archivo
                         </button>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))}
                 </tbody>
               </table>

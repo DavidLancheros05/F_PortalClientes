@@ -6,6 +6,8 @@ import { tiposVigenciaService } from "@/services/admin/parametrizacion/tipos-vig
 import { TipoVigencia } from "@/services/admin/parametrizacion/tipos-vigencia.types";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { CalendarClock } from "lucide-react";
 
 export default function TiposVigenciaPage() {
@@ -158,37 +160,26 @@ export default function TiposVigenciaPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-blue-100">
-                  <thead className="bg-gradient-to-r from-indigo-100 via-blue-100 to-cyan-100">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                        Código
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                        Nombre
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                        Descripción
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-bold text-indigo-950 uppercase tracking-wider border-b border-blue-200">
+                      <Th>Código</Th>
+                      <Th>Nombre</Th>
+                      <Th>Descripción</Th>
+                      <Th>Estado</Th>
+                      <Th sticky align="right">
                         Acciones
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {items.map((item) => (
-                      <tr
-                        key={item.tipoVigenciaId}
-                        className="hover:bg-gray-50"
-                      >
-                        <td className="px-6 py-4 text-sm text-gray-900 align-top">
+                      <Tr key={item.tipoVigenciaId}>
+                        <Td className="align-top">
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
                             {item.codigo}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 align-top">
+                        </Td>
+                        <Td className="align-top">
                           {editandoId === item.tipoVigenciaId ? (
                             <input
                               type="text"
@@ -201,8 +192,8 @@ export default function TiposVigenciaPage() {
                           ) : (
                             item.nombre
                           )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700 align-top max-w-[360px]">
+                        </Td>
+                        <Td className="align-top max-w-[360px]">
                           {editandoId === item.tipoVigenciaId ? (
                             <textarea
                               rows={2}
@@ -217,8 +208,8 @@ export default function TiposVigenciaPage() {
                               {item.descripcion || "-"}
                             </p>
                           )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 align-top">
+                        </Td>
+                        <Td className="align-top">
                           <span
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                               item.estado
@@ -228,8 +219,8 @@ export default function TiposVigenciaPage() {
                           >
                             {item.estado ? "Activo" : "Inactivo"}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right text-sm align-top">
+                        </Td>
+                        <Td sticky align="right" className="align-top">
                           {editandoId === item.tipoVigenciaId ? (
                             <div className="flex items-center justify-end gap-2">
                               <button
@@ -265,8 +256,8 @@ export default function TiposVigenciaPage() {
                               </button>
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     ))}
                   </tbody>
                 </table>

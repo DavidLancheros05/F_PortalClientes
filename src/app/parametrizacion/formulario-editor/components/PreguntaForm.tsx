@@ -208,6 +208,9 @@ export function PreguntaForm({
   );
   const seccionActualNombre =
     seccionActual?.fs_nombre || seccionActual?.seccion_nombre;
+  const preguntaEditando = editandoPregunta
+    ? preguntas.find((p) => p.fp_id === editandoPregunta)
+    : undefined;
   const tipoActualCatalogo = tiposPregunta.find(
     (t) => t.fti_codigo === formPregunta.tipo,
   );
@@ -284,6 +287,8 @@ export function PreguntaForm({
             setOpcionesNuevas={setOpcionesNuevas}
             tiposPregunta={tiposPregunta}
             editandoPregunta={editandoPregunta}
+            protegida={preguntaEditando?.fp_protegida}
+            protegidaMotivo={preguntaEditando?.fp_protegida_motivo}
           />
 
           <PreguntaFormSubtipos

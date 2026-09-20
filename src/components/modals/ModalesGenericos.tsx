@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertTriangle, AlertCircle, CheckCircle, XCircle, Loader2, Info } from "lucide-react";
+import { AlertTriangle, AlertCircle, CheckCircle, XCircle, Loader2, Info, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import type { LucideIcon } from "lucide-react";
 
 // Los modales deben cubrir todo el viewport con position: fixed, pero un
 // ancestro con backdrop-blur/filter/transform en el árbol de la página crea
@@ -11,8 +12,13 @@ import { createPortal } from "react-dom";
 // dónde se monte el modal. El check de `mounted` es necesario porque
 // document no existe durante el render en servidor.
 export function ModalPortal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Antes esto usaba useEffect para setear `mounted`, lo que forzaba un
+  // primer render invisible y un segundo render (tras el efecto) cada vez
+  // que un modal se abría — el modal tardaba un ciclo extra en aparecer,
+  // más notorio en páginas con varios componentes re-renderizando a la vez.
+  // El estado inicial perezoso resuelve `document` una sola vez en el
+  // primer render del cliente, sin esperar al efecto.
+  const [mounted] = useState(() => typeof document !== "undefined");
   if (!mounted) return null;
   return createPortal(children, document.body);
 }
@@ -307,6 +313,126 @@ export function InfoModal({
           >
             {actionText}
           </button>
+        </div>
+      </div>
+    </ModalPortal>
+  );
+}
+
+export interface DetalleCampo {
+  label: string;
+  value: React.ReactNode;
+  icon?: LucideIcon;
+  fullWidth?: boolean;
+}
+
+interface DetalleModalProps {
+  icon: LucideIcon;
+  titulo: string;
+  subtitulo?: string;
+  loading?: boolean;
+  error?: string | null;
+  campos: DetalleCampo[];
+  onClose: () => void;
+  onEdit?: () => void;
+  editText?: string;
+  closeText?: string;
+  editDisabled?: boolean;
+  maxWidthClassName?: string;
+}
+
+// Modal genérico de "detalle": header con ícono/título/subtítulo, grid de
+// campos de solo lectura y footer con Cerrar/Editar. Es puramente
+// presentacional — la carga de datos (loading/error/campos) la resuelve
+// quien lo usa, así sirve para el detalle de cualquier entidad.
+export function DetalleModal({
+  icon: Icon,
+  titulo,
+  subtitulo,
+  loading = false,
+  error = null,
+  campos,
+  onClose,
+  onEdit,
+  editText = "Editar",
+  closeText = "Cerrar",
+  editDisabled = false,
+  maxWidthClassName = "max-w-4xl",
+}: DetalleModalProps) {
+  return (
+    <ModalPortal>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div
+          className={`bg-white rounded-[22px] shadow-[0_20px_50px_rgba(15,23,42,0.15)] w-full ${maxWidthClassName} max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95`}
+        >
+          <div className="bg-brand-gradient rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4 flex-shrink-0">
+            <div className="w-[42px] h-[42px] rounded-xl bg-white/16 flex items-center justify-center flex-shrink-0">
+              <Icon size={20} className="text-white" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0 truncate">
+                {titulo}
+              </h2>
+              {subtitulo && (
+                <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
+                  {subtitulo}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors"
+            >
+              <X size={16} strokeWidth={2.3} />
+            </button>
+          </div>
+
+          <div className="p-7 overflow-y-auto flex-1">
+            {error ? (
+              <p className="text-red-600 text-center py-8">{error}</p>
+            ) : loading ? (
+              <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 gap-8">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className={i === 3 ? "md:col-span-2" : ""}>
+                    <div className="h-4 bg-gray-200 rounded w-32 mb-2" />
+                    <div className="h-11 bg-gray-100 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {campos.map((campo, i) => (
+                  <div key={i} className={campo.fullWidth ? "md:col-span-2" : ""}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      {campo.icon && <campo.icon className="w-4 h-4" />}
+                      {campo.label}
+                    </label>
+                    <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-900">
+                      {campo.value ?? "-"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 justify-end px-7 py-5 border-t border-[#eef1f6] flex-shrink-0">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+            >
+              {closeText}
+            </button>
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                disabled={loading || !!error || editDisabled}
+                className="px-5 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors disabled:opacity-50 shadow-[0_6px_16px_rgba(0,61,153,0.22)]"
+              >
+                {editText}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </ModalPortal>

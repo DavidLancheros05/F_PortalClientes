@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Paperclip, Download, Loader, File as FileIcon } from "lucide-react";
+import { Paperclip, Download, File as FileIcon } from "lucide-react";
+import { LoadingModal, SuccessModal } from "@/components/modals";
 
 interface Adjunto {
   pa_id: number;
@@ -35,6 +36,7 @@ export function PQRSAdjuntos({
   onSubirAdjunto,
 }: PQRSAdjuntosProps) {
   const [subiendo, setSubiendo] = useState(false);
+  const [subidoOk, setSubidoOk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -70,6 +72,7 @@ export function PQRSAdjuntos({
       setError(null);
       setSubiendo(true);
       await onSubirAdjunto(file);
+      setSubidoOk(true);
     } catch (err) {
       console.error("Error subiendo adjunto:", err);
       setError("No se pudo subir el archivo. Intenta de nuevo.");
@@ -134,9 +137,6 @@ export function PQRSAdjuntos({
               disabled={subiendo}
               className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
             />
-            {subiendo && (
-              <Loader className="h-5 w-5 text-blue-600 animate-spin shrink-0" />
-            )}
           </div>
           <p className="text-xs text-gray-500 mt-2">
             Tamaño máximo: 10 MB.
@@ -154,6 +154,15 @@ export function PQRSAdjuntos({
           </div>
         </div>
       )}
+
+      <LoadingModal isOpen={subiendo} message="Subiendo archivo..." />
+      <SuccessModal
+        isOpen={subidoOk}
+        title="Archivo adjuntado"
+        message="El archivo quedó adjunto a la PQRS."
+        actionText="Aceptar"
+        onAction={() => setSubidoOk(false)}
+      />
     </div>
   );
 }

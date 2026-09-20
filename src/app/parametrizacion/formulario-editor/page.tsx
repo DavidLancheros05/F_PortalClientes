@@ -13,7 +13,7 @@ import { PanelPreguntas } from "./components/PanelPreguntas";
 export default function FormularioEditorPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const formularioId = searchParams.get("formulario_id");
+  const formularioId = searchParams.get("frm_id");
   const version = searchParams.get("version");
   const readonly = searchParams.get("readonly") === "true";
 
@@ -169,22 +169,14 @@ export default function FormularioEditorPage() {
     cargarDatos,
   });
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const [columnaCatalogoAbierta, setColumnaCatalogoAbierta] = useState<
-    number | null
-  >(null);
+  const [columnaCatalogoAbierta, setColumnaCatalogoAbierta] = useState<number | null>(null);
 
-  const seccionActual = secciones.find(
-    (s) => (s.fs_id || s.seccion_id) === seccionSeleccionada,
-  );
-  const indiceSeccion = secciones.findIndex(
-    (s) => (s.fs_id || s.seccion_id) === seccionSeleccionada,
-  );
+  const seccionActual = secciones.find((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
+  const indiceSeccion = secciones.findIndex((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
   const editorUrlParams = new URLSearchParams();
-  if (formularioId) editorUrlParams.set("formulario_id", formularioId);
+  if (formularioId) editorUrlParams.set("frm_id", formularioId);
   if (version) editorUrlParams.set("version", version);
   const editorModeUrl = `/parametrizacion/formulario-editor${
     editorUrlParams.toString() ? `?${editorUrlParams.toString()}` : ""
@@ -196,151 +188,149 @@ export default function FormularioEditorPage() {
   return (
     <div className="w-full h-[calc(100vh-7rem)] p-2 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
       <div className="mx-auto max-w-400 h-full flex flex-col gap-2">
-      <FormularioHeader
-        formulario={formulario}
-        formularioId={formularioId}
-        router={router}
-        readonly={readonly}
-        versionConSolicitudes={versionConSolicitudes}
-        version={version}
-        formularioEdicionAbierto={formularioEdicionAbierto}
-        editorModeUrl={editorModeUrl}
-      />
-
-      <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
-        <PanelSecciones
-          secciones={secciones}
-          loading={loading}
-          seccionSeleccionada={seccionSeleccionada}
-          setSeccionSeleccionada={setSeccionSeleccionada}
-          preguntas={preguntas}
+        <FormularioHeader
+          formulario={formulario}
+          formularioId={formularioId}
+          router={router}
           readonly={readonly}
-          formularioEdicionAbierto={formularioEdicionAbierto}
-          editandoPregunta={editandoPregunta}
-          nuevaPregunta={nuevaPregunta}
-          sensors={sensors}
-          handleSeccionDragEnd={handleSeccionDragEnd}
-          nuevaSeccion={nuevaSeccion}
-          setNuevaSeccion={setNuevaSeccion}
-          editandoSeccion={editandoSeccion}
-          setEditandoSeccion={setEditandoSeccion}
-          formSeccion={formSeccion}
-          setFormSeccion={setFormSeccion}
-          guardarSeccion={guardarSeccion}
-          confirmarGuardarSeccion={confirmarGuardarSeccion}
-          guardandoSeccion={guardandoSeccion}
-          mostrarConfirmarGuardarSeccion={mostrarConfirmarGuardarSeccion}
-          setMostrarConfirmarGuardarSeccion={setMostrarConfirmarGuardarSeccion}
-          successMessageSeccion={successMessageSeccion}
-          setSuccessMessageSeccion={setSuccessMessageSeccion}
-          errorMessageSeccion={errorMessageSeccion}
-          setErrorMessageSeccion={setErrorMessageSeccion}
-          iniciarEdicionSeccion={iniciarEdicionSeccion}
-          eliminarSeccion={eliminarSeccion}
-          cambiarOrdenSeccion={cambiarOrdenSeccion}
-          seccionAEliminar={seccionAEliminar}
-          setSeccionAEliminar={setSeccionAEliminar}
-          confirmarEliminarSeccion={confirmarEliminarSeccion}
-        />
-
-        <PanelPreguntas
-          navegarSeccion={navegarSeccion}
-          indiceSeccion={indiceSeccion}
-          seccionActual={seccionActual}
-          FORM_PREGUNTA_DEFAULT={FORM_PREGUNTA_DEFAULT}
-          seccionSeleccionada={seccionSeleccionada}
-          readonly={readonly}
+          versionConSolicitudes={versionConSolicitudes}
           version={version}
-          secciones={secciones}
-          preguntas={preguntas}
-          loading={loading}
-          noEditable={noEditable}
           formularioEdicionAbierto={formularioEdicionAbierto}
-          editandoPregunta={editandoPregunta}
-          setEditandoPregunta={setEditandoPregunta}
-          nuevaPregunta={nuevaPregunta}
-          setNuevaPregunta={setNuevaPregunta}
-          formPregunta={formPregunta}
-          setFormPregunta={setFormPregunta}
-          opciones={opciones}
-          setOpciones={setOpciones}
-          nuevaOpcion={nuevaOpcion}
-          setNuevaOpcion={setNuevaOpcion}
-          loading_opciones={loading_opciones}
-          opcionesNuevas={opcionesNuevas}
-          setOpcionesNuevas={setOpcionesNuevas}
-          catalogoBases={catalogoBases}
-          loadingCatalogoBases={loadingCatalogoBases}
-          catalogoTablas={catalogoTablas}
-          loadingCatalogoTablas={loadingCatalogoTablas}
-          catalogoColumnas={catalogoColumnas}
-          loadingCatalogoColumnas={loadingCatalogoColumnas}
-          documentosCatalogo={documentosCatalogo}
-          opcionesPreguntaPadre={opcionesPreguntaPadre}
-          loadingOpcionesPreguntaPadre={loadingOpcionesPreguntaPadre}
-          loadingDocumentosCatalogo={loadingDocumentosCatalogo}
-          filtroBaseDatos={filtroBaseDatos}
-          setFiltroBaseDatos={setFiltroBaseDatos}
-          filtroTabla={filtroTabla}
-          setFiltroTabla={setFiltroTabla}
-          filtroColumna={filtroColumna}
-          setFiltroColumna={setFiltroColumna}
-          filtroLlave={filtroLlave}
-          setFiltroLlave={setFiltroLlave}
-          basesFiltradas={basesFiltradas}
-          tablasFiltradas={tablasFiltradas}
-          columnasFiltradas={columnasFiltradas}
-          llaveFiltrada={llaveFiltrada}
-          filtroPrecargaTabla={filtroPrecargaTabla}
-          setFiltroPrecargaTabla={setFiltroPrecargaTabla}
-          filtroPrecargaColumna={filtroPrecargaColumna}
-          setFiltroPrecargaColumna={setFiltroPrecargaColumna}
-          catalogoPrecargaTablas={catalogoPrecargaTablas}
-          catalogoPrecargaColumnas={catalogoPrecargaColumnas}
-          loadingCatalogoPrecargaTablas={loadingCatalogoPrecargaTablas}
-          loadingCatalogoPrecargaColumnas={loadingCatalogoPrecargaColumnas}
-          cargarBasesCatalogo={cargarBasesCatalogo}
-          cargarTablasCatalogo={cargarTablasCatalogo}
-          cargarColumnasCatalogo={cargarColumnasCatalogo}
-          guardarPregunta={guardarPregunta}
-          confirmarGuardarPregunta={confirmarGuardarPregunta}
-          guardandoPregunta={guardandoPregunta}
-          mostrarConfirmarGuardarPregunta={mostrarConfirmarGuardarPregunta}
-          setMostrarConfirmarGuardarPregunta={setMostrarConfirmarGuardarPregunta}
-          puedeGuardarPregunta={puedeGuardarPregunta}
-          iniciarEdicionPregunta={iniciarEdicionPregunta}
-          eliminarPregunta={eliminarPregunta}
-          confirmarEliminarPregunta={confirmarEliminarPregunta}
-          preguntaAEliminar={preguntaAEliminar}
-          setPreguntaAEliminar={setPreguntaAEliminar}
-          successMessage={successMessage}
-          setSuccessMessage={setSuccessMessage}
-          agregarOpcion={agregarOpcion}
-          eliminarOpcion={eliminarOpcion}
-          confirmarEliminarOpcion={confirmarEliminarOpcion}
-          opcionAEliminar={opcionAEliminar}
-          setOpcionAEliminar={setOpcionAEliminar}
-          opcionEditandoId={opcionEditandoId}
-          opcionEditandoValor={opcionEditandoValor}
-          setOpcionEditandoValor={setOpcionEditandoValor}
-          iniciarEdicionOpcion={iniciarEdicionOpcion}
-          cancelarEdicionOpcion={cancelarEdicionOpcion}
-          guardarEdicionOpcion={guardarEdicionOpcion}
-          obtenerPreguntasDependientesDeOpcion={
-            obtenerPreguntasDependientesDeOpcion
-          }
-          eliminarOpcionNueva={eliminarOpcionNueva}
-          cambiarOrdenPregunta={cambiarOrdenPregunta}
-          handlePreguntaDragEnd={handlePreguntaDragEnd}
-          tiposPregunta={tiposPregunta}
-          errorPregunta={errorPregunta}
-          setErrorPregunta={setErrorPregunta}
-          columnaCatalogoAbierta={columnaCatalogoAbierta}
-          setColumnaCatalogoAbierta={setColumnaCatalogoAbierta}
-          sensors={sensors}
-          preguntasDeSeccion={preguntasDeSeccion}
+          editorModeUrl={editorModeUrl}
         />
-      </div>
+
+        <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
+          <PanelSecciones
+            secciones={secciones}
+            loading={loading}
+            seccionSeleccionada={seccionSeleccionada}
+            setSeccionSeleccionada={setSeccionSeleccionada}
+            preguntas={preguntas}
+            readonly={readonly}
+            formularioEdicionAbierto={formularioEdicionAbierto}
+            editandoPregunta={editandoPregunta}
+            nuevaPregunta={nuevaPregunta}
+            sensors={sensors}
+            handleSeccionDragEnd={handleSeccionDragEnd}
+            nuevaSeccion={nuevaSeccion}
+            setNuevaSeccion={setNuevaSeccion}
+            editandoSeccion={editandoSeccion}
+            setEditandoSeccion={setEditandoSeccion}
+            formSeccion={formSeccion}
+            setFormSeccion={setFormSeccion}
+            guardarSeccion={guardarSeccion}
+            confirmarGuardarSeccion={confirmarGuardarSeccion}
+            guardandoSeccion={guardandoSeccion}
+            mostrarConfirmarGuardarSeccion={mostrarConfirmarGuardarSeccion}
+            setMostrarConfirmarGuardarSeccion={setMostrarConfirmarGuardarSeccion}
+            successMessageSeccion={successMessageSeccion}
+            setSuccessMessageSeccion={setSuccessMessageSeccion}
+            errorMessageSeccion={errorMessageSeccion}
+            setErrorMessageSeccion={setErrorMessageSeccion}
+            iniciarEdicionSeccion={iniciarEdicionSeccion}
+            eliminarSeccion={eliminarSeccion}
+            cambiarOrdenSeccion={cambiarOrdenSeccion}
+            seccionAEliminar={seccionAEliminar}
+            setSeccionAEliminar={setSeccionAEliminar}
+            confirmarEliminarSeccion={confirmarEliminarSeccion}
+          />
+
+          <PanelPreguntas
+            navegarSeccion={navegarSeccion}
+            indiceSeccion={indiceSeccion}
+            seccionActual={seccionActual}
+            FORM_PREGUNTA_DEFAULT={FORM_PREGUNTA_DEFAULT}
+            seccionSeleccionada={seccionSeleccionada}
+            readonly={readonly}
+            version={version}
+            secciones={secciones}
+            preguntas={preguntas}
+            loading={loading}
+            noEditable={noEditable}
+            formularioEdicionAbierto={formularioEdicionAbierto}
+            editandoPregunta={editandoPregunta}
+            setEditandoPregunta={setEditandoPregunta}
+            nuevaPregunta={nuevaPregunta}
+            setNuevaPregunta={setNuevaPregunta}
+            formPregunta={formPregunta}
+            setFormPregunta={setFormPregunta}
+            opciones={opciones}
+            setOpciones={setOpciones}
+            nuevaOpcion={nuevaOpcion}
+            setNuevaOpcion={setNuevaOpcion}
+            loading_opciones={loading_opciones}
+            opcionesNuevas={opcionesNuevas}
+            setOpcionesNuevas={setOpcionesNuevas}
+            catalogoBases={catalogoBases}
+            loadingCatalogoBases={loadingCatalogoBases}
+            catalogoTablas={catalogoTablas}
+            loadingCatalogoTablas={loadingCatalogoTablas}
+            catalogoColumnas={catalogoColumnas}
+            loadingCatalogoColumnas={loadingCatalogoColumnas}
+            documentosCatalogo={documentosCatalogo}
+            opcionesPreguntaPadre={opcionesPreguntaPadre}
+            loadingOpcionesPreguntaPadre={loadingOpcionesPreguntaPadre}
+            loadingDocumentosCatalogo={loadingDocumentosCatalogo}
+            filtroBaseDatos={filtroBaseDatos}
+            setFiltroBaseDatos={setFiltroBaseDatos}
+            filtroTabla={filtroTabla}
+            setFiltroTabla={setFiltroTabla}
+            filtroColumna={filtroColumna}
+            setFiltroColumna={setFiltroColumna}
+            filtroLlave={filtroLlave}
+            setFiltroLlave={setFiltroLlave}
+            basesFiltradas={basesFiltradas}
+            tablasFiltradas={tablasFiltradas}
+            columnasFiltradas={columnasFiltradas}
+            llaveFiltrada={llaveFiltrada}
+            filtroPrecargaTabla={filtroPrecargaTabla}
+            setFiltroPrecargaTabla={setFiltroPrecargaTabla}
+            filtroPrecargaColumna={filtroPrecargaColumna}
+            setFiltroPrecargaColumna={setFiltroPrecargaColumna}
+            catalogoPrecargaTablas={catalogoPrecargaTablas}
+            catalogoPrecargaColumnas={catalogoPrecargaColumnas}
+            loadingCatalogoPrecargaTablas={loadingCatalogoPrecargaTablas}
+            loadingCatalogoPrecargaColumnas={loadingCatalogoPrecargaColumnas}
+            cargarBasesCatalogo={cargarBasesCatalogo}
+            cargarTablasCatalogo={cargarTablasCatalogo}
+            cargarColumnasCatalogo={cargarColumnasCatalogo}
+            guardarPregunta={guardarPregunta}
+            confirmarGuardarPregunta={confirmarGuardarPregunta}
+            guardandoPregunta={guardandoPregunta}
+            mostrarConfirmarGuardarPregunta={mostrarConfirmarGuardarPregunta}
+            setMostrarConfirmarGuardarPregunta={setMostrarConfirmarGuardarPregunta}
+            puedeGuardarPregunta={puedeGuardarPregunta}
+            iniciarEdicionPregunta={iniciarEdicionPregunta}
+            eliminarPregunta={eliminarPregunta}
+            confirmarEliminarPregunta={confirmarEliminarPregunta}
+            preguntaAEliminar={preguntaAEliminar}
+            setPreguntaAEliminar={setPreguntaAEliminar}
+            successMessage={successMessage}
+            setSuccessMessage={setSuccessMessage}
+            agregarOpcion={agregarOpcion}
+            eliminarOpcion={eliminarOpcion}
+            confirmarEliminarOpcion={confirmarEliminarOpcion}
+            opcionAEliminar={opcionAEliminar}
+            setOpcionAEliminar={setOpcionAEliminar}
+            opcionEditandoId={opcionEditandoId}
+            opcionEditandoValor={opcionEditandoValor}
+            setOpcionEditandoValor={setOpcionEditandoValor}
+            iniciarEdicionOpcion={iniciarEdicionOpcion}
+            cancelarEdicionOpcion={cancelarEdicionOpcion}
+            guardarEdicionOpcion={guardarEdicionOpcion}
+            obtenerPreguntasDependientesDeOpcion={obtenerPreguntasDependientesDeOpcion}
+            eliminarOpcionNueva={eliminarOpcionNueva}
+            cambiarOrdenPregunta={cambiarOrdenPregunta}
+            handlePreguntaDragEnd={handlePreguntaDragEnd}
+            tiposPregunta={tiposPregunta}
+            errorPregunta={errorPregunta}
+            setErrorPregunta={setErrorPregunta}
+            columnaCatalogoAbierta={columnaCatalogoAbierta}
+            setColumnaCatalogoAbierta={setColumnaCatalogoAbierta}
+            sensors={sensors}
+            preguntasDeSeccion={preguntasDeSeccion}
+          />
+        </div>
       </div>
     </div>
   );

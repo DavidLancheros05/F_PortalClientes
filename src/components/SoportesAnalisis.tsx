@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { Eye, Paperclip, Trash2, Upload } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
-import { LoadingModal, ConfirmModal, ErrorModal } from "@/components/modals";
+import {
+  LoadingModal,
+  SuccessModal,
+  ConfirmModal,
+  ErrorModal,
+} from "@/components/modals";
 
 interface SoporteAnalisis {
   ssa_id: number;
@@ -36,6 +41,7 @@ export function SoportesAnalisis({
   const [soportes, setSoportes] = useState<SoporteAnalisis[]>([]);
   const [loading, setLoading] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
+  const [subidoOk, setSubidoOk] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [ssaAEliminar, setSsaAEliminar] = useState<number | null>(null);
   const [eliminando, setEliminando] = useState(false);
@@ -68,6 +74,7 @@ export function SoportesAnalisis({
     try {
       await solicitudesService.subirSoporteAnalisis(solicitudId, wetId, file);
       cargar();
+      setSubidoOk(true);
     } catch (error) {
       console.error("Error subiendo soporte de análisis:", error);
       setErrorMessage("No se pudo subir el archivo.");
@@ -168,6 +175,13 @@ export function SoportesAnalisis({
       )}
 
       <LoadingModal isOpen={subiendo} message="Subiendo archivo de soporte..." />
+      <SuccessModal
+        isOpen={subidoOk}
+        title="Archivo subido"
+        message="El soporte de análisis quedó adjunto a la solicitud."
+        actionText="Aceptar"
+        onAction={() => setSubidoOk(false)}
+      />
 
       <ConfirmModal
         isOpen={ssaAEliminar !== null}

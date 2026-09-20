@@ -2,52 +2,30 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef, useContext } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Menu, X, ChevronDown, Search } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
 import { LoadingModal } from "@/components/modals";
+import { useMenuModel, isModuloActivo, type Modulo } from "@/components/layout/useMenuModel";
+import { MenuSearchPanel } from "@/components/layout/MenuSearchPanel";
 
-// Interfaz para los permisos
-interface Permisos {
-  ver: boolean;
-  crear: boolean;
-  editar: boolean;
-  eliminar: boolean;
-  aprobar: boolean;
-}
-
-// Interfaz de módulo
-export interface Modulo {
-  mod_id: number;
-  mod_nombre: string;
-  mod_ruta: string; // Viene del backend
-  mod_icono?: string; // Opcional
-  mod_posicion?: number;
-  mod_padre_id?: number | null;
-  mod_activo?: boolean; // Estado del módulo
-  permisos: Permisos;
-  subModulos?: Modulo[]; // Puede tener submódulos
-}
+export type { Modulo };
 
 // Props del header
 interface Props {
   modulos: Modulo[];
   rol: string;
   nombreUsuario: string;
+  /** "top" (default): nav completo de escritorio en la barra superior.
+   * "left": la barra superior queda solo con logo/usuario — el árbol de
+   * módulos lo muestra <Sidebar> aparte. El menú móvil (hamburguesa) se
+   * mantiene igual en ambos casos, ya sigue siendo la mejor UX en pantallas
+   * angostas. */
+  layout?: "top" | "left";
 }
 
-export default function Header({ modulos, rol, nombreUsuario }: Props) {
+export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: Props) {
   const { logout: logoutSesion } = useContext(AuthContext);
-
-  modulos.forEach((m) => {
-    if (m.subModulos?.length) {
-      m.subModulos.forEach((sub) => {
-        if (sub.subModulos?.length) {
-          sub.subModulos.forEach((nested) => {
-          });
-        }
-      });
-    }
-  });
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSubMenu, setActiveSubMenu] = useState<number | null>(null);
@@ -55,8 +33,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
     null,
   );
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
   const isAdmin = ["ADMIN", "ADMINISTRACION", "ADMINISTRACIÓN"].includes(
     String(rol || "")
       .trim()
@@ -98,217 +79,14 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       .map((p) => p[0]?.toUpperCase())
       .join("") || "U";
 
-  const normalizeText = (value: string) =>
-    String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .toLowerCase();
-
-  const getSubModulosConFallback = (modulo: Modulo): Modulo[] => {
-    const subModulos = Array.isArray(modulo.subModulos)
-      ? modulo.subModulos
-      : [];
-    const moduloNombre = String(modulo.mod_nombre || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .toLowerCase();
-
-    const esParametrizacion = moduloNombre === "parametrizacion";
-    const resolverJerarquiaSolicitudes = (items: Modulo[]): Modulo[] => {
-      const esSolicitudes = normalizeText(modulo.mod_nombre) === "solicitudes";
-      if (!esSolicitudes) {
-        return items;
-      }
-
-      const childrenByName = new Map(
-        items.map((item) => [normalizeText(item.mod_nombre), item]),
-      );
-
-      const categoriaSolicitudesExistente = childrenByName.get("solicitudes");
-      const categoriaDocumentosExistente = childrenByName.get("documentos");
-      const categoriaIndicadoresExistente = childrenByName.get("indicadores");
-
-      if (
-        categoriaSolicitudesExistente?.subModulos?.length ||
-        categoriaDocumentosExistente?.subModulos?.length ||
-        categoriaIndicadoresExistente?.subModulos?.length
-      ) {
-        return items;
-      }
-
-      const nuevos: Modulo[] = [];
-
-      const solicitudesHijos = items.filter((item) => {
-        const ruta = normalizeText(item.mod_ruta || "");
-        const nombre = normalizeText(item.mod_nombre || "");
-        if (!ruta)
-          return nombre.includes("solicitud") && !nombre.includes("document");
-        return (
-          ruta.startsWith("/solicitudes") &&
-          !ruta.includes("documento") &&
-          !ruta.includes("indicador")
-        );
-      });
-
-      const documentosHijos = items.filter((item) => {
-        const ruta = normalizeText(item.mod_ruta || "");
-        const nombre = normalizeText(item.mod_nombre || "");
-        return (
-          ruta.startsWith("/documentos") ||
-          ruta.includes("documento") ||
-          nombre.includes("documento")
-        );
-      });
-
-      const indicadoresHijos = items.filter((item) => {
-        const ruta = normalizeText(item.mod_ruta || "");
-        const nombre = normalizeText(item.mod_nombre || "");
-        return (
-          ruta.startsWith("/indicadores") ||
-          ruta.startsWith("/admin/indicadores") ||
-          nombre.includes("indicador")
-        );
-      });
-
-      const buildVirtualNode = (
-        id: number,
-        nombre: string,
-        ruta: string,
-        hijos: Modulo[],
-      ): Modulo => ({
-        mod_id: id,
-        mod_nombre: nombre,
-        mod_ruta: ruta,
-        permisos: {
-          ver: true,
-          crear: false,
-          editar: false,
-          eliminar: false,
-          aprobar: false,
-        },
-        subModulos: hijos,
-      });
-
-      if (categoriaSolicitudesExistente || solicitudesHijos.length > 0) {
-        nuevos.push(
-          categoriaSolicitudesExistente ||
-            buildVirtualNode(
-              -2101,
-              "Solicitudes",
-              "/solicitudes/solicitudes",
-              solicitudesHijos,
-            ),
-        );
-      }
-
-      if (categoriaDocumentosExistente || documentosHijos.length > 0) {
-        nuevos.push(
-          categoriaDocumentosExistente ||
-            buildVirtualNode(
-              -2102,
-              "Documentos",
-              "/solicitudes/documentos",
-              documentosHijos,
-            ),
-        );
-      }
-
-      if (categoriaIndicadoresExistente || indicadoresHijos.length > 0) {
-        const hijosIndicadores = indicadoresHijos.length > 0
-          ? indicadoresHijos
-          : [
-              buildVirtualNode(-2110, "Por área", "/solicitudes/indicadores", []),
-              buildVirtualNode(-2111, "Por solicitud", "/solicitudes/indicadores/solicitud", []),
-            ];
-        nuevos.push(
-          categoriaIndicadoresExistente ||
-            buildVirtualNode(-2103, "Indicadores", "/solicitudes/indicadores", hijosIndicadores),
-        );
-      }
-
-      return nuevos.length > 0 ? nuevos : items;
-    };
-
-    if (!isAdmin || !esParametrizacion) {
-      return resolverJerarquiaSolicitudes(subModulos);
-    }
-
-    const yaExisteNotificaciones = subModulos.some(
-      (s) =>
-        String(s.mod_ruta || "")
-          .trim()
-          .toLowerCase() === "/parametrizacion/formatos-de-correos" ||
-        String(s.mod_nombre || "")
-          .trim()
-          .toLowerCase() === "notificaciones",
-    );
-
-    if (yaExisteNotificaciones) {
-      return resolverJerarquiaSolicitudes(subModulos);
-    }
-
-    return resolverJerarquiaSolicitudes([
-      ...subModulos,
-      {
-        mod_id: -1001,
-        mod_nombre: "Notificaciones",
-        mod_ruta: "/parametrizacion/formatos-de-correos",
-        permisos: {
-          ver: true,
-          crear: false,
-          editar: false,
-          eliminar: false,
-          aprobar: false,
-        },
-      },
-    ]);
-  };
-
-  const resolveModuloRoute = (modulo: Modulo): string | undefined => {
-    const nombre = modulo.mod_nombre?.trim().toLowerCase();
-    if (nombre === "mis solicitudes") {
-      return "/solicitudes/cliente";
-    }
-    return modulo.mod_ruta;
-  };
-
-  const sortModulosByOrden = (items: Modulo[]): Modulo[] => {
-    return [...items].sort((a, b) => {
-      const ordenA = Number(a.mod_posicion ?? Number.MAX_SAFE_INTEGER);
-      const ordenB = Number(b.mod_posicion ?? Number.MAX_SAFE_INTEGER);
-      if (ordenA !== ordenB) return ordenA - ordenB;
-      return a.mod_id - b.mod_id;
-    });
-  };
-
-  const tieneHijosConPermiso = (modulo: Modulo): boolean => {
-    const hijos = getSubModulosConFallback(modulo);
-    return hijos.some((hijo) => {
-      if (hijo.mod_activo === false) return false;
-      if (hijo.permisos?.ver) return true;
-      return tieneHijosConPermiso(hijo);
-    });
-  };
-
-  const hasVisibleDescendants = (modulo: Modulo): boolean => {
-    const subItems = getSubModulosConFallback(modulo);
-    return subItems.some((item) => {
-      if (item.mod_activo === false) return false; // Filtrar inactivos
-      if (item.permisos?.ver) return true;
-      if (!Array.isArray(item.subModulos) || item.subModulos.length === 0) {
-        return false;
-      }
-      return item.subModulos.some((nested) => nested.permisos?.ver);
-    });
-  };
-
-  const topLevelModulos = sortModulosByOrden(modulos).filter(
-    (m) => (m.mod_activo !== false) && (m.permisos.ver || hasVisibleDescendants(m)),
-  );
-
-  const mostrarRolDirecto = topLevelModulos.length === 0;
+  const {
+    getSubModulosConFallback,
+    resolveModuloRoute,
+    sortModulosByOrden,
+    tieneHijosConPermiso,
+    topLevelModulos,
+    mostrarRolDirecto,
+  } = useMenuModel(modulos, isAdmin);
 
   // Cerrar submenu cuando se hace click fuera
   useEffect(() => {
@@ -323,16 +101,32 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
       ) {
         setUserMenuOpen(false);
       }
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setSearchOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   return (
-    <header className="bg-brand-600 shadow-md sticky top-0 z-50">
+    <header
+      className={`bg-brand-600 shadow-md sticky top-0 z-50 ${
+        layout === "left" ? "md:hidden" : ""
+      }`}
+    >
       <div className="max-w-full h-15 px-4 flex items-center justify-between">
-        {/* Logo + Nombre */}
-        <div className="flex items-center space-x-4 min-w-0">
+        {/* Logo + Nombre — en layout "left" el Sidebar ya lo muestra, así
+            que acá solo hace falta en mobile (el Sidebar está oculto por
+            debajo de md). */}
+        <div
+          className={`items-center space-x-4 min-w-0 ${
+            layout === "left" ? "flex md:hidden" : "flex"
+          }`}
+        >
           <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
             <img
               src="/logo.jpg"
@@ -345,7 +139,12 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
           </div>
         </div>
 
-        {/* Menú escritorio */}
+        {/* Menú escritorio — en layout "left" el árbol de módulos lo
+            muestra <Sidebar> aparte, acá solo queda el espaciador para que
+            el usuario/logout se mantengan pegados a la derecha. */}
+        {layout === "left" ? (
+          <div className="hidden md:block flex-1 mx-6" />
+        ) : (
         <nav className="hidden md:flex space-x-4 items-center flex-1 mx-6" ref={navRef}>
           {mostrarRolDirecto ? (
             <div className="px-3 py-2 rounded-lg bg-white/20 text-white font-semibold">
@@ -414,7 +213,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                             setActiveSubMenu(null);
                                             setActiveNestedSubMenu(null);
                                           }}
-                                          className="block rounded-md px-3 py-2 text-sm hover:bg-[#f1f5f9] text-[#0f172a] transition-colors"
+                                          className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                                            isModuloActivo(pathname, rutaAnidada)
+                                              ? "bg-[#e7edfb] text-brand-600 font-semibold"
+                                              : "hover:bg-[#f1f5f9] text-[#0f172a]"
+                                          }`}
                                         >
                                           {nested.mod_nombre}
                                         </Link>
@@ -436,7 +239,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                 setActiveSubMenu(null);
                                 setActiveNestedSubMenu(null);
                               }}
-                              className="block px-4 py-2.5 text-sm hover:bg-[#f1f5f9] text-[#0f172a] transition-colors"
+                              className={`block px-4 py-2.5 text-sm transition-colors ${
+                                isModuloActivo(pathname, resolveModuloRoute(sub))
+                                  ? "bg-[#e7edfb] text-brand-600 font-semibold"
+                                  : "hover:bg-[#f1f5f9] text-[#0f172a]"
+                              }`}
                             >
                               {sub.mod_nombre}
                             </Link>
@@ -452,7 +259,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
               ) : resolveModuloRoute(m) ? (
                 <Link
                   href={resolveModuloRoute(m)!}
-                  className="px-2 py-1 rounded-lg hover:bg-white/14 text-white transition-colors text-sm"
+                  className={`px-2 py-1 rounded-lg text-sm transition-colors ${
+                    isModuloActivo(pathname, resolveModuloRoute(m))
+                      ? "bg-white/20 text-white"
+                      : "hover:bg-white/14 text-white"
+                  }`}
                 >
                   {m.mod_nombre}
                 </Link>
@@ -465,10 +276,39 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
             ))
           )}
         </nav>
+        )}
 
         {/* Usuario, botón cerrar y menú móvil */}
         <div className="flex items-center space-x-4">
-          <div className="hidden md:block relative" ref={userMenuRef}>
+          {layout === "top" && (
+            <div className="hidden md:block relative" ref={searchRef}>
+              <button
+                onClick={() => setSearchOpen((v) => !v)}
+                title="Buscar en el menú"
+                className={`p-2 rounded-lg transition-colors ${
+                  searchOpen ? "bg-white/14 hover:bg-white/20" : "hover:bg-white/14"
+                }`}
+              >
+                <Search className="w-4 h-4 text-white" />
+              </button>
+
+              {searchOpen && (
+                <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-[#e5e7eb] rounded-xl shadow-[0_12px_32px_rgba(15,23,42,0.16)] p-3 z-50">
+                  <MenuSearchPanel
+                    modulos={modulos}
+                    isAdmin={isAdmin}
+                    pathname={pathname}
+                    variant="light"
+                    onNavigate={() => setSearchOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          <div
+            className={`relative ${layout === "left" ? "hidden" : "hidden md:block"}`}
+            ref={userMenuRef}
+          >
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
               className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
@@ -595,7 +435,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                               setActiveSubMenu(null);
                                               setActiveNestedSubMenu(null);
                                             }}
-                                            className="block px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
+                                            className={`block px-3 py-2 rounded-lg text-white transition ${
+                                              isModuloActivo(pathname, rutaMobil)
+                                                ? "bg-brand-500 font-semibold"
+                                                : "hover:bg-brand-500"
+                                            }`}
                                           >
                                             {nested.mod_nombre}
                                           </Link>
@@ -618,7 +462,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                                   setActiveSubMenu(null);
                                   setActiveNestedSubMenu(null);
                                 }}
-                                className="block px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
+                                className={`block px-3 py-2 rounded-lg text-white transition ${
+                                  isModuloActivo(pathname, resolveModuloRoute(sub))
+                                    ? "bg-brand-500 font-semibold"
+                                    : "hover:bg-brand-500"
+                                }`}
                               >
                                 {sub.mod_nombre}
                               </Link>
@@ -636,7 +484,11 @@ export default function Header({ modulos, rol, nombreUsuario }: Props) {
                 <Link
                   href={resolveModuloRoute(m)!}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
+                  className={`block px-3 py-2 rounded-lg text-white transition ${
+                    isModuloActivo(pathname, resolveModuloRoute(m))
+                      ? "bg-brand-500 font-semibold"
+                      : "hover:bg-brand-500"
+                  }`}
                 >
                   {m.mod_nombre}
                 </Link>

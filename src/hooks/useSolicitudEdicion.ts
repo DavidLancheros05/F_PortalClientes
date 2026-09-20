@@ -58,10 +58,13 @@ export function useSolicitudEdicion({
       return;
     }
 
+    let cancelled = false;
+
     const cargarArchivosExistentes = async (sa_sol_id: number) => {
       try {
         const data =
           await formularioRespuestasService.getArchivosExistentes(sa_sol_id);
+        if (cancelled) return;
         const mapArchivos: Record<number, any> = {};
         if (Array.isArray(data)) {
           // `data` viene ordenado DESC (más nuevo primero, ver
@@ -87,6 +90,7 @@ export function useSolicitudEdicion({
           setArchivosExistentes(mapArchivos);
         }
       } catch (err: any) {
+        if (cancelled) return;
         if (err.response?.status === 404) {
           setArchivosExistentes({});
         }
@@ -96,6 +100,7 @@ export function useSolicitudEdicion({
     solicitudesService
       .getById(solicitudId)
       .then((data: any) => {
+        if (cancelled) return;
         // Rechazada por ASC (Pendiente + Etapa ASC + Resultado
         // RECHAZADO): el cliente solo puede corregir desde
         // /solicitudes/mis-documentos, el formulario completo queda
@@ -120,11 +125,15 @@ export function useSolicitudEdicion({
         }
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("Error cargando solicitud:", err);
         setErrorMessage("Error al cargar los datos de la solicitud");
       });
 
     cargarArchivosExistentes(solicitudId);
+    return () => {
+      cancelled = true;
+    };
   }, [
     solicitudId,
     setArchivosExistentes,
@@ -143,6 +152,8 @@ export function useSolicitudEdicion({
       return;
     }
 
+    let cancelled = false;
+
     const multiselectFpIds = new Set(
       preguntas
         .filter((p) => p.fp_tipo === "MULTISELECT")
@@ -152,6 +163,7 @@ export function useSolicitudEdicion({
     solicitudesService
       .getRespuestas(solicitudId)
       .then((respuestasData: any[]) => {
+        if (cancelled) return;
         // Procesar datos de respuestas
         const respuestasDataArray = respuestasData || [];
         if (Array.isArray(respuestasDataArray)) {
@@ -164,9 +176,14 @@ export function useSolicitudEdicion({
         }
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error("Error cargando respuestas:", err);
         setErrorMessage("Error al cargar los datos de la solicitud");
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [solicitudId, preguntas, setErrorMessage, setRespuestas]);
 
   return { bloqueadoPorRechazoAuxiliar };

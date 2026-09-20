@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { usuariosService } from "@/services/usuarios/usuarios.service";
+import type { Rol } from "@/services/roles/roles.service";
+import {
+  usuarioRolesService,
+  type UsuarioRol,
+} from "@/services/usuario-roles/usuario-roles.service";
 import { ConfirmModal } from "@/components/modals";
-
-interface Rol {
-  rol_id: number;
-  rol_nombre: string;
-}
 
 interface Usuario {
   usr_id: number;
@@ -16,10 +16,6 @@ interface Usuario {
   usuario_email: string;
   usuario_activo: boolean;
   usuario_created_at: string;
-  rol?: {
-    rol_id: number;
-    rol_nombre: string;
-  };
 }
 
 interface UsuarioModalProps {
@@ -39,10 +35,22 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
   const [usuarioLogin, setUsuarioLogin] = useState("");
   const [email, setEmail] = useState(usuario?.usuario_email || "");
   const [password, setPassword] = useState("");
-  const [rolId, setRolId] = useState(usuario?.rol?.rol_id || "");
+  const [rolId, setRolId] = useState("");
+  const [rolesActuales, setRolesActuales] = useState<UsuarioRol[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // El rol de un usuario existente se gestiona en "Gestionar Rol de
+  // Usuarios" (soporta varios roles activos por usuario) — acá solo se
+  // muestra a modo informativo al editar.
+  useEffect(() => {
+    if (isNew || !usuario) return;
+    usuarioRolesService
+      .getByUsuario(usuario.usr_id)
+      .then(setRolesActuales)
+      .catch(() => setRolesActuales([]));
+  }, [isNew, usuario]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +69,7 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
       setError("El usuario (login) no puede contener espacios");
       return;
     }
-    if (!rolId) {
+    if (isNew && !rolId) {
       setError("El rol es requerido");
       return;
     }
@@ -100,7 +108,6 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
         await usuariosService.update(usuario?.usr_id!, {
           nombre: nombre,
           usuario_email: email,
-          usuario_rol_id: Number(rolId),
           usuario_activo: usuario?.usuario_activo,
           ...(password ? { usuario_password: password } : {}),
         });
@@ -194,24 +201,40 @@ const UsuarioModal: React.FC<UsuarioModalProps> = ({
           </div>
 
           {/* Rol */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rol *
-            </label>
-            <select
-              value={rolId}
-              onChange={(e) => setRolId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              disabled={loading}
-            >
-              <option value="">Selecciona un rol</option>
-              {roles.map((rol) => (
-                <option key={rol.rol_id} value={rol.rol_id}>
-                  {rol.rol_nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isNew ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Rol *
+              </label>
+              <select
+                value={rolId}
+                onChange={(e) => setRolId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                disabled={loading}
+              >
+                <option value="">Selecciona un rol</option>
+                {roles.map((rol) => (
+                  <option key={rol.rolId} value={rol.rolId}>
+                    {rol.rolNombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Rol
+              </label>
+              <div className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700">
+                {rolesActuales.length > 0
+                  ? rolesActuales.map((r) => r.rolNombre).join(", ")
+                  : "Sin roles asignados"}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                El rol se administra desde "Gestionar Rol de Usuarios".
+              </p>
+            </div>
+          )}
 
           {/* Contraseña */}
           <div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { ClienteListResponse } from "@/types/api.types";
@@ -18,9 +18,12 @@ import {
 } from "lucide-react";
 import { ConfirmModal, ErrorModal, SuccessModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { Th, Td } from "@/components/tables/TableCell";
+import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+import { SuggestField } from "@/components/filters/SuggestField";
 
 export default function AccesoClientesPage() {
   const router = useRouter();
@@ -31,13 +34,9 @@ export default function AccesoClientesPage() {
   const [error, setError] = useState<string | null>(null);
   const [razonSocialInput, setRazonSocialInput] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
-  const [mostrarRazonSocialLista, setMostrarRazonSocialLista] = useState(false);
-  const razonSocialContainerRef = useRef<HTMLDivElement>(null);
 
   const [nitInput, setNitInput] = useState("");
   const [nit, setNit] = useState("");
-  const [mostrarNitLista, setMostrarNitLista] = useState(false);
-  const nitContainerRef = useRef<HTMLDivElement>(null);
 
   const [estadoAccesoInput, setEstadoAccesoInput] = useState<
     "TODOS" | "HABILITADO" | "DESHABILITADO"
@@ -92,8 +91,8 @@ export default function AccesoClientesPage() {
     const matchesEstadoAcceso =
       estadoAcceso === "TODOS" ||
       (estadoAcceso === "HABILITADO"
-        ? cliente.cli_acceso_portal_clientes
-        : !cliente.cli_acceso_portal_clientes);
+        ? cliente.cli_acceso_pc
+        : !cliente.cli_acceso_pc);
 
     return matchesRazonSocial && matchesNit && matchesEstadoAcceso;
   });
@@ -107,76 +106,16 @@ export default function AccesoClientesPage() {
     currentPage * itemsPerPage,
   );
 
-  // Sugerencias de autocompletar — hasta 8 razones sociales / NIT únicos que
-  // coincidan con lo escrito, tomados de los clientes ya cargados en memoria
-  // (no hace falta pedirle nada al backend).
-  const razonSocialSugerencias = useMemo(() => {
-    const term = razonSocialInput.trim().toLowerCase();
-    if (!term) return [];
-    const vistos = new Set<string>();
-    const resultado: string[] = [];
-    for (const cliente of clientes) {
-      const nombre = cliente.cli_razon_social ?? "";
-      if (
-        nombre.toLowerCase().includes(term) &&
-        !vistos.has(nombre) &&
-        nombre !== ""
-      ) {
-        vistos.add(nombre);
-        resultado.push(nombre);
-        if (resultado.length >= 8) break;
-      }
-    }
-    return resultado;
-  }, [clientes, razonSocialInput]);
-
-  const nitSugerencias = useMemo(() => {
-    const term = nitInput.trim().toLowerCase();
-    if (!term) return [];
-    const vistos = new Set<string>();
-    const resultado: string[] = [];
-    for (const cliente of clientes) {
-      const documento = cliente.cli_nro_identificacion ?? "";
-      if (
-        documento.toLowerCase().includes(term) &&
-        !vistos.has(documento) &&
-        documento !== ""
-      ) {
-        vistos.add(documento);
-        resultado.push(documento);
-        if (resultado.length >= 8) break;
-      }
-    }
-    return resultado;
-  }, [clientes, nitInput]);
-
-  // Cierra los desplegables de sugerencias al hacer clic afuera. No basta
-  // con onBlur del input: el clic sobre un ítem de la lista dispara blur
-  // antes que el click, y el ítem nunca llega a seleccionarse.
-  useEffect(() => {
-    if (!mostrarRazonSocialLista && !mostrarNitLista) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (
-        mostrarRazonSocialLista &&
-        razonSocialContainerRef.current &&
-        !razonSocialContainerRef.current.contains(target)
-      ) {
-        setMostrarRazonSocialLista(false);
-      }
-      if (
-        mostrarNitLista &&
-        nitContainerRef.current &&
-        !nitContainerRef.current.contains(target)
-      ) {
-        setMostrarNitLista(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [mostrarRazonSocialLista, mostrarNitLista]);
+  // Pool crudo de sugerencias por campo — SuggestField filtra/deduplica
+  // internamente, acá solo se mapea la columna correspondiente.
+  const razonSocialSugerencias = useMemo(
+    () => clientes.map((c) => c.cli_razon_social ?? ""),
+    [clientes],
+  );
+  const nitSugerencias = useMemo(
+    () => clientes.map((c) => c.cli_nro_identificacion ?? ""),
+    [clientes],
+  );
 
   const handleBuscar = () => {
     setRazonSocial(razonSocialInput);
@@ -204,7 +143,7 @@ export default function AccesoClientesPage() {
 
   const confirmarCambioAcceso = async () => {
     if (!clienteSeleccionado) return;
-    const nuevoValor = !clienteSeleccionado.cli_acceso_portal_clientes;
+    const nuevoValor = !clienteSeleccionado.cli_acceso_pc;
 
     try {
       setGuardando(true);
@@ -214,7 +153,7 @@ export default function AccesoClientesPage() {
       setClientes((prev) =>
         prev.map((c) =>
           c.cli_id === clienteSeleccionado.cli_id
-            ? { ...c, cli_acceso_portal_clientes: nuevoValor }
+            ? { ...c, cli_acceso_pc: nuevoValor }
             : c,
         ),
       );
@@ -257,75 +196,23 @@ export default function AccesoClientesPage() {
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <FilterField
+            <SuggestField
               label="Razón social"
-              className="relative"
-              ref={razonSocialContainerRef}
-            >
-              <input
-                type="text"
-                placeholder="Buscar razón social..."
-                value={razonSocialInput}
-                onFocus={() => setMostrarRazonSocialLista(true)}
-                onChange={(e) => {
-                  setRazonSocialInput(e.target.value);
-                  setMostrarRazonSocialLista(true);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {mostrarRazonSocialLista && razonSocialSugerencias.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                  {razonSocialSugerencias.map((nombre) => (
-                    <div
-                      key={nombre}
-                      onClick={() => {
-                        setRazonSocialInput(nombre);
-                        setMostrarRazonSocialLista(false);
-                      }}
-                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
-                    >
-                      {nombre}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </FilterField>
+              placeholder="Buscar razón social..."
+              value={razonSocialInput}
+              onChange={setRazonSocialInput}
+              suggestions={razonSocialSugerencias}
+              onEnter={handleBuscar}
+            />
 
-            <FilterField
+            <SuggestField
               label="NIT / Documento"
-              className="relative"
-              ref={nitContainerRef}
-            >
-              <input
-                type="text"
-                placeholder="Buscar NIT o documento..."
-                value={nitInput}
-                onFocus={() => setMostrarNitLista(true)}
-                onChange={(e) => {
-                  setNitInput(e.target.value);
-                  setMostrarNitLista(true);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {mostrarNitLista && nitSugerencias.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
-                  {nitSugerencias.map((documento) => (
-                    <div
-                      key={documento}
-                      onClick={() => {
-                        setNitInput(documento);
-                        setMostrarNitLista(false);
-                      }}
-                      className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
-                    >
-                      {documento}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </FilterField>
+              placeholder="Buscar NIT o documento..."
+              value={nitInput}
+              onChange={setNitInput}
+              suggestions={nitSugerencias}
+              onEnter={handleBuscar}
+            />
 
             <FilterField label="Estado de acceso" className="md:col-span-2">
               <select
@@ -402,31 +289,20 @@ export default function AccesoClientesPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Cliente
-                      </th>
-                      <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Documento
-                      </th>
-                      <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Correo
-                      </th>
-                      <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Acceso al portal
-                      </th>
+                      <Th>Cliente</Th>
+                      <Th>Documento</Th>
+                      <Th>Correo</Th>
+                      <Th>Acceso al portal</Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {paginatedClientes.map((cliente) => {
-                      const habilitado = cliente.cli_acceso_portal_clientes;
+                      const habilitado = cliente.cli_acceso_pc;
                       return (
-                        <tr
-                          key={cliente.cli_id}
-                          className="hover:bg-gray-50 transition"
-                        >
-                          <td className="py-4 px-6">
+                        <Tr key={cliente.cli_id}>
+                          <Td>
                             <div className="flex items-center">
                               <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center mr-4">
                                 <Building className="w-5 h-5 text-gray-700" />
@@ -435,24 +311,24 @@ export default function AccesoClientesPage() {
                                 {cliente.cli_razon_social}
                               </div>
                             </div>
-                          </td>
-                          <td className="py-4 px-6">
+                          </Td>
+                          <Td>
                             <div className="flex items-center">
                               <FileText className="w-4 h-4 text-gray-400 mr-2" />
                               <span className="font-mono text-sm">
                                 {cliente.cli_nro_identificacion || "-"}
                               </span>
                             </div>
-                          </td>
-                          <td className="py-4 px-6">
+                          </Td>
+                          <Td>
                             <div className="flex items-center">
                               <Mail className="w-4 h-4 text-gray-400 mr-2" />
                               <span className="text-sm">
                                 {cliente.cli_correo || "-"}
                               </span>
                             </div>
-                          </td>
-                          <td className="py-4 px-6">
+                          </Td>
+                          <Td>
                             <div className="flex items-center gap-3">
                               <label className="inline-flex items-center cursor-pointer">
                                 <input
@@ -480,8 +356,8 @@ export default function AccesoClientesPage() {
                                 {habilitado ? "Habilitado" : "Deshabilitado"}
                               </span>
                             </div>
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       );
                     })}
                   </tbody>
@@ -540,21 +416,21 @@ export default function AccesoClientesPage() {
       <ConfirmModal
         isOpen={confirmOpen}
         title={
-          clienteSeleccionado?.cli_acceso_portal_clientes
+          clienteSeleccionado?.cli_acceso_pc
             ? "Deshabilitar acceso"
             : "Habilitar acceso"
         }
         message={
-          clienteSeleccionado?.cli_acceso_portal_clientes
+          clienteSeleccionado?.cli_acceso_pc
             ? `¿Deseas deshabilitar el acceso al portal de "${clienteSeleccionado?.cli_razon_social}"? No podrá iniciar sesión hasta que se vuelva a habilitar.`
             : `¿Deseas habilitar el acceso al portal de "${clienteSeleccionado?.cli_razon_social}"? Si tiene un correo registrado, se le enviará una contraseña de acceso.`
         }
         confirmText={
-          clienteSeleccionado?.cli_acceso_portal_clientes
+          clienteSeleccionado?.cli_acceso_pc
             ? "Deshabilitar"
             : "Habilitar"
         }
-        isDangerous={Boolean(clienteSeleccionado?.cli_acceso_portal_clientes)}
+        isDangerous={Boolean(clienteSeleccionado?.cli_acceso_pc)}
         isLoading={guardando}
         onConfirm={confirmarCambioAcceso}
         onCancel={() => {

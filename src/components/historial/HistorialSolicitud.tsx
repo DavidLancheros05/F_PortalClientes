@@ -145,7 +145,15 @@ export default function HistorialSolicitud({
                 <div className="flex flex-wrap gap-2 mt-1.5">
                   {item.resultadoNombre && (
                     <span className="font-semibold bg-blue-50 text-blue-600 px-2 py-1 rounded inline-block">
-                      {item.resultadoNombre}
+                      {/* Si la etapa ya quedó resuelta (no es la última),
+                          el resultado grabado en la fila ("Pendiente") es
+                          el que tenía AL ENTRAR, no el actual — mismo
+                          criterio que el ícono/fecha de arriba, para no
+                          contradecirlos ("✓ Gestionado" con un badge que
+                          diga "Pendiente" debajo). */}
+                      {!isLast && resultadoEraPendiente
+                        ? "Gestionado"
+                        : item.resultadoNombre}
                     </span>
                   )}
                   {item.estadoNombre && (

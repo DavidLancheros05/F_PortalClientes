@@ -2,11 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, FileText, FileSearch, DollarSign, Clock } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  FileText,
+  DollarSign,
+  Clock,
+  Info,
+  Briefcase,
+  Headphones,
+  ShieldCheck,
+  Users,
+  Award,
+} from "lucide-react";
+import { PdfIcon } from "@/components/icons/FileIcons";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
+import { variablesPlantillaService } from "@/services/admin/parametrizacion/variables-plantilla.service";
 import { ESTADOS } from "@/lib/workflow-labels";
-import { generarPlantillaDocumentoPdf } from "@/lib/carta-pdf.util";
+import { formatDate } from "@/lib/date-utils";
+import {
+  generarPlantillaDocumentoPdf,
+  construirMapaRespuestasPregunta,
+} from "@/lib/carta-pdf.util";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
@@ -23,12 +41,14 @@ interface SolicitudDetalle {
   cliente_nombre: string;
   cliente_nit?: string;
   ejecutivo_nombre?: string;
+  sol_fecha_real_ejecutivo?: string | null;
   usuario_registro?: string;
   usuario_revision?: string;
   centro_operacion_nombre?: string;
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_fecha_creacion: string;
+  sol_fecha_envio?: string | null;
   sol_estado_id: number;
   cliente_direccion?: string;
   sol_consumo_mensual_proyectado?: number;
@@ -45,7 +65,11 @@ interface SolicitudDetalle {
   sol_cupo_actual_referencia?: number | null;
 }
 
-function formatDate(value?: string | null) {
+// Formato largo — solo para el texto de la carta de aprobación en PDF
+// ({{fecha_aprobacion}}), donde sí corresponde una fecha formal escrita.
+// Para mostrar fechas en pantalla usar el formatDate corto compartido
+// (@/lib/date-utils), igual que el resto de la app.
+function formatDateLarga(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
@@ -68,6 +92,81 @@ function formatCurrency(value?: number | null) {
   }).format(value);
 }
 
+// "Usuario · fecha hora" en gris, para el encabezado de cada tarjeta de
+// "Gestión por Área" — quién hizo la gestión y cuándo, mismo tratamiento
+// que ya usan las páginas de gestión (ASC/OFC/CC1/CC2) en "Concepto del
+// ejecutivo de negocios".
+function GestorInfo({
+  usuario,
+  fecha,
+  className = "mb-2",
+}: {
+  usuario?: string | null;
+  fecha?: string | null;
+  className?: string;
+}) {
+  if (!usuario && !fecha) return null;
+  const fechaObj = fecha ? new Date(fecha) : null;
+  const fechaValida = fechaObj && !Number.isNaN(fechaObj.getTime());
+  return (
+    <p className={`text-[11px] text-[#94a3b8] m-0 whitespace-nowrap ${className}`}>
+      {usuario || "-"}
+      {fechaValida && (
+        <>
+          {` · ${formatDate(fecha)}`}
+          <span className="text-[10px] text-[#cbd5e1]">
+            {` ${fechaObj!.toLocaleTimeString("es-CO", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}`}
+          </span>
+        </>
+      )}
+    </p>
+  );
+}
+
+// Tarjeta de "Gestión por Área": encabezado con ícono + nombre del área a
+// la izquierda y quién/cuándo a la derecha, cuerpo con el contenido propio
+// de cada etapa. `span2` la hace ocupar las dos columnas del grid en
+// pantallas grandes (se usa en Comité de Crédito 2, que suele traer además
+// las condiciones financieras aprobadas).
+function AreaCard({
+  icon: Icon,
+  titulo,
+  usuario,
+  fecha,
+  span2 = false,
+  children,
+}: {
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  titulo: string;
+  usuario?: string | null;
+  fecha?: string | null;
+  span2?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border border-[#eef1f6] bg-[#fafbfd] overflow-hidden flex flex-col ${
+        span2 ? "lg:col-span-2" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#eef1f6] bg-white">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+            <Icon size={14} strokeWidth={2.2} className="text-brand-600" />
+          </div>
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] m-0 truncate">
+            {titulo}
+          </p>
+        </div>
+        <GestorInfo usuario={usuario} fecha={fecha} className="mb-0 flex-shrink-0" />
+      </div>
+      <div className="p-4 flex-1 flex flex-col gap-3">{children}</div>
+    </div>
+  );
+}
 
 export default function DetalleDetailPage() {
   const router = useRouter();
@@ -126,6 +225,35 @@ export default function DetalleDetailPage() {
         return;
       }
 
+      // Si la plantilla activa usa placeholders {{pregunta|...}} (ver
+      // GenerarPlantillaModal.tsx), hay que resolverlos con las respuestas
+      // reales del formulario de esta solicitud — igual que hace la vista
+      // previa de Parametrización → Documentos, o quedan como ancla rota y
+      // generarPlantillaDocumentoPdf tira error.
+      let respuestasPregunta: Record<string, string> | undefined;
+      if (/\{\{pregunta\|/.test(plantillaActiva.plantillaContenido)) {
+        const renderizable = await solicitudesService.getFormularioRenderizable(
+          solicitudId,
+        );
+        respuestasPregunta = construirMapaRespuestasPregunta(
+          renderizable.preguntas,
+        );
+      }
+
+      // Variables con tabla/columna de origen configuradas en
+      // Parametrización → Variables de Plantilla se resuelven solas (ver
+      // resolverParaSolicitud) — se mezclan sobre los reemplazos manuales
+      // de abajo, que quedan como respaldo si el catálogo no tiene mapeo
+      // para alguna (ej. si se desconfigura por error).
+      let reemplazosDinamicos: Record<string, string> = {};
+      try {
+        reemplazosDinamicos = await variablesPlantillaService.resolverParaSolicitud(
+          solicitud.sol_id,
+        );
+      } catch (err) {
+        console.error("Error resolviendo variables con mapeo automático:", err);
+      }
+
       // Mismo motor pdf-lib (generarPlantillaDocumentoPdf -> generarCartaPdf,
       // carta-pdf.util.ts) que usa el resto del sistema para plantillas, y su
       // réplica en el backend (common/utils/carta-pdf.util.ts) para el correo
@@ -134,10 +262,11 @@ export default function DetalleDetailPage() {
       // carta real. Ver "Documentos Cartonera/documentacion/mejoras/
       // unificacion-carta-vinculacion-tipos-documentos.md".
       await generarPlantillaDocumentoPdf({
-        tdoNombre: `Aprobación de solicitud de vinculación comercial No. ${solicitud.sol_numero_solicitud}`,
+        tdoNombre: plantillaActiva.nombre,
         tdoPlantillaContenido: plantillaActiva.plantillaContenido,
         clienteNombre: solicitud.cliente_nombre,
         numeroSolicitud: solicitud.sol_numero_solicitud,
+        respuestasPregunta,
         encabezadoTipo: plantillaActiva.encabezadoTipo,
         encabezadoImagenUrl: plantillaActiva.encabezadoImagenUrl,
         piePaginaTipo: plantillaActiva.piePaginaTipo,
@@ -149,9 +278,10 @@ export default function DetalleDetailPage() {
           "{{plazo}}": solicitud.sol_plazo_pago
             ? `${solicitud.sol_plazo_pago} días`
             : "-",
-          "{{fecha_aprobacion}}": formatDate(solicitud.fecha_aprobacion),
-          "{{tasa_interes}}": "-",
+          "{{fecha_aprobacion}}": formatDateLarga(solicitud.fecha_aprobacion),
+          ...reemplazosDinamicos,
         },
+        previsualizar: true,
       });
     } catch (err) {
       console.error("Error generando PDF:", err);
@@ -196,14 +326,18 @@ export default function DetalleDetailPage() {
   // primera, para mostrar la decisión vigente y no una vieja. Se usa también
   // para decidir si esa área ya fue alcanzada (sin comentario, la tarjeta de
   // esa área no se muestra).
-  const comentarioPorEtapa = (codigo: string) => {
+  const entradaPorEtapa = (codigo: string) => {
     const entradas = historial.filter((h) => h.etapaCodigo === codigo);
-    return entradas.length > 0 ? entradas[entradas.length - 1].comentario : undefined;
+    return entradas.length > 0 ? entradas[entradas.length - 1] : undefined;
   };
-  const comentarioASC = comentarioPorEtapa("ASC");
-  const comentarioOFC = comentarioPorEtapa("OFC");
-  const comentarioCC1 = comentarioPorEtapa("CC1");
-  const comentarioCC2 = comentarioPorEtapa("CC2");
+  const entradaASC = entradaPorEtapa("ASC");
+  const entradaOFC = entradaPorEtapa("OFC");
+  const entradaCC1 = entradaPorEtapa("CC1");
+  const entradaCC2 = entradaPorEtapa("CC2");
+  const comentarioASC = entradaASC?.comentario;
+  const comentarioOFC = entradaOFC?.comentario;
+  const comentarioCC1 = entradaCC1?.comentario;
+  const comentarioCC2 = entradaCC2?.comentario;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
@@ -254,9 +388,34 @@ export default function DetalleDetailPage() {
             <>
               {/* Info block */}
               <div className="px-7 py-[26px] border-b border-[#eef1f6]">
-                <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 flex-1 min-w-[280px]">
-                    <div>
+                <div className="rounded-2xl p-4 border border-[#eef1f6] bg-[#fafbfd] mb-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] flex items-center gap-[9px] tracking-[-0.01em] m-0">
+                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
+                        <Info size={15} strokeWidth={2.2} className="text-brand-600" />
+                      </div>
+                      Información de la Solicitud
+                    </h2>
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <button
+                        onClick={() => router.push(`/solicitudes/${solicitud.sol_id}`)}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-xl hover:bg-cyan-100 transition-colors"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Ver Formulario
+                      </button>
+                      <button
+                        onClick={abrirPdfFormulario}
+                        disabled={descargandoPdfFormulario}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PdfIcon />
+                        {descargandoPdfFormulario ? "Generando..." : "Ver PDF Formulario"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-3">
+                    <div className="sm:pr-6">
                       <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                         Tipo de Solicitud
                       </p>
@@ -278,7 +437,7 @@ export default function DetalleDetailPage() {
                         </span>
                       )}
                     </div>
-                    <div>
+                    <div className="sm:px-6 sm:border-l sm:border-[#eef1f6]">
                       <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                         Estado
                       </p>
@@ -290,121 +449,93 @@ export default function DetalleDetailPage() {
                         {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
                       </span>
                     </div>
-                    <div>
+                    <div className="sm:pl-6 sm:border-l sm:border-[#eef1f6]">
                       <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                        Fecha de Creación
+                        Fecha de Envío
                       </p>
-                      <p className="text-sm font-bold text-[#0f172a] m-0">
-                        {formatDate(solicitud.sol_fecha_creacion)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                        Centro de Operación
-                      </p>
-                      <p className="text-sm font-bold text-[#0f172a] m-0">
-                        {solicitud.centro_operacion_nombre || "-"}
-                      </p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-sm font-bold text-[#0f172a] m-0">
+                          {formatDate(solicitud.sol_fecha_envio)}
+                        </p>
+                        {(() => {
+                          const fecha = solicitud.sol_fecha_envio
+                            ? new Date(solicitud.sol_fecha_envio)
+                            : null;
+                          if (!fecha || Number.isNaN(fecha.getTime())) return null;
+                          return (
+                            <p className="text-xs text-[#94a3b8] m-0">
+                              {fecha.toLocaleTimeString("es-CO", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 shrink-0">
-                    <button
-                      onClick={() => router.push(`/solicitudes/${solicitud.sol_id}`)}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-xl hover:bg-cyan-100 transition-colors"
-                    >
-                      <FileText className="h-4 w-4" />
-                      Ver Formulario
-                    </button>
-                    <button
-                      onClick={abrirPdfFormulario}
-                      disabled={descargandoPdfFormulario}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FileSearch className="h-4 w-4" />
-                      {descargandoPdfFormulario ? "Generando..." : "Ver PDF Formulario"}
-                    </button>
+
+                  <div className="border-t border-[#eef1f6] my-3" />
+
+                  <div
+                    className={`grid grid-cols-1 divide-y divide-[#eef1f6] md:divide-y-0 md:divide-x md:divide-[#eef1f6] ${
+                      solicitud.sol_cupo_solicitado ? "" : "md:grid-cols-2"
+                    }`}
+                  >
+                    {/* Datos del Cliente */}
+                    <div className="pb-3 md:pb-0 md:pr-6">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-2 flex items-center gap-1.5">
+                        <Building2 size={13} strokeWidth={2.2} className="text-brand-500" />
+                        Datos del Cliente
+                      </p>
+                      <div className="flex flex-wrap gap-x-6 gap-y-2">
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Razón Social</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.cliente_nombre || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">NIT/Documento</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.cliente_nit || "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Solicita Cupo */}
+                    {!solicitud.sol_cupo_solicitado && (
+                      <div className="pt-3 md:pt-0 md:pl-6">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-2 flex items-center gap-1.5">
+                          <DollarSign size={13} strokeWidth={2.2} className="text-brand-500" />
+                          Solicita Cupo
+                        </p>
+                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                          {solicitaCredito
+                            ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
+                            : "No"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {solicitud.sol_cupo_solicitado ? (
-                  <AmpliacionCupoResumen
-                    cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
-                    cupoSolicitado={solicitud.sol_cupo_solicitado}
-                    justificacion={solicitud.sol_justificacion_ampliacion}
-                    consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
-                    toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
-                  />
-                ) : (
-                  <div className="rounded-2xl border border-[#eef1f6] bg-[#fafbfd] p-5">
-                    <p className="text-[11px] text-[#94a3b8] mb-0.5">Solicita Cupo</p>
-                    <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                      {solicitaCredito
-                        ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
-                        : "No"}
-                    </p>
+                {solicitud.sol_cupo_solicitado && (
+                  <div className="mt-4">
+                    <AmpliacionCupoResumen
+                      cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
+                      cupoSolicitado={solicitud.sol_cupo_solicitado}
+                      justificacion={solicitud.sol_justificacion_ampliacion}
+                      consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
+                      toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
+                    />
                   </div>
                 )}
               </div>
 
-              {/* Cuerpo: secciones de información */}
+              {/* Cuerpo: Gestión por Área */}
               <div className="p-7">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Información General */}
-                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
-                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <FileText size={15} strokeWidth={2.2} className="text-brand-600" />
-                      </div>
-                      Información General
-                    </h2>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Versión Formulario</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_formulario_version || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Zona Franca</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_es_zona_franca ? "Sí" : "No"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Datos del Cliente */}
-                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
-                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <Building2 size={15} strokeWidth={2.2} className="text-brand-600" />
-                      </div>
-                      Datos del Cliente
-                    </h2>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Razón Social</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.cliente_nombre || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">NIT/Documento</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.cliente_nit || "-"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Dirección</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.cliente_direccion || "-"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-
                 {/* Gestión por Área — el detalle real de lo que hizo cada
                     área en su etapa, no solo el estado genérico actual. Cada
                     tarjeta solo se muestra si esa área ya fue alcanzada
@@ -419,33 +550,31 @@ export default function DetalleDetailPage() {
                   comentarioCC1 ||
                   comentarioCC2) && (
                   <div className="mt-4">
-                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-3 flex items-center gap-[9px] tracking-[-0.01em]">
                       <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
                         <Clock size={15} strokeWidth={2.2} className="text-brand-600" />
                       </div>
                       Gestión por Área
                     </h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-3">
                       {(solicitud.sol_observacion_ejn ||
                         solicitud.sol_consumo_mensual_proyectado ||
                         solicitud.sol_toneladas_proyectadas) && (
-                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
-                            Ejecutivo de Negocios
-                          </p>
-                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Ejecutivo</p>
-                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0 mb-3">
-                            {solicitud.ejecutivo_nombre || "-"}
-                          </p>
-                          <div className="grid grid-cols-2 gap-3 mb-3">
-                            <div>
-                              <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo Mensual Proyectado</p>
+                        <AreaCard
+                          icon={Briefcase}
+                          titulo="Ejecutivo de Negocios"
+                          usuario={solicitud.ejecutivo_nombre}
+                          fecha={solicitud.sol_fecha_real_ejecutivo}
+                        >
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-white rounded-lg p-2.5 border border-[#eef1f6]">
+                              <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Consumo Mensual</p>
                               <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
                                 {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
                               </p>
                             </div>
-                            <div>
-                              <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas Proyectadas</p>
+                            <div className="bg-white rounded-lg p-2.5 border border-[#eef1f6]">
+                              <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Toneladas</p>
                               <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
                                 {solicitud.sol_toneladas_proyectadas
                                   ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
@@ -453,126 +582,128 @@ export default function DetalleDetailPage() {
                               </p>
                             </div>
                           </div>
-                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Observación</p>
-                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                            {solicitud.sol_observacion_ejn || "-"}
-                          </p>
-                        </div>
+                          {solicitud.sol_observacion_ejn && (
+                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                              {solicitud.sol_observacion_ejn}
+                            </p>
+                          )}
+                        </AreaCard>
                       )}
 
                       {comentarioASC && (
-                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
-                            Auxiliar Servicio al Cliente
-                          </p>
+                        <AreaCard
+                          icon={Headphones}
+                          titulo="Auxiliar Servicio al Cliente"
+                          usuario={entradaASC?.usuarioNombre}
+                          fecha={entradaASC?.fecha}
+                        >
                           <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
                             {comentarioASC}
                           </p>
-                        </div>
+                        </AreaCard>
                       )}
 
                       {comentarioOFC && (
-                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd] space-y-4">
-                          <div>
-                            <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
-                              Oficial de Cumplimiento
-                            </p>
-                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                              {comentarioOFC}
-                            </p>
-                          </div>
+                        <AreaCard
+                          icon={ShieldCheck}
+                          titulo="Oficial de Cumplimiento"
+                          usuario={entradaOFC?.usuarioNombre}
+                          fecha={entradaOFC?.fecha}
+                        >
+                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                            {comentarioOFC}
+                          </p>
                           <SoportesAnalisis
                             solicitudId={solicitud.sol_id}
                             wetId={WORKFLOW_ETAPA.OFC.id}
                             titulo="Soportes de Oficial de Cumplimiento"
                             readOnly
                           />
-                        </div>
+                        </AreaCard>
                       )}
 
                       {comentarioCC1 && (
-                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd] space-y-4">
-                          <div>
-                            <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
-                              Comité de Crédito 1
-                            </p>
-                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                              {comentarioCC1}
-                            </p>
-                          </div>
+                        <AreaCard
+                          icon={Users}
+                          titulo="Comité de Crédito 1"
+                          usuario={entradaCC1?.usuarioNombre}
+                          fecha={entradaCC1?.fecha}
+                        >
+                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                            {comentarioCC1}
+                          </p>
                           <SoportesAnalisis
                             solicitudId={solicitud.sol_id}
                             wetId={WORKFLOW_ETAPA.CC1.id}
                             titulo="Soportes de Comité de Crédito 1"
                             readOnly
                           />
-                        </div>
+                        </AreaCard>
                       )}
 
                       {comentarioCC2 && (
-                        <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] mb-3">
-                            Comité de Crédito 2
-                          </p>
+                        <AreaCard
+                          icon={Award}
+                          titulo="Comité de Crédito 2"
+                          usuario={entradaCC2?.usuarioNombre}
+                          fecha={entradaCC2?.fecha}
+                          span2={!!solicitud.sol_cupo_aprobado}
+                        >
                           <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
                             {comentarioCC2}
                           </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                {/* Condiciones Financieras Aprobadas */}
-                {solicitud.sol_cupo_aprobado && (
-                  <div className="mt-4 rounded-2xl p-5 border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50">
-                    <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                      <h2 className="text-[13.5px] font-extrabold text-[#0f172a] flex items-center gap-[9px] tracking-[-0.01em]">
-                        <div className="w-[30px] h-[30px] rounded-[9px] bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <DollarSign size={15} strokeWidth={2.2} className="text-emerald-700" />
-                        </div>
-                        Condiciones Financieras Aprobadas
-                      </h2>
-                      <button
-                        onClick={abrirCartaPDF}
-                        disabled={generandoPDF}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-[12.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <FileText className="h-4 w-4" />
-                        {generandoPDF ? "Generando..." : "Ver Carta PDF"}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white rounded-xl p-4 border border-emerald-200">
-                        <p className="text-[11px] text-[#94a3b8] uppercase mb-1">Cupo Aprobado</p>
-                        <p className="text-xl font-extrabold text-emerald-700">
-                          {formatCurrency(solicitud.sol_cupo_aprobado)}
-                        </p>
-                      </div>
-                      <div className="bg-white rounded-xl p-4 border border-emerald-200">
-                        <p className="text-[11px] text-[#94a3b8] uppercase mb-1">Plazo de Pago</p>
-                        <p className="text-xl font-extrabold text-emerald-700">
-                          {solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-"}
-                        </p>
-                      </div>
-                      <div className="bg-white rounded-xl p-4 border border-emerald-200">
-                        <p className="text-[11px] text-[#94a3b8] uppercase mb-1">Forma de Pago</p>
-                        <p className="text-lg font-extrabold text-emerald-700">
-                          {solicitud.sol_forma_pago || "-"}
-                        </p>
-                      </div>
+                          {/* Condiciones Financieras Aprobadas */}
+                          {solicitud.sol_cupo_aprobado && (
+                            <div className="rounded-lg p-3 border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50">
+                              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-emerald-800 m-0">
+                                  Condiciones Financieras Aprobadas
+                                </p>
+                                <button
+                                  onClick={abrirCartaPDF}
+                                  disabled={generandoPDF}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                  {generandoPDF ? "Generando..." : "Ver Carta PDF"}
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
+                                  <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Cupo Aprobado</p>
+                                  <p className="text-[15px] font-extrabold text-emerald-700 m-0">
+                                    {formatCurrency(solicitud.sol_cupo_aprobado)}
+                                  </p>
+                                </div>
+                                <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
+                                  <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Plazo de Pago</p>
+                                  <p className="text-[15px] font-extrabold text-emerald-700 m-0">
+                                    {solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-"}
+                                  </p>
+                                </div>
+                                <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
+                                  <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Forma de Pago</p>
+                                  <p className="text-[13.5px] font-extrabold text-emerald-700 m-0">
+                                    {solicitud.sol_forma_pago || "-"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </AreaCard>
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* Documentos y respuestas por etapa */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-                  <div className="lg:col-span-2 rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd]">
-                    <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-                  </div>
-                  <div className="lg:col-span-1">
-                    <HistorialSolicitud historial={historial} />
-                  </div>
+                <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd] mt-4">
+                  <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
+                </div>
+
+                <div className="mt-4">
+                  <HistorialSolicitud historial={historial} />
                 </div>
               </div>
 

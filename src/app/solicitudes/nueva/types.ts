@@ -2,6 +2,7 @@ import type {
   FormularioPreguntaResponse,
   FormularioPreguntaOpcion,
 } from "@/types/api.types";
+import type { UltimaSolicitud } from "@/hooks/useUltimaSolicitud";
 
 export type ValidationRule = {
   required?: boolean;
@@ -67,4 +68,10 @@ export interface SolicitudFormContentProps {
   // solicitud en su nombre — ver page.tsx. Si no viene, se usa
   // user.cliente_id (caso normal: el cliente diligencia la suya).
   clienteId?: number;
+  // Resultado ya resuelto por page.tsx (que necesita esta misma consulta
+  // para decidir si redirige a un borrador o bloquea la página antes de
+  // montar este componente) — evita que useUltimaSolicitud vuelva a pedirle
+  // lo mismo al backend acá adentro. undefined = no viene de un padre así
+  // (ej. cliente/[id] o [id]/editar), este componente hace su propio fetch.
+  ultimaSolicitud?: UltimaSolicitud | null;
 }
