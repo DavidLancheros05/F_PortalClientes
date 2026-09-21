@@ -43,6 +43,15 @@ interface SolicitudDetalle {
   cliente_nit?: string;
   ejecutivo_nombre?: string;
   sol_fecha_gest_ejn?: string | null;
+  sol_fecha_est_gest_ejn?: string | null;
+  sol_fecha_gest_asc?: string | null;
+  sol_fecha_est_gest_asc?: string | null;
+  sol_fecha_gest_oc?: string | null;
+  sol_fecha_est_gest_oc?: string | null;
+  sol_fecha_gest_cc1?: string | null;
+  sol_fecha_est_gest_cc1?: string | null;
+  sol_fecha_gest_cc2?: string | null;
+  sol_fecha_est_gest_cc2?: string | null;
   usuario_registro?: string;
   usuario_revision?: string;
   centro_operacion_nombre?: string;
@@ -427,7 +436,7 @@ export default function DetalleDetailPage() {
   const slaArea = (areaCodigo: string) => {
     if (!solicitud) return undefined;
     const orden = ["EJN", "ASC", "OFC", "CC1", "CC2"] as const;
-    const mapa: Record<string, { estimada: string | null; real: string | null }> = {
+    const mapa: Record<string, { estimada: string | null | undefined; real: string | null | undefined }> = {
       EJN: { estimada: solicitud.sol_fecha_est_gest_ejn, real: solicitud.sol_fecha_gest_ejn },
       ASC: { estimada: solicitud.sol_fecha_est_gest_asc, real: solicitud.sol_fecha_gest_asc },
       OFC: {

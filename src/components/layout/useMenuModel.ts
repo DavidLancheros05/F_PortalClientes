@@ -73,6 +73,10 @@ export function useMenuModel(modulos: Modulo[], isAdmin: boolean) {
       const solicitudesHijos = items.filter((item) => {
         const ruta = normalizeText(item.mod_ruta || "");
         const nombre = normalizeText(item.mod_nombre || "");
+        // Excluir nodos que ya tienen sub-módulos (ej. "Flujo Solicitud")
+        // para que no se agrupen en la categoría virtual "Solicitudes".
+        if (Array.isArray(item.subModulos) && item.subModulos.length > 0)
+          return false;
         if (!ruta)
           return nombre.includes("solicitud") && !nombre.includes("document");
         return (
