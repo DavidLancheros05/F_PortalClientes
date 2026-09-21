@@ -37,6 +37,12 @@ interface Props {
 
 const TAMAÑOS_LETRA = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24];
 
+const FUENTES_LETRA = [
+  { value: "Times New Roman", label: "Times New Roman" },
+  { value: "Arial", label: "Arial" },
+  { value: "Courier New", label: "Courier New" },
+];
+
 export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -196,6 +202,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   const [cargandoPreguntas, setCargandoPreguntas] = useState(false);
   const [columnaSeleccionada, setColumnaSeleccionada] = useState("");
   const [tamañoLetra, setTamañoLetra] = useState(String(TAMAÑOS_LETRA[0]));
+  const [fuenteLetra, setFuenteLetra] = useState(FUENTES_LETRA[0].value);
   const plantillaEditorRef = useRef<PlantillaEditorHandle | null>(null);
   // El contenido ya no vive en un <input>/<textarea> real (ver
   // PlantillaEditor, que es un contentEditable con chips de variables) —
@@ -419,6 +426,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
   const aplicarTamaño = () => {
     plantillaEditorRef.current?.aplicarTamaño(Number(tamañoLetra));
+  };
+
+  const aplicarFuente = () => {
+    plantillaEditorRef.current?.aplicarFuente(fuenteLetra);
   };
 
   const aplicarVineta = () => {
@@ -1019,6 +1030,26 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                     className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
                   >
                     Tamaño
+                  </button>
+                  <select
+                    value={fuenteLetra}
+                    onChange={(e) => setFuenteLetra(e.target.value)}
+                    title="Fuente a aplicar con el botón Fuente"
+                    className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    {FUENTES_LETRA.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={aplicarFuente}
+                    title="Selecciona texto arriba y hacé clic acá para aplicarle la fuente elegida"
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Fuente
                   </button>
                   <button
                     type="button"

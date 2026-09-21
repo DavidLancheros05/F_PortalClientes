@@ -17,6 +17,9 @@ export interface PlantillaEditorHandle {
   /** Igual que aplicarNegrita pero con un <span style="font-size"> — el
    * texto crece/achica en el editor al tamaño elegido. */
   aplicarTamaño: (size: number) => void;
+  /** Envuelve la selección con un <span style="font-family:..."> — cambia
+   * el tipo de letra en el editor y se serializa como {{font:Nombre}}...{{/font}}. */
+  aplicarFuente: (fontFamily: string) => void;
   /** Inserta una viñeta ("• ") al inicio de la línea donde está el cursor. */
   aplicarVineta: () => void;
 }
@@ -85,6 +88,7 @@ interface TramoEstilo {
   contenido: string;
   bold: boolean;
   size?: number;
+  font?: string;
 }
 
 function segmentarNegrita(texto: string, boldPorDefecto: boolean): TramoEstilo[] {
@@ -100,19 +104,29 @@ function segmentarNegrita(texto: string, boldPorDefecto: boolean): TramoEstilo[]
 
 function segmentarEstilos(texto: string): TramoEstilo[] {
   const tramos: TramoEstilo[] = [];
-  const regexTamaño = /\{\{size:(\d+)\}\}([\s\S]*?)\{\{\/size\}\}/g;
+  // Patrón combinado: font y size pueden anidarse, parseamos de afuera hacia
+  // adentro (font envuelve size envuelve negrita) — mismo orden que genera
+  // domATexto y que el PDF descargado espera.
+  const regexComb = /\{\{font:([^}]+)\}\}([\s\S]*?)\{\{\/font\}\}|\{\{size:(\d+)\}\}([\s\S]*?)\{\{\/size\}\}/g;
   let cursor = 0;
   let match: RegExpExecArray | null;
 
-  const agregarTramo = (fragmento: string, size?: number) => {
+  const agregarTramo = (fragmento: string, size?: number, font?: string) => {
     for (const tramo of segmentarNegrita(fragmento, false)) {
-      tramos.push(size != null ? { ...tramo, size } : tramo);
+      const t = size != null ? { ...tramo, size } : tramo;
+      tramos.push(font != null ? { ...t, font } : t);
     }
   };
 
-  while ((match = regexTamaño.exec(texto))) {
+  while ((match = regexComb.exec(texto))) {
     if (match.index > cursor) agregarTramo(texto.slice(cursor, match.index));
-    agregarTramo(match[2], Number(match[1]));
+    if (match[1] !== undefined) {
+      // match[1] = font name, match[2] = contenido
+      agregarTramo(match[2], undefined, match[1]);
+    } else {
+      // match[3] = size, match[4] = contenido
+      agregarTramo(match[4], Number(match[3]));
+    }
     cursor = match.index + match[0].length;
   }
   if (cursor < texto.length) agregarTramo(texto.slice(cursor));
@@ -132,7 +146,12 @@ function textoAHtml(
     .map((tramo) => {
       let html = contenidoConChipsAHtml(tramo.contenido, etiquetaDeVariable, regexVariable);
       if (tramo.bold) html = `<strong>${html}</strong>`;
-      if (tramo.size != null) html = `<span style="font-size:${tramo.size}px">${html}</span>`;
+      if (tramo.size != null || tramo.font != null) {
+        const estilos: string[] = [];
+        if (tramo.size != null) estilos.push(`font-size:${tramo.size}px`);
+        if (tramo.font != null) estilos.push(`font-family:'${tramo.font}',serif`);
+        html = `<span style="${estilos.join(";")}">${html}</span>`;
+      }
       return html;
     })
     .join("");
@@ -151,6 +170,7 @@ function domATexto(el: HTMLElement): string {
   interface Estilo {
     bold: boolean;
     size: number | null;
+    font: string | null;
   }
   const tramos: { texto: string; estilo: Estilo }[] = [];
 
@@ -176,11 +196,32 @@ function domATexto(el: HTMLElement): string {
     }
     return null;
   };
+  const fuenteActiva = (nodo: Node): string | null => {
+    let actual: HTMLElement | null =
+      nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
+    while (actual && actual !== el) {
+      const ff = actual.style?.fontFamily;
+      if (ff) {
+        // Extraer el nombre de la primera fuente (sin comillas, sin fallback)
+        const primera = ff.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "");
+        if (primera && primera !== "serif" && primera !== "sans-serif" && primera !== "monospace") {
+          return primera;
+        }
+      }
+      actual = actual.parentElement;
+    }
+    return null;
+  };
 
   const agregarTexto = (texto: string, estilo: Estilo) => {
     if (!texto) return;
     const ultimo = tramos[tramos.length - 1];
-    if (ultimo && ultimo.estilo.bold === estilo.bold && ultimo.estilo.size === estilo.size) {
+    if (
+      ultimo &&
+      ultimo.estilo.bold === estilo.bold &&
+      ultimo.estilo.size === estilo.size &&
+      ultimo.estilo.font === estilo.font
+    ) {
       ultimo.texto += texto;
     } else {
       tramos.push({ texto, estilo });
@@ -192,6 +233,7 @@ function domATexto(el: HTMLElement): string {
       agregarTexto(nodo.textContent || "", {
         bold: negritaActiva(nodo),
         size: tamañoActivo(nodo),
+        font: fuenteActiva(nodo),
       });
       return;
     }
@@ -199,16 +241,16 @@ function domATexto(el: HTMLElement): string {
     const elNodo = nodo as HTMLElement;
     if (elNodo.tagName === "BR") {
       // Los saltos de línea nunca llevan estilo propio — si cortan un tramo
-      // en negrita/tamaño, ese tramo se cierra acá y el siguiente (si tiene
-      // el mismo estilo) abre su propio par de marcadores. Es más marcadores
-      // de los estrictamente necesarios pero el resultado visual es idéntico.
-      tramos.push({ texto: "\n", estilo: { bold: false, size: null } });
+      // en negrita/tamaño/fuente, ese tramo se cierra acá y el siguiente (si tiene
+      // el mismo estilo) abre su propio par de marcadores.
+      tramos.push({ texto: "\n", estilo: { bold: false, size: null, font: null } });
       return;
     }
     if (elNodo.classList.contains("pe-chip")) {
       agregarTexto(elNodo.getAttribute("data-placeholder") || "", {
         bold: negritaActiva(elNodo),
         size: tamañoActivo(elNodo),
+        font: fuenteActiva(elNodo),
       });
       return;
     }
@@ -220,6 +262,8 @@ function domATexto(el: HTMLElement): string {
     .map(({ texto, estilo }) => {
       let resultado = texto;
       if (estilo.bold) resultado = `**${resultado}**`;
+      // Orden de serialización: font → size → negrita (afuera hacia adentro)
+      if (estilo.font != null) resultado = `{{font:${estilo.font}}}${resultado}{{/font}}`;
       if (estilo.size != null) resultado = `{{size:${estilo.size}}}${resultado}{{/size}}`;
       return resultado;
     })
@@ -564,6 +608,52 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
           () => {
             const span = document.createElement("span");
             span.style.fontSize = `${size}px`;
+            return span;
+          },
+          "texto",
+        );
+      }
+
+      emitirCambio();
+    },
+
+    aplicarFuente: (fontFamily) => {
+      const el = editorRef.current;
+      if (!el) return;
+      const rango = obtenerRangoParaOperar();
+      posicionarCursorEn(rango);
+
+      const esCualquierFont = (elNodo: HTMLElement) => {
+        const ff = elNodo.style?.fontFamily;
+        if (!ff) return false;
+        const primera = ff.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "");
+        return !!primera && primera !== "serif" && primera !== "sans-serif" && primera !== "monospace";
+      };
+      const nodosTexto = nodosDeTextoEnRango(rango);
+      const todosYaEnEsaFuente =
+        nodosTexto.length > 0 &&
+        nodosTexto.every((n) => {
+          const ancestro = ancestroDeEstilo(n, el, esCualquierFont);
+          if (!ancestro) return false;
+          const ff = ancestro.style.fontFamily;
+          const primera = ff.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "");
+          return primera === fontFamily;
+        });
+
+      // Quita cualquier fuente YA aplicada antes de envolver de nuevo
+      const wrappers = new Set<HTMLElement>();
+      nodosTexto.forEach((n) => {
+        const ancestro = ancestroDeEstilo(n, el, esCualquierFont);
+        if (ancestro) wrappers.add(ancestro);
+      });
+      wrappers.forEach(desenvolverElemento);
+
+      if (!todosYaEnEsaFuente) {
+        envolverEnElemento(
+          rango,
+          () => {
+            const span = document.createElement("span");
+            span.style.fontFamily = `'${fontFamily}', serif`;
             return span;
           },
           "texto",

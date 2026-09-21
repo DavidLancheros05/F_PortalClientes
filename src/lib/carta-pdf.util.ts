@@ -296,6 +296,34 @@ interface PalabraPdf {
   /** Tamaño puntual (ver {{size:N}}...{{/size}} y palabrasConEstilosPdf) —
    * si falta, se usa el fontSize del bloque que la dibuja. */
   size?: number;
+  /** Fuente puntual (ver {{font:Name}}...{{/font}}) — si falta, se usa
+   * la fuente por defecto del bloque que la dibuja. */
+  fontFamily?: string;
+}
+
+// Mapa de nombres de fuente del editor → pares regular/bold de pdf-lib.
+// Las claves son los valores exactos que el selector de fuentes del editor
+// envía en {{font:Name}}. Se usan solo las fuentes estándar de PDF para
+// máxima compatibilidad entre visores.
+const FONT_MAP: Record<string, { regular: string; bold: string }> = {
+  "Times New Roman": { regular: "Times-Roman", bold: "Times-Bold" },
+  "Arial": { regular: "Helvetica", bold: "Helvetica-Bold" },
+  "Courier New": { regular: "Courier", bold: "Courier-Bold" },
+};
+
+// Resuelve la fuente PDF correcta para una palabra, según su fontFamily y
+// si está en negrita. Si la palabra no tiene fontFamily o el nombre no está
+// en el mapa, devuelve null (el caller usa fontRegular/fontBold por defecto).
+function resolverFuentePdf(
+  palabra: PalabraPdf,
+  fuentes: Map<string, { regular: PDFFont; bold: PDFFont }>,
+): PDFFont | null {
+  if (!palabra.fontFamily) return null;
+  const entrada = FONT_MAP[palabra.fontFamily];
+  if (!entrada) return null;
+  const conjunto = fuentes.get(entrada.regular);
+  if (!conjunto) return null;
+  return palabra.bold ? conjunto.bold : conjunto.regular;
 }
 
 // Envuelve una secuencia de palabras (algunas en negrita/tamaño propio) en
@@ -307,6 +335,7 @@ function envolverPalabrasPdf(
   fontSize: number,
   fontRegular: PDFFont,
   fontBold: PDFFont,
+  fuentesExtra?: Map<string, { regular: PDFFont; bold: PDFFont }>,
 ): PalabraPdf[][] {
   const spaceWidth = fontRegular.widthOfTextAtSize(" ", fontSize);
   const lineas: PalabraPdf[][] = [];
@@ -314,7 +343,7 @@ function envolverPalabrasPdf(
   let anchoActual = 0;
 
   for (const palabra of palabras) {
-    const font = palabra.bold ? fontBold : fontRegular;
+    const font = (fuentesExtra ? resolverFuentePdf(palabra, fuentesExtra) : null) ?? (palabra.bold ? fontBold : fontRegular);
     const anchoPalabra = font.widthOfTextAtSize(palabra.texto, palabra.size ?? fontSize);
     const anchoConEspacio =
       lineaActual.length > 0
@@ -362,26 +391,37 @@ function palabrasConNegritaPdf(texto: string, boldPorDefecto = false): PalabraPd
   return palabras;
 }
 
-// Parsea marcadores {{size:N}}texto{{/size}} para tamaño de letra puntual —
-// misma idea que palabrasConNegritaPdf, pero para tamaño (ver botón
-// "Tamaño" en DocumentosForm.tsx). Se resuelve primero el tamaño por tramos
-// y, dentro de cada tramo, se delega en palabrasConNegritaPdf para que
-// negrita y tamaño puntual puedan combinarse sin pisarse.
+// Parsea marcadores {{font:Name}}texto{{/font}} y {{size:N}}texto{{/size}}
+// para fuente y tamaño de letra puntual — mismo patrón que palabrasConNegritaPdf.
+// Se resuelve primero la fuente por tramos, luego el tamaño, y dentro de cada
+// tramo se delega en palabrasConNegritaPdf para que negrita, fuente y tamaño
+// puntual puedan combinarse sin pisarse. El orden de serialización en el
+// editor es font→size→negrita (afuera hacia adentro), así que el regex
+// captura ambos marcadores en una sola pasada.
 function palabrasConEstilosPdf(texto: string, boldPorDefecto = false): PalabraPdf[] {
   const palabras: PalabraPdf[] = [];
-  const regexTamaño = /\{\{size:(\d+)\}\}([\s\S]*?)\{\{\/size\}\}/g;
+  const regexComb = /\{\{font:([^}]+)\}\}([\s\S]*?)\{\{\/font\}\}|\{\{size:(\d+)\}\}([\s\S]*?)\{\{\/size\}\}/g;
   let cursor = 0;
   let match: RegExpExecArray | null;
 
-  const agregarTramo = (fragmento: string, size?: number) => {
+  const agregarTramo = (fragmento: string, size?: number, fontFamily?: string) => {
     for (const palabra of palabrasConNegritaPdf(fragmento, boldPorDefecto)) {
-      palabras.push(size != null ? { ...palabra, size } : palabra);
+      let p = palabra;
+      if (size != null) p = { ...p, size };
+      if (fontFamily != null) p = { ...p, fontFamily };
+      palabras.push(p);
     }
   };
 
-  while ((match = regexTamaño.exec(texto))) {
+  while ((match = regexComb.exec(texto))) {
     if (match.index > cursor) agregarTramo(texto.slice(cursor, match.index));
-    agregarTramo(match[2], Number(match[1]));
+    if (match[1] !== undefined) {
+      // {{font:Name}}...{{/font}}
+      agregarTramo(match[2], undefined, match[1]);
+    } else {
+      // {{size:N}}...{{/size}}
+      agregarTramo(match[4], Number(match[3]));
+    }
     cursor = match.index + match[0].length;
   }
   if (cursor < texto.length) agregarTramo(texto.slice(cursor));

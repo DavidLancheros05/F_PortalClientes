@@ -355,13 +355,6 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
             )}
           </div>
           <button
-            onClick={logout}
-            className="md:hidden px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-xs font-semibold transition-all"
-          >
-            Cerrar
-          </button>
-
-          <button
             className="md:hidden p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
