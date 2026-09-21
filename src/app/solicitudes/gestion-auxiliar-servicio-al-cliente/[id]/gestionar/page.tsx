@@ -42,7 +42,7 @@ interface Solicitud {
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
   ejecutivo_id_nombre?: number;
-  sol_fecha_real_ejecutivo?: string | null;
+  sol_fecha_gest_ejn?: string | null;
   usuario_revision?: string;
   fecha_revision?: string;
   fecha_creacion?: string;
@@ -142,8 +142,7 @@ export default function GestionarSolicitudPage() {
   }, [solicitudId]);
 
   const obtenerUsuarioId = () => {
-    const directId =
-      (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
+    const directId = (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
     if (directId) return directId;
 
     if (typeof window === "undefined") return null;
@@ -184,23 +183,16 @@ export default function GestionarSolicitudPage() {
       setGestion((prev) => ({ ...prev, guardando: true }));
 
       const ahora = new Date().toISOString();
-      const fechaReal =
-        gestion.nuevaFechaReal ||
-        solicitud.fecha_real_respuesta_comercial ||
-        ahora;
+      const fechaReal = gestion.nuevaFechaReal || solicitud.fecha_real_respuesta_comercial || ahora;
 
-      await solicitudesService.registrarAprobacion(
-        solicitud.sol_id ?? solicitud.sa_sol_id!,
-        {
-          aprobado: gestion.aprobado === true,
-          modo_solucion: gestion.modo_solucion,
-          fecha_estimada_respuesta_comercial:
-            solicitud.fecha_estimada_respuesta_comercial,
-          fecha_real_respuesta_comercial: fechaReal,
-          usuario_modifica: usuarioId,
-          documentos_faltantes: gestion.documentos_faltantes,
-        },
-      );
+      await solicitudesService.registrarAprobacion(solicitud.sol_id ?? solicitud.sa_sol_id!, {
+        aprobado: gestion.aprobado === true,
+        modo_solucion: gestion.modo_solucion,
+        fecha_estimada_respuesta_comercial: solicitud.fecha_estimada_respuesta_comercial,
+        fecha_real_respuesta_comercial: fechaReal,
+        usuario_modifica: usuarioId,
+        documentos_faltantes: gestion.documentos_faltantes,
+      });
 
       setShowConfirmModal(false);
       setShowSuccessModal(true);
@@ -214,8 +206,7 @@ export default function GestionarSolicitudPage() {
   };
 
   const fechaEstimada =
-    (solicitud as any)?.sol_fecha_estimada_auxiliar_servicio_cliente ||
-    (solicitud as any)?.fecha_estimada_auxiliar_servicio_cliente;
+    (solicitud as any)?.sol_fecha_est_gest_asc || (solicitud as any)?.fecha_estimada_auxiliar_servicio_cliente;
 
   const estadoId = solicitud?.sol_estado_id ?? solicitud?.estado_id ?? 1;
   const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
@@ -228,8 +219,7 @@ export default function GestionarSolicitudPage() {
           <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <ArrowLeft size={15} strokeWidth={2.3} />
             </button>
             <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
@@ -285,30 +275,21 @@ export default function GestionarSolicitudPage() {
               <div className="px-7 py-[26px] border-b border-[#eef1f6]">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Cliente
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Cliente</p>
                     <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
-                    {solicitud.cliente_nit && (
-                      <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>
-                    )}
+                    {solicitud.cliente_nit && <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>}
                   </div>
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                       Envío de la solicitud
                     </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">
-                      {formatDate(solicitud.sol_fecha_envio)}
-                    </p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">{formatDate(solicitud.sol_fecha_envio)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Estado
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Estado</p>
                     <span
                       className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}
-                    >
+                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
                       {ESTADOS[estadoId] || "Desconocido"}
                     </span>
@@ -329,8 +310,7 @@ export default function GestionarSolicitudPage() {
                           tipoSolicitud === "Ampliación de Cupo"
                             ? "text-emerald-800 bg-emerald-100"
                             : "text-blue-800 bg-blue-100"
-                        }`}
-                      >
+                        }`}>
                         {tipoSolicitud || "Cliente Nuevo"}
                       </span>
                     )}
@@ -357,8 +337,7 @@ export default function GestionarSolicitudPage() {
                       style={{
                         borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
                         background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
-                      }}
-                    >
+                      }}>
                       <div className="flex items-center gap-[9px] mb-2.5">
                         <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
                           <Wallet
@@ -369,8 +348,7 @@ export default function GestionarSolicitudPage() {
                         </div>
                         <span
                           className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
-                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                        >
+                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}>
                           Solicita cupo de crédito
                         </span>
                       </div>
@@ -396,19 +374,15 @@ export default function GestionarSolicitudPage() {
                         <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] m-0">
                           Concepto del ejecutivo de negocios
                         </p>
-                        {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_real_ejecutivo) && (
+                        {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_gest_ejn) && (
                           <p className="text-[11px] text-[#94a3b8] m-0 whitespace-nowrap">
                             {solicitud.ejecutivo_nombre || "-"}
-                            {solicitud.sol_fecha_real_ejecutivo && (
+                            {solicitud.sol_fecha_gest_ejn && (
                               <>
-                                {` · ${formatDate(solicitud.sol_fecha_real_ejecutivo)}`}
-                                {!Number.isNaN(
-                                  new Date(solicitud.sol_fecha_real_ejecutivo).getTime(),
-                                ) && (
+                                {` · ${formatDate(solicitud.sol_fecha_gest_ejn)}`}
+                                {!Number.isNaN(new Date(solicitud.sol_fecha_gest_ejn).getTime()) && (
                                   <span className="text-[10px] text-[#cbd5e1]">
-                                    {` ${new Date(
-                                      solicitud.sol_fecha_real_ejecutivo,
-                                    ).toLocaleTimeString("es-CO", {
+                                    {` ${new Date(solicitud.sol_fecha_gest_ejn).toLocaleTimeString("es-CO", {
                                       hour: "2-digit",
                                       minute: "2-digit",
                                     })}`}
@@ -470,32 +444,25 @@ export default function GestionarSolicitudPage() {
                       onToggleMarcado={(tdoId) =>
                         setGestion((prev) => ({
                           ...prev,
-                          documentos_faltantes:
-                            prev.documentos_faltantes.includes(tdoId)
-                              ? prev.documentos_faltantes.filter(
-                                  (id) => id !== tdoId,
-                                )
-                              : [...prev.documentos_faltantes, tdoId],
+                          documentos_faltantes: prev.documentos_faltantes.includes(tdoId)
+                            ? prev.documentos_faltantes.filter((id) => id !== tdoId)
+                            : [...prev.documentos_faltantes, tdoId],
                         }))
                       }
-                      onEstadoDocumentos={({ hayVencidos }) =>
-                        setHayDocumentosVencidos(hayVencidos)
-                      }
+                      onEstadoDocumentos={({ hayVencidos }) => setHayDocumentosVencidos(hayVencidos)}
                     />
                   </div>
 
                   <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
                     {hayDocumentosVencidos && !hayDocumentosMarcados && (
                       <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 m-0">
-                        Hay documentos vencidos. Marca los que correspondan
-                        con "Solicitar cambio" en la tabla de arriba para
-                        poder rechazar la solicitud.
+                        Hay documentos vencidos. Marca los que correspondan con "Solicitar cambio" en la tabla de arriba
+                        para poder rechazar la solicitud.
                       </p>
                     )}
                     {hayDocumentosMarcados && (
                       <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 m-0">
-                        Hay documentos marcados con "Solicitar cambio" — no
-                        se puede aprobar hasta resolverlos.
+                        Hay documentos marcados con "Solicitar cambio" — no se puede aprobar hasta resolverlos.
                       </p>
                     )}
 
@@ -523,8 +490,7 @@ export default function GestionarSolicitudPage() {
                             gestion.aprobado === true
                               ? "bg-[#059669] text-white border-[#059669]"
                               : "border-[#a7f3d0] text-[#059669] hover:bg-emerald-50"
-                          }`}
-                        >
+                          }`}>
                           ✓ Aprobar
                         </button>
                         <button
@@ -537,15 +503,14 @@ export default function GestionarSolicitudPage() {
                           disabled={!hayDocumentosMarcados}
                           title={
                             !hayDocumentosMarcados
-                              ? "Marca al menos un documento con \"Solicitar cambio\" antes de rechazar"
+                              ? 'Marca al menos un documento con "Solicitar cambio" antes de rechazar'
                               : undefined
                           }
                           className={`flex-1 px-5 py-3 rounded-[11px] text-[13.5px] font-bold border-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                             gestion.aprobado === false
                               ? "bg-[#dc2626] text-white border-[#dc2626]"
                               : "border-red-300 text-red-700 hover:bg-red-50"
-                          }`}
-                        >
+                          }`}>
                           ✗ Rechazar
                         </button>
                       </div>
@@ -565,17 +530,10 @@ export default function GestionarSolicitudPage() {
                               modo_solucion: e.target.value || null,
                             }))
                           }
-                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
-                        >
-                          <option value="">
-                            Selecciona un modo de solución...
-                          </option>
-                          <option value="cliente_actualiza">
-                            Cliente Actualiza
-                          </option>
-                          <option value="auxiliar_actualiza">
-                            Auxiliar Actualiza
-                          </option>
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]">
+                          <option value="">Selecciona un modo de solución...</option>
+                          <option value="cliente_actualiza">Cliente Actualiza</option>
+                          <option value="auxiliar_actualiza">Auxiliar Actualiza</option>
                         </select>
                       </div>
                     )}
@@ -583,18 +541,14 @@ export default function GestionarSolicitudPage() {
                     <div className="flex gap-2.5">
                       <button
                         onClick={handleGuardarDecision}
-                        disabled={
-                          gestion.aprobado === undefined || gestion.guardando
-                        }
-                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      >
+                        disabled={gestion.aprobado === undefined || gestion.guardando}
+                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                         {gestion.guardando ? "Guardando..." : "Guardar Decisión"}
                       </button>
                       <button
                         onClick={() => router.back()}
                         disabled={gestion.guardando}
-                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                         Cancelar
                       </button>
                     </div>
@@ -630,16 +584,10 @@ export default function GestionarSolicitudPage() {
         actionText="Aceptar"
         autoClose={true}
         autoCloseDelay={3000}
-        onAction={() =>
-          router.push("/solicitudes/gestion-auxiliar-servicio-al-cliente")
-        }
+        onAction={() => router.push("/solicitudes/gestion-auxiliar-servicio-al-cliente")}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

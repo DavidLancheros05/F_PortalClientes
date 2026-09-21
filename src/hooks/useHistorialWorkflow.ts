@@ -30,13 +30,9 @@ export function useHistorialWorkflow(solicitudId: number | null) {
         const response =
           await solicitudesService.obtenerHistorialWorkflow(solicitudId as number);
         if (cancelled) return;
-        console.log("[useHistorialWorkflow] Response completo:", response);
 
         if (response?.historial && Array.isArray(response.historial)) {
-          console.log(
-            "[useHistorialWorkflow] Primer item del historial:",
-            response.historial[0],
-          );
+        
           const historialFormateado = response.historial.map(
             (h: any, index: number) => {
               const item = {
@@ -59,15 +55,10 @@ export function useHistorialWorkflow(solicitudId: number | null) {
               return item;
             },
           );
-          console.log(
-            "[useHistorialWorkflow] Historial formateado:",
-            historialFormateado,
-          );
+
           setHistorial(historialFormateado);
         } else {
-          console.log(
-            "[useHistorialWorkflow] No hay historial en la respuesta",
-          );
+          
           setHistorial([]);
         }
       } catch (err) {

@@ -38,49 +38,49 @@ export function AmpliacionCupoResumen({
   toneladasProyectadas,
 }: AmpliacionCupoResumenProps) {
   return (
-    <div className="rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50/60 p-5">
-      <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-emerald-800 mb-3 flex items-center gap-1.5">
-        <DollarSign className="h-4 w-4" />
+    <div className="rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50/60 p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-emerald-800 mb-3 flex items-center gap-1.5">
+        <DollarSign className="h-3.5 w-3.5" />
         Ampliación de Cupo solicitada
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">
+        <div className="bg-white rounded-xl p-3 border border-emerald-200 text-center">
+          <p className="text-[9px] text-[#94a3b8] uppercase tracking-wider mb-0.5 font-semibold">
             Cupo actual (referencia)
           </p>
-          <p className="text-[13.5px] font-bold text-gray-900 m-0">
+          <p className="text-[12px] font-bold text-[#475569] m-0">
             {formatMonto(cupoActualReferencia)}
           </p>
         </div>
-        <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">
+        <div className="bg-white rounded-xl p-3 border-2 border-emerald-300 text-center">
+          <p className="text-[9px] text-emerald-700 uppercase tracking-wider mb-0.5 font-semibold">
             Nuevo cupo solicitado
           </p>
-          <p className="text-base font-extrabold text-emerald-900 m-0">
+          <p className="text-[16px] font-extrabold text-emerald-700 m-0">
             {formatMonto(cupoSolicitado)}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">
+          <p className="text-[10px] text-[#94a3b8] uppercase tracking-wider mb-0.5 font-semibold">
             Consumo mensual proyectado
           </p>
-          <p className="text-[13.5px] font-bold text-gray-900 m-0">
+          <p className="text-[13px] font-bold text-[#0f172a] m-0">
             {formatMonto(consumoMensualProyectado)}
           </p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">
+          <p className="text-[10px] text-[#94a3b8] uppercase tracking-wider mb-0.5 font-semibold">
             Toneladas mensuales proyectadas
           </p>
-          <p className="text-[13.5px] font-bold text-gray-900 m-0">
+          <p className="text-[13px] font-bold text-[#0f172a] m-0">
             {formatToneladas(toneladasProyectadas)}
           </p>
         </div>
       </div>
-      <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">
+      <p className="text-[10px] text-[#94a3b8] uppercase tracking-wider mb-0.5 font-semibold">
         Justificación
       </p>
-      <p className="text-[12.5px] text-gray-700 m-0 whitespace-pre-wrap">
+      <p className="text-[11.5px] text-[#475569] m-0 whitespace-pre-wrap leading-relaxed">
         {justificacion || "-"}
       </p>
     </div>

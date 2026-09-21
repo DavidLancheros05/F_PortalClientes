@@ -44,7 +44,7 @@ interface Solicitud {
   sol_fecha_envio?: string | null;
   // Fecha en que el Ejecutivo de Negocios (etapa anterior a Auxiliar
   // Servicio Cliente en el flujo) registró su concepto.
-  sol_fecha_real_ejecutivo?: string | null;
+  sol_fecha_gest_ejn?: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
   sol_cupo_solicitado?: number | null;
@@ -304,8 +304,7 @@ export default function AprobacionDesaprobacionPage() {
       "Dias Faltantes",
     ];
     const data = solicitudes.map((s) => {
-      const fechaEstimada =
-        (s as any).sol_fecha_estimada_auxiliar_servicio_cliente || s.fecha_estimada_respuesta_comercial;
+      const fechaEstimada = (s as any).sol_fecha_est_gest_asc || s.fecha_estimada_respuesta_comercial;
       const diasRestantes = calcularDiasRestantes(fechaEstimada);
       return [
         s.sol_numero_solicitud || s.numero_solicitud || "-",
@@ -320,7 +319,7 @@ export default function AprobacionDesaprobacionPage() {
           : "-",
         s.observacionesComercial || "-",
         formatDateTime(s.sol_fecha_envio),
-        formatDateTime(s.sol_fecha_real_ejecutivo),
+        formatDateTime(s.sol_fecha_gest_ejn),
         formatDate(fechaEstimada),
         diasRestantes !== null ? diasRestantes : "-",
       ];
@@ -461,8 +460,7 @@ export default function AprobacionDesaprobacionPage() {
                     <tbody className="divide-y divide-gray-200">
                       {solicitudesActuales.map((solicitud) => {
                         const fechaEstimada =
-                          (solicitud as any).sol_fecha_estimada_auxiliar_servicio_cliente ||
-                          solicitud.fecha_estimada_respuesta_comercial;
+                          (solicitud as any).sol_fecha_est_gest_asc || solicitud.fecha_estimada_respuesta_comercial;
 
                         return (
                           <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
@@ -503,7 +501,7 @@ export default function AprobacionDesaprobacionPage() {
                             </Td>
                             <Td className="whitespace-nowrap">{solicitud.observacionesComercial || "-"}</Td>
                             <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_envio)}</Td>
-                            <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_real_ejecutivo)}</Td>
+                            <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_gest_ejn)}</Td>
                             <Td className="whitespace-nowrap">{formatDate(fechaEstimada)}</Td>
                             <Td className="whitespace-nowrap">
                               <DiasRestantesBadge fecha={fechaEstimada} />

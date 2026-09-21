@@ -19,6 +19,7 @@ interface TablaPersonaConEvidenciaProps {
   titulo: string;
   columnas: string[];
   filas: Record<string, string>[];
+  readOnly?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export function TablaPersonaConEvidencia({
   titulo,
   columnas,
   filas,
+  readOnly = false,
 }: TablaPersonaConEvidenciaProps) {
   const [evidencias, setEvidencias] = useState<Map<number, EvidenciaPersona>>(
     new Map(),
@@ -185,17 +187,21 @@ export function TablaPersonaConEvidencia({
                             <Eye size={12} />
                             Ver
                           </a>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEliminar(filaIndex, evidencia.sep_id)
-                            }
-                            title="Eliminar evidencia"
-                            className="p-1 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          {!readOnly && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleEliminar(filaIndex, evidencia.sep_id)
+                              }
+                              title="Eliminar evidencia"
+                              className="p-1 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
                         </div>
+                      ) : readOnly ? (
+                        <span className="text-xs text-gray-400">Sin evidencia</span>
                       ) : (
                         <label
                           className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 border border-dashed border-blue-300 text-blue-700 rounded-md cursor-pointer hover:bg-blue-50 transition-colors ${

@@ -1,12 +1,6 @@
 "use client";
-import {
-  solicitudesService,
-  type TablaPersonaResuelta,
-} from "@/services/solicitudes.service";
-import {
-  motivosRechazoService,
-  type MotivoRechazo,
-} from "@/services/admin/parametrizacion/motivos-rechazo.service";
+import { solicitudesService, type TablaPersonaResuelta } from "@/services/solicitudes.service";
+import { motivosRechazoService, type MotivoRechazo } from "@/services/admin/parametrizacion/motivos-rechazo.service";
 import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
@@ -22,15 +16,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import {
-  ArrowLeft,
-  FileText,
-  CheckCircle2,
-  CreditCard,
-  MessageSquare,
-  Check,
-  X,
-} from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, CreditCard, MessageSquare, Check, X } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
@@ -47,7 +33,7 @@ interface Solicitud {
   resultado_nombre?: string;
   sol_fecha_creacion: string;
   sol_fecha_estimada_respuesta_comercial: string | null;
-  sol_fecha_estimada_oficial_cumplimiento?: string | null;
+  sol_fecha_est_gest_oc?: string | null;
   sol_fecha_envio?: string | null;
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
@@ -58,7 +44,7 @@ interface Solicitud {
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
-  sol_fecha_real_ejecutivo?: string | null;
+  sol_fecha_gest_ejn?: string | null;
   usuario_revision?: string;
   fecha_revision?: string;
   fecha_creacion?: string;
@@ -199,9 +185,7 @@ export default function GestionOCPage() {
 
       const solicitudId = solicitud.sol_id ?? solicitud.sa_sol_id;
       const esRechazado = registro.resultado === "rechazado";
-      const motivoSeleccionado = motivosRechazo.find(
-        (m) => m.id === registro.motivoRechazoId
-      );
+      const motivoSeleccionado = motivosRechazo.find((m) => m.id === registro.motivoRechazoId);
       // El backend solo guarda un comentario por transición (historial +
       // correo al ejecutivo) — el motivo de rechazo se anexa ahí para no
       // perderlo, además del motivo_rechazo_id real (antes quedaba
@@ -228,7 +212,7 @@ export default function GestionOCPage() {
   };
 
   const fechaEstimada =
-    solicitud?.sol_fecha_estimada_oficial_cumplimiento ||
+    solicitud?.sol_fecha_est_gest_oc ||
     solicitud?.sol_fecha_estimada_respuesta_comercial ||
     solicitud?.fecha_estimada_respuesta_comercial;
 
@@ -243,8 +227,7 @@ export default function GestionOCPage() {
           <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <ArrowLeft size={15} strokeWidth={2.3} />
             </button>
             <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
@@ -300,36 +283,22 @@ export default function GestionOCPage() {
               <div className="px-7 py-[26px] border-b border-[#eef1f6]">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Cliente
-                    </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">
-                      {solicitud.cliente_nombre}
-                    </p>
-                    {solicitud.cliente_nit && (
-                      <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>
-                    )}
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Cliente</p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
+                    {solicitud.cliente_nit && <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>}
                   </div>
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                       Envío de la solicitud
                     </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">
-                      {formatDate(solicitud.sol_fecha_envio)}
-                    </p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">{formatDate(solicitud.sol_fecha_envio)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Estado
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Estado</p>
                     <span
                       className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: estadoTokens.color }}
-                      />
+                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
                       {ESTADOS[estadoId] || "Desconocido"}
                     </span>
                   </div>
@@ -349,8 +318,7 @@ export default function GestionOCPage() {
                           tipoSolicitud === "Ampliación de Cupo"
                             ? "text-emerald-800 bg-emerald-100"
                             : "text-blue-800 bg-blue-100"
-                        }`}
-                      >
+                        }`}>
                         {tipoSolicitud || "Cliente Nuevo"}
                       </span>
                     )}
@@ -368,110 +336,98 @@ export default function GestionOCPage() {
                     />
                   </div>
                 ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
-                  {/* Solicita cupo de crédito */}
-                  <div
-                    className="rounded-2xl p-5 border"
-                    style={{
-                      borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
-                      background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
-                    }}
-                  >
-                    <div className="flex items-center gap-[9px] mb-2.5">
-                      <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                        <CreditCard
-                          size={14}
-                          strokeWidth={2.2}
-                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                        />
-                      </div>
-                      <span
-                        className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
-                        style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                      >
-                        Solicita cupo de crédito
-                      </span>
-                    </div>
-                    {solicitaCredito ? (
-                      <div className="flex items-baseline gap-2.5 flex-wrap">
-                        <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
-                          {montoSolicitadoTexto || "Monto no especificado"}
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
+                    {/* Solicita cupo de crédito */}
+                    <div
+                      className="rounded-2xl p-5 border"
+                      style={{
+                        borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
+                        background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
+                      }}>
+                      <div className="flex items-center gap-[9px] mb-2.5">
+                        <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+                          <CreditCard
+                            size={14}
+                            strokeWidth={2.2}
+                            style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
+                          />
+                        </div>
+                        <span
+                          className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
+                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}>
+                          Solicita cupo de crédito
                         </span>
-                        {formaPagoSolicitada && (
-                          <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
-                            {formaPagoSolicitada}
-                          </span>
-                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
-                    )}
-                  </div>
-
-                  {/* Concepto del ejecutivo de negocios */}
-                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
-                    <div className="flex items-baseline justify-between gap-3 mb-3">
-                      <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] m-0">
-                        Concepto del ejecutivo de negocios
-                      </p>
-                      {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_real_ejecutivo) && (
-                        <p className="text-[11px] text-[#94a3b8] m-0 whitespace-nowrap">
-                          {solicitud.ejecutivo_nombre || "-"}
-                          {solicitud.sol_fecha_real_ejecutivo && (
-                            <>
-                              {` · ${formatDate(solicitud.sol_fecha_real_ejecutivo)}`}
-                              {!Number.isNaN(
-                                new Date(solicitud.sol_fecha_real_ejecutivo).getTime(),
-                              ) && (
-                                <span className="text-[10px] text-[#cbd5e1]">
-                                  {` ${new Date(
-                                    solicitud.sol_fecha_real_ejecutivo,
-                                  ).toLocaleTimeString("es-CO", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}`}
-                                </span>
-                              )}
-                            </>
+                      {solicitaCredito ? (
+                        <div className="flex items-baseline gap-2.5 flex-wrap">
+                          <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
+                            {montoSolicitadoTexto || "Monto no especificado"}
+                          </span>
+                          {formaPagoSolicitada && (
+                            <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
+                              {formaPagoSolicitada}
+                            </span>
                           )}
-                        </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">
-                          Consumo mensual proyectado
+
+                    {/* Concepto del ejecutivo de negocios */}
+                    <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
+                      <div className="flex items-baseline justify-between gap-3 mb-3">
+                        <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] m-0">
+                          Concepto del ejecutivo de negocios
                         </p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_consumo_mensual_proyectado ||
-                          solicitud.consumo_mensual_proyectado
-                            ? `$${(
-                                solicitud.sol_consumo_mensual_proyectado ||
-                                solicitud.consumo_mensual_proyectado
-                              )?.toLocaleString("es-CO", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}`
-                            : "-"}
-                        </p>
+                        {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_gest_ejn) && (
+                          <p className="text-[11px] text-[#94a3b8] m-0 whitespace-nowrap">
+                            {solicitud.ejecutivo_nombre || "-"}
+                            {solicitud.sol_fecha_gest_ejn && (
+                              <>
+                                {` · ${formatDate(solicitud.sol_fecha_gest_ejn)}`}
+                                {!Number.isNaN(new Date(solicitud.sol_fecha_gest_ejn).getTime()) && (
+                                  <span className="text-[10px] text-[#cbd5e1]">
+                                    {` ${new Date(solicitud.sol_fecha_gest_ejn).toLocaleTimeString("es-CO", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}`}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </p>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">
-                          Toneladas mensuales Proyectadas
-                        </p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_toneladas_proyectadas
-                            ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                            : "-"}
-                        </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo mensual proyectado</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
+                              ? `$${(
+                                  solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
+                                )?.toLocaleString("es-CO", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
+                              : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas mensuales Proyectadas</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.sol_toneladas_proyectadas
+                              ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                              : "-"}
+                          </p>
+                        </div>
                       </div>
+                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
+                      <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                        {solicitud.sol_observacion_ejn || "-"}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
-                    <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                      {solicitud.sol_observacion_ejn || "-"}
-                    </p>
                   </div>
-                </div>
                 )}
               </div>
 
@@ -486,10 +442,7 @@ export default function GestionOCPage() {
                   </h2>
 
                   <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-                    <SoportesAnalisis
-                      solicitudId={solicitud.sol_id}
-                      wetId={WORKFLOW_ETAPA.OFC.id}
-                    />
+                    <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={WORKFLOW_ETAPA.OFC.id} />
 
                     <TablaPersonaConEvidencia
                       solicitudId={solicitud.sol_id}
@@ -536,12 +489,8 @@ export default function GestionOCPage() {
                       <p
                         className="text-[11.5px] mt-1.5"
                         style={{
-                          color:
-                            observacionesLength > 0 && observacionesLength < 10
-                              ? "#dc2626"
-                              : "#94a3b8",
-                        }}
-                      >
+                          color: observacionesLength > 0 && observacionesLength < 10 ? "#dc2626" : "#94a3b8",
+                        }}>
                         {observacionesLength >= 10 || observacionesLength === 0
                           ? "Mínimo 10 caracteres requeridos."
                           : `Faltan ${10 - observacionesLength} caracteres.`}
@@ -559,12 +508,8 @@ export default function GestionOCPage() {
                           style={{
                             borderColor: registro.resultado === "aprobado" ? "#059669" : "#e5e7eb",
                             background: registro.resultado === "aprobado" ? "#ecfdf5" : "#fff",
-                            boxShadow:
-                              registro.resultado === "aprobado"
-                                ? "0 4px 12px rgba(5,150,105,0.12)"
-                                : "none",
-                          }}
-                        >
+                            boxShadow: registro.resultado === "aprobado" ? "0 4px 12px rgba(5,150,105,0.12)" : "none",
+                          }}>
                           <input
                             type="radio"
                             name="resultado"
@@ -590,19 +535,13 @@ export default function GestionOCPage() {
                           style={{
                             borderColor: registro.resultado === "rechazado" ? "#dc2626" : "#e5e7eb",
                             background: registro.resultado === "rechazado" ? "#fef2f2" : "#fff",
-                            boxShadow:
-                              registro.resultado === "rechazado"
-                                ? "0 4px 12px rgba(220,38,38,0.12)"
-                                : "none",
-                          }}
-                        >
+                            boxShadow: registro.resultado === "rechazado" ? "0 4px 12px rgba(220,38,38,0.12)" : "none",
+                          }}>
                           <input
                             type="radio"
                             name="resultado"
                             checked={registro.resultado === "rechazado"}
-                            onChange={() =>
-                              setRegistro((prev) => ({ ...prev, resultado: "rechazado" }))
-                            }
+                            onChange={() => setRegistro((prev) => ({ ...prev, resultado: "rechazado" }))}
                             className="w-4 h-4 accent-[#dc2626]"
                           />
                           <div className="w-[26px] h-[26px] rounded-lg bg-[#fee2e2] flex items-center justify-center flex-shrink-0">
@@ -629,8 +568,7 @@ export default function GestionOCPage() {
                                 motivoRechazoId: e.target.value ? Number(e.target.value) : null,
                               }))
                             }
-                            className="w-full border border-[#fca5a5] rounded-[9px] px-3 py-2.5 text-[13px] outline-none font-sans bg-white"
-                          >
+                            className="w-full border border-[#fca5a5] rounded-[9px] px-3 py-2.5 text-[13px] outline-none font-sans bg-white">
                             <option value="">Selecciona un motivo…</option>
                             {motivosRechazo.map((m) => (
                               <option key={m.id} value={m.id}>
@@ -646,15 +584,13 @@ export default function GestionOCPage() {
                       <button
                         onClick={handleGuardarRevision}
                         disabled={!puedeGuardar || registro.guardando}
-                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      >
+                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                         {registro.guardando ? "Guardando…" : "Guardar revisión"}
                       </button>
                       <button
                         onClick={() => router.back()}
                         disabled={registro.guardando}
-                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                         Cancelar
                       </button>
                     </div>
@@ -666,9 +602,7 @@ export default function GestionOCPage() {
                 </div>
 
                 <div className="min-w-0">
-                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">
-                    Historial de la solicitud
-                  </h2>
+                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">Historial de la solicitud</h2>
                   <HistorialSolicitud historial={historialWorkflow} />
                 </div>
               </div>
@@ -701,11 +635,7 @@ export default function GestionOCPage() {
         onAction={() => router.push("/solicitudes/gestion-oficial-de-cumplimiento")}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

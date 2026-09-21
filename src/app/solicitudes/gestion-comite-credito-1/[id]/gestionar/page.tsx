@@ -16,14 +16,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import {
-  ArrowLeft,
-  FileText,
-  CheckCircle2,
-  CreditCard,
-  TrendingUp,
-  MessageSquare,
-} from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, CreditCard, TrendingUp, MessageSquare } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
@@ -49,7 +42,7 @@ interface Solicitud {
   usuario_registro?: string;
   usuario_registro_id?: number;
   ejecutivo_nombre?: string;
-  sol_fecha_real_ejecutivo?: string | null;
+  sol_fecha_gest_ejn?: string | null;
   usuario_revision?: string;
   fecha_revision?: string;
   fecha_creacion?: string;
@@ -186,7 +179,7 @@ export default function GestionComiteCredito1Page() {
   };
 
   const fechaEstimada =
-    (solicitud as any)?.sol_fecha_estimada_comite_credito_1 ||
+    (solicitud as any)?.sol_fecha_est_gest_cc1 ||
     solicitud?.sol_fecha_estimada_respuesta_comercial ||
     solicitud?.fecha_estimada_respuesta_comercial;
 
@@ -201,17 +194,14 @@ export default function GestionComiteCredito1Page() {
           <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <ArrowLeft size={15} strokeWidth={2.3} />
             </button>
             <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
               <FileText size={20} className="text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">
-                Gestión Comité Crédito 1
-              </h1>
+              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">Gestión Comité Crédito 1</h1>
               {solicitud && (
                 <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
                   Solicitud{" "}
@@ -258,22 +248,15 @@ export default function GestionComiteCredito1Page() {
               <div className="px-7 py-[26px] border-b border-[#eef1f6]">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Cliente
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Cliente</p>
                     <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
-                    {solicitud.cliente_nit && (
-                      <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>
-                    )}
+                    {solicitud.cliente_nit && <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>}
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Estado
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Estado</p>
                     <span
                       className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}
-                    >
+                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
                       {ESTADOS[estadoId] || "Desconocido"}
                     </span>
@@ -294,8 +277,7 @@ export default function GestionComiteCredito1Page() {
                           tipoSolicitud === "Ampliación de Cupo"
                             ? "text-emerald-800 bg-emerald-100"
                             : "text-blue-800 bg-blue-100"
-                        }`}
-                      >
+                        }`}>
                         {tipoSolicitud || "Cliente Nuevo"}
                       </span>
                     )}
@@ -313,104 +295,98 @@ export default function GestionComiteCredito1Page() {
                     />
                   </div>
                 ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
-                  {/* Solicita cupo de crédito */}
-                  <div
-                    className="rounded-2xl p-5 border"
-                    style={{
-                      borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
-                      background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
-                    }}
-                  >
-                    <div className="flex items-center gap-[9px] mb-2.5">
-                      <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                        <CreditCard
-                          size={14}
-                          strokeWidth={2.2}
-                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                        />
-                      </div>
-                      <span
-                        className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
-                        style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                      >
-                        Solicita cupo de crédito
-                      </span>
-                    </div>
-                    {solicitaCredito ? (
-                      <div className="flex items-baseline gap-2.5 flex-wrap">
-                        <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
-                          {montoSolicitadoTexto || "Monto no especificado"}
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.4fr] gap-4 mt-[22px]">
+                    {/* Solicita cupo de crédito */}
+                    <div
+                      className="rounded-2xl p-5 border"
+                      style={{
+                        borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
+                        background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
+                      }}>
+                      <div className="flex items-center gap-[9px] mb-2.5">
+                        <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+                          <CreditCard
+                            size={14}
+                            strokeWidth={2.2}
+                            style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
+                          />
+                        </div>
+                        <span
+                          className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
+                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}>
+                          Solicita cupo de crédito
                         </span>
-                        {formaPagoSolicitada && (
-                          <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
-                            {formaPagoSolicitada}
-                          </span>
-                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
-                    )}
-                  </div>
-
-                  {/* Concepto del ejecutivo de negocios */}
-                  <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
-                    <div className="flex items-baseline justify-between gap-3 mb-3">
-                      <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] m-0">
-                        Concepto del ejecutivo de negocios
-                      </p>
-                      {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_real_ejecutivo) && (
-                        <p className="text-[11px] text-[#94a3b8] m-0 whitespace-nowrap">
-                          {solicitud.ejecutivo_nombre || "-"}
-                          {solicitud.sol_fecha_real_ejecutivo && (
-                            <>
-                              {` · ${formatDate(solicitud.sol_fecha_real_ejecutivo)}`}
-                              {!Number.isNaN(
-                                new Date(solicitud.sol_fecha_real_ejecutivo).getTime(),
-                              ) && (
-                                <span className="text-[10px] text-[#cbd5e1]">
-                                  {` ${new Date(
-                                    solicitud.sol_fecha_real_ejecutivo,
-                                  ).toLocaleTimeString("es-CO", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}`}
-                                </span>
-                              )}
-                            </>
+                      {solicitaCredito ? (
+                        <div className="flex items-baseline gap-2.5 flex-wrap">
+                          <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
+                            {montoSolicitadoTexto || "Monto no especificado"}
+                          </span>
+                          {formaPagoSolicitada && (
+                            <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
+                              {formaPagoSolicitada}
+                            </span>
                           )}
-                        </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo mensual proyectado</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                            ? `$${(
-                                solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                              )?.toLocaleString("es-CO", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}`
-                            : "-"}
+
+                    {/* Concepto del ejecutivo de negocios */}
+                    <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#f8fafc]">
+                      <div className="flex items-baseline justify-between gap-3 mb-3">
+                        <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#475569] m-0">
+                          Concepto del ejecutivo de negocios
                         </p>
+                        {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_gest_ejn) && (
+                          <p className="text-[11px] text-[#94a3b8] m-0 whitespace-nowrap">
+                            {solicitud.ejecutivo_nombre || "-"}
+                            {solicitud.sol_fecha_gest_ejn && (
+                              <>
+                                {` · ${formatDate(solicitud.sol_fecha_gest_ejn)}`}
+                                {!Number.isNaN(new Date(solicitud.sol_fecha_gest_ejn).getTime()) && (
+                                  <span className="text-[10px] text-[#cbd5e1]">
+                                    {` ${new Date(solicitud.sol_fecha_gest_ejn).toLocaleTimeString("es-CO", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}`}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </p>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas mensuales Proyectadas</p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitud.sol_toneladas_proyectadas
-                            ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                            : "-"}
-                        </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo mensual proyectado</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
+                              ? `$${(
+                                  solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
+                                )?.toLocaleString("es-CO", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
+                              : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas mensuales Proyectadas</p>
+                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
+                            {solicitud.sol_toneladas_proyectadas
+                              ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                              : "-"}
+                          </p>
+                        </div>
                       </div>
+                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
+                      <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                        {solicitud.sol_observacion_ejn || "-"}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
-                    <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                      {solicitud.sol_observacion_ejn || "-"}
-                    </p>
                   </div>
-                </div>
                 )}
 
                 {/* Concepto de Oficial de Cumplimiento — contexto de solo
@@ -446,10 +422,7 @@ export default function GestionComiteCredito1Page() {
                   </h2>
 
                   <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-                    <SoportesAnalisis
-                      solicitudId={solicitud.sol_id}
-                      wetId={WORKFLOW_ETAPA.CC1.id}
-                    />
+                    <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={WORKFLOW_ETAPA.CC1.id} />
 
                     {/* Evaluación de riesgo */}
                     <div>
@@ -464,8 +437,7 @@ export default function GestionComiteCredito1Page() {
                             evaluacionRiesgo: e.target.value,
                           }))
                         }
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
-                      >
+                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]">
                         <option value="">Selecciona una evaluación</option>
                         <option value="bajo">Riesgo bajo</option>
                         <option value="medio">Riesgo medio</option>
@@ -539,15 +511,13 @@ export default function GestionComiteCredito1Page() {
                       <button
                         onClick={handleGuardarRevision}
                         disabled={!puedeGuardar || registro.guardando}
-                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      >
+                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                         {registro.guardando ? "Enviando…" : "Enviar revisión a Comité Crédito 2"}
                       </button>
                       <button
                         onClick={() => router.back()}
                         disabled={registro.guardando}
-                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                         Cancelar
                       </button>
                     </div>
@@ -589,11 +559,7 @@ export default function GestionComiteCredito1Page() {
         onAction={() => router.push("/solicitudes/gestion-comite-credito-1")}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

@@ -7,18 +7,12 @@ import { getTodayBogota } from "@/lib/date-utils";
 import { useSearching } from "@/context/SearchingContext";
 import { cachedRequest } from "@/services/core/requestCache";
 
-import {
-  ClipboardList,
-  Eye,
-  PackageOpen,
-  Search,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ClipboardList, Eye, PackageOpen, Search, Trash2, X, Timer } from "lucide-react";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ESTADOS, getEstadoBadgeClass } from "@/lib/workflow-labels";
 import { ConfirmModal } from "@/components/modals";
+import { VerSlaModal } from "@/components/solicitudes/VerSlaModal";
 import { TablePagination } from "@/components/tables/TablePagination";
 import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
@@ -64,16 +58,16 @@ interface SolicitudListado {
   resultado_nombre?: string;
   sol_formulario_version: number | null;
   sol_fecha_estimada_respuesta_comercial: string | null;
-  sol_fecha_estimada_oficial_cumplimiento: string | null;
-  sol_fecha_real_oficial_cumplimiento: string | null;
-  sol_fecha_estimada_comite_credito_1: string | null;
-  sol_fecha_real_comite_credito_1: string | null;
-  sol_fecha_estimada_comite_credito_2: string | null;
-  sol_fecha_real_comite_credito_2: string | null;
-  sol_fecha_estimada_ejecutivo?: string | null;
-  sol_fecha_real_ejecutivo?: string | null;
-  sol_fecha_estimada_auxiliar_servicio_cliente?: string | null;
-  sol_fecha_real_auxiliar_servicio_cliente?: string | null;
+  sol_fecha_est_gest_oc: string | null;
+  sol_fecha_gest_oc: string | null;
+  sol_fecha_est_gest_cc1: string | null;
+  sol_fecha_gest_cc1: string | null;
+  sol_fecha_est_gest_cc2: string | null;
+  sol_fecha_gest_cc2: string | null;
+  sol_fecha_est_gest_ejn?: string | null;
+  sol_fecha_gest_ejn?: string | null;
+  sol_fecha_est_gest_asc?: string | null;
+  sol_fecha_gest_asc?: string | null;
   sol_cupo_aprobado?: number | null;
   sol_cupo_solicitado?: number | null;
   es_ampliacion_cupo?: boolean | number | null;
@@ -115,12 +109,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const [loading, setLoading] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Ejecutivo[]>([]);
-  const [etapas, setEtapas] = useState<
-    Array<{ wet_id: number; wet_nombre: string }>
-  >([]);
-  const [resultados, setResultados] = useState<
-    Array<{ wee_id: number; wee_nombre: string }>
-  >([]);
+  const [etapas, setEtapas] = useState<Array<{ wet_id: number; wet_nombre: string }>>([]);
+  const [resultados, setResultados] = useState<Array<{ wee_id: number; wee_nombre: string }>>([]);
   const [rows, setRows] = useState<SolicitudListado[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -146,6 +136,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const [etapaId, setEtapaId] = useState("");
   const [resultadoId, setResultadoId] = useState("");
   const [tipoSolicitud, setTipoSolicitud] = useState("");
+  const [slaSolicitud, setSlaSolicitud] = useState<{ numero: string } | null>(null);
 
   useEffect(() => {
     // Esperar a que se resuelva el usuario antes de restaurar filtros desde
@@ -157,12 +148,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     const params = new URLSearchParams(searchParams.toString());
     const hasParams = params.size > 0;
 
-    if (params.has("fecha_desde"))
-      setFechaDesde(params.get("fecha_desde") || "");
-    if (params.has("fecha_hasta"))
-      setFechaHasta(params.get("fecha_hasta") || "");
-    if (params.has("cliente_id"))
-      setClienteId(params.get("cliente_id") || "");
+    if (params.has("fecha_desde")) setFechaDesde(params.get("fecha_desde") || "");
+    if (params.has("fecha_hasta")) setFechaHasta(params.get("fecha_hasta") || "");
+    if (params.has("cliente_id")) setClienteId(params.get("cliente_id") || "");
     if (esEjecutivo && user?.ejng_id) {
       params.set("ejecutivo_id", String(user.ejng_id));
       setEjecutivoId(String(user.ejng_id));
@@ -170,14 +158,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     } else if (params.has("ejecutivo_id")) {
       setEjecutivoId(params.get("ejecutivo_id") || "");
     }
-    if (params.has("estado_id"))
-      setEstadoId(params.get("estado_id") || "");
-    if (params.has("etapa_id"))
-      setEtapaId(params.get("etapa_id") || "");
-    if (params.has("resultado_etapa_id"))
-      setResultadoId(params.get("resultado_etapa_id") || "");
-    if (params.has("tipo_solicitud"))
-      setTipoSolicitud(params.get("tipo_solicitud") || "");
+    if (params.has("estado_id")) setEstadoId(params.get("estado_id") || "");
+    if (params.has("etapa_id")) setEtapaId(params.get("etapa_id") || "");
+    if (params.has("resultado_etapa_id")) setResultadoId(params.get("resultado_etapa_id") || "");
+    if (params.has("tipo_solicitud")) setTipoSolicitud(params.get("tipo_solicitud") || "");
 
     const wasSearched = params.get("hasSearched") === "true";
     if (wasSearched) setHasSearched(true);
@@ -190,24 +174,16 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [clientesData, etapasData, resultadosData, ejecutivosData] =
-          await Promise.all([
-            // Solo se usa como picklist de filtro en esta página — se
-            // cachea por sesión para no repetir la carga completa de
-            // clientes (la más pesada de las 4) cada vez que se visita.
-            cachedRequest("listado-solicitudes-clientes", () =>
-              clientesService.getAll(),
-            ),
-            solicitudesService.getEtapas(),
-            solicitudesService.getResultados(),
-            clientesService.getEjecutivosNegocio(),
-          ]);
-        console.log("📋 Respuestas iniciales:", {
-          clientesData,
-          etapasData,
-          resultadosData,
-          ejecutivosData,
-        });
+        const [clientesData, etapasData, resultadosData, ejecutivosData] = await Promise.all([
+          // Solo se usa como picklist de filtro en esta página — se
+          // cachea por sesión para no repetir la carga completa de
+          // clientes (la más pesada de las 4) cada vez que se visita.
+          cachedRequest("listado-solicitudes-clientes", () => clientesService.getAll()),
+          solicitudesService.getEtapas(),
+          solicitudesService.getResultados(),
+          clientesService.getEjecutivosNegocio(),
+        ]);
+
         setEtapas(etapasData || []);
         setResultados(resultadosData || []);
 
@@ -215,9 +191,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           ? clientesData.map((item: any) => ({
               cli_id: Number(item.cli_id ?? item.id ?? 0),
               cli_razon_social: String(item.cli_razon_social ?? ""),
-              cli_nro_identificacion: String(
-                item.cli_nro_identificacion ?? "",
-              ),
+              cli_nro_identificacion: String(item.cli_nro_identificacion ?? ""),
               ejng_id: item.ejng_id != null ? Number(item.ejng_id) : null,
             }))
           : [];
@@ -229,14 +203,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
               ejecutivo_nombre: String(item.ejng_nombre ?? ""),
             }))
           : [];
-        setEjecutivos(
-          mappedEjecutivos.filter((item: Ejecutivo) => item.ejecutivo_id > 0),
-        );
+        setEjecutivos(mappedEjecutivos.filter((item: Ejecutivo) => item.ejecutivo_id > 0));
       } catch (error) {
-        console.error(
-          "[SolicitudesListadoDeSolicitudesPage] Error cargando catálogos",
-          error,
-        );
+        console.error("[SolicitudesListadoDeSolicitudesPage] Error cargando catálogos", error);
       }
     }
 
@@ -266,37 +235,24 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     }
   }, [ejecutivoId, clientes]);
 
-  async function ejecutarBusquedaConUrlParams(
-    urlParams: URLSearchParams,
-  ) {
+  async function ejecutarBusquedaConUrlParams(urlParams: URLSearchParams) {
     try {
       setLoading(true);
       const params: any = {};
-      if (urlParams.has("fecha_desde"))
-        params.fecha_desde = urlParams.get("fecha_desde");
-      if (urlParams.has("fecha_hasta"))
-        params.fecha_hasta = urlParams.get("fecha_hasta");
-      if (urlParams.has("cliente_id"))
-        params.cliente_id = urlParams.get("cliente_id");
-      if (urlParams.has("ejecutivo_id"))
-        params.ejecutivo_id = urlParams.get("ejecutivo_id");
+      if (urlParams.has("fecha_desde")) params.fecha_desde = urlParams.get("fecha_desde");
+      if (urlParams.has("fecha_hasta")) params.fecha_hasta = urlParams.get("fecha_hasta");
+      if (urlParams.has("cliente_id")) params.cliente_id = urlParams.get("cliente_id");
+      if (urlParams.has("ejecutivo_id")) params.ejecutivo_id = urlParams.get("ejecutivo_id");
       if (urlParams.has("estado_id")) params.estado_id = urlParams.get("estado_id");
       if (urlParams.has("etapa_id")) params.etapa_id = urlParams.get("etapa_id");
-      if (urlParams.has("resultado_etapa_id"))
-        params.resultado_etapa_id = urlParams.get("resultado_etapa_id");
-      if (urlParams.has("tipo_solicitud"))
-        params.tipo_solicitud = urlParams.get("tipo_solicitud");
+      if (urlParams.has("resultado_etapa_id")) params.resultado_etapa_id = urlParams.get("resultado_etapa_id");
+      if (urlParams.has("tipo_solicitud")) params.tipo_solicitud = urlParams.get("tipo_solicitud");
 
-      console.log("🔵 [FRONTEND] Ejecutando búsqueda con URL params:", params);
       const data = await solicitudesService.getListado(params);
-      console.log("🔵 [FRONTEND] Resultado de búsqueda con URL params:", data);
       setRows(data);
       setCurrentPage(1);
     } catch (error) {
-      console.error(
-        "[SolicitudesListadoDeSolicitudesPage] Error consultando listado",
-        error,
-      );
+      console.error("[SolicitudesListadoDeSolicitudesPage] Error consultando listado", error);
     } finally {
       setLoading(false);
     }
@@ -304,9 +260,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
   const clientesFiltrados = useMemo(() => {
     const porEjecutivo = ejecutivoId
-      ? clientes.filter(
-          (cliente) => String(cliente.ejng_id) === String(ejecutivoId),
-        )
+      ? clientes.filter((cliente) => String(cliente.ejng_id) === String(ejecutivoId))
       : clientes;
     if (!clienteBusqueda) return porEjecutivo;
     const term = clienteBusqueda.toLowerCase();
@@ -320,9 +274,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   const ejecutivosFiltrados = useMemo(() => {
     if (!ejecutivoBusqueda) return ejecutivos;
     return ejecutivos.filter((ejecutivo) =>
-      ejecutivo.ejecutivo_nombre
-        .toLowerCase()
-        .includes(ejecutivoBusqueda.toLowerCase())
+      ejecutivo.ejecutivo_nombre.toLowerCase().includes(ejecutivoBusqueda.toLowerCase()),
     );
   }, [ejecutivos, ejecutivoBusqueda]);
 
@@ -334,18 +286,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (
-        mostrarClienteLista &&
-        clienteContainerRef.current &&
-        !clienteContainerRef.current.contains(target)
-      ) {
+      if (mostrarClienteLista && clienteContainerRef.current && !clienteContainerRef.current.contains(target)) {
         setMostrarClienteLista(false);
       }
-      if (
-        mostrarEjecutivoLista &&
-        ejecutivoContainerRef.current &&
-        !ejecutivoContainerRef.current.contains(target)
-      ) {
+      if (mostrarEjecutivoLista && ejecutivoContainerRef.current && !ejecutivoContainerRef.current.contains(target)) {
         setMostrarEjecutivoLista(false);
       }
     }
@@ -367,34 +311,14 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   }, [rows, currentPage, pageSize]);
 
   async function buscar() {
-    console.log("🔴 [FRONTEND] Iniciando búsqueda con filtros:", {
-      fechaDesde,
-      fechaHasta,
-      clienteId,
-      ejecutivoId,
-      estadoId,
-      etapaId,
-      resultadoId,
-    });
+
     try {
-      console.log("✅ BOTÓN BUSCAR PRESIONADO");
       startSearching();
       setLoading(true);
       setHasSearched(true);
       const params: any = {};
 
-      console.log("🔴 [FRONTEND] 1️⃣ Iniciando buscar...");
-      // console.log("🔴 [FRONTEND] Valores actuales:", {
-      //   fechaDesde,
-      //   fechaHasta,
-      //   centroOperacionId,
-      //   clienteId,
-      //   ejecutivoId,
-      //   estadoId,
-      //   etapaId,
-      //   resultadoId,
-      // });
-
+     
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
       if (clienteId) params.cliente_id = clienteId;
@@ -404,11 +328,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       if (resultadoId) params.resultado_etapa_id = resultadoId;
       if (tipoSolicitud) params.tipo_solicitud = tipoSolicitud;
 
-      // console.log("🔴 [FRONTEND] 2️⃣ Parámetros construidos:", params);
 
       const data = await solicitudesService.getListado(params);
-      console.log("📊 DATOS RECIBIDOS DEL BACKEND:", data);
-      console.log("📊 CANTIDAD DE REGISTROS:", Array.isArray(data) ? data.length : "NO ES ARRAY");
+
       setRows(data);
       setCurrentPage(1);
 
@@ -424,10 +346,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       urlParams.set("hasSearched", "true");
       window.history.replaceState(null, "", `?${urlParams.toString()}`);
     } catch (error) {
-      console.error(
-        "[SolicitudesListadoDeSolicitudesPage] Error consultando listado",
-        error,
-      );
+      console.error("[SolicitudesListadoDeSolicitudesPage] Error consultando listado", error);
     } finally {
       setLoading(false);
       stopSearching();
@@ -467,7 +386,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Área Ejecutivo",
       "Auxiliar Serv. Cliente",
       "Área Auxiliar",
-      "Fecha de creación",
       "Fecha de envío",
       "Fecha de aprobación",
       "Estado",
@@ -476,11 +394,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Cupo Aprobado",
       "Plazo Pago",
       "Forma Pago",
-      "F. Est. Ejecutivo de Negocios",
       "F. Real Ejecutivo de Negocios",
-      "F. Est. Auxiliar Servicio al Cliente",
       "F. Real Auxiliar Servicio al Cliente",
-      "Fecha estimada oficial cumplimiento",
       "Fecha real oficial cumplimiento",
     ];
 
@@ -492,7 +407,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.ejecutivo_area || "-",
       row.auxiliar_nombre || "-",
       row.auxiliar_area || "-",
-      formatDateTime(row.sol_fecha_creacion),
       formatDateTime(row.sol_fecha_envio),
       formatDateTime(row.sol_fecha_aprobacion),
       ESTADOS[row.sol_estado_id] || "Desconocido",
@@ -501,12 +415,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.sol_cupo_aprobado ? `$${row.sol_cupo_aprobado.toLocaleString("es-CO")}` : "-",
       row.sol_plazo_pago || "-",
       row.sol_forma_pago || "-",
-      formatDateTime(row.sol_fecha_estimada_ejecutivo),
-      formatDateTime(row.sol_fecha_real_ejecutivo),
-      formatDateTime(row.sol_fecha_estimada_auxiliar_servicio_cliente),
-      formatDateTime(row.sol_fecha_real_auxiliar_servicio_cliente),
-      formatDateTime(row.sol_fecha_estimada_oficial_cumplimiento),
-      formatDateTime(row.sol_fecha_real_oficial_cumplimiento),
+      formatDateTime(row.sol_fecha_gest_ejn),
+      formatDateTime(row.sol_fecha_gest_asc),
+      formatDateTime(row.sol_fecha_gest_oc),
     ]);
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
@@ -522,16 +433,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       setEliminando(true);
       setErrorEliminar(null);
       await solicitudesService.remove(solicitudAEliminar.sol_id);
-      setRows((prev) =>
-        prev.filter((r) => r.sol_id !== solicitudAEliminar.sol_id),
-      );
+      setRows((prev) => prev.filter((r) => r.sol_id !== solicitudAEliminar.sol_id));
       setSolicitudAEliminar(null);
     } catch (error: any) {
-      setErrorEliminar(
-        error?.response?.data?.message ||
-          error?.message ||
-          "No fue posible eliminar la solicitud",
-      );
+      setErrorEliminar(error?.response?.data?.message || error?.message || "No fue posible eliminar la solicitud");
     } finally {
       setEliminando(false);
     }
@@ -545,256 +450,218 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           eyebrow="Solicitudes"
           title="Listado de solicitudes"
           // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
-          onBack={() => router.push("/solicitudes")}
-        >
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <FilterField
-                  label="Ejecutivo"
-                  className="relative"
-                  ref={ejecutivoContainerRef}
-                >
-                  <input
-                    type="text"
-                    placeholder="Buscar ejecutivo..."
-                    value={ejecutivoBusqueda}
-                    onFocus={() => setMostrarEjecutivoLista(true)}
-                    onChange={(event) => {
-                      setEjecutivoBusqueda(event.target.value);
-                      setMostrarEjecutivoLista(true);
+          onBack={() => router.push("/solicitudes")}>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <FilterField label="Ejecutivo" className="relative" ref={ejecutivoContainerRef}>
+              <input
+                type="text"
+                placeholder="Buscar ejecutivo..."
+                value={ejecutivoBusqueda}
+                onFocus={() => setMostrarEjecutivoLista(true)}
+                onChange={(event) => {
+                  setEjecutivoBusqueda(event.target.value);
+                  setMostrarEjecutivoLista(true);
+                }}
+                disabled={esEjecutivo}
+                title={esEjecutivo ? "Solo puedes ver tus propias solicitudes" : undefined}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
+              />
+              {!esEjecutivo && mostrarEjecutivoLista && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                  <div
+                    onClick={() => {
+                      setEjecutivoId("");
+                      setEjecutivoBusqueda("");
+                      setMostrarEjecutivoLista(false);
                     }}
-                    disabled={esEjecutivo}
-                    title={
-                      esEjecutivo
-                        ? "Solo puedes ver tus propias solicitudes"
-                        : undefined
-                    }
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
-                  />
-                  {!esEjecutivo && mostrarEjecutivoLista && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                    className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200">
+                    Limpiar selección
+                  </div>
+                  {ejecutivosFiltrados.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-gray-500">Sin resultados</div>
+                  ) : (
+                    ejecutivosFiltrados.map((ejecutivo) => (
                       <div
+                        key={ejecutivo.ejecutivo_id}
                         onClick={() => {
-                          setEjecutivoId("");
-                          setEjecutivoBusqueda("");
+                          setEjecutivoId(String(ejecutivo.ejecutivo_id));
+                          setEjecutivoBusqueda(ejecutivo.ejecutivo_nombre);
                           setMostrarEjecutivoLista(false);
                         }}
-                        className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                      >
-                        Limpiar selección
+                        className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100">
+                        {ejecutivo.ejecutivo_nombre}
                       </div>
-                      {ejecutivosFiltrados.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-gray-500">
-                          Sin resultados
-                        </div>
-                      ) : (
-                        ejecutivosFiltrados.map((ejecutivo) => (
-                          <div
-                            key={ejecutivo.ejecutivo_id}
-                            onClick={() => {
-                              setEjecutivoId(String(ejecutivo.ejecutivo_id));
-                              setEjecutivoBusqueda(ejecutivo.ejecutivo_nombre);
-                              setMostrarEjecutivoLista(false);
-                            }}
-                            className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                          >
-                            {ejecutivo.ejecutivo_nombre}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    ))
                   )}
-                </FilterField>
+                </div>
+              )}
+            </FilterField>
 
-                <FilterField
-                  label="Cliente"
-                  className="relative"
-                  ref={clienteContainerRef}
-                >
-                  <input
-                    type="text"
-                    placeholder="Buscar cliente..."
-                    value={clienteBusqueda}
-                    onFocus={() => setMostrarClienteLista(true)}
-                    onChange={(event) => {
-                      setClienteBusqueda(event.target.value);
-                      setMostrarClienteLista(true);
+            <FilterField label="Cliente" className="relative" ref={clienteContainerRef}>
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={clienteBusqueda}
+                onFocus={() => setMostrarClienteLista(true)}
+                onChange={(event) => {
+                  setClienteBusqueda(event.target.value);
+                  setMostrarClienteLista(true);
+                }}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {mostrarClienteLista && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                  <div
+                    onClick={() => {
+                      setClienteId("");
+                      setClienteBusqueda("");
+                      setMostrarClienteLista(false);
                     }}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {mostrarClienteLista && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                    className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200">
+                    Limpiar selección
+                  </div>
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-gray-500">Sin resultados</div>
+                  ) : (
+                    clientesFiltrados.map((cliente) => (
                       <div
+                        key={cliente.cli_id}
                         onClick={() => {
-                          setClienteId("");
-                          setClienteBusqueda("");
+                          setClienteId(String(cliente.cli_id));
+                          setClienteBusqueda(cliente.cli_razon_social);
                           setMostrarClienteLista(false);
                         }}
-                        className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-200"
-                      >
-                        Limpiar selección
+                        className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100">
+                        <div>{cliente.cli_razon_social}</div>
+                        {cliente.cli_nro_identificacion && (
+                          <div className="text-[11px] text-gray-500">NIT {cliente.cli_nro_identificacion}</div>
+                        )}
                       </div>
-                      {clientesFiltrados.length === 0 ? (
-                        <div className="px-3 py-2 text-xs text-gray-500">
-                          Sin resultados
-                        </div>
-                      ) : (
-                        clientesFiltrados.map((cliente) => (
-                          <div
-                            key={cliente.cli_id}
-                            onClick={() => {
-                              setClienteId(String(cliente.cli_id));
-                              setClienteBusqueda(cliente.cli_razon_social);
-                              setMostrarClienteLista(false);
-                            }}
-                            className="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                          >
-                            <div>{cliente.cli_razon_social}</div>
-                            {cliente.cli_nro_identificacion && (
-                              <div className="text-[11px] text-gray-500">
-                                NIT {cliente.cli_nro_identificacion}
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    ))
                   )}
-                </FilterField>
+                </div>
+              )}
+            </FilterField>
 
-                <FilterField label="Fecha de creación desde">
-                  <input
-                    type="date"
-                    value={fechaDesde}
-                    onChange={(event) => setFechaDesde(event.target.value)}
-                    max={hoy}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </FilterField>
+            <FilterField label="Fecha de envío desde">
+              <input
+                type="date"
+                value={fechaDesde}
+                onChange={(event) => setFechaDesde(event.target.value)}
+                max={hoy}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </FilterField>
 
-                <FilterField label="Fecha de creación hasta">
-                  <input
-                    type="date"
-                    value={fechaHasta}
-                    onChange={(event) => setFechaHasta(event.target.value)}
-                    max={hoy}
-                    min={fechaDesde || undefined}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </FilterField>
+            <FilterField label="Fecha de envío hasta">
+              <input
+                type="date"
+                value={fechaHasta}
+                onChange={(event) => setFechaHasta(event.target.value)}
+                max={hoy}
+                min={fechaDesde || undefined}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </FilterField>
 
-                <FilterField label="Estado">
-                  <select
-                    value={estadoId}
-                    onChange={(event) => setEstadoId(event.target.value)}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    {Object.entries(ESTADOS).map(([id, nombre]) => (
-                      <option key={id} value={id}>
-                        {nombre}
-                      </option>
-                    ))}
-                  </select>
-                </FilterField>
+            <FilterField label="Estado">
+              <select
+                value={estadoId}
+                onChange={(event) => setEstadoId(event.target.value)}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                {Object.entries(ESTADOS).map(([id, nombre]) => (
+                  <option key={id} value={id}>
+                    {nombre}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
 
-                <FilterField label="Etapa Actual">
-                  <select
-                    value={etapaId}
-                    onChange={(event) => setEtapaId(event.target.value)}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    {etapas.map((item) => (
-                      <option key={item.wet_id} value={item.wet_id}>
-                        {item.wet_nombre}
-                      </option>
-                    ))}
-                  </select>
-                </FilterField>
+            <FilterField label="Etapa Actual">
+              <select
+                value={etapaId}
+                onChange={(event) => setEtapaId(event.target.value)}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                {etapas.map((item) => (
+                  <option key={item.wet_id} value={item.wet_id}>
+                    {item.wet_nombre}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
 
-                <FilterField label="Resultado Etapa">
-                  <select
-                    value={resultadoId}
-                    onChange={(event) => setResultadoId(event.target.value)}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    {resultados.map((item) => (
-                      <option key={item.wee_id} value={item.wee_id}>
-                        {item.wee_nombre}
-                      </option>
-                    ))}
-                  </select>
-                </FilterField>
+            <FilterField label="Resultado Etapa">
+              <select
+                value={resultadoId}
+                onChange={(event) => setResultadoId(event.target.value)}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                {resultados.map((item) => (
+                  <option key={item.wee_id} value={item.wee_id}>
+                    {item.wee_nombre}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
 
-                <FilterField label="Tipo de Solicitud">
-                  <select
-                    value={tipoSolicitud}
-                    onChange={(event) => setTipoSolicitud(event.target.value)}
-                    className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    <option value="NUEVO">Cliente Nuevo</option>
-                    <option value="AMPLIACION">Ampliación de Cupo</option>
-                  </select>
-                </FilterField>
+            <FilterField label="Tipo de Solicitud">
+              <select
+                value={tipoSolicitud}
+                onChange={(event) => setTipoSolicitud(event.target.value)}
+                className="w-full h-9 px-3 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos</option>
+                <option value="NUEVO">Cliente Nuevo</option>
+                <option value="AMPLIACION">Ampliación de Cupo</option>
+              </select>
+            </FilterField>
 
-                <FilterActions className="col-span-full">
-                  <button
-                    onClick={limpiarFiltros}
-                    className="px-6 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded border border-gray-300 bg-white transition-colors inline-flex items-center justify-center gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Limpiar
-                  </button>
-                  <button
-                    onClick={buscar}
-                    disabled={!canSearch || loading}
-                    className="px-6 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-2"
-                  >
-                    <Search className="h-4 w-4" />
-                    Buscar
-                  </button>
-                </FilterActions>
-              </div>
+            <FilterActions className="col-span-full">
+              <button
+                onClick={limpiarFiltros}
+                className="px-6 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded border border-gray-300 bg-white transition-colors inline-flex items-center justify-center gap-2">
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={buscar}
+                disabled={!canSearch || loading}
+                className="px-6 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-2">
+                <Search className="h-4 w-4" />
+                Buscar
+              </button>
+            </FilterActions>
+          </div>
 
-              <div className="flex gap-2 mt-0 justify-end hidden">
-                <button
-                  onClick={limpiarFiltros}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-                >
-                  <X className="h-4 w-4" />
-                  Limpiar
-                </button>
-                <button
-                  onClick={buscar}
-                  disabled={!canSearch || loading}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Search className="h-4 w-4" />
-                  Buscar
-                </button>
-              </div>
+          <div className="flex gap-2 mt-0 justify-end hidden">
+            <button
+              onClick={limpiarFiltros}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white">
+              <X className="h-4 w-4" />
+              Limpiar
+            </button>
+            <button
+              onClick={buscar}
+              disabled={!canSearch || loading}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+              <Search className="h-4 w-4" />
+              Buscar
+            </button>
+          </div>
         </PageHeaderCard>
 
-          {!hasSearched ? (
-            <EmptyStateCard
-              icon={Search}
-              title='Selecciona los filtros y haz clic en "Buscar" para ver los resultados.'
-            />
-          ) : rows.length === 0 ? (
-            <EmptyStateCard
-              icon={PackageOpen}
-              title="No hay resultados para los filtros seleccionados."
-            />
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-              <ResultsToolbar
-                count={rows.length}
-                label="solicitud(es) encontrada(s)"
-                onExport={exportarExcelCsv}
-              />
-              <TableContainer>
+        {!hasSearched ? (
+          <EmptyStateCard
+            icon={Search}
+            title='Selecciona los filtros y haz clic en "Buscar" para ver los resultados.'
+          />
+        ) : rows.length === 0 ? (
+          <EmptyStateCard icon={PackageOpen} title="No hay resultados para los filtros seleccionados." />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+            <ResultsToolbar count={rows.length} label="solicitud(es) encontrada(s)" onExport={exportarExcelCsv} />
+            <TableContainer>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-blue-100">
                   <thead className="bg-gray-50 sticky top-0 z-20">
@@ -803,105 +670,43 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       <Th>Tipo</Th>
                       <Th>Ejecutivo</Th>
                       <Th>Cliente</Th>
-                      <Th>Fecha y Hora de creación</Th>
                       <Th>Fecha de envío</Th>
                       <Th>Fecha de aprobación</Th>
                       <Th>Estado</Th>
                       <Th>Etapa Actual</Th>
                       <Th>Resultado Etapa</Th>
-                      <Th>F. Est. Ejecutivo de Negocios</Th>
                       <Th>F. Real Ejecutivo de Negocios</Th>
-                      <Th>F. Est. Auxiliar Servicio al Cliente</Th>
                       <Th>F. Real Auxiliar Servicio al Cliente</Th>
-                      <Th>F. Est. Cumplimiento</Th>
                       <Th>F. Real Cumplimiento</Th>
-                      <Th>F. Est. Crédito 1</Th>
                       <Th>F. Real Crédito 1</Th>
-                      <Th>F. Est. Crédito 2</Th>
                       <Th>F. Real Crédito 2</Th>
                       <Th>Cupo Aprobado</Th>
                       <Th>Plazo Pago</Th>
                       <Th>Forma Pago</Th>
                       <Th sticky align="right">
-                        Detalle Solicitud
+                        Acciones
                       </Th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {paginatedRows.map((row) => (
                       <Tr key={row.sol_id}>
-                        <Td>
-                          {row.sol_numero_solicitud || "-"}
-                        </Td>
+                        <Td>{row.sol_numero_solicitud || "-"}</Td>
                         <Td>
                           <TipoSolicitudBadge esAmpliacionCupo={row.es_ampliacion_cupo} />
                         </Td>
-                        <Td>
-                          {row.ejecutivo_nombre || "-"}
-                        </Td>
-                        <Td>
-                          {row.cliente_nombre || "-"}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_creacion)}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_envio)}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_aprobacion)}
-                        </Td>
-                        <Td>
-                          {ESTADOS[row.sol_estado_id] || "Desconocido"}
-                        </Td>
-                        <Td>
-                          {row.etapa_nombre || "-"}
-                        </Td>
-                        <Td>
-                          {row.resultado_nombre || "-"}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_estimada_ejecutivo)}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_real_ejecutivo)}
-                        </Td>
-                        <Td>
-                          {formatDateTime(
-                            row.sol_fecha_estimada_auxiliar_servicio_cliente,
-                          )}
-                        </Td>
-                        <Td>
-                          {formatDateTime(
-                            row.sol_fecha_real_auxiliar_servicio_cliente,
-                          )}
-                        </Td>
-                        <Td>
-                          {formatDateTime(
-                            row.sol_fecha_estimada_oficial_cumplimiento,
-                          )}
-                        </Td>
-                        <Td>
-                          {formatDateTime(
-                            row.sol_fecha_real_oficial_cumplimiento,
-                          )}
-                        </Td>
-                        <Td>
-                          {formatDateTime(
-                            row.sol_fecha_estimada_comite_credito_1,
-                          )}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_real_comite_credito_1)}
-                        </Td>
-                        <Td>
-                          {formatDateTime(
-                            row.sol_fecha_estimada_comite_credito_2,
-                          )}
-                        </Td>
-                        <Td>
-                          {formatDateTime(row.sol_fecha_real_comite_credito_2)}
-                        </Td>
+                        <Td>{row.ejecutivo_nombre || "-"}</Td>
+                        <Td>{row.cliente_nombre || "-"}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_envio)}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_aprobacion)}</Td>
+                        <Td>{ESTADOS[row.sol_estado_id] || "Desconocido"}</Td>
+                        <Td>{row.etapa_nombre || "-"}</Td>
+                        <Td>{row.resultado_nombre || "-"}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_gest_ejn)}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_gest_asc)}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_gest_oc)}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_gest_cc1)}</Td>
+                        <Td>{formatDateTime(row.sol_fecha_gest_cc2)}</Td>
                         <Td>
                           {row.sol_cupo_aprobado ? (
                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
@@ -911,23 +716,23 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                             "-"
                           )}
                         </Td>
-                        <Td>
-                          {row.sol_plazo_pago || "-"}
-                        </Td>
-                        <Td>
-                          {row.sol_forma_pago || "-"}
-                        </Td>
+                        <Td>{row.sol_plazo_pago || "-"}</Td>
+                        <Td>{row.sol_forma_pago || "-"}</Td>
                         <Td sticky align="right" className="border-l border-gray-100">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() =>
-                                router.push(`/solicitudes/${row.sol_id}/detalle`)
-                              }
+                              onClick={() => router.push(`/solicitudes/${row.sol_id}/detalle`)}
                               aria-label="Ver detalle completo"
                               title="Ver detalle"
-                              className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-700 transition-colors hover:bg-blue-100"
-                            >
+                              className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 p-2 text-blue-700 transition-colors hover:bg-blue-100">
                               <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setSlaSolicitud({ numero: row.sol_numero_solicitud })}
+                              aria-label="Ver SLA"
+                              title="Ver SLA"
+                              className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-700 transition-colors hover:bg-amber-100">
+                              <Timer className="h-4 w-4" />
                             </button>
                             {esAdmin && (
                               <button
@@ -939,8 +744,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                                 }
                                 aria-label="Eliminar solicitud"
                                 title="Eliminar solicitud"
-                                className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 transition-colors hover:bg-red-100"
-                              >
+                                className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 transition-colors hover:bg-red-100">
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             )}
@@ -951,33 +755,29 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   </tbody>
                 </table>
               </div>
-              </TableContainer>
+            </TableContainer>
 
-              <TablePagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalItems={rows.length}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-          )}
+            <TablePagination
+              page={currentPage}
+              pageSize={pageSize}
+              totalItems={rows.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
 
-          {hasSearched && (
-            <div className="grid grid-cols-1 gap-4 mt-6">
-              <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-                <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
-                  Total resultados
-                </p>
-                <p className="text-2xl font-semibold text-slate-800 mt-1">
-                  {rows.length}
-                </p>
-              </div>
+        {hasSearched && (
+          <div className="grid grid-cols-1 gap-4 mt-6">
+            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Total resultados</p>
+              <p className="text-2xl font-semibold text-slate-800 mt-1">{rows.length}</p>
             </div>
-          )}
+          </div>
+        )}
       </div>
 
       <ConfirmModal
@@ -997,6 +797,8 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           setErrorEliminar(null);
         }}
       />
+
+      {slaSolicitud && <VerSlaModal numero={slaSolicitud.numero} onClose={() => setSlaSolicitud(null)} />}
     </div>
   );
 }

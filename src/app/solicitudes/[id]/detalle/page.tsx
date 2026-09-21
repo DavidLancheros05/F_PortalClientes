@@ -14,20 +14,21 @@ import {
   ShieldCheck,
   Users,
   Award,
+  CheckCircle2,
+  Table,
+  X,
 } from "lucide-react";
 import { PdfIcon } from "@/components/icons/FileIcons";
 import { solicitudesService } from "@/services/solicitudes.service";
+import { VerSlaModal } from "@/components/solicitudes/VerSlaModal";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { variablesPlantillaService } from "@/services/admin/parametrizacion/variables-plantilla.service";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { formatDate } from "@/lib/date-utils";
-import {
-  generarPlantillaDocumentoPdf,
-  construirMapaRespuestasPregunta,
-} from "@/lib/carta-pdf.util";
+import { generarPlantillaDocumentoPdf, construirMapaRespuestasPregunta } from "@/lib/carta-pdf.util";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
-import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
+import { TablasCumplimientoModal } from "@/components/TablasCumplimientoModal";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
 import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
@@ -41,7 +42,7 @@ interface SolicitudDetalle {
   cliente_nombre: string;
   cliente_nit?: string;
   ejecutivo_nombre?: string;
-  sol_fecha_real_ejecutivo?: string | null;
+  sol_fecha_gest_ejn?: string | null;
   usuario_registro?: string;
   usuario_revision?: string;
   centro_operacion_nombre?: string;
@@ -109,7 +110,7 @@ function GestorInfo({
   const fechaObj = fecha ? new Date(fecha) : null;
   const fechaValida = fechaObj && !Number.isNaN(fechaObj.getTime());
   return (
-    <p className={`text-[11px] text-[#94a3b8] m-0 whitespace-nowrap ${className}`}>
+    <p className={`text-[11px] text-[#94a3b8] m-0 whitespace-nowrap leading-relaxed ${className}`}>
       {usuario || "-"}
       {fechaValida && (
         <>
@@ -126,11 +127,9 @@ function GestorInfo({
   );
 }
 
-// Tarjeta de "Gestión por Área": encabezado con ícono + nombre del área a
-// la izquierda y quién/cuándo a la derecha, cuerpo con el contenido propio
-// de cada etapa. `span2` la hace ocupar las dos columnas del grid en
-// pantallas grandes (se usa en Comité de Crédito 2, que suele traer además
-// las condiciones financieras aprobadas).
+// Tarjeta de "Gestión por Área" en layout horizontal: columna izquierda
+// con ícono + nombre del área, columna derecha con el contenido. `span2`
+// la hace ocupar las dos columnas del grid en pantallas grandes.
 function AreaCard({
   icon: Icon,
   titulo,
@@ -138,32 +137,129 @@ function AreaCard({
   fecha,
   span2 = false,
   children,
+  sla,
 }: {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   titulo: string;
   usuario?: string | null;
   fecha?: string | null;
   span2?: boolean;
+  sla?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div
-      className={`rounded-2xl border border-[#eef1f6] bg-[#fafbfd] overflow-hidden flex flex-col ${
+      className={`rounded-xl border border-[#e2e8f0] bg-white overflow-hidden flex flex-col sm:flex-row shadow-[0_1px_3px_rgba(15,23,42,0.05)] hover:shadow-[0_2px_6px_rgba(15,23,42,0.08)] transition-shadow duration-200 ${
         span2 ? "lg:col-span-2" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#eef1f6] bg-white">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-            <Icon size={14} strokeWidth={2.2} className="text-brand-600" />
-          </div>
-          <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] m-0 truncate">
-            {titulo}
-          </p>
+      }`}>
+      {/* Columna izquierda: ícono */}
+      <div className="sm:w-[80px] flex-shrink-0 bg-gradient-to-b from-[#f0f4ff] to-[#f8faff] border-b sm:border-b-0 sm:border-r border-[#eef1f6] flex items-center justify-center py-3">
+        <div className="w-12 h-12 rounded-xl bg-[#e7edfb] flex items-center justify-center">
+          <Icon size={22} strokeWidth={2} className="text-brand-600" />
         </div>
-        <GestorInfo usuario={usuario} fecha={fecha} className="mb-0 flex-shrink-0" />
       </div>
-      <div className="p-4 flex-1 flex flex-col gap-3">{children}</div>
+      {/* Columna central: área + gestor + SLA */}
+      <div className="sm:w-[360px] flex-shrink-0 border-b sm:border-b-0 sm:border-r border-[#eef1f6] px-3.5 py-3 flex flex-row sm:flex-col items-center justify-center sm:items-center gap-2 sm:gap-1">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#1e40af] m-0 text-center leading-tight">
+          {titulo}
+        </p>
+        <GestorInfo usuario={usuario} fecha={fecha} className="mb-0 text-center hidden sm:block" />
+        {sla}
+      </div>
+      {/* Columna derecha: contenido */}
+      <div className="flex-1 p-3.5 flex flex-col items-center gap-2.5 min-w-0">{children}</div>
+    </div>
+  );
+}
+
+// Badge de SLA para cada área
+function SlaBadge({
+  area,
+}: {
+  area: { dias_meta: number | null; dias_reales: number | null; procesada: boolean; vencida: boolean } | undefined;
+}) {
+  if (!area || !area.dias_meta) return null;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+        area.vencida
+          ? "text-red-700 bg-red-50 border border-red-200"
+          : area.procesada
+            ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+            : "text-amber-700 bg-amber-50 border border-amber-200"
+      }`}>
+      ⏱ {area.vencida ? "Vencida" : area.procesada ? `${area.dias_reales}d/${area.dias_meta}d` : `${area.dias_meta}d`}
+    </span>
+  );
+}
+
+// Renderiza comentarios que contienen campos de decisión (DECISIÓN, NOMBRE
+// QUIEN APRUEBA, FECHA, etc.) como un bloque visual con badges y valores.
+// Si el texto no coincide con el patrón esperado, se muestra como texto
+// plano con whitespace-pre-wrap.
+function DecisionDisplay({ texto }: { texto: string }) {
+  const lineas = texto.split("\n").filter((l) => l.trim());
+  const campos: { label: string; valor: string; esDecision?: boolean; esFecha?: boolean; esNombre?: boolean }[] = [];
+  const otros: string[] = [];
+
+  for (const linea of lineas) {
+    const match = linea.match(/^\s*([^:]+?)\s*:\s*(.+)$/);
+    if (match) {
+      const label = match[1].trim().toUpperCase();
+      const valor = match[2].trim();
+      campos.push({
+        label,
+        valor,
+        esDecision: label === "DECISIÓN",
+        esFecha: label.includes("FECHA"),
+        esNombre: label.includes("NOMBRE"),
+      });
+    } else {
+      otros.push(linea);
+    }
+  }
+
+  if (campos.length === 0) {
+    return <p className="text-[12px] text-[#334155] m-0 whitespace-pre-wrap text-center leading-relaxed">{texto}</p>;
+  }
+
+  const decision = campos.find((c) => c.esDecision);
+
+  return (
+    <div className="flex flex-col items-center gap-2.5 w-full">
+      {/* Badge de decisión compacto */}
+      {decision && (
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 size={14} className="text-emerald-500" />
+          </div>
+          <span className="text-[14px] font-extrabold text-emerald-600 uppercase tracking-[0.06em]">
+            {decision.valor}
+          </span>
+        </div>
+      )}
+
+      {/* Campos secundarios compactos en fila */}
+      {campos.filter((c) => !c.esDecision).length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {campos
+            .filter((c) => !c.esDecision)
+            .map((campo, i) => (
+              <div key={i} className="flex items-center gap-1.5 bg-[#f1f5f9] rounded-full px-3 py-1">
+                <span className="text-[9.5px] text-[#94a3b8] uppercase tracking-wider font-semibold">
+                  {campo.label}
+                </span>
+                <span className="text-[11px] font-bold text-[#0f172a]">{campo.valor}</span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {otros.length > 0 && (
+        <p className="text-[11px] text-[#64748b] m-0 whitespace-pre-wrap text-center leading-relaxed">
+          {otros.join("\n")}
+        </p>
+      )}
     </div>
   );
 }
@@ -179,18 +275,16 @@ export default function DetalleDetailPage() {
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [descargandoPdfFormulario, setDescargandoPdfFormulario] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
-  const { historial } = useHistorialWorkflow(
-    Number.isFinite(solicitudId) ? solicitudId : null,
-  );
+  const [mostrarTablasCumplimiento, setMostrarTablasCumplimiento] = useState(false);
+  const [showSlaModal, setShowSlaModal] = useState(false);
+  const { historial } = useHistorialWorkflow(Number.isFinite(solicitudId) ? solicitudId : null);
   const {
     loading: loadingCupo,
     solicitaCredito,
     montoSolicitadoTexto,
     formaPagoSolicitada,
     tipoSolicitud,
-  } = useSolicitudCupoSolicitado(
-    Number.isFinite(solicitudId) ? solicitudId : null,
-  );
+  } = useSolicitudCupoSolicitado(Number.isFinite(solicitudId) ? solicitudId : null);
 
   const abrirPdfFormulario = async () => {
     try {
@@ -216,9 +310,7 @@ export default function DetalleDetailPage() {
       // param_carta_pdf_vinculacion, tabla aparte que ya no se edita — ver
       // documentacion/mejoras/rediseno-gestionar-comite-credito.md).
       const tipos = await documentosService.getAll();
-      const plantillaActiva = tipos.find(
-        (t) => t.origen === "CARTA_APROBACION" && t.estado,
-      );
+      const plantillaActiva = tipos.find((t) => t.origen === "CARTA_APROBACION" && t.estado);
 
       if (!plantillaActiva || !plantillaActiva.plantillaContenido) {
         setActionErrorMessage("No hay plantilla de carta activa");
@@ -232,12 +324,8 @@ export default function DetalleDetailPage() {
       // generarPlantillaDocumentoPdf tira error.
       let respuestasPregunta: Record<string, string> | undefined;
       if (/\{\{pregunta\|/.test(plantillaActiva.plantillaContenido)) {
-        const renderizable = await solicitudesService.getFormularioRenderizable(
-          solicitudId,
-        );
-        respuestasPregunta = construirMapaRespuestasPregunta(
-          renderizable.preguntas,
-        );
+        const renderizable = await solicitudesService.getFormularioRenderizable(solicitudId);
+        respuestasPregunta = construirMapaRespuestasPregunta(renderizable.preguntas);
       }
 
       // Variables con tabla/columna de origen configuradas en
@@ -247,9 +335,7 @@ export default function DetalleDetailPage() {
       // para alguna (ej. si se desconfigura por error).
       let reemplazosDinamicos: Record<string, string> = {};
       try {
-        reemplazosDinamicos = await variablesPlantillaService.resolverParaSolicitud(
-          solicitud.sol_id,
-        );
+        reemplazosDinamicos = await variablesPlantillaService.resolverParaSolicitud(solicitud.sol_id);
       } catch (err) {
         console.error("Error resolviendo variables con mapeo automático:", err);
       }
@@ -275,9 +361,7 @@ export default function DetalleDetailPage() {
         reemplazosExtra: {
           "{{cupo_aprobado}}": formatCurrency(solicitud.sol_cupo_aprobado),
           "{{forma_pago}}": solicitud.sol_forma_pago || "-",
-          "{{plazo}}": solicitud.sol_plazo_pago
-            ? `${solicitud.sol_plazo_pago} días`
-            : "-",
+          "{{plazo}}": solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-",
           "{{fecha_aprobacion}}": formatDateLarga(solicitud.fecha_aprobacion),
           ...reemplazosDinamicos,
         },
@@ -339,6 +423,66 @@ export default function DetalleDetailPage() {
   const comentarioCC1 = entradaCC1?.comentario;
   const comentarioCC2 = entradaCC2?.comentario;
 
+  // Helper para obtener SLA de un área (incremental: vs área anterior)
+  const slaArea = (areaCodigo: string) => {
+    if (!solicitud) return undefined;
+    const orden = ["EJN", "ASC", "OFC", "CC1", "CC2"] as const;
+    const mapa: Record<string, { estimada: string | null; real: string | null }> = {
+      EJN: { estimada: solicitud.sol_fecha_est_gest_ejn, real: solicitud.sol_fecha_gest_ejn },
+      ASC: { estimada: solicitud.sol_fecha_est_gest_asc, real: solicitud.sol_fecha_gest_asc },
+      OFC: {
+        estimada: solicitud.sol_fecha_est_gest_oc,
+        real: solicitud.sol_fecha_gest_oc,
+      },
+      CC1: { estimada: solicitud.sol_fecha_est_gest_cc1, real: solicitud.sol_fecha_gest_cc1 },
+      CC2: { estimada: solicitud.sol_fecha_est_gest_cc2, real: solicitud.sol_fecha_gest_cc2 },
+    };
+    const idx = orden.indexOf(areaCodigo as (typeof orden)[number]);
+    if (idx < 0) return undefined;
+    const d = mapa[areaCodigo];
+    if (!d?.estimada) return undefined;
+    // Base = fecha estimada del área anterior (o fecha de envío si es la primera)
+    const anterior = idx > 0 ? mapa[orden[idx - 1]] : null;
+    const baseEstimada = anterior?.estimada
+      ? new Date(anterior.estimada)
+      : solicitud.sol_fecha_envio
+        ? new Date(solicitud.sol_fecha_envio)
+        : null;
+    const baseReal = anterior?.real
+      ? new Date(anterior.real)
+      : solicitud.sol_fecha_envio
+        ? new Date(solicitud.sol_fecha_envio)
+        : null;
+    if (!baseEstimada) return undefined;
+    const est = new Date(d.estimada);
+    const real = d.real ? new Date(d.real) : null;
+    const diasMeta = Math.max(0, Math.ceil((est.getTime() - baseEstimada.getTime()) / 86400000));
+    const procesada = !!real;
+    const vencida = procesada && !!baseReal && real! > est;
+    const diasReales =
+      procesada && baseReal ? Math.max(0, Math.ceil((real!.getTime() - baseReal.getTime()) / 86400000)) : null;
+    return { dias_meta: diasMeta, dias_reales: diasReales, procesada, vencida };
+  };
+
+  // SLA global: total desde envío hasta la última área
+  const slaGlobal = (() => {
+    if (!solicitud) return null;
+    const ultimaEst = solicitud.sol_fecha_est_gest_cc2;
+    const ultimaReal = solicitud.sol_fecha_gest_cc2;
+    const envio = solicitud.sol_fecha_envio;
+    if (!envio || !ultimaEst) return null;
+    const envioDate = new Date(envio);
+    const estDate = new Date(ultimaEst);
+    const realDate = ultimaReal ? new Date(ultimaReal) : null;
+    const diasMeta = Math.max(0, Math.ceil((estDate.getTime() - envioDate.getTime()) / 86400000));
+    const procesada = !!realDate;
+    const vencida = procesada && realDate! > estDate;
+    const diasReales = procesada
+      ? Math.max(0, Math.ceil((realDate!.getTime() - envioDate.getTime()) / 86400000))
+      : null;
+    return { dias_meta: diasMeta, dias_reales: diasReales, procesada, vencida };
+  })();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
       <div className="max-w-[1240px] mx-auto">
@@ -347,23 +491,17 @@ export default function DetalleDetailPage() {
           <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <ArrowLeft size={15} strokeWidth={2.3} />
             </button>
             <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
               <FileText size={20} className="text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">
-                Detalle de Solicitud
-              </h1>
+              <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">Detalle de Solicitud</h1>
               {solicitud && (
                 <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
-                  Solicitud{" "}
-                  <span className="font-bold text-white">
-                    {solicitud.sol_numero_solicitud}
-                  </span>
+                  Solicitud <span className="font-bold text-white">{solicitud.sol_numero_solicitud}</span>
                 </p>
               )}
             </div>
@@ -387,142 +525,126 @@ export default function DetalleDetailPage() {
           ) : (
             <>
               {/* Info block */}
-              <div className="px-7 py-[26px] border-b border-[#eef1f6]">
-                <div className="rounded-2xl p-4 border border-[#eef1f6] bg-[#fafbfd] mb-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] flex items-center gap-[9px] tracking-[-0.01em] m-0">
-                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <Info size={15} strokeWidth={2.2} className="text-brand-600" />
-                      </div>
+              <div className="px-6 py-5 border-b border-[#eef1f6]">
+                <div className="rounded-xl border border-[#e2e8f0] bg-white mb-4 shadow-[0_1px_3px_rgba(15,23,42,0.05)] flex flex-col sm:flex-row overflow-hidden">
+                  {/* Columna izquierda: ícono */}
+                  <div className="sm:w-[80px] flex-shrink-0 bg-gradient-to-b from-[#f0f4ff] to-[#f8faff] border-b sm:border-b-0 sm:border-r border-[#eef1f6] flex items-center justify-center py-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#e7edfb] flex items-center justify-center">
+                      <Info size={22} strokeWidth={2} className="text-brand-600" />
+                    </div>
+                  </div>
+
+                  {/* Columna central: título + badges */}
+                  <div className="sm:w-[360px] flex-shrink-0 border-b sm:border-b-0 sm:border-r border-[#eef1f6] px-3.5 py-3 flex flex-row sm:flex-col items-center justify-center sm:items-center gap-2 sm:gap-1.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#1e40af] m-0 text-center leading-tight">
                       Información de la Solicitud
-                    </h2>
-                    <div className="flex flex-wrap gap-2 shrink-0">
+                    </p>
+                    {/* Badges de estado */}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          solicitud.sol_cupo_solicitado
+                            ? "text-emerald-800 bg-emerald-100"
+                            : tipoSolicitud === "Ampliación de Cupo"
+                              ? "text-emerald-800 bg-emerald-100"
+                              : "text-blue-800 bg-blue-100"
+                        }`}>
+                        {solicitud.sol_cupo_solicitado
+                          ? "Ampliación de Cupo"
+                          : loadingCupo
+                            ? "..."
+                            : tipoSolicitud || "Cliente Nuevo"}
+                      </span>
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
+                        {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded-full">
+                        📅 Envío: {formatDate(solicitud.sol_fecha_envio)}
+                      </span>
+                      {slaGlobal && slaGlobal.dias_meta > 0 && (
+                        <button
+                          onClick={() => setShowSlaModal(true)}
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity border-0 ${
+                            slaGlobal.vencida
+                              ? "text-red-700 bg-red-50"
+                              : slaGlobal.procesada
+                                ? "text-emerald-700 bg-emerald-50"
+                                : "text-amber-700 bg-amber-50"
+                          }`}>
+                          ⏱ SLA:{" "}
+                          {slaGlobal.vencida
+                            ? "Vencida"
+                            : slaGlobal.procesada
+                              ? `${slaGlobal.dias_reales}d / ${slaGlobal.dias_meta}d`
+                              : `${slaGlobal.dias_meta}d total`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Columna derecha: botones + contenido */}
+                  <div className="flex-1 p-4 flex flex-col items-center gap-3">
+                    {/* Botones de acción */}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
                       <button
                         onClick={() => router.push(`/solicitudes/${solicitud.sol_id}`)}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-xl hover:bg-cyan-100 transition-colors"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Ver Formulario
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-md hover:bg-cyan-100 transition-colors">
+                        <FileText className="h-3 w-3" />
+                        Formulario
                       </button>
                       <button
                         onClick={abrirPdfFormulario}
                         disabled={descargandoPdfFormulario}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-[12.5px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-md hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         <PdfIcon />
-                        {descargandoPdfFormulario ? "Generando..." : "Ver PDF Formulario"}
+                        {descargandoPdfFormulario ? "..." : "PDF"}
                       </button>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-3">
-                    <div className="sm:pr-6">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                        Tipo de Solicitud
-                      </p>
-                      {solicitud.sol_cupo_solicitado ? (
-                        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full text-emerald-800 bg-emerald-100">
-                          Ampliación de Cupo
-                        </span>
-                      ) : loadingCupo ? (
-                        <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
-                      ) : (
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full ${
-                            tipoSolicitud === "Ampliación de Cupo"
-                              ? "text-emerald-800 bg-emerald-100"
-                              : "text-blue-800 bg-blue-100"
-                          }`}
-                        >
-                          {tipoSolicitud || "Cliente Nuevo"}
-                        </span>
+
+                    {/* Datos del cliente y solicita cupo */}
+                    <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+                      <div className="flex items-center gap-2">
+                        <Building2 size={13} strokeWidth={2.2} className="text-brand-500 flex-shrink-0" />
+                        <div>
+                          <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider font-semibold">
+                            Cliente:{" "}
+                          </span>
+                          <span className="text-[12px] font-bold text-[#0f172a]">
+                            {solicitud.cliente_nombre || "-"}
+                          </span>
+                          {solicitud.cliente_nit && (
+                            <span className="text-[11px] text-[#94a3b8] ml-1.5">({solicitud.cliente_nit})</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {!solicitud.sol_cupo_solicitado && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <DollarSign size={14} strokeWidth={2.5} className="text-emerald-600" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider font-semibold">
+                              Cupo de Crédito
+                            </span>
+                            <p className="text-[14px] font-extrabold text-emerald-700 m-0 leading-tight">
+                              {solicitaCredito ? montoSolicitadoTexto || "monto no especificado" : "No solicita"}
+                            </p>
+                            {solicitaCredito && formaPagoSolicitada && (
+                              <span className="text-[10px] text-[#94a3b8]">{formaPagoSolicitada}</span>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <div className="sm:px-6 sm:border-l sm:border-[#eef1f6]">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                        Estado
-                      </p>
-                      <span
-                        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                        style={{ color: estadoTokens.color, background: estadoTokens.bg }}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
-                        {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
-                      </span>
-                    </div>
-                    <div className="sm:pl-6 sm:border-l sm:border-[#eef1f6]">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                        Fecha de Envío
-                      </p>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-sm font-bold text-[#0f172a] m-0">
-                          {formatDate(solicitud.sol_fecha_envio)}
-                        </p>
-                        {(() => {
-                          const fecha = solicitud.sol_fecha_envio
-                            ? new Date(solicitud.sol_fecha_envio)
-                            : null;
-                          if (!fecha || Number.isNaN(fecha.getTime())) return null;
-                          return (
-                            <p className="text-xs text-[#94a3b8] m-0">
-                              {fecha.toLocaleTimeString("es-CO", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-[#eef1f6] my-3" />
-
-                  <div
-                    className={`grid grid-cols-1 divide-y divide-[#eef1f6] md:divide-y-0 md:divide-x md:divide-[#eef1f6] ${
-                      solicitud.sol_cupo_solicitado ? "" : "md:grid-cols-2"
-                    }`}
-                  >
-                    {/* Datos del Cliente */}
-                    <div className="pb-3 md:pb-0 md:pr-6">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-2 flex items-center gap-1.5">
-                        <Building2 size={13} strokeWidth={2.2} className="text-brand-500" />
-                        Datos del Cliente
-                      </p>
-                      <div className="flex flex-wrap gap-x-6 gap-y-2">
-                        <div>
-                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Razón Social</p>
-                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                            {solicitud.cliente_nombre || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-[#94a3b8] mb-0.5">NIT/Documento</p>
-                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                            {solicitud.cliente_nit || "-"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Solicita Cupo */}
-                    {!solicitud.sol_cupo_solicitado && (
-                      <div className="pt-3 md:pt-0 md:pl-6">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-2 flex items-center gap-1.5">
-                          <DollarSign size={13} strokeWidth={2.2} className="text-brand-500" />
-                          Solicita Cupo
-                        </p>
-                        <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                          {solicitaCredito
-                            ? `Sí — ${montoSolicitadoTexto || "monto no especificado"}${formaPagoSolicitada ? ` · ${formaPagoSolicitada}` : ""}`
-                            : "No"}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {solicitud.sol_cupo_solicitado && (
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <AmpliacionCupoResumen
                       cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
                       cupoSolicitado={solicitud.sol_cupo_solicitado}
@@ -535,7 +657,7 @@ export default function DetalleDetailPage() {
               </div>
 
               {/* Cuerpo: Gestión por Área */}
-              <div className="p-7">
+              <div className="px-6 py-5">
                 {/* Gestión por Área — el detalle real de lo que hizo cada
                     área en su etapa, no solo el estado genérico actual. Cada
                     tarjeta solo se muestra si esa área ya fue alcanzada
@@ -550,13 +672,13 @@ export default function DetalleDetailPage() {
                   comentarioCC1 ||
                   comentarioCC2) && (
                   <div className="mt-4">
-                    <h2 className="text-[13.5px] font-extrabold text-[#0f172a] mb-3 flex items-center gap-[9px] tracking-[-0.01em]">
-                      <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
-                        <Clock size={15} strokeWidth={2.2} className="text-brand-600" />
+                    <h2 className="text-[14px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                      <div className="w-[32px] h-[32px] rounded-[10px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <Clock size={16} strokeWidth={2.2} className="text-brand-600" />
                       </div>
                       Gestión por Área
                     </h2>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="flex flex-col gap-3">
                       {(solicitud.sol_observacion_ejn ||
                         solicitud.sol_consumo_mensual_proyectado ||
                         solicitud.sol_toneladas_proyectadas) && (
@@ -564,26 +686,35 @@ export default function DetalleDetailPage() {
                           icon={Briefcase}
                           titulo="Ejecutivo de Negocios"
                           usuario={solicitud.ejecutivo_nombre}
-                          fecha={solicitud.sol_fecha_real_ejecutivo}
-                        >
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-white rounded-lg p-2.5 border border-[#eef1f6]">
-                              <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Consumo Mensual</p>
-                              <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                                {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
-                              </p>
+                          fecha={solicitud.sol_fecha_gest_ejn}
+                          sla={<SlaBadge area={slaArea("EJN")} />}>
+                          <div className="flex flex-wrap items-center justify-center gap-3">
+                            <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3.5 py-2 border border-emerald-200">
+                              <DollarSign size={14} strokeWidth={2.5} className="text-emerald-600 flex-shrink-0" />
+                              <div>
+                                <p className="text-[9px] text-emerald-700 uppercase tracking-wider font-semibold m-0">
+                                  Consumo Mensual
+                                </p>
+                                <p className="text-[13px] font-extrabold text-emerald-800 m-0 leading-tight">
+                                  {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
+                                </p>
+                              </div>
                             </div>
-                            <div className="bg-white rounded-lg p-2.5 border border-[#eef1f6]">
-                              <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Toneladas</p>
-                              <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                                {solicitud.sol_toneladas_proyectadas
-                                  ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                                  : "-"}
-                              </p>
+                            <div className="flex items-center gap-2 bg-[#f1f5f9] rounded-xl px-3.5 py-2 border border-[#e2e8f0]">
+                              <div>
+                                <p className="text-[9px] text-[#64748b] uppercase tracking-wider font-semibold m-0">
+                                  Toneladas
+                                </p>
+                                <p className="text-[13px] font-extrabold text-[#0f172a] m-0 leading-tight">
+                                  {solicitud.sol_toneladas_proyectadas
+                                    ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
+                                    : "-"}
+                                </p>
+                              </div>
                             </div>
                           </div>
                           {solicitud.sol_observacion_ejn && (
-                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
+                            <p className="text-[11.5px] text-[#475569] m-0 whitespace-pre-wrap text-center leading-relaxed">
                               {solicitud.sol_observacion_ejn}
                             </p>
                           )}
@@ -596,10 +727,8 @@ export default function DetalleDetailPage() {
                           titulo="Auxiliar Servicio al Cliente"
                           usuario={entradaASC?.usuarioNombre}
                           fecha={entradaASC?.fecha}
-                        >
-                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                            {comentarioASC}
-                          </p>
+                          sla={<SlaBadge area={slaArea("ASC")} />}>
+                          <DecisionDisplay texto={comentarioASC} />
                         </AreaCard>
                       )}
 
@@ -609,16 +738,20 @@ export default function DetalleDetailPage() {
                           titulo="Oficial de Cumplimiento"
                           usuario={entradaOFC?.usuarioNombre}
                           fecha={entradaOFC?.fecha}
-                        >
-                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                            {comentarioOFC}
-                          </p>
+                          sla={<SlaBadge area={slaArea("OFC")} />}>
+                          <DecisionDisplay texto={comentarioOFC} />
                           <SoportesAnalisis
                             solicitudId={solicitud.sol_id}
                             wetId={WORKFLOW_ETAPA.OFC.id}
                             titulo="Soportes de Oficial de Cumplimiento"
                             readOnly
                           />
+                          <button
+                            onClick={() => setMostrarTablasCumplimiento(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-brand-700 bg-brand-50 border border-brand-200 rounded-md hover:bg-brand-100 transition-colors">
+                            <Table className="h-3 w-3" />
+                            Ver tablas de cumplimiento
+                          </button>
                         </AreaCard>
                       )}
 
@@ -628,10 +761,8 @@ export default function DetalleDetailPage() {
                           titulo="Comité de Crédito 1"
                           usuario={entradaCC1?.usuarioNombre}
                           fecha={entradaCC1?.fecha}
-                        >
-                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                            {comentarioCC1}
-                          </p>
+                          sla={<SlaBadge area={slaArea("CC1")} />}>
+                          <DecisionDisplay texto={comentarioCC1} />
                           <SoportesAnalisis
                             solicitudId={solicitud.sol_id}
                             wetId={WORKFLOW_ETAPA.CC1.id}
@@ -648,45 +779,57 @@ export default function DetalleDetailPage() {
                           usuario={entradaCC2?.usuarioNombre}
                           fecha={entradaCC2?.fecha}
                           span2={!!solicitud.sol_cupo_aprobado}
-                        >
-                          <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                            {comentarioCC2}
-                          </p>
+                          sla={<SlaBadge area={slaArea("CC2")} />}>
+                          <DecisionDisplay texto={comentarioCC2} />
 
                           {/* Condiciones Financieras Aprobadas */}
                           {solicitud.sol_cupo_aprobado && (
-                            <div className="rounded-lg p-3 border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50">
-                              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                                <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-emerald-800 m-0">
+                            <div className="rounded-lg p-3.5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 w-full">
+                              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <p className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-emerald-800 m-0">
                                   Condiciones Financieras Aprobadas
                                 </p>
                                 <button
                                   onClick={abrirCartaPDF}
                                   disabled={generandoPDF}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <FileText className="h-3.5 w-3.5" />
-                                  {generandoPDF ? "Generando..." : "Ver Carta PDF"}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-all hover:shadow disabled:opacity-50 disabled:cursor-not-allowed">
+                                  <FileText className="h-3 w-3" />
+                                  {generandoPDF ? "Generando..." : "Carta PDF"}
                                 </button>
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
-                                  <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Cupo Aprobado</p>
-                                  <p className="text-[15px] font-extrabold text-emerald-700 m-0">
+
+                              {/* Cupo aprobado - protagonista */}
+                              <div className="flex items-center justify-center gap-2.5 bg-white rounded-xl px-4 py-3 border border-emerald-200 mb-3">
+                                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                  <DollarSign size={18} strokeWidth={2.5} className="text-emerald-600" />
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-[9px] text-emerald-700 uppercase tracking-wider font-semibold m-0">
+                                    Cupo Aprobado
+                                  </p>
+                                  <p className="text-[18px] font-extrabold text-emerald-700 m-0 leading-tight">
                                     {formatCurrency(solicitud.sol_cupo_aprobado)}
                                   </p>
                                 </div>
-                                <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
-                                  <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Plazo de Pago</p>
-                                  <p className="text-[15px] font-extrabold text-emerald-700 m-0">
+                              </div>
+
+                              {/* Plazo y forma de pago */}
+                              <div className="flex flex-wrap items-center justify-center gap-2">
+                                <div className="flex items-center gap-1.5 bg-white/80 rounded-full px-3 py-1 border border-emerald-200">
+                                  <span className="text-[9.5px] text-[#94a3b8] uppercase tracking-wider font-semibold">
+                                    Plazo
+                                  </span>
+                                  <span className="text-[11px] font-extrabold text-emerald-700">
                                     {solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-"}
-                                  </p>
+                                  </span>
                                 </div>
-                                <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
-                                  <p className="text-[10.5px] text-[#94a3b8] uppercase mb-0.5">Forma de Pago</p>
-                                  <p className="text-[13.5px] font-extrabold text-emerald-700 m-0">
+                                <div className="flex items-center gap-1.5 bg-white/80 rounded-full px-3 py-1 border border-emerald-200">
+                                  <span className="text-[9.5px] text-[#94a3b8] uppercase tracking-wider font-semibold">
+                                    Forma de Pago
+                                  </span>
+                                  <span className="text-[11px] font-extrabold text-emerald-700">
                                     {solicitud.sol_forma_pago || "-"}
-                                  </p>
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -698,21 +841,16 @@ export default function DetalleDetailPage() {
                 )}
 
                 {/* Documentos y respuestas por etapa */}
-                <div className="rounded-2xl p-5 border border-[#eef1f6] bg-[#fafbfd] mt-4">
+                <div className="rounded-2xl p-5 border border-[#e2e8f0] bg-white mt-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
                   <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-                </div>
-
-                <div className="mt-4">
-                  <HistorialSolicitud historial={historial} />
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="px-7 py-5 border-t border-[#eef1f6] flex justify-end">
+              <div className="px-6 py-4 border-t border-[#eef1f6] flex justify-end">
                 <button
                   onClick={() => router.back()}
-                  className="px-5 py-2.5 text-[13px] font-bold text-[#374151] bg-white border border-[#e5e7eb] rounded-xl hover:bg-gray-50 transition-colors"
-                >
+                  className="px-5 py-2.5 text-[13px] font-bold text-[#374151] bg-white border border-[#e5e7eb] rounded-xl hover:bg-gray-50 transition-colors">
                   Cerrar
                 </button>
               </div>
@@ -726,6 +864,14 @@ export default function DetalleDetailPage() {
         message={actionErrorMessage || ""}
         onAction={() => setActionErrorMessage(null)}
       />
+
+      {mostrarTablasCumplimiento && solicitud && (
+        <TablasCumplimientoModal solicitudId={solicitud.sol_id} onClose={() => setMostrarTablasCumplimiento(false)} />
+      )}
+
+      {showSlaModal && solicitud && (
+        <VerSlaModal numero={solicitud.sol_numero_solicitud} onClose={() => setShowSlaModal(false)} />
+      )}
     </div>
   );
 }

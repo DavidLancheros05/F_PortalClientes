@@ -44,7 +44,7 @@ interface Solicitud {
   sol_fecha_envio?: string | null;
   // Fecha en que Auxiliar Servicio Cliente (etapa anterior a Oficial de
   // Cumplimiento en el flujo) registró su gestión.
-  sol_fecha_real_auxiliar_servicio_cliente?: string | null;
+  sol_fecha_gest_asc?: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
   sol_cupo_solicitado?: number | null;
@@ -294,7 +294,7 @@ export default function GestionOficialCumplimientoPage() {
       "Dias Faltantes",
     ];
     const data = solicitudes.map((s) => {
-      const fechaEstimada = (s as any).sol_fecha_estimada_oficial_cumplimiento || s.fecha_estimada_respuesta_comercial;
+      const fechaEstimada = (s as any).sol_fecha_est_gest_oc || s.fecha_estimada_respuesta_comercial;
       const diasRestantes = calcularDiasRestantes(fechaEstimada);
       return [
         s.sol_numero_solicitud || s.numero_solicitud || "-",
@@ -309,7 +309,7 @@ export default function GestionOficialCumplimientoPage() {
           : "-",
         s.observacionesComercial || "-",
         formatDateTime(s.sol_fecha_envio),
-        formatDateTime(s.sol_fecha_real_auxiliar_servicio_cliente),
+        formatDateTime(s.sol_fecha_gest_asc),
         formatDate(fechaEstimada),
         diasRestantes !== null ? diasRestantes : "-",
       ];
@@ -449,8 +449,7 @@ export default function GestionOficialCumplimientoPage() {
                     <tbody className="divide-y divide-gray-200">
                       {solicitudesActuales.map((solicitud) => {
                         const fechaEstimada =
-                          (solicitud as any).sol_fecha_estimada_oficial_cumplimiento ||
-                          solicitud.fecha_estimada_respuesta_comercial;
+                          (solicitud as any).sol_fecha_est_gest_oc || solicitud.fecha_estimada_respuesta_comercial;
 
                         return (
                           <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
@@ -491,9 +490,7 @@ export default function GestionOficialCumplimientoPage() {
                             </Td>
                             <Td className="whitespace-nowrap">{solicitud.observacionesComercial || "-"}</Td>
                             <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_envio)}</Td>
-                            <Td className="whitespace-nowrap">
-                              {formatDateTime(solicitud.sol_fecha_real_auxiliar_servicio_cliente)}
-                            </Td>
+                            <Td className="whitespace-nowrap">{formatDateTime(solicitud.sol_fecha_gest_asc)}</Td>
                             <Td className="whitespace-nowrap">{formatDate(fechaEstimada)}</Td>
                             <Td className="whitespace-nowrap">
                               <DiasRestantesBadge fecha={fechaEstimada} />
