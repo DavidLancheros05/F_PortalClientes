@@ -127,10 +127,10 @@ export default function PerfilPage() {
       .join("");
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-brand-gradient px-8 py-6 flex items-center gap-4">
+            <div className="bg-brand-gradient px-5 sm:px-8 py-5 sm:py-6 flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                 {inicialesUsuario}
               </div>
@@ -148,12 +148,12 @@ export default function PerfilPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-5 sm:p-8">
               <DatoCard icon={Mail} label="Correo" value={user?.email || "-"} />
               <DatoCard icon={ShieldCheck} label="Rol" value={user?.rol?.nombre || "-"} />
             </div>
 
-            <div className="border-t border-gray-100 px-8 py-6">
+            <div className="border-t border-gray-100 px-5 sm:px-8 py-5 sm:py-6">
               <Link
                 href="/perfil/cambiar-contrasena"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all"
@@ -180,7 +180,7 @@ export default function PerfilPage() {
   const clienteActivo = perfil?.cli_estado === "A";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
       <div className="max-w-2xl mx-auto">
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl mb-6 text-red-700 text-sm">
@@ -189,7 +189,7 @@ export default function PerfilPage() {
         )}
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-brand-gradient px-8 py-6 flex items-center gap-4">
+          <div className="bg-brand-gradient px-5 sm:px-8 py-5 sm:py-6 flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
               {iniciales}
             </div>
@@ -210,7 +210,7 @@ export default function PerfilPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-5 sm:p-8">
             <DatoCard
               icon={FileText}
               label="NIT / Documento"
@@ -233,7 +233,7 @@ export default function PerfilPage() {
             />
           </div>
 
-          <div className="border-t border-gray-100 px-8 py-6">
+          <div className="border-t border-gray-100 px-5 sm:px-8 py-5 sm:py-6">
             <Link
               href="/perfil/cambiar-contrasena"
               className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all"

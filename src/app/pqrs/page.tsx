@@ -104,7 +104,7 @@ export default function PQRSPage() {
           </button>
 
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-blue-800 mb-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-800 mb-2">
               Gestión de PQRS
             </h1>
             <p className="text-gray-600">
@@ -127,7 +127,7 @@ export default function PQRSPage() {
                   <button
                     key={opcion.href}
                     onClick={() => router.push(opcion.href)}
-                    className={`p-6 rounded-xl border-2 transition-all hover:shadow-lg ${colorClass}`}
+                    className={`p-4 sm:p-6 rounded-xl border-2 transition-all hover:shadow-lg ${colorClass}`}
                   >
                     <Icon className="h-8 w-8 mb-3" />
                     <h3 className="font-semibold text-left mb-1">

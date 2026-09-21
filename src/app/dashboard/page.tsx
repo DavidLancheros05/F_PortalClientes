@@ -155,11 +155,11 @@ export default function DashboardPage() {
   const RoleIcon = roleConfig?.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
           {loading || !user || !roleConfig || !RoleIcon ? (
             <div className="flex items-center gap-4 animate-pulse">
               <div className="p-3 bg-gray-200 rounded-xl w-12 h-12" />
@@ -188,7 +188,7 @@ export default function DashboardPage() {
         </div>
 
         {!user ? (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 animate-pulse">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 animate-pulse">
             <div className="h-5 bg-gray-200 rounded w-48 mb-6" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="h-16 bg-gray-100 rounded-xl" />
@@ -199,14 +199,14 @@ export default function DashboardPage() {
           <>
         {/* ADMIN */}
         {user.rol_id === ROLES.ADMIN && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               Administración
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/clientes/nuevo")}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-purple-100 rounded-lg mr-3">
@@ -219,7 +219,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => router.push("/parametrizacion/clientes")}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-purple-100 rounded-lg mr-3">
@@ -236,14 +236,14 @@ export default function DashboardPage() {
 
         {/* CLIENTE */}
         {user.rol_id === ROLES.CLIENTE && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               Solicitudes
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/solicitudes")}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg mr-3">
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                   setNavegandoNueva(true);
                   router.push("/solicitudes/nueva");
                 }}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg mr-3">
@@ -276,14 +276,14 @@ export default function DashboardPage() {
 
         {/* EJECUTIVO */}
         {user.rol_id === ROLES.EJECUTIVO && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               Solicitudes Pendientes
             </h2>
             <div className="flex">
               <button
                 onClick={() => router.push("/solicitudes/pendientes")}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-green-100 rounded-lg mr-3">
@@ -300,14 +300,14 @@ export default function DashboardPage() {
 
         {/* COMERCIAL */}
         {user.rol_id === ROLES.COMERCIAL && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               Área Comercial
             </h2>
             <div className="flex">
               <button
                 onClick={() => router.push("/solicitudes/revision")}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all group"
+                className="flex items-center justify-between p-3.5 sm:p-4 border border-gray-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all group"
               >
                 <div className="flex items-center">
                   <div className="p-2 bg-amber-100 rounded-lg mr-3">

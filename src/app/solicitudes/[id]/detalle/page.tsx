@@ -493,11 +493,11 @@ export default function DetalleDetailPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a] p-3 sm:p-4 lg:p-8">
       <div className="max-w-[1240px] mx-auto">
         <div className="bg-white border border-[#e9ecf2] rounded-[22px] overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]">
           {/* Header */}
-          <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
+          <div className="bg-brand-gradient px-4 sm:px-7 py-[18px] sm:py-[22px] flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => router.back()}
               className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
@@ -534,7 +534,7 @@ export default function DetalleDetailPage() {
           ) : (
             <>
               {/* Info block */}
-              <div className="px-6 py-5 border-b border-[#eef1f6]">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[#eef1f6]">
                 <div className="rounded-xl border border-[#e2e8f0] bg-white mb-4 shadow-[0_1px_3px_rgba(15,23,42,0.05)] flex flex-col sm:flex-row overflow-hidden">
                   {/* Columna izquierda: ícono */}
                   <div className="sm:w-[80px] flex-shrink-0 bg-gradient-to-b from-[#f0f4ff] to-[#f8faff] border-b sm:border-b-0 sm:border-r border-[#eef1f6] flex items-center justify-center py-3">
@@ -597,17 +597,17 @@ export default function DetalleDetailPage() {
                   {/* Columna derecha: botones + contenido */}
                   <div className="flex-1 p-4 flex flex-col items-center gap-3">
                     {/* Botones de acción */}
-                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
                       <button
                         onClick={() => router.push(`/solicitudes/${solicitud.sol_id}`)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-md hover:bg-cyan-100 transition-colors">
-                        <FileText className="h-3 w-3" />
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 transition-colors">
+                        <FileText className="h-3.5 w-3.5" />
                         Formulario
                       </button>
                       <button
                         onClick={abrirPdfFormulario}
                         disabled={descargandoPdfFormulario}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-md hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         <PdfIcon />
                         {descargandoPdfFormulario ? "..." : "PDF"}
                       </button>
@@ -666,7 +666,7 @@ export default function DetalleDetailPage() {
               </div>
 
               {/* Cuerpo: Gestión por Área */}
-              <div className="px-6 py-5">
+              <div className="px-4 sm:px-6 py-4 sm:py-5">
                 {/* Gestión por Área — el detalle real de lo que hizo cada
                     área en su etapa, no solo el estado genérico actual. Cada
                     tarjeta solo se muestra si esa área ya fue alcanzada
@@ -856,7 +856,7 @@ export default function DetalleDetailPage() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-[#eef1f6] flex justify-end">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-[#eef1f6] flex justify-end">
                 <button
                   onClick={() => router.back()}
                   className="px-5 py-2.5 text-[13px] font-bold text-[#374151] bg-white border border-[#e5e7eb] rounded-xl hover:bg-gray-50 transition-colors">

@@ -84,6 +84,47 @@
   text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+@media (max-width: 480px) {
+  .nombrePersonal {
+    font-size: 2.4em;
+    letter-spacing: -1px;
+  }
+
+  .logoBox {
+    width: 80px;
+    height: 80px;
+    font-size: 2em;
+    margin-bottom: 20px;
+  }
+
+  .subEmpresa {
+    letter-spacing: 4px;
+    font-size: 0.85em;
+  }
+
+  .bienvenida {
+    font-size: 1.1em;
+    letter-spacing: 2px;
+  }
+
+  .tagline {
+    letter-spacing: 3px;
+    font-size: 0.7em;
+  }
+
+  .pos1 {
+    width: 250px;
+    top: -40px;
+    left: -40px;
+  }
+
+  .pos2 {
+    width: 180px;
+    bottom: 30px;
+    right: 20px;
+  }
+}
+
 .subEmpresa {
   text-transform: uppercase;
   letter-spacing: 8px;

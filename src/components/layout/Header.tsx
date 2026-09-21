@@ -118,7 +118,7 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
         layout === "left" ? "md:hidden" : ""
       }`}
     >
-      <div className="max-w-full h-15 px-4 flex items-center justify-between">
+      <div className="max-w-full h-15 px-3 sm:px-4 flex items-center justify-between">
         {/* Logo + Nombre — en layout "left" el Sidebar ya lo muestra, así
             que acá solo hace falta en mobile (el Sidebar está oculto por
             debajo de md). */}
@@ -180,8 +180,8 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                       .filter((s) => s.mod_activo !== false && (s.permisos.ver || tieneHijosConPermiso(s)))
                       .map((sub, subIdx) => (
                         <div key={`${sub.mod_id}-${subIdx}`}>
-                          {Array.isArray(sub.subModulos) &&
-                          sortModulosByOrden(sub.subModulos).filter(
+                          {getSubModulosConFallback(sub).length > 0 &&
+                          sortModulosByOrden(getSubModulosConFallback(sub)).filter(
                             (n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)),
                           ).length > 0 ? (
                             <>
@@ -200,7 +200,7 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                               </button>
                               {activeNestedSubMenu === sub.mod_id && (
                                 <div className="ml-2.5 mr-2 mb-2 border-l-2 border-[#eef1f6] pl-2.25">
-                                  {sortModulosByOrden(sub.subModulos || [])
+                                  {sortModulosByOrden(getSubModulosConFallback(sub))
                                     ?.filter((n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)))
                                     .map((nested, nIdx) => {
                                       const rutaAnidada = resolveModuloRoute(nested);
@@ -398,8 +398,8 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                         .filter((s) => s.permisos.ver || tieneHijosConPermiso(s))
                         .map((sub, subIdx) => (
                           <div key={`${sub.mod_id}-${subIdx}`}>
-                            {Array.isArray(sub.subModulos) &&
-                            sortModulosByOrden(sub.subModulos || []).filter(
+                            {getSubModulosConFallback(sub).length > 0 &&
+                            sortModulosByOrden(getSubModulosConFallback(sub)).filter(
                               (n) => n.permisos.ver || tieneHijosConPermiso(n),
                             ).length > 0 ? (
                               <>
@@ -421,7 +421,7 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
 
                                 {activeNestedSubMenu === sub.mod_id && (
                                   <div className="ml-3 mt-1 space-y-1 border-l border-white/30 pl-2">
-                                    {sortModulosByOrden(sub.subModulos || [])
+                                    {sortModulosByOrden(getSubModulosConFallback(sub))
                                       ?.filter((n) => n.permisos.ver || tieneHijosConPermiso(n))
                                       .map((nested, nIdx) => {
                                         const rutaMobil = resolveModuloRoute(nested);

@@ -180,8 +180,8 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                         )
                         .map((sub, subIdx) => (
                           <div key={`${sub.mod_id}-${subIdx}`}>
-                            {Array.isArray(sub.subModulos) &&
-                            sortModulosByOrden(sub.subModulos).filter(
+                            {getSubModulosConFallback(sub).length > 0 &&
+                            sortModulosByOrden(getSubModulosConFallback(sub)).filter(
                               (n) =>
                                 n.mod_activo !== false &&
                                 (n.permisos.ver || tieneHijosConPermiso(n)),
@@ -200,7 +200,7 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                                 </button>
                                 {openNestedGroup === sub.mod_id && (
                                   <div className="ml-2.5 pl-2.5 border-l-2 border-white/20 space-y-0.5">
-                                    {sortModulosByOrden(sub.subModulos || [])
+                                    {sortModulosByOrden(getSubModulosConFallback(sub))
                                       ?.filter(
                                         (n) =>
                                           n.mod_activo !== false &&
