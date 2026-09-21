@@ -42,6 +42,9 @@ export default function ClienteDetalleModal({
   const [ubicacion, setUbicacion] = useState("");
   const [estadoActivo, setEstadoActivo] = useState(false);
   const [accesoPortal, setAccesoPortal] = useState(false);
+  const [esDistribuidor, setEsDistribuidor] = useState(false);
+  const [nitDigVf, setNitDigVf] = useState("");
+  const [esExtranjero, setEsExtranjero] = useState(false);
   const [centros, setCentros] = useState<string[]>([]);
   const [ejecutivo, setEjecutivo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,9 @@ export default function ClienteDetalleModal({
         setDireccion(clienteData.cli_direccion || "");
         setEstadoActivo(clienteData.cli_estado === "A");
         setAccesoPortal(!!clienteData.cli_acceso_pc);
+        setEsDistribuidor(!!clienteData.cli_es_distribuidor);
+        setNitDigVf(clienteData.cli_nit_dig_vf || "");
+        setEsExtranjero(!!clienteData.cli_es_extranjero);
         setEjecutivo(clienteData.ejecutivo || null);
 
         // El resto son datos "de catálogo" (nombre del tipo de
@@ -142,6 +148,18 @@ export default function ClienteDetalleModal({
       label: "Acceso al Portal",
       icon: ShieldCheck,
       value: badge(accesoPortal, "Habilitado", "No habilitado"),
+    },
+    {
+      label: "Dígito Verificación NIT",
+      value: nitDigVf || "-",
+    },
+    {
+      label: "Tipo de Cliente",
+      value: badge(esDistribuidor, "Distribuidor", "No distribuidor"),
+    },
+    {
+      label: "Nacionalidad",
+      value: badge(esExtranjero, "Extranjero", "Nacional"),
     },
     {
       label: "Centros de Operación",

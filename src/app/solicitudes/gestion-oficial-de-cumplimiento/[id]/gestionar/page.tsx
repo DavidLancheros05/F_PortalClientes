@@ -21,14 +21,14 @@ import { ArrowLeft, FileText, CheckCircle2, CreditCard, MessageSquare, Check, X 
 interface Solicitud {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_cliente_id: number;
+  sol_cli_id: number;
   cliente_nombre: string;
   cliente_nit?: string;
   sol_co_id: number;
   centro_operacion_nombre: string;
-  sol_estado_id: number;
-  sol_etapa_actual_id?: number;
-  sol_resultado_etapa_id?: number;
+  sol_ses_id: number;
+  sol_wet_id?: number;
+  sol_wee_id?: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_fecha_creacion: string;
@@ -216,7 +216,7 @@ export default function GestionOCPage() {
     solicitud?.sol_fecha_estimada_respuesta_comercial ||
     solicitud?.fecha_estimada_respuesta_comercial;
 
-  const estadoId = solicitud?.sol_estado_id ?? solicitud?.estado_id ?? 1;
+  const estadoId = solicitud?.sol_ses_id ?? solicitud?.estado_id ?? 1;
   const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
 
   return (

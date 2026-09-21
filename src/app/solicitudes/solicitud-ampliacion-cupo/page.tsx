@@ -8,14 +8,7 @@ import { clientesService } from "@/services/clientes/clientes.service";
 import type { ClienteListResponse, ClienteDetailResponse } from "@/types/api.types";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ampliacionCupoService } from "@/services/ampliacion-cupo/ampliacion-cupo.service";
-import {
-  Search,
-  X,
-  DollarSign,
-  MessageSquare,
-  TrendingUp,
-  Package,
-} from "lucide-react";
+import { Search, X, DollarSign, MessageSquare, TrendingUp, Package } from "lucide-react";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 
@@ -26,10 +19,9 @@ interface UltimaSolicitud {
   cliente_nombre: string;
   sol_consumo_mensual_proyectado?: number | null;
   sol_cupo_aprobado?: number | string | null;
-  sol_estado_id: number;
+  sol_ses_id: number;
   centro_operacion_nombre?: string;
 }
-
 
 interface FormData {
   clienteId: number | null;
@@ -172,7 +164,7 @@ export default function AmpliacionCupoPage() {
   }, [showClientesList]);
 
   const clientesFiltrados = clientes.filter((cliente) =>
-    cliente.cli_razon_social?.toLowerCase().includes(searchInput.toLowerCase())
+    cliente.cli_razon_social?.toLowerCase().includes(searchInput.toLowerCase()),
   );
 
   const handleSeleccionarCliente = async (cliente: ClienteListResponse) => {
@@ -235,18 +227,12 @@ export default function AmpliacionCupoPage() {
       return;
     }
 
-    if (
-      !formData.consumoMensualProyectado.trim() ||
-      Number(formData.consumoMensualProyectado) <= 0
-    ) {
+    if (!formData.consumoMensualProyectado.trim() || Number(formData.consumoMensualProyectado) <= 0) {
       setErrorMessage("Debes ingresar el consumo mensual proyectado (mayor a 0)");
       return;
     }
 
-    if (
-      !formData.toneladasProyectadas.trim() ||
-      Number(formData.toneladasProyectadas) <= 0
-    ) {
+    if (!formData.toneladasProyectadas.trim() || Number(formData.toneladasProyectadas) <= 0) {
       setErrorMessage("Debes ingresar las toneladas mensuales proyectadas (mayor a 0)");
       return;
     }
@@ -260,8 +246,7 @@ export default function AmpliacionCupoPage() {
     try {
       setGuardando(true);
 
-      const cupoActualReferencia =
-        cupoActual ?? parseFloat(formData.cupoActualManual);
+      const cupoActualReferencia = cupoActual ?? parseFloat(formData.cupoActualManual);
 
       await ampliacionCupoService.create({
         clienteId: selectedCliente.cli_id,
@@ -270,9 +255,7 @@ export default function AmpliacionCupoPage() {
         consumoMensualProyectado: parseFloat(formData.consumoMensualProyectado),
         toneladasProyectadas: parseFloat(formData.toneladasProyectadas),
         solicitudAnteriorId: ultimaSolicitud?.sol_id,
-        cupoActualReferencia: Number.isFinite(cupoActualReferencia)
-          ? cupoActualReferencia
-          : undefined,
+        cupoActualReferencia: Number.isFinite(cupoActualReferencia) ? cupoActualReferencia : undefined,
       });
 
       setShowConfirmModal(false);
@@ -280,9 +263,7 @@ export default function AmpliacionCupoPage() {
     } catch (error: any) {
       console.error("Error guardando ampliación de cupo:", error);
       setShowConfirmModal(false);
-      setErrorMessage(
-        error?.response?.data?.message || "Error al guardar ampliación de cupo",
-      );
+      setErrorMessage(error?.response?.data?.message || "Error al guardar ampliación de cupo");
     } finally {
       setGuardando(false);
     }
@@ -309,8 +290,7 @@ export default function AmpliacionCupoPage() {
               <button
                 ref={clienteButtonRef}
                 onClick={() => setShowClientesList(!showClientesList)}
-                className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] text-left bg-white hover:bg-[#f8fafc] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12] flex items-center justify-between transition-colors"
-              >
+                className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] text-left bg-white hover:bg-[#f8fafc] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12] flex items-center justify-between transition-colors">
                 <span className={selectedCliente ? "text-[#0f172a]" : "text-[#94a3b8]"}>
                   {selectedCliente
                     ? `${selectedCliente.cli_razon_social} (${selectedCliente.cli_nro_identificacion})`
@@ -328,8 +308,7 @@ export default function AmpliacionCupoPage() {
                       top: clientesMenuPos.top,
                       left: clientesMenuPos.left,
                       width: clientesMenuPos.width,
-                    }}
-                  >
+                    }}>
                     <input
                       type="text"
                       placeholder="Buscar por nombre o NIT..."
@@ -344,8 +323,7 @@ export default function AmpliacionCupoPage() {
                           <li key={cliente.cli_id}>
                             <button
                               onClick={() => handleSeleccionarCliente(cliente)}
-                              className="w-full text-left px-4 py-3 hover:bg-[#eef4ff] transition-colors"
-                            >
+                              className="w-full text-left px-4 py-3 hover:bg-[#eef4ff] transition-colors">
                               <div className="text-[13.5px] font-semibold text-[#0f172a]">
                                 {cliente.cli_razon_social}
                               </div>
@@ -434,7 +412,9 @@ export default function AmpliacionCupoPage() {
               <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
                 {!cupoActual && (
                   <div>
-                    <label htmlFor="cupoActualManual" className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                    <label
+                      htmlFor="cupoActualManual"
+                      className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                       <DollarSign size={15} strokeWidth={2} className="text-brand-600" />
                       Cupo Actual (Si no aparece arriba) <span className="text-[#dc2626]">*</span>
                     </label>
@@ -443,9 +423,7 @@ export default function AmpliacionCupoPage() {
                       type="number"
                       placeholder="Ingresa el cupo actual del cliente"
                       value={formData.cupoActualManual}
-                      onChange={(e) =>
-                        setFormData({ ...formData, cupoActualManual: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, cupoActualManual: e.target.value })}
                       className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
                     />
                     <p className="text-[11.5px] text-[#94a3b8] mt-1.5">
@@ -455,7 +433,9 @@ export default function AmpliacionCupoPage() {
                 )}
 
                 <div>
-                  <label htmlFor="nuevoCupo" className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                  <label
+                    htmlFor="nuevoCupo"
+                    className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                     <DollarSign size={15} strokeWidth={2} className="text-brand-600" />
                     Nuevo Cupo Solicitado <span className="text-[#dc2626]">*</span>
                   </label>
@@ -464,16 +444,16 @@ export default function AmpliacionCupoPage() {
                     type="number"
                     placeholder="Ingresa el nuevo cupo"
                     value={formData.nuevoCupoSolicitado}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nuevoCupoSolicitado: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nuevoCupoSolicitado: e.target.value })}
                     className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-[18px]">
                   <div>
-                    <label htmlFor="consumoMensualProyectado" className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                    <label
+                      htmlFor="consumoMensualProyectado"
+                      className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                       <TrendingUp size={15} strokeWidth={2} className="text-brand-600" />
                       Consumo Mensual Proyectado <span className="text-[#dc2626]">*</span>
                     </label>
@@ -482,15 +462,15 @@ export default function AmpliacionCupoPage() {
                       type="number"
                       placeholder="Ej: 5000000"
                       value={formData.consumoMensualProyectado}
-                      onChange={(e) =>
-                        setFormData({ ...formData, consumoMensualProyectado: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, consumoMensualProyectado: e.target.value })}
                       className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="toneladasProyectadas" className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                    <label
+                      htmlFor="toneladasProyectadas"
+                      className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                       <Package size={15} strokeWidth={2} className="text-brand-600" />
                       Toneladas Mensuales Proyectadas <span className="text-[#dc2626]">*</span>
                     </label>
@@ -499,16 +479,16 @@ export default function AmpliacionCupoPage() {
                       type="number"
                       placeholder="Ej: 500"
                       value={formData.toneladasProyectadas}
-                      onChange={(e) =>
-                        setFormData({ ...formData, toneladasProyectadas: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, toneladasProyectadas: e.target.value })}
                       className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="justificacion" className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                  <label
+                    htmlFor="justificacion"
+                    className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                     <MessageSquare size={15} strokeWidth={2} className="text-brand-600" />
                     Justificación <span className="text-[#dc2626]">*</span>
                   </label>
@@ -516,9 +496,7 @@ export default function AmpliacionCupoPage() {
                     id="justificacion"
                     placeholder="Explica los motivos de la ampliación de cupo"
                     value={formData.justificacion}
-                    onChange={(e) =>
-                      setFormData({ ...formData, justificacion: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, justificacion: e.target.value })}
                     rows={5}
                     className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none resize-none font-sans leading-normal focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
                   />
@@ -535,15 +513,13 @@ export default function AmpliacionCupoPage() {
                       !formData.consumoMensualProyectado ||
                       !formData.toneladasProyectadas
                     }
-                    className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                  >
+                    className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                     {guardando ? "Guardando..." : "Guardar Ampliación"}
                   </button>
                   <button
                     onClick={handleLimpiar}
                     disabled={guardando}
-                    className="inline-flex items-center gap-2 bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                    className="inline-flex items-center gap-2 bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                     <X className="h-4 w-4" />
                     Limpiar
                   </button>
@@ -556,8 +532,7 @@ export default function AmpliacionCupoPage() {
             <div className="px-7 py-[22px] flex justify-end">
               <button
                 onClick={handleCancelar}
-                className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold"
-              >
+                className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold">
                 Cancelar
               </button>
             </div>
@@ -589,11 +564,7 @@ export default function AmpliacionCupoPage() {
         }}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

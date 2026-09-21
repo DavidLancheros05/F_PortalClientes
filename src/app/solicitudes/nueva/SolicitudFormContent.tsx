@@ -307,7 +307,7 @@ export default function SolicitudFormContent({
     // console.log(`[🟣 EFECTO TIPO SOLICITUD] Disparado:`, {
     //   solicitudId,
     //   preguntas: preguntas.length,
-    //   ultimaSolicitud: ultimaSolicitud ? { sol_id: ultimaSolicitud.sol_id, sol_estado_id: ultimaSolicitud.sol_estado_id } : null,
+    //   ultimaSolicitud: ultimaSolicitud ? { sol_id: ultimaSolicitud.sol_id, sol_ses_id: ultimaSolicitud.sol_ses_id } : null,
     //   tieneSolicitudesPrevias,
     //   fechaDisparo: new Date().toISOString(),
     // });
@@ -1684,7 +1684,7 @@ export default function SolicitudFormContent({
         // ~1654): para un cliente, user.usr_id en realidad guarda su
         // cli_id (payload del JWT overloaded — ver AuthService.loginCliente
         // en el backend), no un usuarios.usr_id real. Mandarlo tal cual
-        // rompía sol_usuario_crea (FK a Usuarios) para cualquier cliente
+        // rompía sol_usr_id_crea (FK a Usuarios) para cualquier cliente
         // que usara "Guardar Borrador" — el flujo de "Enviar" ya tenía
         // este chequeo, este no.
         isClienteUser ? null : user.usr_id,

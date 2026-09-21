@@ -11,27 +11,19 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  FileText,
-  DollarSign,
-  Package,
-  MessageSquare,
-  CreditCard,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, DollarSign, Package, MessageSquare, CreditCard } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_cliente_id: number;
+  sol_cli_id: number;
   cliente_nombre: string;
   cliente_nit?: string | null;
   sol_co_id: number;
   centro_operacion_nombre: string;
-  sol_estado_id: number;
-  sol_etapa_actual_id?: number;
-  sol_resultado_etapa_id?: number;
+  sol_ses_id: number;
+  sol_wet_id?: number;
+  sol_wee_id?: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_fecha_creacion: string;
@@ -156,8 +148,7 @@ export default function RegistrarConceptoPage() {
   };
 
   const obtenerUsuarioId = () => {
-    const directId =
-      (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
+    const directId = (user as any)?.usr_id ?? (user as any)?.id ?? (user as any)?.usuarioId;
     if (directId) return directId;
 
     if (typeof window === "undefined") return null;
@@ -181,16 +172,12 @@ export default function RegistrarConceptoPage() {
     }
 
     if (!registro.consumoMensual || registro.consumoMensual <= 0) {
-      setErrorMessage(
-        "El consumo mensual proyectado es obligatorio y debe ser mayor a 0.",
-      );
+      setErrorMessage("El consumo mensual proyectado es obligatorio y debe ser mayor a 0.");
       return;
     }
 
     if (!registro.toneladasProyectadas || registro.toneladasProyectadas <= 0) {
-      setErrorMessage(
-        "Las toneladas mensuales proyectadas son obligatorias y deben ser mayores a 0.",
-      );
+      setErrorMessage("Las toneladas mensuales proyectadas son obligatorias y deben ser mayores a 0.");
       return;
     }
 
@@ -213,16 +200,13 @@ export default function RegistrarConceptoPage() {
 
       const ahora = new Date().toISOString();
 
-      await solicitudesService.guardarGestionEjecutivo(
-        solicitud.sol_id ?? solicitud.sa_sol_id!,
-        {
-          consumo_mensual_proyectado: registro.consumoMensual,
-          toneladas_proyectadas: registro.toneladasProyectadas,
-          observacionesComercial: registro.observaciones,
-          usuario_modifica: usuarioId,
-          fecha_real_ejecutivo: ahora,
-        },
-      );
+      await solicitudesService.guardarGestionEjecutivo(solicitud.sol_id ?? solicitud.sa_sol_id!, {
+        consumo_mensual_proyectado: registro.consumoMensual,
+        toneladas_proyectadas: registro.toneladasProyectadas,
+        observacionesComercial: registro.observaciones,
+        usuario_modifica: usuarioId,
+        fecha_real_ejecutivo: ahora,
+      });
 
       setShowConfirmModal(false);
       setShowSuccessModal(true);
@@ -235,7 +219,7 @@ export default function RegistrarConceptoPage() {
     }
   };
 
-  const estadoId = solicitud?.sol_estado_id ?? solicitud?.estado_id ?? 1;
+  const estadoId = solicitud?.sol_ses_id ?? solicitud?.estado_id ?? 1;
   const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
 
   return (
@@ -246,8 +230,7 @@ export default function RegistrarConceptoPage() {
           <div className="bg-brand-gradient px-7 py-[22px] flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <ArrowLeft size={15} strokeWidth={2.3} />
             </button>
             <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
@@ -289,30 +272,18 @@ export default function RegistrarConceptoPage() {
               <div className="px-7 py-[26px] border-b border-[#eef1f6]">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Cliente
-                    </p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">
-                      {solicitud.cliente_nombre}
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Cliente</p>
+                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
                     {solicitud.cliente_nit && (
-                      <p className="text-[11.5px] text-[#94a3b8] mt-0.5">
-                        NIT {solicitud.cliente_nit}
-                      </p>
+                      <p className="text-[11.5px] text-[#94a3b8] mt-0.5">NIT {solicitud.cliente_nit}</p>
                     )}
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Estado
-                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Estado</p>
                     <span
                       className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: estadoTokens.color }}
-                      />
+                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
                       {ESTADOS[estadoId] || "Desconocido"}
                     </span>
                   </div>
@@ -332,8 +303,7 @@ export default function RegistrarConceptoPage() {
                           tipoSolicitud === "Ampliación de Cupo"
                             ? "text-emerald-800 bg-emerald-100"
                             : "text-blue-800 bg-blue-100"
-                        }`}
-                      >
+                        }`}>
                         {tipoSolicitud || "Cliente Nuevo"}
                       </span>
                     )}
@@ -358,8 +328,7 @@ export default function RegistrarConceptoPage() {
                     style={{
                       borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
                       background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
-                    }}
-                  >
+                    }}>
                     <div className="flex items-center gap-[9px] mb-2.5">
                       <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
                         <CreditCard
@@ -370,8 +339,7 @@ export default function RegistrarConceptoPage() {
                       </div>
                       <span
                         className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
-                        style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                      >
+                        style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}>
                         Solicita cupo de crédito
                       </span>
                     </div>
@@ -410,8 +378,7 @@ export default function RegistrarConceptoPage() {
                     <div>
                       <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                         <DollarSign size={15} strokeWidth={2} className="text-brand-600" />
-                        Consumo Mensual Proyectado (COP){" "}
-                        <span className="text-[#dc2626]">*</span>
+                        Consumo Mensual Proyectado (COP) <span className="text-[#dc2626]">*</span>
                       </label>
                       <input
                         type="text"
@@ -424,9 +391,7 @@ export default function RegistrarConceptoPage() {
                       {solicitud.cliente_consumo_mensual_proyectado != null && (
                         <p className="mt-1.5 text-[11.5px] text-[#94a3b8]">
                           El cliente declaró en el formulario: $
-                          {solicitud.cliente_consumo_mensual_proyectado.toLocaleString(
-                            "es-CO",
-                          )}
+                          {solicitud.cliente_consumo_mensual_proyectado.toLocaleString("es-CO")}
                         </p>
                       )}
                     </div>
@@ -435,8 +400,7 @@ export default function RegistrarConceptoPage() {
                     <div>
                       <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                         <Package size={15} strokeWidth={2} className="text-brand-600" />
-                        Toneladas Mensuales Proyectadas{" "}
-                        <span className="text-[#dc2626]">*</span>
+                        Toneladas Mensuales Proyectadas <span className="text-[#dc2626]">*</span>
                       </label>
                       <input
                         type="text"
@@ -449,10 +413,7 @@ export default function RegistrarConceptoPage() {
                       {solicitud.cliente_toneladas_proyectadas != null && (
                         <p className="mt-1.5 text-[11.5px] text-[#94a3b8]">
                           El cliente declaró en el formulario:{" "}
-                          {solicitud.cliente_toneladas_proyectadas.toLocaleString(
-                            "es-CO",
-                          )}{" "}
-                          toneladas
+                          {solicitud.cliente_toneladas_proyectadas.toLocaleString("es-CO")} toneladas
                         </p>
                       )}
                     </div>
@@ -487,15 +448,13 @@ export default function RegistrarConceptoPage() {
                           !registro.observaciones.trim() ||
                           registro.guardando
                         }
-                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                      >
+                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                         {registro.guardando ? "Guardando..." : "Guardar Concepto"}
                       </button>
                       <button
                         onClick={() => router.back()}
                         disabled={registro.guardando}
-                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                         Cancelar
                       </button>
                     </div>
@@ -507,9 +466,7 @@ export default function RegistrarConceptoPage() {
                 </div>
 
                 <div className="min-w-0">
-                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">
-                    Historial de la solicitud
-                  </h2>
+                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">Historial de la solicitud</h2>
                   <HistorialSolicitud historial={historialWorkflow} />
                 </div>
               </div>
@@ -539,11 +496,7 @@ export default function RegistrarConceptoPage() {
         onAction={() => router.push("/solicitudes/gestion-ejecutivo-negocios")}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

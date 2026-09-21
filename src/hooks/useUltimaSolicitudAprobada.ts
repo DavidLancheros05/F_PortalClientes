@@ -6,7 +6,7 @@ import { agruparUltimaRespuestaPorPregunta } from "@/lib/agruparUltimaRespuestaP
 export interface UltimaSolicitudAprobada {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_estado_id: number;
+  sol_ses_id: number;
   sol_fecha_creacion: string;
   sol_fecha_envio: string | null;
   // Cupo vigente hoy (lo que ya tiene aprobado) — usado para validar que
@@ -49,8 +49,7 @@ export function useUltimaSolicitudAprobada({
   enabled = true,
   preguntas = [],
 }: UseUltimaSolicitudAprobadaProps): UseUltimaSolicitudAprobadaResult {
-  const [ultimaSolicitudAprobada, setUltimaSolicitudAprobada] =
-    useState<UltimaSolicitudAprobada | null>(null);
+  const [ultimaSolicitudAprobada, setUltimaSolicitudAprobada] = useState<UltimaSolicitudAprobada | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,25 +72,15 @@ export function useUltimaSolicitudAprobada({
       setLoading(true);
       setError(null);
       try {
-        const data =
-          await solicitudesService.getUltimaSolicitudAprobada(clienteId);
+        const data = await solicitudesService.getUltimaSolicitudAprobada(clienteId);
 
         if (cancelled) return;
 
         if (data && data.sol_id) {
-          const filasRespuestas: any[] = Array.isArray(data.respuestas)
-            ? data.respuestas
-            : [];
+          const filasRespuestas: any[] = Array.isArray(data.respuestas) ? data.respuestas : [];
 
-          const multiselectFpIds = new Set(
-            preguntas
-              .filter((p) => p.fp_tipo === "MULTISELECT")
-              .map((p) => p.fp_id),
-          );
-          const respuestasIndexadas = agruparUltimaRespuestaPorPregunta(
-            filasRespuestas,
-            multiselectFpIds,
-          );
+          const multiselectFpIds = new Set(preguntas.filter((p) => p.fp_tipo === "MULTISELECT").map((p) => p.fp_id));
+          const respuestasIndexadas = agruparUltimaRespuestaPorPregunta(filasRespuestas, multiselectFpIds);
 
           // fp_codigo es constante por fp_id dentro de esta misma
           // solicitud (viene del JOIN a Formulario_pregunta) — basta
@@ -103,8 +92,7 @@ export function useUltimaSolicitudAprobada({
             }
           });
 
-          const respuestasPorCodigo: Record<string, RespuestasState[number]> =
-            {};
+          const respuestasPorCodigo: Record<string, RespuestasState[number]> = {};
           Object.entries(respuestasIndexadas).forEach(([fpId, valor]) => {
             const codigo = codigoPorFpId.get(Number(fpId));
             if (codigo) {
@@ -122,9 +110,7 @@ export function useUltimaSolicitudAprobada({
         }
       } catch (err) {
         if (!cancelled) {
-          const errorMsg =
-            (err as any)?.message ||
-            "Error al obtener última solicitud aprobada";
+          const errorMsg = (err as any)?.message || "Error al obtener última solicitud aprobada";
           setError(errorMsg);
           setUltimaSolicitudAprobada(null);
         }

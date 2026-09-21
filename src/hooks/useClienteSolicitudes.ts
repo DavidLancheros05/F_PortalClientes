@@ -4,8 +4,8 @@ import { solicitudesService } from "@/services/solicitudes.service";
 export interface Solicitud {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_estado_id: number;
-  sol_cliente_id: number;
+  sol_ses_id: number;
+  sol_cli_id: number;
   sol_fecha_creacion: string;
   sol_created_at: string;
   sol_updated_at: string;
@@ -80,9 +80,7 @@ export function useClienteSolicitudes({
 
   const tieneSolicitudesPrevias = solicitudes.length > 0;
 
-  const solicitudActiva = solicitudes.find((s) =>
-    estadosActivos.includes(s.sol_estado_id)
-  ) || null;
+  const solicitudActiva = solicitudes.find((s) => estadosActivos.includes(s.sol_ses_id)) || null;
 
   const tieneSolicitudActiva = solicitudActiva !== null;
 

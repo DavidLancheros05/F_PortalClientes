@@ -16,7 +16,7 @@ const LABEL_OVERRIDES: Partial<Record<number, string>> = {
 // los mismos IDs que podía desincronizarse (ver
 // documentacion/auditoria-valores-quemados-hardcodeados.md). El "0: Sin
 // iniciar" no existe en el catálogo real, se mantiene como caso de UI
-// aparte (defensivo, ningún sol_estado_id real es 0).
+// aparte (defensivo, ningún sol_ses_id real es 0).
 export const ESTADOS: Record<number, string> = {
   0: "Sin iniciar",
   ...Object.fromEntries(

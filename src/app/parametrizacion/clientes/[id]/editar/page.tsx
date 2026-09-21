@@ -38,6 +38,9 @@ export default function EditarClientePage() {
   const [correo, setCorreo] = useState("");
   const [direccion, setDireccion] = useState("");
   const [habilitaAcceso, setHabilitaAcceso] = useState(false);
+  const [esDistribuidor, setEsDistribuidor] = useState(false);
+  const [nitDigVf, setNitDigVf] = useState("");
+  const [esExtranjero, setEsExtranjero] = useState(false);
   const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
     [],
   );
@@ -130,6 +133,9 @@ export default function EditarClientePage() {
         setCorreo(clienteData.cli_correo || "");
         setDireccion(clienteData.cli_direccion || "");
         setHabilitaAcceso(Boolean(clienteData.cli_acceso_pc));
+        setEsDistribuidor(Boolean(clienteData.cli_es_distribuidor));
+        setNitDigVf(clienteData.cli_nit_dig_vf || "");
+        setEsExtranjero(Boolean(clienteData.cli_es_extranjero));
         setCentroOperacionIds(
           Array.isArray(clienteCentrosData)
             ? clienteCentrosData.map((c) => c.cop_id)
@@ -214,6 +220,9 @@ export default function EditarClientePage() {
         correo,
         direccion,
         habilitaAcceso,
+        esDistribuidor,
+        nitDigVf: nitDigVf || undefined,
+        esExtranjero,
         centro_operacion_ids,
         ejecutivoId,
         paisId,
@@ -560,6 +569,60 @@ export default function EditarClientePage() {
                   <KeyRound className="w-4 h-4" />
                   Restablecer contraseña
                 </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Dígito Verificación NIT */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dígito Verificación NIT
+                </label>
+                <input
+                  type="text"
+                  maxLength={1}
+                  value={nitDigVf}
+                  onChange={(e) => setNitDigVf(e.target.value.replace(/[^0-9kK]/g, ""))}
+                  disabled={saving || success}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ej: K"
+                />
+              </div>
+
+              {/* Es Distribuidor */}
+              <div className="flex items-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <input
+                  type="checkbox"
+                  id="esDistribuidor"
+                  checked={esDistribuidor}
+                  onChange={(e) => setEsDistribuidor(e.target.checked)}
+                  disabled={saving || success}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="esDistribuidor"
+                  className="ml-3 text-sm font-medium text-gray-700"
+                >
+                  Cliente Distribuidor
+                </label>
+              </div>
+
+              {/* Es Extranjero */}
+              <div className="flex items-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <input
+                  type="checkbox"
+                  id="esExtranjero"
+                  checked={esExtranjero}
+                  onChange={(e) => setEsExtranjero(e.target.checked)}
+                  disabled={saving || success}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="esExtranjero"
+                  className="ml-3 text-sm font-medium text-gray-700"
+                >
+                  Cliente Extranjero
+                </label>
               </div>
             </div>
 

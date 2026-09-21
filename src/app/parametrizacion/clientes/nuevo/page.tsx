@@ -53,6 +53,9 @@ export default function NuevoClientePage() {
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
   const [habilita_acceso, setHabilitaAcceso] = useState(false);
+  const [esDistribuidor, setEsDistribuidor] = useState(false);
+  const [nitDigVf, setNitDigVf] = useState("");
+  const [esExtranjero, setEsExtranjero] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -168,6 +171,9 @@ export default function NuevoClientePage() {
         direccion,
         correo,
         habilitaAcceso: habilita_acceso,
+        esDistribuidor,
+        nitDigVf: nitDigVf || undefined,
+        esExtranjero,
         ejecutivoId,
         paisId,
         departamentoId,
@@ -397,6 +403,60 @@ export default function NuevoClientePage() {
                     Al habilitar esta opción, el cliente podrá acceder al
                     sistema con credenciales específicas
                   </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Dígito Verificación NIT */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dígito Verificación NIT
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={1}
+                    value={nitDigVf}
+                    onChange={(e) => setNitDigVf(e.target.value.replace(/[^0-9kK]/g, ""))}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    placeholder="Ej: K"
+                    disabled={loading || success}
+                  />
+                </div>
+
+                {/* Es Distribuidor */}
+                <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-slate-200">
+                  <input
+                    type="checkbox"
+                    id="es_distribuidor"
+                    checked={esDistribuidor}
+                    onChange={(e) => setEsDistribuidor(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={loading || success}
+                  />
+                  <label
+                    htmlFor="es_distribuidor"
+                    className="ml-3 text-sm font-medium text-gray-700"
+                  >
+                    Cliente Distribuidor
+                  </label>
+                </div>
+
+                {/* Es Extranjero */}
+                <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-slate-200">
+                  <input
+                    type="checkbox"
+                    id="es_extranjero"
+                    checked={esExtranjero}
+                    onChange={(e) => setEsExtranjero(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={loading || success}
+                  />
+                  <label
+                    htmlFor="es_extranjero"
+                    className="ml-3 text-sm font-medium text-gray-700"
+                  >
+                    Cliente Extranjero
+                  </label>
                 </div>
               </div>
 

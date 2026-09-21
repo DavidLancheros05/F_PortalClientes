@@ -49,12 +49,11 @@ export function useMenuModel(modulos: Modulo[], isAdmin: boolean) {
     const resolverJerarquiaSolicitudes = (items: Modulo[]): Modulo[] => {
       const esSolicitudes = normalizeText(modulo.mod_nombre) === "solicitudes";
       // Solo aplicar agrupación virtual (Solicitudes/Documentos/Indicadores)
-      // al módulo "Solicitudes" raíz cuya ruta empieza con /solicitudes.
-      // El módulo "Solicitudes" de Parametrización (/parametrizacion/solicitudes)
-      // tiene hijos propios (Días de Respuesta, Motivos de Rechazo, etc.) que
-      // no deben ser reagrupados ni filtrados.
+      // al módulo "Solicitudes" RAÍZ cuya ruta es exactamente /solicitudes.
+      // - /parametrizacion/solicitudes → tiene hijos propios, no reagrupar
+      // - /solicitudes/solicitudes → tiene hijos propios, no reagrupar
       const rutaModulo = normalizeText(modulo.mod_ruta || "");
-      if (!esSolicitudes || !rutaModulo.startsWith("/solicitudes")) {
+      if (!esSolicitudes || rutaModulo !== "/solicitudes") {
         return items;
       }
 

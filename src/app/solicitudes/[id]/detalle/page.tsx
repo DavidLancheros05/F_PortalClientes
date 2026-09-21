@@ -59,7 +59,7 @@ interface SolicitudDetalle {
   resultado_nombre?: string;
   sol_fecha_creacion: string;
   sol_fecha_envio?: string | null;
-  sol_estado_id: number;
+  sol_ses_id: number;
   cliente_direccion?: string;
   sol_consumo_mensual_proyectado?: number;
   sol_toneladas_proyectadas?: number;
@@ -409,7 +409,7 @@ export default function DetalleDetailPage() {
     };
   }, [solicitudId]);
 
-  const estadoTokens = ESTADO_TOKENS[solicitud?.sol_estado_id ?? 1] || ESTADO_TOKENS[1];
+  const estadoTokens = ESTADO_TOKENS[solicitud?.sol_ses_id ?? 1] || ESTADO_TOKENS[1];
 
   // Comentario más reciente que dejó cada área en el historial de workflow.
   // `historial` viene ordenado ascendente por fecha (obtenerHistorial en el
@@ -568,7 +568,7 @@ export default function DetalleDetailPage() {
                         className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                         style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
                         <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
-                        {ESTADOS[solicitud.sol_estado_id] || "Desconocido"}
+                        {ESTADOS[solicitud.sol_ses_id] || "Desconocido"}
                       </span>
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded-full">
                         📅 Envío: {formatDate(solicitud.sol_fecha_envio)}

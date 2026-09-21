@@ -40,9 +40,9 @@ interface Ejecutivo {
 interface SolicitudListado {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_cliente_id: number | null;
+  sol_cli_id: number | null;
   cliente_nombre: string | null;
-  sol_ejecutivo_id: number | null;
+  sol_ejng_id: number | null;
   ejecutivo_nombre: string | null;
   ejecutivo_area?: string | null;
   auxiliar_id?: number | null;
@@ -51,9 +51,9 @@ interface SolicitudListado {
   sol_fecha_creacion: string;
   sol_fecha_envio?: string | null;
   sol_fecha_aprobacion?: string | null;
-  sol_estado_id: number;
-  sol_etapa_actual_id?: number;
-  sol_resultado_etapa_id?: number;
+  sol_ses_id: number;
+  sol_wet_id?: number;
+  sol_wee_id?: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_formulario_version: number | null;
@@ -73,7 +73,7 @@ interface SolicitudListado {
   es_ampliacion_cupo?: boolean | number | null;
   sol_plazo_pago?: number | null;
   sol_forma_pago?: string | null;
-  sol_usuario_aprueba_condiciones?: number | null;
+  sol_usr_id_apr_cond?: number | null;
 }
 
 function formatDateTime(value?: string | null) {
@@ -311,14 +311,12 @@ export default function SolicitudesListadoDeSolicitudesPage() {
   }, [rows, currentPage, pageSize]);
 
   async function buscar() {
-
     try {
       startSearching();
       setLoading(true);
       setHasSearched(true);
       const params: any = {};
 
-     
       if (fechaDesde) params.fecha_desde = fechaDesde;
       if (fechaHasta) params.fecha_hasta = fechaHasta;
       if (clienteId) params.cliente_id = clienteId;
@@ -327,7 +325,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       if (etapaId) params.etapa_id = etapaId;
       if (resultadoId) params.resultado_etapa_id = resultadoId;
       if (tipoSolicitud) params.tipo_solicitud = tipoSolicitud;
-
 
       const data = await solicitudesService.getListado(params);
 
@@ -409,7 +406,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       row.auxiliar_area || "-",
       formatDateTime(row.sol_fecha_envio),
       formatDateTime(row.sol_fecha_aprobacion),
-      ESTADOS[row.sol_estado_id] || "Desconocido",
+      ESTADOS[row.sol_ses_id] || "Desconocido",
       row.etapa_nombre || "-",
       row.resultado_nombre || "-",
       row.sol_cupo_aprobado ? `$${row.sol_cupo_aprobado.toLocaleString("es-CO")}` : "-",
@@ -699,7 +696,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         <Td>{row.cliente_nombre || "-"}</Td>
                         <Td>{formatDateTime(row.sol_fecha_envio)}</Td>
                         <Td>{formatDateTime(row.sol_fecha_aprobacion)}</Td>
-                        <Td>{ESTADOS[row.sol_estado_id] || "Desconocido"}</Td>
+                        <Td>{ESTADOS[row.sol_ses_id] || "Desconocido"}</Td>
                         <Td>{row.etapa_nombre || "-"}</Td>
                         <Td>{row.resultado_nombre || "-"}</Td>
                         <Td>{formatDateTime(row.sol_fecha_gest_ejn)}</Td>

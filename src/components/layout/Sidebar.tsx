@@ -36,9 +36,6 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const logout = async () => {
-    // Mismo criterio que Header.tsx: bloquea la UI, espera el logout real
-    // (limpia la cookie httpOnly) y recién ahí recarga — ver ese archivo
-    // para el detalle de por qué no alcanza con router.push.
     setLoggingOut(true);
     await logoutSesion();
     window.location.href = "/login";
@@ -150,14 +147,17 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
             {rol || "Usuario"}
           </div>
         ) : (
-          topLevelModulos.map((m, idx) => (
-            <div key={`${m.mod_id}-${idx}`}>
-              {getSubModulosConFallback(m).length > 0 ? (
-                <>
+          topLevelModulos.map((m, idx) => {
+            const subs = getSubModulosConFallback(m);
+            const isExpanded = openGroup === m.mod_id;
+            return (
+              <div key={`${m.mod_id}-${idx}`}>
+                {/* Botón/Link de nivel 1 — hermano del panel, nunca padre */}
+                {subs.length > 0 ? (
                   <button
                     onClick={() => toggleGroup(m.mod_id)}
                     className={`flex w-full items-center justify-between px-3 py-2 rounded-lg text-white text-sm transition-colors ${
-                      openGroup === m.mod_id
+                      isExpanded
                         ? "bg-white/14 hover:bg-white/20"
                         : "hover:bg-white/14"
                     }`}
@@ -165,27 +165,46 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                     <span>{m.mod_nombre}</span>
                     <ChevronDown
                       className={`w-4 h-4 transition-transform shrink-0 ${
-                        openGroup === m.mod_id ? "rotate-180" : ""
+                        isExpanded ? "rotate-180" : ""
                       }`}
                     />
                   </button>
+                ) : resolveModuloRoute(m) ? (
+                  <Link
+                    href={resolveModuloRoute(m)!}
+                    className={linkClass(isModuloActivo(pathname, resolveModuloRoute(m)))}
+                  >
+                    {m.mod_nombre}
+                  </Link>
+                ) : (
+                  <span className="block px-3 py-2 rounded-lg text-sm text-white">
+                    {m.mod_nombre}
+                  </span>
+                )}
 
-                  {openGroup === m.mod_id && (
-                    <div className="mt-1 ml-2.5 pl-2.5 border-l-2 border-white/20 space-y-0.5">
-                      {sortModulosByOrden(getSubModulosConFallback(m))
-                        .filter(
-                          (s) =>
-                            s.mod_activo !== false &&
-                            (s.permisos.ver || tieneHijosConPermiso(s)),
-                        )
-                        .map((sub, subIdx) => (
+                {/* Panel de nivel 2 — HERMANO del botón, no hijo */}
+                {isExpanded && subs.length > 0 && (
+                  <div className="mt-1 ml-2.5 pl-2.5 border-l-2 border-white/20 space-y-0.5">
+                    {sortModulosByOrden(subs)
+                      .filter(
+                        (s) =>
+                          s.mod_activo !== false &&
+                          (s.permisos.ver || tieneHijosConPermiso(s)),
+                      )
+                      .map((sub, subIdx) => {
+                        const subHijos = getSubModulosConFallback(sub);
+                        const tieneSubHijos =
+                          subHijos.length > 0 &&
+                          sortModulosByOrden(subHijos).filter(
+                            (n) =>
+                              n.mod_activo !== false &&
+                              (n.permisos.ver || tieneHijosConPermiso(n)),
+                          ).length > 0;
+
+                        return (
                           <div key={`${sub.mod_id}-${subIdx}`}>
-                            {getSubModulosConFallback(sub).length > 0 &&
-                            sortModulosByOrden(getSubModulosConFallback(sub)).filter(
-                              (n) =>
-                                n.mod_activo !== false &&
-                                (n.permisos.ver || tieneHijosConPermiso(n)),
-                            ).length > 0 ? (
+                            {/* Botón/Link de nivel 2 */}
+                            {tieneSubHijos ? (
                               <>
                                 <button
                                   onClick={() => toggleNestedGroup(sub.mod_id)}
@@ -198,9 +217,10 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                                     }`}
                                   />
                                 </button>
+                                {/* Panel de nivel 3 — HERMANO del botón */}
                                 {openNestedGroup === sub.mod_id && (
                                   <div className="ml-2.5 pl-2.5 border-l-2 border-white/20 space-y-0.5">
-                                    {sortModulosByOrden(getSubModulosConFallback(sub))
+                                    {sortModulosByOrden(subHijos)
                                       ?.filter(
                                         (n) =>
                                           n.mod_activo !== false &&
@@ -243,24 +263,13 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                               </span>
                             )}
                           </div>
-                        ))}
-                    </div>
-                  )}
-                </>
-              ) : resolveModuloRoute(m) ? (
-                <Link
-                  href={resolveModuloRoute(m)!}
-                  className={linkClass(isModuloActivo(pathname, resolveModuloRoute(m)))}
-                >
-                  {m.mod_nombre}
-                </Link>
-              ) : (
-                <span className="block px-3 py-2 rounded-lg text-sm text-white">
-                  {m.mod_nombre}
-                </span>
-              )}
-            </div>
-          ))
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </nav>
 

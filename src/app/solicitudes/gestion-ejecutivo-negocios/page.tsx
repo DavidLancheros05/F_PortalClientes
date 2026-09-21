@@ -34,9 +34,9 @@ interface Solicitud {
   fecha_creacion: string;
   fecha_envio?: string | null;
   fecha_estimada_respuesta?: string | null;
-  sol_estado_id: number;
-  sol_etapa_actual_id?: number;
-  sol_resultado_etapa_id?: number;
+  sol_ses_id: number;
+  sol_wet_id?: number;
+  sol_wee_id?: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
   consumo_mensual_proyectado: number | null;
@@ -175,7 +175,7 @@ export default function ConceptoEjecutivoPage() {
     () =>
       solicitudes.filter((solicitud) => {
         // Solo mostrar solicitudes con estado "Pendiente" (estado_id = 2)
-        if ((solicitud.sol_estado_id ?? solicitud.estado_id) !== 2) return false;
+        if ((solicitud.sol_ses_id ?? solicitud.estado_id) !== 2) return false;
 
         const matchCliente = !clienteFiltro || solicitud.cliente_nombre === clienteFiltro;
 
@@ -266,7 +266,7 @@ export default function ConceptoEjecutivoPage() {
         getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
-        ESTADOS[s.sol_estado_id ?? s.estado_id] || "Desconocido",
+        ESTADOS[s.sol_ses_id ?? s.estado_id] || "Desconocido",
         formatDateTime(s.fecha_creacion),
         formatDateTime(s.fecha_envio),
         formatDate(s.fecha_estimada_respuesta),
@@ -334,7 +334,7 @@ export default function ConceptoEjecutivoPage() {
         data.map((s: any) => ({
           ...s,
           co_id: s.sol_co_id ?? s.co_id,
-          cliente_id: s.sol_cliente_id ?? s.cliente_id,
+          cliente_id: s.sol_cli_id ?? s.cliente_id,
           fecha_creacion: s.fecha_creacion ?? s.sol_fecha_creacion ?? null,
           fecha_envio: s.fecha_envio ?? s.sol_fecha_envio ?? null,
           fecha_estimada_respuesta:
@@ -590,9 +590,9 @@ export default function ConceptoEjecutivoPage() {
                           <Td className="whitespace-nowrap">
                             <span
                               className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
-                                solicitud.sol_estado_id ?? solicitud.estado_id,
+                                solicitud.sol_ses_id ?? solicitud.estado_id,
                               )}`}>
-                              {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] || "Desconocido"}
+                              {ESTADOS[solicitud.sol_ses_id ?? solicitud.estado_id] || "Desconocido"}
                             </span>
                           </Td>
 

@@ -76,6 +76,9 @@ export const clientesService = {
     direccion: string;
     correo?: string;
     habilitaAcceso?: boolean;
+    esDistribuidor?: boolean;
+    nitDigVf?: string;
+    esExtranjero?: boolean;
     ejecutivoId?: number;
     paisId: number;
     departamentoId: number;
@@ -89,6 +92,9 @@ export const clientesService = {
       cli_direccion: payload.direccion,
       cli_correo: payload.correo,
       cli_acceso_pc: payload.habilitaAcceso,
+      cli_es_distribuidor: payload.esDistribuidor,
+      cli_nit_dig_vf: payload.nitDigVf,
+      cli_es_extranjero: payload.esExtranjero,
       ejng_id: payload.ejecutivoId,
       pai_id: payload.paisId,
       dpto_id: payload.departamentoId,
@@ -107,6 +113,9 @@ export const clientesService = {
       direccion: string;
       correo: string;
       habilitaAcceso: boolean;
+      esDistribuidor: boolean;
+      nitDigVf: string;
+      esExtranjero: boolean;
       centro_operacion_ids: number[];
       ejecutivoId: number | null;
       paisId: number;
@@ -125,6 +134,12 @@ export const clientesService = {
     if (payload.correo !== undefined) body.cli_correo = payload.correo;
     if (payload.habilitaAcceso !== undefined)
       body.cli_acceso_pc = payload.habilitaAcceso;
+    if (payload.esDistribuidor !== undefined)
+      body.cli_es_distribuidor = payload.esDistribuidor;
+    if (payload.nitDigVf !== undefined)
+      body.cli_nit_dig_vf = payload.nitDigVf;
+    if (payload.esExtranjero !== undefined)
+      body.cli_es_extranjero = payload.esExtranjero;
     if (payload.ejecutivoId !== undefined) body.ejng_id = payload.ejecutivoId;
     if (payload.paisId !== undefined) body.pai_id = payload.paisId;
     if (payload.departamentoId !== undefined)

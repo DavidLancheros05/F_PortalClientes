@@ -27,15 +27,15 @@ import { ErrorModal } from "@/components/modals";
 interface Solicitud {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_cliente_id: number;
+  sol_cli_id: number;
   cliente_nombre: string;
   sol_co_id: number;
   centro_operacion_nombre: string;
-  sol_ejecutivo_id?: number | null;
+  sol_ejng_id?: number | null;
   ejecutivo_nombre?: string | null;
-  sol_estado_id: number;
-  sol_etapa_actual_id?: number;
-  sol_resultado_etapa_id?: number;
+  sol_ses_id: number;
+  sol_wet_id?: number;
+  sol_wee_id?: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
   fecha_creacion: string;
@@ -205,11 +205,11 @@ export default function GestionOficialCumplimientoPage() {
           ...s,
         }))
         .filter((s: Solicitud) => {
-          const cumpleCliente = clienteSeleccionado ? s.sol_cliente_id === clienteSeleccionado : true;
+          const cumpleCliente = clienteSeleccionado ? s.sol_cli_id === clienteSeleccionado : true;
           return cumpleCliente;
         })
         .filter((s: Solicitud) => {
-          const cumpleEjecutivo = ejecutivoSeleccionado ? s.sol_ejecutivo_id === ejecutivoSeleccionado : true;
+          const cumpleEjecutivo = ejecutivoSeleccionado ? s.sol_ejng_id === ejecutivoSeleccionado : true;
           return cumpleEjecutivo;
         })
         .filter((s: Solicitud) => {
@@ -301,7 +301,7 @@ export default function GestionOficialCumplimientoPage() {
         getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
-        ESTADOS[s.sol_estado_id ?? s.estado_id] || "Desconocido",
+        ESTADOS[s.sol_ses_id ?? s.estado_id] || "Desconocido",
         s.etapa_nombre || "-",
         s.resultado_nombre || "-",
         s.consumo_mensual_proyectado
@@ -466,9 +466,9 @@ export default function GestionOficialCumplimientoPage() {
                             <Td className="whitespace-nowrap">
                               <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeClass(
-                                  solicitud.sol_estado_id ?? solicitud.estado_id,
+                                  solicitud.sol_ses_id ?? solicitud.estado_id,
                                 )}`}>
-                                {ESTADOS[solicitud.sol_estado_id ?? solicitud.estado_id] || "Desconocido"}
+                                {ESTADOS[solicitud.sol_ses_id ?? solicitud.estado_id] || "Desconocido"}
                               </span>
                             </Td>
                             <Td className="whitespace-nowrap">{solicitud.etapa_nombre || "-"}</Td>

@@ -15,6 +15,9 @@ export interface ClienteListResponse {
   cli_correo?: string;
   cli_estado: string;
   cli_acceso_pc: boolean;
+  cli_es_distribuidor?: boolean;
+  cli_nit_dig_vf?: string;
+  cli_es_extranjero?: boolean;
   cli_siesa?: boolean;
   ejng_id?: number;
   ejecutivo?: { nombre: string } | null;
@@ -29,6 +32,9 @@ export interface ClienteDetailResponse {
   cli_correo?: string;
   cli_acceso_pc: boolean;
   cli_estado: string;
+  cli_es_distribuidor?: boolean;
+  cli_nit_dig_vf?: string;
+  cli_es_extranjero?: boolean;
   ejng_id?: number;
   pai_id?: number;
   dpto_id?: number;

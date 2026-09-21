@@ -67,8 +67,9 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
     setActiveSubMenu(activeSubMenu === id ? null : id);
   };
 
-  const toggleNestedSubMenu = (id: number) =>
+  const toggleNestedSubMenu = (id: number) => {
     setActiveNestedSubMenu(activeNestedSubMenu === id ? null : id);
+  };
 
   const iniciales =
     String(nombreUsuario || "")
@@ -186,7 +187,7 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                           ).length > 0 ? (
                             <>
                               <button
-                                onClick={() => toggleNestedSubMenu(sub.mod_id)}
+                                onPointerDown={() => toggleNestedSubMenu(sub.mod_id)}
                                 className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-[#f1f5f9] text-[#0f172a] transition-colors"
                               >
                                 <span>{sub.mod_nombre}</span>
@@ -369,10 +370,13 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
           <div className="px-3 py-2 text-white text-sm font-medium border-b border-brand-500">
             {nombreUsuario}
           </div>
-          {topLevelModulos.map((m, idx) => (
-            <div key={`${m.mod_id}-${idx}`}>
-              {getSubModulosConFallback(m).length > 0 ? (
-                <>
+          {topLevelModulos.map((m, idx) => {
+            const subs = getSubModulosConFallback(m);
+            const isExpanded = activeSubMenu === m.mod_id;
+            return (
+              <div key={`${m.mod_id}-${idx}`}>
+                {/* Botón/Link de nivel 1 — hermano del panel, nunca padre */}
+                {subs.length > 0 ? (
                   <button
                     onClick={() => toggleSubMenu(m.mod_id)}
                     className="flex justify-between w-full px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
@@ -380,56 +384,71 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                     {m.mod_nombre}
                     <ChevronDown
                       className={`ml-2 w-4 h-4 transition-transform ${
-                        activeSubMenu === m.mod_id ? "rotate-180" : ""
+                        isExpanded ? "rotate-180" : ""
                       }`}
                     />
                   </button>
+                ) : (
+                  <Link
+                    href={resolveModuloRoute(m)!}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-3 py-2 rounded-lg text-white transition ${
+                      isModuloActivo(pathname, resolveModuloRoute(m))
+                        ? "bg-brand-500 font-semibold"
+                        : "hover:bg-brand-500"
+                    }`}
+                  >
+                    {m.mod_nombre}
+                  </Link>
+                )}
 
-                  {activeSubMenu === m.mod_id && (
-                    <div className="ml-2 sm:ml-4 mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 rounded-lg border border-white/20 bg-white/10 p-1.5 sm:p-2">
-                      {sortModulosByOrden(getSubModulosConFallback(m))
-                        .filter((s) => s.permisos.ver || tieneHijosConPermiso(s))
-                        .map((sub, subIdx) => (
+                {/* Panel de nivel 2 — HERMANO del botón, no hijo */}
+                {isExpanded && subs.length > 0 && (
+                  <div className="ml-2 sm:ml-4 mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 rounded-lg border border-white/20 bg-white/10 p-1.5 sm:p-2">
+                    {sortModulosByOrden(subs)
+                      .filter((s) => s.mod_activo !== false && (s.permisos.ver || tieneHijosConPermiso(s)))
+                      .map((sub, subIdx) => {
+                        const subHijos = getSubModulosConFallback(sub);
+                        const tieneSubHijos =
+                          subHijos.length > 0 &&
+                          sortModulosByOrden(subHijos).filter(
+                            (n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)),
+                          ).length > 0;
+
+                        return (
                           <div key={`${sub.mod_id}-${subIdx}`}>
-                            {getSubModulosConFallback(sub).length > 0 &&
-                            sortModulosByOrden(getSubModulosConFallback(sub)).filter(
-                              (n) => n.permisos.ver || tieneHijosConPermiso(n),
-                            ).length > 0 ? (
+                            {/* Botón/Link de nivel 2 */}
+                            {tieneSubHijos ? (
                               <>
                                 <button
-                                  onClick={() =>
-                                    toggleNestedSubMenu(sub.mod_id)
-                                  }
+                                  onClick={() => toggleNestedSubMenu(sub.mod_id)}
                                   className="flex justify-between w-full px-3 py-2 rounded-lg hover:bg-brand-500 text-white transition"
                                 >
                                   <span>{sub.mod_nombre}</span>
                                   <ChevronDown
                                     className={`ml-2 w-4 h-4 transition-transform ${
-                                      activeNestedSubMenu === sub.mod_id
-                                        ? "rotate-180"
-                                        : ""
+                                      activeNestedSubMenu === sub.mod_id ? "rotate-180" : ""
                                     }`}
                                   />
                                 </button>
-
+                                {/* Panel de nivel 3 — HERMANO del botón */}
                                 {activeNestedSubMenu === sub.mod_id && (
                                   <div className="ml-3 mt-1 space-y-1 border-l border-white/30 pl-2">
-                                    {sortModulosByOrden(getSubModulosConFallback(sub))
-                                      ?.filter((n) => n.permisos.ver || tieneHijosConPermiso(n))
+                                    {sortModulosByOrden(subHijos)
+                                      ?.filter((n) => n.mod_activo !== false && (n.permisos.ver || tieneHijosConPermiso(n)))
                                       .map((nested, nIdx) => {
-                                        const rutaMobil = resolveModuloRoute(nested);
-                                        return rutaMobil ? (
+                                        const ruta = resolveModuloRoute(nested);
+                                        return ruta ? (
                                           <Link
                                             key={`${nested.mod_id}-${nIdx}`}
-                                            href={rutaMobil}
+                                            href={ruta}
                                             onClick={() => {
-                                              console.log(`[Header MOBILE] Click en link: "${nested.mod_nombre}" → href="${rutaMobil}"`);
                                               setMobileMenuOpen(false);
                                               setActiveSubMenu(null);
                                               setActiveNestedSubMenu(null);
                                             }}
                                             className={`block px-3 py-2 rounded-lg text-white transition ${
-                                              isModuloActivo(pathname, rutaMobil)
+                                              isModuloActivo(pathname, ruta)
                                                 ? "bg-brand-500 font-semibold"
                                                 : "hover:bg-brand-500"
                                             }`}
@@ -449,8 +468,6 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                               <Link
                                 href={resolveModuloRoute(sub)!}
                                 onClick={() => {
-                                  const rutaUsada = resolveModuloRoute(sub);
-                                  console.log(`[Header MOBILE DIRECTO] Click en link: "${sub.mod_nombre}" → href="${rutaUsada}"`);
                                   setMobileMenuOpen(false);
                                   setActiveSubMenu(null);
                                   setActiveNestedSubMenu(null);
@@ -469,25 +486,13 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                               </span>
                             )}
                           </div>
-                        ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <Link
-                  href={resolveModuloRoute(m)!}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-lg text-white transition ${
-                    isModuloActivo(pathname, resolveModuloRoute(m))
-                      ? "bg-brand-500 font-semibold"
-                      : "hover:bg-brand-500"
-                  }`}
-                >
-                  {m.mod_nombre}
-                </Link>
-              )}
-            </div>
-          ))}
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           <Link
             href="/perfil"

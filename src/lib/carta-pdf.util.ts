@@ -443,13 +443,17 @@ function dibujarLineaMixtaPdf(
   fontBold: PDFFont,
   color: ReturnType<typeof rgb>,
   justificar: boolean,
+  fuentesExtra?: Map<string, { regular: PDFFont; bold: PDFFont }>,
 ) {
   const spaceWidth = fontRegular.widthOfTextAtSize(" ", fontSize);
+
+  const fontPara = (p: PalabraPdf) =>
+    (fuentesExtra ? resolverFuentePdf(p, fuentesExtra) : null) ?? (p.bold ? fontBold : fontRegular);
 
   if (!justificar || palabras.length <= 1) {
     let cursorX = x;
     for (const palabra of palabras) {
-      const font = palabra.bold ? fontBold : fontRegular;
+      const font = fontPara(palabra);
       const size = palabra.size ?? fontSize;
       page.drawText(palabra.texto, { x: cursorX, y, size, font, color });
       cursorX += font.widthOfTextAtSize(palabra.texto, size) + spaceWidth;
@@ -460,7 +464,7 @@ function dibujarLineaMixtaPdf(
   const anchoNatural =
     palabras.reduce(
       (suma, p) =>
-        suma + (p.bold ? fontBold : fontRegular).widthOfTextAtSize(p.texto, p.size ?? fontSize),
+        suma + fontPara(p).widthOfTextAtSize(p.texto, p.size ?? fontSize),
       0,
     ) +
     spaceWidth * (palabras.length - 1);
@@ -469,7 +473,7 @@ function dibujarLineaMixtaPdf(
 
   let cursorX = x;
   palabras.forEach((palabra) => {
-    const font = palabra.bold ? fontBold : fontRegular;
+    const font = fontPara(palabra);
     const size = palabra.size ?? fontSize;
     page.drawText(palabra.texto, { x: cursorX, y, size, font, color });
     cursorX +=
@@ -497,6 +501,8 @@ interface EstiloCuerpoPdf {
   lineHeightParrafo: number;
   lineHeightLista: number;
   checkSpace: (cursor: CursorPdf, needed: number) => void;
+  /** Fuentes adicionales para {{font:Name}} (Times New Roman, Arial, Courier). */
+  fuentesExtra?: Map<string, { regular: PDFFont; bold: PDFFont }>;
 }
 
 function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: string) {
@@ -507,6 +513,7 @@ function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: st
     estilo.fontSizeBody,
     estilo.fontRegular,
     estilo.fontBold,
+    estilo.fuentesExtra,
   );
   lineas.forEach((lineaPalabras, idx) => {
     const alto = altoLineaPdf(lineaPalabras, estilo.fontSizeBody, estilo.lineHeightParrafo);
@@ -522,6 +529,7 @@ function dibujarParrafoPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: st
       estilo.fontBold,
       estilo.color,
       idx < lineas.length - 1,
+      estilo.fuentesExtra,
     );
     cursor.y -= alto;
   });
@@ -537,7 +545,9 @@ function dibujarSubtituloPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, texto: 
   const textoLimpio = texto
     .replace(/\*\*/g, "")
     .replace(/\{\{size:\d+\}\}/g, "")
-    .replace(/\{\{\/size\}\}/g, "");
+    .replace(/\{\{\/size\}\}/g, "")
+    .replace(/\{\{font:[^}]+\}\}/g, "")
+    .replace(/\{\{\/font\}\}/g, "");
   cursor.page.drawText(textoLimpio, {
     x: estilo.marginLeft,
     y: cursor.y,
@@ -557,6 +567,7 @@ function dibujarListaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, lineas: str
       estilo.fontSizeBody,
       estilo.fontRegular,
       estilo.fontBold,
+      estilo.fuentesExtra,
     );
     subLineas.forEach((subLinea) => {
       const alto = altoLineaPdf(subLinea, estilo.fontSizeBody, estilo.lineHeightLista);
@@ -572,6 +583,7 @@ function dibujarListaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, lineas: str
         estilo.fontBold,
         estilo.color,
         false,
+        estilo.fuentesExtra,
       );
       cursor.y -= alto;
     });
@@ -607,6 +619,7 @@ function dibujarVinetaPdf(
     estilo.fontSizeBody,
     estilo.fontRegular,
     estilo.fontBold,
+    estilo.fuentesExtra,
   );
   // Sin más líneas de descripción, la última línea envuelta de este
   // renglón también es la última del bloque (no se justifica).
@@ -634,6 +647,7 @@ function dibujarVinetaPdf(
       estilo.fontBold,
       estilo.color,
       idx < lineas.length - 1 || !esUltimoRenglon,
+      estilo.fuentesExtra,
     );
     cursor.y -= alto;
   });
@@ -651,6 +665,7 @@ function dibujarVinetaPdf(
       estilo.fontSizeBody,
       estilo.fontRegular,
       estilo.fontBold,
+      estilo.fuentesExtra,
     );
     const esUltimaLineaDelBloque = i === siguientesLineas.length - 1;
     subLineas.forEach((subLinea, idx) => {
@@ -667,6 +682,7 @@ function dibujarVinetaPdf(
         estilo.fontBold,
         estilo.color,
         idx < subLineas.length - 1 || !esUltimaLineaDelBloque,
+        estilo.fuentesExtra,
       );
       cursor.y -= alto;
     });
@@ -1313,8 +1329,17 @@ export async function generarCartaPdf({
   const fontBold = await pdfDoc.embedFont("Times-Bold");
   const helvetica = await pdfDoc.embedFont("Helvetica");
   const helveticaBold = await pdfDoc.embedFont("Helvetica-Bold");
+  const courier = await pdfDoc.embedFont("Courier");
+  const courierBold = await pdfDoc.embedFont("Courier-Bold");
   const negro = rgb(0.1, 0.1, 0.1);
   const gris = rgb(0.35, 0.35, 0.35);
+
+  // Mapa de fuentes adicionales para {{font:Name}} en el contenido
+  const fuentesExtra = new Map<string, { regular: PDFFont; bold: PDFFont }>([
+    ["Times-Roman", { regular: fontRegular, bold: fontBold }],
+    ["Helvetica", { regular: helvetica, bold: helveticaBold }],
+    ["Courier", { regular: courier, bold: courierBold }],
+  ]);
 
   const encabezado = await resolverEncabezadoDocumento(
     pdfDoc,
@@ -1371,6 +1396,7 @@ export async function generarCartaPdf({
     lineHeightParrafo: 18,
     lineHeightLista: 19,
     checkSpace,
+    fuentesExtra,
   };
   dibujarBloquesPdf(cursor, estilo, partes);
 
@@ -1500,7 +1526,17 @@ export async function generarFormatoOficialPdf({
   pdfDoc.setTitle(nombreArchivo);
   const helvetica = await pdfDoc.embedFont("Helvetica");
   const helveticaBold = await pdfDoc.embedFont("Helvetica-Bold");
+  const timesRoman = await pdfDoc.embedFont("Times-Roman");
+  const timesBold = await pdfDoc.embedFont("Times-Bold");
+  const courier = await pdfDoc.embedFont("Courier");
+  const courierBold = await pdfDoc.embedFont("Courier-Bold");
   const negro = rgb(0.1, 0.1, 0.1);
+
+  const fuentesExtra = new Map<string, { regular: PDFFont; bold: PDFFont }>([
+    ["Times-Roman", { regular: timesRoman, bold: timesBold }],
+    ["Helvetica", { regular: helvetica, bold: helveticaBold }],
+    ["Courier", { regular: courier, bold: courierBold }],
+  ]);
 
   const encabezado = await resolverEncabezadoDocumento(
     pdfDoc,
@@ -1556,6 +1592,7 @@ export async function generarFormatoOficialPdf({
     lineHeightParrafo: 15,
     lineHeightLista: 16,
     checkSpace,
+    fuentesExtra,
   };
   dibujarBloquesPdf(cursor, estilo, partes);
 

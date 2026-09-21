@@ -60,7 +60,7 @@ export interface MisDocumentosResponse {
   solicitud: {
     sol_id: number;
     sol_numero_solicitud: string;
-    sol_estado_id: number;
+    sol_ses_id: number;
     cliente_nombre?: string | null;
     cliente_nit?: string | null;
   } | null;
@@ -80,10 +80,7 @@ export const misDocumentosService = {
    * última solicitud, sin importar qué se pase acá; el backend ignora
    * ambos parámetros para ese rol.
    */
-  async getMisDocumentos(
-    solicitudId?: number,
-    clienteId?: number,
-  ): Promise<MisDocumentosResponse> {
+  async getMisDocumentos(solicitudId?: number, clienteId?: number): Promise<MisDocumentosResponse> {
     const params: Record<string, number> = {};
     if (solicitudId) params.solicitudId = solicitudId;
     if (clienteId) params.clienteId = clienteId;
@@ -93,26 +90,18 @@ export const misDocumentosService = {
     return response.data;
   },
 
-  async getRepresentanteLegal(
-    solicitudId: number,
-  ): Promise<{ nombre: string; identificacion: string } | null> {
-    const response = await api.get(
-      `/solicitudes/${solicitudId}/representante-legal`,
-    );
+  async getRepresentanteLegal(solicitudId: number): Promise<{ nombre: string; identificacion: string } | null> {
+    const response = await api.get(`/solicitudes/${solicitudId}/representante-legal`);
     return response.data.representanteLegal;
   },
 
   async enviarCorreccion(solicitudId: number) {
-    const response = await api.patch(
-      `/solicitudes/${solicitudId}/resultado-pendiente`,
-    );
+    const response = await api.patch(`/solicitudes/${solicitudId}/resultado-pendiente`);
     return response.data;
   },
 
   async verificarDocumentosDiferidos(solicitudId: number) {
-    const response = await api.patch(
-      `/solicitudes/${solicitudId}/documentos-diferidos/verificar`,
-    );
+    const response = await api.patch(`/solicitudes/${solicitudId}/documentos-diferidos/verificar`);
     return response.data as {
       ok: boolean;
       avanzo: boolean;

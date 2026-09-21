@@ -35,11 +35,7 @@ export const solicitudesService = {
     // lanza un error genérico con el JSON completo, tapando el mensaje real
     // del backend (ej. "El cliente ya tiene una solicitud en borrador...").
     if (response.data?.ok === false) {
-      throw new Error(
-        response.data?.error ||
-          response.data?.mensaje ||
-          "No se pudo crear la solicitud",
-      );
+      throw new Error(response.data?.error || response.data?.mensaje || "No se pudo crear la solicitud");
     }
     return response.data;
   },
@@ -50,10 +46,7 @@ export const solicitudesService = {
       const response = await api.get("/solicitudes");
       return response.data;
     } catch (error) {
-      console.error(
-        "[solicitudesService] Error obteniendo all solicitudes:",
-        error,
-      );
+      console.error("[solicitudesService] Error obteniendo all solicitudes:", error);
       throw error;
     }
   },
@@ -69,10 +62,7 @@ export const solicitudesService = {
       });
       return response.data;
     } catch (error) {
-      console.error(
-        "[solicitudesService] Error obteniendo solicitudes:",
-        error,
-      );
+      console.error("[solicitudesService] Error obteniendo solicitudes:", error);
       throw error;
     }
   },
@@ -104,10 +94,7 @@ export const solicitudesService = {
 
   // Actualizar respuestas del formulario de una solicitud
   async updateRespuestas(id: number, respuestas: any[]) {
-    const response = await api.patch(
-      `/solicitudes/${id}/respuestas`,
-      respuestas,
-    );
+    const response = await api.patch(`/solicitudes/${id}/respuestas`, respuestas);
     return response.data;
   },
 
@@ -124,20 +111,14 @@ export const solicitudesService = {
   async getForEjecutivo(ejecutivoId: number, verComoEjng?: number) {
     console.log("solicitudesService.getForEjecutivo");
     try {
-      console.log(
-        "[solicitudesService] getForEjecutivo -> ejecutivoId:",
-        ejecutivoId,
-      );
+      console.log("[solicitudesService] getForEjecutivo -> ejecutivoId:", ejecutivoId);
       if (!ejecutivoId) throw new Error("No se proporcionó ejecutivoId");
 
       const response = await api.get(
         `/solicitudes/ejecutivo/${ejecutivoId}/pendientes`,
         verComoEjng ? { params: { verComoEjecutivo: verComoEjng } } : undefined,
       );
-      console.log(
-        "[solicitudesService] response.data pendientes:",
-        response.data,
-      );
+      console.log("[solicitudesService] response.data pendientes:", response.data);
       return response.data;
     } catch (error) {
       console.error("[solicitudesService] Error obteniendo pendientes:", error);
@@ -149,9 +130,7 @@ export const solicitudesService = {
   // Oficial de Cumplimiento o Comité de Crédito 2, pendientes de que él
   // gestione el seguimiento con el cliente por fuera del sistema.
   async getRechazadasParaEjecutivo(ejecutivoId: number) {
-    const response = await api.get(
-      `/solicitudes/ejecutivo/${ejecutivoId}/rechazadas`,
-    );
+    const response = await api.get(`/solicitudes/ejecutivo/${ejecutivoId}/rechazadas`);
     return response.data;
   },
   async getRechazoEjecutivoDetalle(id: number) {
@@ -159,19 +138,14 @@ export const solicitudesService = {
     return response.data;
   },
   async finalizarGestionRechazo(id: number) {
-    const response = await api.patch(
-      `/solicitudes/${id}/gestion-rechazo/finalizar`,
-    );
+    const response = await api.patch(`/solicitudes/${id}/gestion-rechazo/finalizar`);
     return response.data;
   },
 
   async getSolicitudesPendientes() {
     try {
       const response = await api.get(`/solicitudes/pendientes`);
-      console.log(
-        "[solicitudesService] response.data pendientes:",
-        response.data,
-      );
+      console.log("[solicitudesService] response.data pendientes:", response.data);
       return response.data;
     } catch (error) {
       console.error("[solicitudesService] Error obteniendo pendientes:", error);
@@ -185,10 +159,7 @@ export const solicitudesService = {
       const response = await api.patch(`/solicitudes/${id}`, data);
       return response.data;
     } catch (error) {
-      console.error(
-        "[solicitudesService] Error actualizando solicitud:",
-        error,
-      );
+      console.error("[solicitudesService] Error actualizando solicitud:", error);
       throw error;
     }
   },
@@ -205,10 +176,7 @@ export const solicitudesService = {
       const response = await api.patch(`/solicitudes/${id}/ejecutivo`, data);
       return response.data;
     } catch (error) {
-      console.error(
-        "[solicitudesService] Error actualizando ejecutivo de solicitud:",
-        error,
-      );
+      console.error("[solicitudesService] Error actualizando ejecutivo de solicitud:", error);
       throw error;
     }
   },
@@ -251,9 +219,7 @@ export const solicitudesService = {
 
   // Obtener documentos requeridos de una solicitud
   async getDocumentosRequeridos(solicitudId: number) {
-    const response = await api.get(
-      `/solicitudes/${solicitudId}/documentos-requeridos`,
-    );
+    const response = await api.get(`/solicitudes/${solicitudId}/documentos-requeridos`);
     return response.data;
   },
 
@@ -297,11 +263,7 @@ export const solicitudesService = {
 
   // Obtener solicitudes por rol (genérico)
   async getSolicitudesPorRol(
-    rol:
-      | "auxiliar-servicio-cliente"
-      | "oc"
-      | "comite-credito-1"
-      | "comite-credito-2",
+    rol: "auxiliar-servicio-cliente" | "oc" | "comite-credito-1" | "comite-credito-2",
     usuarioId: number,
     params?: any,
   ) {
@@ -337,15 +299,8 @@ export const solicitudesService = {
   },
 
   // Métodos específicos que usan el genérico (backward compatibility)
-  async getSolicitudesPendientesAuxiliarServicioCliente(
-    usuarioId: number,
-    params?: any,
-  ) {
-    return this.getSolicitudesPorRol(
-      "auxiliar-servicio-cliente",
-      usuarioId,
-      params,
-    );
+  async getSolicitudesPendientesAuxiliarServicioCliente(usuarioId: number, params?: any) {
+    return this.getSolicitudesPorRol("auxiliar-servicio-cliente", usuarioId, params);
   },
 
   async getSolicitudesParaOC(usuarioId: number, params?: any) {
@@ -370,18 +325,12 @@ export const solicitudesService = {
   },
 
   // Guardar concepto Comité Crédito 1 (backward compatibility wrapper)
-  async guardarConceptoComiteCredito1(
-    id: number,
-    data: { comentario: string; recomendacion?: string },
-  ) {
+  async guardarConceptoComiteCredito1(id: number, data: { comentario: string; recomendacion?: string }) {
     return workflowSolicitudesService.guardarConceptoComiteCredito1(id, data);
   },
 
   // Guardar concepto Comité Crédito 2 (backward compatibility wrapper)
-  async guardarConceptoComiteCredito2(
-    id: number,
-    data: { comentario: string; recomendacion?: string },
-  ) {
+  async guardarConceptoComiteCredito2(id: number, data: { comentario: string; recomendacion?: string }) {
     return workflowSolicitudesService.guardarConceptoComiteCredito2(id, data);
   },
 
@@ -404,11 +353,9 @@ export const solicitudesService = {
     const formData = new FormData();
     formData.append("archivo", file);
     formData.append("wet_id", String(wetId));
-    const response = await api.post(
-      `/solicitudes/${id}/soportes-analisis`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
+    const response = await api.post(`/solicitudes/${id}/soportes-analisis`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data?.data;
   },
 
@@ -435,21 +382,14 @@ export const solicitudesService = {
     return (response.data?.data ?? []) as EvidenciaPersona[];
   },
 
-  async subirEvidenciaPersona(
-    id: number,
-    fpId: number,
-    filaIndex: number,
-    file: File,
-  ) {
+  async subirEvidenciaPersona(id: number, fpId: number, filaIndex: number, file: File) {
     const formData = new FormData();
     formData.append("archivo", file);
     formData.append("fp_id", String(fpId));
     formData.append("fila_index", String(filaIndex));
-    const response = await api.post(
-      `/solicitudes/${id}/evidencias-persona`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
+    const response = await api.post(`/solicitudes/${id}/evidencias-persona`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data?.data as EvidenciaPersona;
   },
 
@@ -499,9 +439,7 @@ export const solicitudesService = {
   async getRespuestasPorCodigo(id: number, codigos: string[]) {
     const params = new URLSearchParams();
     codigos.forEach((codigo) => params.append("codigo", codigo));
-    const response = await api.get(
-      `/solicitudes/${id}/respuestas-por-codigo?${params.toString()}`,
-    );
+    const response = await api.get(`/solicitudes/${id}/respuestas-por-codigo?${params.toString()}`);
     return response.data as Array<{
       fp_codigo: string;
       valor_resuelto: string;
@@ -511,17 +449,13 @@ export const solicitudesService = {
 
   // Obtener última solicitud pendiente de un cliente
   async getUltimaSolicitudPendiente(clienteId: number) {
-    const response = await api.get(
-      `/solicitudes/cliente/${clienteId}/ultima-pendiente`,
-    );
+    const response = await api.get(`/solicitudes/cliente/${clienteId}/ultima-pendiente`);
     return response.data;
   },
 
   // Obtener última solicitud completada (aprobada, rechazada, cancelada) con sus respuestas
   async getUltimaSolicitudCompletada(clienteId: number) {
-    const response = await api.get(
-      `/solicitudes/cliente/${clienteId}/ultima-completada`,
-    );
+    const response = await api.get(`/solicitudes/cliente/${clienteId}/ultima-completada`);
     return response.data;
   },
 
@@ -534,17 +468,13 @@ export const solicitudesService = {
   // Obtener última solicitud APROBADA del cliente con respuestas — usado
   // para decidir "Ampliación de Cupo" y precargar el formulario
   async getUltimaSolicitudAprobada(clienteId: number) {
-    const response = await api.get(
-      `/solicitudes/cliente/${clienteId}/ultima-aprobada`,
-    );
+    const response = await api.get(`/solicitudes/cliente/${clienteId}/ultima-aprobada`);
     return response.data;
   },
 
   // Obtener última solicitud con respuestas de un cliente
   async getUltimaSolicitudRespuestas(clienteId: number) {
-    const response = await api.get(
-      `/solicitudes/cliente/${clienteId}/ultima-respuestas`,
-    );
+    const response = await api.get(`/solicitudes/cliente/${clienteId}/ultima-respuestas`);
     return response.data;
   },
 
@@ -569,16 +499,11 @@ export const solicitudesService = {
     options?: { isCorrecionASC?: boolean },
     archivosExistentes?: Record<number, any>,
   ) {
-    let targetSolicitudId =
-      solicitudId && !isNaN(solicitudId) ? solicitudId : null;
+    let targetSolicitudId = solicitudId && !isNaN(solicitudId) ? solicitudId : null;
 
-    const estado =
-      accion === AccionSolicitud.BORRADOR
-        ? ESTADO_SOLICITUD.BORRADOR
-        : ESTADO_SOLICITUD.PENDIENTE;
+    const estado = accion === AccionSolicitud.BORRADOR ? ESTADO_SOLICITUD.BORRADOR : ESTADO_SOLICITUD.PENDIENTE;
     const soloConValor = accion === AccionSolicitud.BORRADOR;
-    let documentosDiferidosFaltantes: { tdo_id: number; tdo_nombre: string }[] =
-      [];
+    let documentosDiferidosFaltantes: { tdo_id: number; tdo_nombre: string }[] = [];
 
     // Crear solicitud si es nueva
     if (!targetSolicitudId) {
@@ -590,21 +515,14 @@ export const solicitudesService = {
         estado_id: estado.id,
       });
 
-      console.log(
-        "[guardarSolicitud] Respuesta de crear solicitud:",
-        nuevaSolicitud,
-      );
+      console.log("[guardarSolicitud] Respuesta de crear solicitud:", nuevaSolicitud);
 
       targetSolicitudId = extractSolicitudId(nuevaSolicitud);
 
       // Si es nueva y es ENVIAR, cambiar estado a PENDIENTE
       if (accion === AccionSolicitud.ENVIAR) {
-        const resultadoCambio = await this.cambiarEstado(
-          targetSolicitudId,
-          ESTADO_SOLICITUD.PENDIENTE.id,
-        );
-        documentosDiferidosFaltantes =
-          resultadoCambio?.documentosDiferidosFaltantes || [];
+        const resultadoCambio = await this.cambiarEstado(targetSolicitudId, ESTADO_SOLICITUD.PENDIENTE.id);
+        documentosDiferidosFaltantes = resultadoCambio?.documentosDiferidosFaltantes || [];
       }
     } else {
       // Si es solicitud existente, cambiar estado según acción
@@ -613,37 +531,28 @@ export const solicitudesService = {
         // Para otros casos: cambiar a estado PENDIENTE (2)
         if (options?.isCorrecionASC) {
           // Ya se manejará en el paso siguiente con llamada a /resultado-pendiente
-          console.log(
-            "[guardarSolicitud] Guardando corrección ASC - sin cambio de estado",
-          );
+          console.log("[guardarSolicitud] Guardando corrección ASC - sin cambio de estado");
         } else {
-          const resultadoCambio = await this.cambiarEstado(
-            targetSolicitudId,
-            ESTADO_SOLICITUD.PENDIENTE.id,
-          );
-          documentosDiferidosFaltantes =
-            resultadoCambio?.documentosDiferidosFaltantes || [];
+          const resultadoCambio = await this.cambiarEstado(targetSolicitudId, ESTADO_SOLICITUD.PENDIENTE.id);
+          documentosDiferidosFaltantes = resultadoCambio?.documentosDiferidosFaltantes || [];
         }
       }
     }
 
     // Guardar respuestas y archivos
-    const respuestasGuardadas =
-      await formularioRespuestasService.guardarRespuestasYArchivos({
-        solicitudId: targetSolicitudId,
-        respuestas,
-        preguntas,
-        soloConValor,
-        hasValorEnRespuesta: soloConValor ? hasValorEnRespuesta : undefined,
-        archivosExistentes,
-      });
+    const respuestasGuardadas = await formularioRespuestasService.guardarRespuestasYArchivos({
+      solicitudId: targetSolicitudId,
+      respuestas,
+      preguntas,
+      soloConValor,
+      hasValorEnRespuesta: soloConValor ? hasValorEnRespuesta : undefined,
+      archivosExistentes,
+    });
 
     // Si es corrección ASC, actualizar resultado a PENDIENTE (1)
     if (options?.isCorrecionASC && targetSolicitudId) {
       try {
-        await api.patch(
-          `/solicitudes/${targetSolicitudId}/resultado-pendiente`,
-        );
+        await api.patch(`/solicitudes/${targetSolicitudId}/resultado-pendiente`);
       } catch (error) {
         console.error("Error actualizando resultado a pendiente:", error);
         // No lanzar error, solo registrar
@@ -686,7 +595,7 @@ export const solicitudesService = {
     respuestas: any,
     preguntas: any[],
     clienteId: number,
-    // null cuando lo guarda un cliente (sol_usuario_crea/usuario_modifica
+    // null cuando lo guarda un cliente (sol_usr_id_crea/usuario_modifica
     // solo tiene sentido para personal interno — ver comentario en el
     // caller, SolicitudFormContent.tsx::handleGuardarParcial).
     usuarioId: number | null,
@@ -780,15 +689,10 @@ export const solicitudesService = {
         params.append("resultado_etapa_id", String(filtros.resultado_etapa_id));
       }
 
-      const response = await api.get(
-        `/solicitudes/listado/${usuarioId}?${params.toString()}`,
-      );
+      const response = await api.get(`/solicitudes/listado/${usuarioId}?${params.toString()}`);
       return response.data;
     } catch (error) {
-      console.error(
-        "[solicitudesService] Error obteniendo solicitudes con filtros:",
-        error,
-      );
+      console.error("[solicitudesService] Error obteniendo solicitudes con filtros:", error);
       throw error;
     }
   },

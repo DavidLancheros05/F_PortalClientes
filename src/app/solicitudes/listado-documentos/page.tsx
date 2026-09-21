@@ -24,7 +24,7 @@ interface DocumentoRow {
   sa_id: number;
   sa_sol_id: number;
   sol_numero_solicitud: string;
-  sol_estado_id: number;
+  sol_ses_id: number;
   estado_solicitud: string;
   sol_fecha_envio: string | null;
   documento_nombre: string | null;

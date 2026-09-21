@@ -211,9 +211,7 @@ export default function SolicitudesContent() {
             ? clientesData.map((item: any) => ({
                 cli_id: Number(item.cli_id ?? 0),
                 cli_razon_social: String(item.cli_razon_social ?? ""),
-                cli_nro_identificacion: String(
-                  item.cli_nro_identificacion ?? "",
-                ),
+                cli_nro_identificacion: String(item.cli_nro_identificacion ?? ""),
                 ejng_id: item.ejng_id != null ? Number(item.ejng_id) : null,
               }))
             : [];
@@ -268,7 +266,16 @@ export default function SolicitudesContent() {
         }
       }
     }
-  }, [esCliente, esEjecutivo, clienteSeleccionado, clienteIdDesdeUrl, ejecutivoId, ejecutivoBusqueda, clientes, ejecutivos]);
+  }, [
+    esCliente,
+    esEjecutivo,
+    clienteSeleccionado,
+    clienteIdDesdeUrl,
+    ejecutivoId,
+    ejecutivoBusqueda,
+    clientes,
+    ejecutivos,
+  ]);
 
   useEffect(() => {
     if (!mostrarEjecutivoLista && !mostrarClienteLista) return;
@@ -385,9 +392,7 @@ export default function SolicitudesContent() {
     // estado real de la solicitud (BORRADOR sigue redirigiendo sola al
     // editor, ver useUltimaSolicitud/page.tsx::tieneBorrador).
     const clienteId = esCliente ? undefined : clienteSeleccionado?.cli_id;
-    router.push(
-      clienteId ? `/solicitudes/nueva?clienteId=${clienteId}` : "/solicitudes/nueva",
-    );
+    router.push(clienteId ? `/solicitudes/nueva?clienteId=${clienteId}` : "/solicitudes/nueva");
   };
 
   const handleNuevaSolicitud = () => {
@@ -560,9 +565,7 @@ export default function SolicitudesContent() {
                           className="block w-full px-3 py-2 text-left text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100">
                           <div>{cliente.cli_razon_social}</div>
                           {cliente.cli_nro_identificacion && (
-                            <div className="text-[11px] text-gray-500">
-                              NIT {cliente.cli_nro_identificacion}
-                            </div>
+                            <div className="text-[11px] text-gray-500">NIT {cliente.cli_nro_identificacion}</div>
                           )}
                         </button>
                       ))
@@ -722,7 +725,7 @@ export default function SolicitudesContent() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedSolicitudes.map((solicitud) => {
-                    const estado = estadosMap[solicitud.sol_estado_id] || estadosMap[0];
+                    const estado = estadosMap[solicitud.sol_ses_id] || estadosMap[0];
                     const EstadoIcon = estado.icon;
 
                     return (
@@ -738,7 +741,7 @@ export default function SolicitudesContent() {
                             <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
                             <div className="text-sm">
                               <div className="font-medium text-gray-900">
-                                {solicitud.cliente_nombre || `Cliente #${solicitud.sol_cliente_id}`}
+                                {solicitud.cliente_nombre || `Cliente #${solicitud.sol_cli_id}`}
                               </div>
                             </div>
                           </div>

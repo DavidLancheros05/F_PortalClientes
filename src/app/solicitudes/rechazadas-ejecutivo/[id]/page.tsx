@@ -16,7 +16,7 @@ interface SolicitudDetalle {
   cliente_nombre: string;
   cliente_nit?: string;
   centro_operacion_nombre?: string;
-  sol_estado_id: number;
+  sol_ses_id: number;
 }
 
 interface RechazoDetalle {
@@ -58,9 +58,7 @@ export default function RechazoEjecutivoDetallePage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
-  const { historial } = useHistorialWorkflow(
-    Number.isFinite(solicitudId) ? solicitudId : null,
-  );
+  const { historial } = useHistorialWorkflow(Number.isFinite(solicitudId) ? solicitudId : null);
 
   // Token de la petición en curso: si `solicitudId` cambia o el
   // componente se desmonta antes de que responda, una respuesta tardía no
@@ -116,8 +114,7 @@ export default function RechazoEjecutivoDetallePage() {
         <div className="mb-6">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4"
-          >
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-4">
             <ArrowLeft className="h-4 w-4" />
             Volver
           </button>
@@ -128,22 +125,16 @@ export default function RechazoEjecutivoDetallePage() {
                 <div className="h-8 w-32 bg-gray-200 rounded" />
               </div>
             ) : error || !solicitud ? (
-              <p className="text-red-600">
-                {error || "No se encontró la solicitud"}
-              </p>
+              <p className="text-red-600">{error || "No se encontró la solicitud"}</p>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Solicitud</p>
-                  <h1 className="text-3xl font-bold text-red-800">
-                    {solicitud.sol_numero_solicitud}
-                  </h1>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {solicitud.cliente_nombre}
-                  </p>
+                  <h1 className="text-3xl font-bold text-red-800">{solicitud.sol_numero_solicitud}</h1>
+                  <p className="text-sm text-gray-600 mt-1">{solicitud.cliente_nombre}</p>
                 </div>
                 <span className="inline-block px-4 py-2 rounded-lg font-semibold border text-center bg-red-100 text-red-800 border-red-300">
-                  {ESTADOS[solicitud.sol_estado_id] || "Rechazada"}
+                  {ESTADOS[solicitud.sol_ses_id] || "Rechazada"}
                 </span>
               </div>
             )}
@@ -155,11 +146,8 @@ export default function RechazoEjecutivoDetallePage() {
             {/* Panel de rechazo destacado */}
             <div
               className={`rounded-2xl shadow-lg p-6 border mb-6 ${
-                rechazo.sol_gestion_rechazo_finalizada
-                  ? "bg-emerald-50 border-emerald-200"
-                  : "bg-red-50 border-red-200"
-              }`}
-            >
+                rechazo.sol_gestion_rechazo_finalizada ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"
+              }`}>
               <div className="flex items-center gap-2 mb-4">
                 {rechazo.sol_gestion_rechazo_finalizada ? (
                   <CheckCircle className="h-5 w-5 text-emerald-600" />
@@ -167,47 +155,29 @@ export default function RechazoEjecutivoDetallePage() {
                   <AlertTriangle className="h-5 w-5 text-red-600" />
                 )}
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {rechazo.sol_gestion_rechazo_finalizada
-                    ? "Gestión finalizada"
-                    : "Rechazo pendiente de gestión"}
+                  {rechazo.sol_gestion_rechazo_finalizada ? "Gestión finalizada" : "Rechazo pendiente de gestión"}
                 </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">
-                    Rechazado en
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {rechazo.etapa_rechazo_nombre || "-"}
-                  </p>
+                  <p className="text-xs text-gray-500 uppercase">Rechazado en</p>
+                  <p className="text-sm font-medium text-gray-900">{rechazo.etapa_rechazo_nombre || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">
-                    Rechazado por
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {rechazo.usuario_rechazo_nombre || "-"}
-                  </p>
+                  <p className="text-xs text-gray-500 uppercase">Rechazado por</p>
+                  <p className="text-sm font-medium text-gray-900">{rechazo.usuario_rechazo_nombre || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">
-                    Fecha de rechazo
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {formatDate(rechazo.fecha_rechazo)}
-                  </p>
+                  <p className="text-xs text-gray-500 uppercase">Fecha de rechazo</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(rechazo.fecha_rechazo)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase">Motivo</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {rechazo.motivo_rechazo || "-"}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">{rechazo.motivo_rechazo || "-"}</p>
                 </div>
                 <div className="md:col-span-2">
-                  <p className="text-xs text-gray-500 uppercase">
-                    Comentario
-                  </p>
+                  <p className="text-xs text-gray-500 uppercase">Comentario</p>
                   <p className="text-sm font-medium text-gray-900">
                     {rechazo.comentario_rechazo || "Sin comentario adicional"}
                   </p>
@@ -216,17 +186,13 @@ export default function RechazoEjecutivoDetallePage() {
 
               {rechazo.sol_gestion_rechazo_finalizada ? (
                 <p className="text-sm text-emerald-800">
-                  Finalizada por{" "}
-                  <span className="font-semibold">
-                    {rechazo.usuario_gestion_nombre || "-"}
-                  </span>{" "}
-                  el {formatDate(rechazo.sol_fecha_gestion_rechazo)}.
+                  Finalizada por <span className="font-semibold">{rechazo.usuario_gestion_nombre || "-"}</span> el{" "}
+                  {formatDate(rechazo.sol_fecha_gestion_rechazo)}.
                 </p>
               ) : (
                 <button
                   onClick={() => setShowConfirmModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-                >
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
                   <CheckCircle className="h-4 w-4" />
                   Finalizar gestión
                 </button>
@@ -237,24 +203,16 @@ export default function RechazoEjecutivoDetallePage() {
               <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
                 <div className="flex items-center gap-2 mb-4">
                   <FileText className="h-5 w-5 text-blue-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Datos de la solicitud
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Datos de la solicitud</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
                     <p className="text-xs text-gray-500 uppercase">Cliente</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {solicitud.cliente_nombre}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{solicitud.cliente_nombre}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase">
-                      Centro de Operación
-                    </p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {solicitud.centro_operacion_nombre || "-"}
-                    </p>
+                    <p className="text-xs text-gray-500 uppercase">Centro de Operación</p>
+                    <p className="text-sm font-medium text-gray-900">{solicitud.centro_operacion_nombre || "-"}</p>
                   </div>
                 </div>
                 <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />

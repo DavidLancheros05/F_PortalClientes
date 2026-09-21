@@ -6,7 +6,7 @@ import { RespuestasState } from "@/app/solicitudes/nueva/types";
 export interface UltimaSolicitud {
   sol_id: number;
   sol_numero_solicitud: string;
-  sol_estado_id: number;
+  sol_ses_id: number;
   sol_fecha_creacion: string;
   sol_fecha_envio: string | null;
   respuestas: RespuestasState;
@@ -43,8 +43,7 @@ export function useUltimaSolicitud({
   prefetched,
 }: UseUltimaSolicitudProps): UseUltimaSolicitudResult {
   const tienePrefetch = prefetched !== undefined;
-  const [ultimaSolicitud, setUltimaSolicitud] =
-    useState<UltimaSolicitud | null>(tienePrefetch ? prefetched : null);
+  const [ultimaSolicitud, setUltimaSolicitud] = useState<UltimaSolicitud | null>(tienePrefetch ? prefetched : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,9 +70,7 @@ export function useUltimaSolicitud({
       setLoading(true);
       setError(null);
       try {
-        console.log(
-          `[🔵 useUltimaSolicitud] INICIANDO - cliente_id=${clienteId}`,
-        );
+        console.log(`[🔵 useUltimaSolicitud] INICIANDO - cliente_id=${clienteId}`);
         const data = await solicitudesService.getUltimaSolicitud(clienteId);
         console.log(`[🟢 useUltimaSolicitud] RESPUESTA DEL API:`, data);
 
@@ -102,7 +99,7 @@ export function useUltimaSolicitud({
           console.log(`[✅ useUltimaSolicitud] Última solicitud encontrada:`, {
             sol_id: data.sol_id,
             sol_numero_solicitud: data.sol_numero_solicitud,
-            sol_estado_id: data.sol_estado_id,
+            sol_ses_id: data.sol_ses_id,
             respuestas_count: Object.keys(respuestasIndexadas).length,
           });
 
@@ -111,15 +108,12 @@ export function useUltimaSolicitud({
             respuestas: respuestasIndexadas,
           });
         } else {
-          console.log(
-            `[⚠️ useUltimaSolicitud] No hay solicitud previa (data=${JSON.stringify(data)})`,
-          );
+          console.log(`[⚠️ useUltimaSolicitud] No hay solicitud previa (data=${JSON.stringify(data)})`);
           setUltimaSolicitud(null);
         }
       } catch (err) {
         if (!cancelled) {
-          const errorMsg =
-            (err as any)?.message || "Error al obtener última solicitud";
+          const errorMsg = (err as any)?.message || "Error al obtener última solicitud";
           console.error(`[❌ useUltimaSolicitud] ERROR:`, errorMsg, err);
           setError(errorMsg);
           setUltimaSolicitud(null);
@@ -137,12 +131,11 @@ export function useUltimaSolicitud({
   }, [clienteId, enabled, tienePrefetch, prefetched]);
 
   const noTieneSolicitudes = ultimaSolicitud === null;
-  const estadoActual = ultimaSolicitud?.sol_estado_id ?? null;
+  const estadoActual = ultimaSolicitud?.sol_ses_id ?? null;
   const tieneBorrador = estadoActual === ESTADO_SOLICITUD.BORRADOR.id;
   const tienePendiente = estadoActual === ESTADO_SOLICITUD.PENDIENTE.id;
   const tieneRevision = estadoActual === ESTADO_SOLICITUD.REVISION.id;
-  const tieneCompletada =
-    estadoActual !== null && estadoActual > ESTADO_SOLICITUD.REVISION.id;
+  const tieneCompletada = estadoActual !== null && estadoActual > ESTADO_SOLICITUD.REVISION.id;
   const tieneActividad = tieneBorrador || tienePendiente || tieneRevision;
   const puedeCrearNueva = noTieneSolicitudes || tieneCompletada;
 

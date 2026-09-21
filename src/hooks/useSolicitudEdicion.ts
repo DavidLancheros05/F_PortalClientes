@@ -42,8 +42,7 @@ export function useSolicitudEdicion({
   setEstadoId,
 }: UseSolicitudEdicionParams) {
   const router = useRouter();
-  const [bloqueadoPorRechazoAuxiliar, setBloqueadoPorRechazoAuxiliar] =
-    useState(false);
+  const [bloqueadoPorRechazoAuxiliar, setBloqueadoPorRechazoAuxiliar] = useState(false);
 
   // Resuelve la versión objetivo del formulario (y el número/estado de la
   // solicitud) apenas se conoce el solicitudId, SIN esperar a que las
@@ -62,8 +61,7 @@ export function useSolicitudEdicion({
 
     const cargarArchivosExistentes = async (sa_sol_id: number) => {
       try {
-        const data =
-          await formularioRespuestasService.getArchivosExistentes(sa_sol_id);
+        const data = await formularioRespuestasService.getArchivosExistentes(sa_sol_id);
         if (cancelled) return;
         const mapArchivos: Record<number, any> = {};
         if (Array.isArray(data)) {
@@ -107,9 +105,7 @@ export function useSolicitudEdicion({
         // bloqueado. Misma condición literal usada en
         // SolicitudesContent.tsx y en el backend.
         const rechazadoPorAuxiliar =
-          Number(data?.sol_estado_id) === 2 &&
-          Number(data?.sol_etapa_actual_id) === 3 &&
-          Number(data?.sol_resultado_etapa_id) === 3;
+          Number(data?.sol_ses_id) === 2 && Number(data?.sol_wet_id) === 3 && Number(data?.sol_wee_id) === 3;
 
         if (rechazadoPorAuxiliar) {
           setBloqueadoPorRechazoAuxiliar(true);
@@ -121,7 +117,7 @@ export function useSolicitudEdicion({
         const versionSolicitud = Number(data?.sol_formulario_version ?? 1);
         setFormularioVersionObjetivo(versionSolicitud);
         if (setEstadoId) {
-          setEstadoId(data?.sol_estado_id || null);
+          setEstadoId(data?.sol_ses_id || null);
         }
       })
       .catch((err) => {
@@ -154,11 +150,7 @@ export function useSolicitudEdicion({
 
     let cancelled = false;
 
-    const multiselectFpIds = new Set(
-      preguntas
-        .filter((p) => p.fp_tipo === "MULTISELECT")
-        .map((p) => p.fp_id),
-    );
+    const multiselectFpIds = new Set(preguntas.filter((p) => p.fp_tipo === "MULTISELECT").map((p) => p.fp_id));
 
     solicitudesService
       .getRespuestas(solicitudId)
@@ -167,12 +159,7 @@ export function useSolicitudEdicion({
         // Procesar datos de respuestas
         const respuestasDataArray = respuestasData || [];
         if (Array.isArray(respuestasDataArray)) {
-          setRespuestas(
-            agruparUltimaRespuestaPorPregunta(
-              respuestasDataArray,
-              multiselectFpIds,
-            ),
-          );
+          setRespuestas(agruparUltimaRespuestaPorPregunta(respuestasDataArray, multiselectFpIds));
         }
       })
       .catch((err) => {
