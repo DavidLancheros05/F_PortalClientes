@@ -9,7 +9,7 @@ import { Tr } from "@/components/tables/TableRow";
 interface DocumentoVencidoRow {
   sa_id: number;
   sa_sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   documento_nombre: string | null;
   sa_nombre_original: string;
   sa_ruta_almacenamiento: string;
@@ -51,10 +51,7 @@ export default function MisDocumentosVencidosPage() {
         }
       }
 
-      const params =
-        clienteId > 0
-          ? { mode: "mis-vencidos", usr_id: clienteId }
-          : { mode: "expired" };
+      const params = clienteId > 0 ? { mode: "mis-vencidos", usr_id: clienteId } : { mode: "expired" };
 
       const data = await solicitudesService.getDocumentos(params);
       setRows(data);
@@ -77,28 +74,22 @@ export default function MisDocumentosVencidosPage() {
           <button
             // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
             onClick={() => router.push("/solicitudes")}
-            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-          >
+            className="mb-4 text-sm font-medium text-blue-600 hover:text-blue-800">
             ← Volver a solicitudes
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Mis documentos vencidos
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Mis documentos vencidos</h1>
           <p className="text-gray-600 mt-2">
-            Consulta los documentos con vigencia vencida asociados a tus
-            solicitudes.
+            Consulta los documentos con vigencia vencida asociados a tus solicitudes.
           </p>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Total vencidos:{" "}
-            <span className="font-semibold text-red-700">{rows.length}</span>
+            Total vencidos: <span className="font-semibold text-red-700">{rows.length}</span>
           </p>
           <button
             onClick={cargar}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
             Actualizar
           </button>
         </div>
@@ -130,7 +121,7 @@ export default function MisDocumentosVencidosPage() {
                 <tbody className="divide-y divide-gray-200">
                   {rows.map((row) => (
                     <Tr key={row.sa_id}>
-                      <Td>{row.sol_numero_solicitud}</Td>
+                      <Td>{row.sol_numero}</Td>
                       <Td>{row.documento_nombre || row.sa_nombre_original}</Td>
                       <Td>{row.cliente_nombre || "-"}</Td>
                       <Td>{row.centro_operacion_nombre || "-"}</Td>
@@ -144,8 +135,7 @@ export default function MisDocumentosVencidosPage() {
                       <Td>
                         <button
                           onClick={() => abrirArchivo(row.sa_id)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
-                        >
+                          className="text-blue-600 hover:text-blue-800 font-medium">
                           Ver archivo
                         </button>
                       </Td>

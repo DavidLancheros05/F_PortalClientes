@@ -1,10 +1,10 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { LoadingModal, SuccessModal, ConfirmModal } from "@/components/modals";
+import { ConfirmModal } from "@/components/modals";
+import { useUpload } from "@/context/UploadContext";
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
-import { flushSync } from "react-dom";
 
 interface ImagenFieldProps {
   pregunta: any;
@@ -41,13 +41,18 @@ export function ImagenField({
   // Mismo fix que ArchivoField/DocumentoTablaField: handleInputChange("ARCHIVO")
   // es sincrono y dispara un re-render de todo el formulario, sin esto la
   // pantalla queda "pegada" sin ninguna señal de que algo está pasando.
-  const [procesandoArchivo, setProcesandoArchivo] = useState<"loading" | "ready" | null>(null);
+  const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    flushSync(() => setProcesandoArchivo("loading"));
+    startLoading("Cargando imagen...");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-        setProcesandoArchivo("ready");
+        window.setTimeout(() => {
+          showSuccess({
+            title: "Imagen cargada",
+            message: "La imagen quedó lista en el formulario. Puedes continuar completando la solicitud.",
+          });
+        }, 250);
       });
     });
   };
@@ -107,8 +112,7 @@ export function ImagenField({
                   };
                   tempInput.click();
                 }}
-                disabled={!!procesandoArchivo}
-                className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60">
+                className="inline-flex items-center gap-0.5 text-xs px-2 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300">
                 Cambiar imagen
               </button>
             </div>
@@ -123,7 +127,6 @@ export function ImagenField({
           <input
             id={`imagen-input-${pregunta.fp_id}`}
             type="file"
-            disabled={!!procesandoArchivo}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
@@ -131,21 +134,12 @@ export function ImagenField({
               }
             }}
             accept="image/*"
-            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-60 ${
+            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
               hasError ? "border-red-500" : "border-blue-200"
             }`}
           />
         </div>
       )}
-
-      <LoadingModal isOpen={procesandoArchivo === "loading"} message="Cargando imagen..." />
-      <SuccessModal
-        isOpen={procesandoArchivo === "ready"}
-        title="Imagen cargada"
-        message="La imagen quedó lista en el formulario. Puedes continuar completando la solicitud."
-        actionText="Aceptar"
-        onAction={() => setProcesandoArchivo(null)}
-      />
 
       <ConfirmModal
         isOpen={confirmarEliminarImagen}

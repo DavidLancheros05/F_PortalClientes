@@ -50,7 +50,7 @@ export default function FormulariosPage() {
     if (!formularioAEliminar) return;
     setEliminando(true);
     try {
-      await formulariosService.eliminar(formularioAEliminar.frm_id);
+      await formulariosService.eliminar(formularioAEliminar.frs_id);
       setFormularioAEliminar(null);
       await cargarFormularios();
     } catch (error) {
@@ -146,16 +146,18 @@ export default function FormulariosPage() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {formulariosFiltrados.map((formulario) => (
+                {formulariosFiltrados.map((Formularios_solicitudes) => (
                   <div
-                    key={formulario.frm_id}
+                    key={Formularios_solicitudes.frs_id}
                     className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6 hover:shadow-xl transition">
                     <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-3 mb-2">
                           <FileText className="h-5 w-5 text-brand-600" />
-                          <h3 className="text-lg md:text-xl font-semibold text-gray-800">{formulario.frm_nombre}</h3>
-                          {formulario.frm_activo ? (
+                          <h3 className="text-lg md:text-xl font-semibold text-gray-800">
+                            {Formularios_solicitudes.frs_nombre}
+                          </h3>
+                          {Formularios_solicitudes.frs_activo ? (
                             <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                               <CheckCircle className="h-4 w-4" />
                               Activo
@@ -166,17 +168,21 @@ export default function FormulariosPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 mb-3">{formulario.frm_descripcion || "Sin descripción"}</p>
+                        <p className="text-gray-600 mb-3">
+                          {Formularios_solicitudes.frs_descripcion || "Sin descripción"}
+                        </p>
                         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                          <span>Versión actual: v{formulario.formulario_version}</span>
+                          <span>Versión actual: v{Formularios_solicitudes.formulario_version}</span>
                           <span>•</span>
-                          <span>{formulario.Formulario_versiones_totales} versiones totales</span>
+                          <span>{Formularios_solicitudes.Formulario_versiones_totales} versiones totales</span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <button
-                          onClick={() => router.push(`/parametrizacion/formularios/${formulario.frm_id}/versiones`)}
+                          onClick={() =>
+                            router.push(`/parametrizacion/formularios/${Formularios_solicitudes.frs_id}/versiones`)
+                          }
                           className="inline-flex min-w-[104px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
                           title="Gestionar versiones">
                           <History className="h-4 w-4" />
@@ -185,7 +191,7 @@ export default function FormulariosPage() {
                         <button
                           onClick={() =>
                             router.push(
-                              `/parametrizacion/formulario-editor?frm_id=${formulario.frm_id}&version=${formulario.formulario_version}&readonly=true`,
+                              `/parametrizacion/formulario-editor?frs_id=${Formularios_solicitudes.frs_id}&version=${Formularios_solicitudes.formulario_version}&readonly=true`,
                             )
                           }
                           className="inline-flex min-w-[92px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100"
@@ -194,7 +200,7 @@ export default function FormulariosPage() {
                           Vista previa
                         </button>
                         <button
-                          onClick={() => eliminarFormulario(formulario)}
+                          onClick={() => eliminarFormulario(Formularios_solicitudes)}
                           className="inline-flex min-w-[96px] items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
                           title="Eliminar formulario">
                           <Trash2 className="h-4 w-4" />
@@ -213,7 +219,7 @@ export default function FormulariosPage() {
       <ConfirmModal
         isOpen={!!formularioAEliminar}
         title="Eliminar formulario"
-        message={`¿Eliminar el formulario "${formularioAEliminar?.frm_nombre}"? Esta acción eliminará sus versiones y preguntas asociadas.`}
+        message={`¿Eliminar el formulario "${formularioAEliminar?.frs_nombre}"? Esta acción eliminará sus versiones y preguntas asociadas.`}
         confirmText="Eliminar"
         isDangerous
         isLoading={eliminando}

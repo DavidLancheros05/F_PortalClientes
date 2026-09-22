@@ -45,7 +45,7 @@ export type Pregunta = {
   fp_catalogo_tabla?: string | null;
   fp_catalogo_columna?: string | null;
   fp_catalogo_pk_column?: string | null;
-  fp_tipo_documento_id?: number | null;
+  fp_tdo_id?: number | null;
   fp_precarga_fuente?: string | null;
   fp_precarga_campo_cliente?: string | null;
   fp_tabla_columnas?: string | null;
@@ -77,10 +77,10 @@ export type DocumentoCatalogo = {
   tdo_vigencia_dias: number | null;
 };
 
-export type Formulario = {
-  frm_id: number;
-  frm_nombre: string;
-  frm_descripcion: string;
+export type Formularios_solicitudes = {
+  frs_id: number;
+  frs_nombre: string;
+  frs_descripcion: string;
   // Aliases para compatibilidad con código existente
   formulario_nombre?: string;
   formulario_descripcion?: string;
@@ -89,6 +89,8 @@ export type Formulario = {
   // assertVersionSinSolicitudes en el backend).
   tiene_solicitudes?: boolean;
 };
+
+export type Formulario = Formularios_solicitudes;
 
 export type TipoPreguntaCatalogo = {
   fti_id: number;

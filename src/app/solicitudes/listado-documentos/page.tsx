@@ -23,7 +23,7 @@ import { Tr } from "@/components/tables/TableRow";
 interface DocumentoRow {
   sa_id: number;
   sa_sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_ses_id: number;
   estado_solicitud: string;
   sol_fecha_envio: string | null;
@@ -172,9 +172,9 @@ export default function ListadoDocumentosPage() {
   }, []);
 
   const solicitudes = useMemo(() => {
-    return Array.from(
-      new Set(rows.map((row) => row.sol_numero_solicitud?.trim() || "").filter((item) => item.length > 0)),
-    ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    return Array.from(new Set(rows.map((row) => row.sol_numero?.trim() || "").filter((item) => item.length > 0))).sort(
+      (a, b) => a.localeCompare(b, undefined, { numeric: true }),
+    );
   }, [rows]);
 
   const estadosSolicitud = useMemo(() => {
@@ -210,7 +210,7 @@ export default function ListadoDocumentosPage() {
     const hasta = toDateOnlyValue(appliedFilters.fechaCargaHasta);
 
     return rows.filter((row) => {
-      if (solicitudBuscada && !(row.sol_numero_solicitud || "").toLowerCase().includes(solicitudBuscada)) {
+      if (solicitudBuscada && !(row.sol_numero || "").toLowerCase().includes(solicitudBuscada)) {
         return false;
       }
 
@@ -306,7 +306,7 @@ export default function ListadoDocumentosPage() {
         const diasBadge = getDiasVencimientoBadge(row.sa_fecha_vencimiento);
         const tipoLabel = row.es_ampliacion_cupo ? "Ampliación de Cupo" : "Cliente Nuevo";
         return [
-          row.sol_numero_solicitud,
+          row.sol_numero,
           tipoLabel,
           row.estado_solicitud || "-",
           formatDate(row.sol_fecha_envio),
@@ -522,7 +522,7 @@ export default function ListadoDocumentosPage() {
 
                       return (
                         <Tr key={row.sa_id}>
-                          <Td className="font-medium whitespace-nowrap">{row.sol_numero_solicitud}</Td>
+                          <Td className="font-medium whitespace-nowrap">{row.sol_numero}</Td>
                           <Td className="whitespace-nowrap">
                             <TipoSolicitudBadge esAmpliacionCupo={row.es_ampliacion_cupo} />
                           </Td>

@@ -92,6 +92,11 @@ export const solicitudesService = {
     return response.data;
   },
 
+  async reiniciarEdicion(id: number) {
+    const response = await api.patch(`/solicitudes/${id}/reiniciar-edicion`);
+    return response.data;
+  },
+
   // Actualizar respuestas del formulario de una solicitud
   async updateRespuestas(id: number, respuestas: any[]) {
     const response = await api.patch(`/solicitudes/${id}/respuestas`, respuestas);
@@ -104,12 +109,7 @@ export const solicitudesService = {
     return response.data;
   },
 
-  // Obtener solicitudes pendientes para un ejecutivo. `verComoEjng` es el
-  // ejng_id de OTRO ejecutivo a consultar en vez del propio — solo lo usan
-  // usuarios con permiso de editar sobre esta página que no son ellos mismos
-  // un Ejecutivo de Negocios (ver gestion-ejecutivo-negocios/page.tsx).
   async getForEjecutivo(ejecutivoId: number, verComoEjng?: number) {
-    console.log("solicitudesService.getForEjecutivo");
     try {
       console.log("[solicitudesService] getForEjecutivo -> ejecutivoId:", ejecutivoId);
       if (!ejecutivoId) throw new Error("No se proporcionó ejecutivoId");
@@ -118,7 +118,6 @@ export const solicitudesService = {
         `/solicitudes/ejecutivo/${ejecutivoId}/pendientes`,
         verComoEjng ? { params: { verComoEjecutivo: verComoEjng } } : undefined,
       );
-      console.log("[solicitudesService] response.data pendientes:", response.data);
       return response.data;
     } catch (error) {
       console.error("[solicitudesService] Error obteniendo pendientes:", error);
@@ -126,9 +125,6 @@ export const solicitudesService = {
     }
   },
 
-  // Bandeja del ejecutivo: solicitudes rechazadas de forma definitiva por
-  // Oficial de Cumplimiento o Comité de Crédito 2, pendientes de que él
-  // gestione el seguimiento con el cliente por fuera del sistema.
   async getRechazadasParaEjecutivo(ejecutivoId: number) {
     const response = await api.get(`/solicitudes/ejecutivo/${ejecutivoId}/rechazadas`);
     return response.data;
@@ -145,7 +141,6 @@ export const solicitudesService = {
   async getSolicitudesPendientes() {
     try {
       const response = await api.get(`/solicitudes/pendientes`);
-      console.log("[solicitudesService] response.data pendientes:", response.data);
       return response.data;
     } catch (error) {
       console.error("[solicitudesService] Error obteniendo pendientes:", error);
@@ -244,7 +239,6 @@ export const solicitudesService = {
       aprobado: boolean;
       motivo_rechazo_id?: number | null;
       modo_solucion?: string | null;
-      fecha_estimada_respuesta_comercial?: string | null;
       fecha_real_respuesta_comercial?: string | null;
       usuario_modifica?: number;
       documentos_faltantes?: number[];
@@ -505,38 +499,24 @@ export const solicitudesService = {
     const soloConValor = accion === AccionSolicitud.BORRADOR;
     let documentosDiferidosFaltantes: { tdo_id: number; tdo_nombre: string }[] = [];
 
-    // Crear solicitud si es nueva
+    // Crear la solicitud nueva como borrador. El formulario puede traer
+    // archivos generados (la plantilla ya convertida a PDF) y deben quedar
+    // guardados antes de evaluar los documentos firmados pendientes.
     if (!targetSolicitudId) {
-      console.log("[guardarSolicitud] Usuario a usar:", { usuarioId, accion });
-
       const nuevaSolicitud = await this.create({
         cliente_id: clienteId,
         usuario_crea: usuarioId,
-        estado_id: estado.id,
+        estado_id: accion === AccionSolicitud.ENVIAR ? ESTADO_SOLICITUD.BORRADOR.id : estado.id,
       });
-
-      console.log("[guardarSolicitud] Respuesta de crear solicitud:", nuevaSolicitud);
-
       targetSolicitudId = extractSolicitudId(nuevaSolicitud);
+    }
 
-      // Si es nueva y es ENVIAR, cambiar estado a PENDIENTE
-      if (accion === AccionSolicitud.ENVIAR) {
-        const resultadoCambio = await this.cambiarEstado(targetSolicitudId, ESTADO_SOLICITUD.PENDIENTE.id);
-        documentosDiferidosFaltantes = resultadoCambio?.documentosDiferidosFaltantes || [];
-      }
-    } else {
-      // Si es solicitud existente, cambiar estado según acción
-      if (accion === AccionSolicitud.ENVIAR) {
-        // Para corrección ASC: mantener estado REVISIÓN (3), etapa ASC (3), resultado PENDIENTE (1)
-        // Para otros casos: cambiar a estado PENDIENTE (2)
-        if (options?.isCorrecionASC) {
-          // Ya se manejará en el paso siguiente con llamada a /resultado-pendiente
-          console.log("[guardarSolicitud] Guardando corrección ASC - sin cambio de estado");
-        } else {
-          const resultadoCambio = await this.cambiarEstado(targetSolicitudId, ESTADO_SOLICITUD.PENDIENTE.id);
-          documentosDiferidosFaltantes = resultadoCambio?.documentosDiferidosFaltantes || [];
-        }
-      }
+    // Al editar una solicitud existente, los documentos generados y firmados
+    // dejan de ser válidos porque dependen de las respuestas del formulario.
+    // Se limpian antes de guardar las nuevas respuestas para que el workflow
+    // no pueda considerar vigente documentación de la versión anterior.
+    if (accion === AccionSolicitud.ENVIAR && solicitudId && targetSolicitudId) {
+      await this.reiniciarEdicion(targetSolicitudId);
     }
 
     // Guardar respuestas y archivos
@@ -548,6 +528,14 @@ export const solicitudesService = {
       hasValorEnRespuesta: soloConValor ? hasValorEnRespuesta : undefined,
       archivosExistentes,
     });
+
+    // El cambio a PENDIENTE ocurre después de guardar los documentos
+    // generados. El backend puede distinguir entonces el archivo generado
+    // ya almacenado de la versión firmada que el cliente aún debe subir.
+    if (accion === AccionSolicitud.ENVIAR && !options?.isCorrecionASC) {
+      const resultadoCambio = await this.cambiarEstado(targetSolicitudId, ESTADO_SOLICITUD.PENDIENTE.id);
+      documentosDiferidosFaltantes = resultadoCambio?.documentosDiferidosFaltantes || [];
+    }
 
     // Si es corrección ASC, actualizar resultado a PENDIENTE (1)
     if (options?.isCorrecionASC && targetSolicitudId) {
@@ -595,9 +583,6 @@ export const solicitudesService = {
     respuestas: any,
     preguntas: any[],
     clienteId: number,
-    // null cuando lo guarda un cliente (sol_usr_id_crea/usuario_modifica
-    // solo tiene sentido para personal interno — ver comentario en el
-    // caller, SolicitudFormContent.tsx::handleGuardarParcial).
     usuarioId: number | null,
     hasValorEnRespuesta: (r: any) => boolean,
     archivosExistentes?: Record<number, any>,

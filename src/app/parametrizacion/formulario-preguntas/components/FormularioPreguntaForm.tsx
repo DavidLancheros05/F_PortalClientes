@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FormularioPregunta, formularioPreguntasService } from "@/services/parametrizacion/formulario-preguntas.service";
+import {
+  FormularioPregunta,
+  formularioPreguntasService,
+} from "@/services/parametrizacion/formulario-preguntas.service";
 import { ConfirmModal, ErrorModal } from "@/components/modals";
 
 interface Props {
@@ -10,11 +13,7 @@ interface Props {
   onCancel?: () => void;
 }
 
-export default function FormularioPreguntaForm({
-  editItem,
-  onSaved,
-  onCancel,
-}: Props) {
+export default function FormularioPreguntaForm({ editItem, onSaved, onCancel }: Props) {
   const [descripcion, setDescripcion] = useState("");
   const [tipo, setTipo] = useState("TEXTO");
   const [orden, setOrden] = useState<number>(1);
@@ -75,18 +74,9 @@ export default function FormularioPreguntaForm({
   };
 
   return (
-    <form
-      onSubmit={submit}
-      className="space-y-5 bg-white p-6 rounded shadow-md border border-gray-200"
-    >
-      <h2 className="font-semibold text-lg text-gray-900">
-        {editItem ? "Editar pregunta" : "Nueva pregunta"}
-      </h2>
-
+    <form onSubmit={submit} className="space-y-5 bg-white p-6 rounded shadow-md border border-gray-200">
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Descripción *
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Descripción *</label>
         <input
           type="text"
           placeholder="Ej: Nombre completo"
@@ -98,14 +88,11 @@ export default function FormularioPreguntaForm({
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Tipo *
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Tipo *</label>
         <select
           className="border border-gray-300 px-3 py-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={tipo}
-          onChange={(e) => setTipo(e.target.value)}
-        >
+          onChange={(e) => setTipo(e.target.value)}>
           <option value="TEXTO">Texto</option>
           <option value="NUMERO">Número</option>
           <option value="FECHA">Fecha</option>
@@ -115,9 +102,7 @@ export default function FormularioPreguntaForm({
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Orden *
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Orden *</label>
         <input
           type="number"
           placeholder="1"
@@ -133,8 +118,7 @@ export default function FormularioPreguntaForm({
         <button
           type="submit"
           disabled={saving}
-          className="bg-blue-600 text-white px-6 py-2 rounded font-medium hover:bg-blue-700 disabled:bg-gray-400"
-        >
+          className="bg-blue-600 text-white px-6 py-2 rounded font-medium hover:bg-blue-700 disabled:bg-gray-400">
           {saving ? "Guardando..." : editItem ? "Actualizar" : "Guardar"}
         </button>
 
@@ -142,8 +126,7 @@ export default function FormularioPreguntaForm({
           <button
             type="button"
             onClick={onCancel}
-            className="text-gray-600 px-4 py-2 rounded border border-gray-300 hover:bg-gray-50"
-          >
+            className="text-gray-600 px-4 py-2 rounded border border-gray-300 hover:bg-gray-50">
             Cancelar
           </button>
         )}
@@ -152,11 +135,7 @@ export default function FormularioPreguntaForm({
       <ConfirmModal
         isOpen={showConfirmModal}
         title={editItem ? "Confirmar cambios" : "Confirmar creación"}
-        message={
-          editItem
-            ? "¿Deseas guardar los cambios de esta pregunta?"
-            : "¿Deseas crear esta pregunta?"
-        }
+        message={editItem ? "¿Deseas guardar los cambios de esta pregunta?" : "¿Deseas crear esta pregunta?"}
         confirmText={editItem ? "Sí, guardar" : "Sí, crear"}
         cancelText="Cancelar"
         isLoading={saving}
@@ -164,11 +143,7 @@ export default function FormularioPreguntaForm({
         onCancel={() => setShowConfirmModal(false)}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage}
-        onAction={() => setErrorMessage("")}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage} onAction={() => setErrorMessage("")} />
     </form>
   );
 }

@@ -21,6 +21,7 @@ export default function NuevaSolicitudFormularioPage() {
     : Number.isFinite(clienteIdParam) && clienteIdParam > 0
       ? clienteIdParam
       : undefined;
+  const returnTo = clienteId ? `/solicitudes/nueva?clienteId=${clienteId}` : "/solicitudes/nueva";
 
   const { ultimaSolicitud, loading, tieneBorrador, puedeCrearNueva } = useUltimaSolicitud({
     clienteId,
@@ -29,9 +30,10 @@ export default function NuevaSolicitudFormularioPage() {
 
   useEffect(() => {
     if (!loading && tieneBorrador && ultimaSolicitud?.sol_id) {
-      router.replace(`/solicitudes/${ultimaSolicitud.sol_id}/editar`);
+      const query = clienteId ? `?clienteId=${clienteId}` : "";
+      router.replace(`/solicitudes/nueva${query}`);
     }
-  }, [loading, tieneBorrador, ultimaSolicitud, router]);
+  }, [clienteId, loading, tieneBorrador, ultimaSolicitud, router]);
 
   if (authLoading || loading) {
     return (
@@ -95,7 +97,7 @@ export default function NuevaSolicitudFormularioPage() {
       // handleVolver caía a window.history.length/router.back(), que podía
       // saltar más lejos si el navegador no tenía en su historial la
       // página /solicitudes/nueva (ej. se entró por URL directa).
-      returnTo="/solicitudes/nueva"
+      returnTo={returnTo}
     />
   );
 }

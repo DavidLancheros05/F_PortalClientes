@@ -17,10 +17,6 @@ export const formularioRespuestasService = {
     hasValorEnRespuesta?: (r: any) => boolean;
     archivosExistentes?: Record<number, any>;
   }) {
-    // Cada campo se guarda de forma independiente (su propio archivo y/o
-    // valor), así que se lanzan todos en paralelo en vez de uno por uno:
-    // con varias decenas de preguntas, guardar secuencialmente sumaba varios
-    // segundos de ida y vuelta al servidor por cada campo.
     const tareas = Object.entries(respuestas)
       .filter(([, respuesta]) => {
         if (soloConValor && hasValorEnRespuesta) {
@@ -39,10 +35,6 @@ export const formularioRespuestasService = {
 
         let guardadas = 0;
 
-        // Manejar archivos — la mayoría de preguntas ARCHIVO tienen un solo
-        // archivo pendiente en `respuesta.archivo`; las que admiten varios
-        // (fp_maximo > 1, ver ArchivoMultipleField) lo traen en
-        // `respuesta.archivos` (array). Se suben todos en paralelo.
         const archivosPendientes: File[] = Array.isArray(
           (respuesta as any).archivos,
         )
@@ -66,11 +58,7 @@ export const formularioRespuestasService = {
             if (!fechaEmision) {
               fechaEmision = (respuesta as any).valor_fecha;
             }
-            // Si tampoco hay una fecha recién digitada, conservar la que ya
-            // tenía el archivo anterior — de lo contrario, reemplazar un
-            // documento (botón "Cambiar") sin volver a tocar la fecha borra
-            // silenciosamente sa_fecha_emision en el archivo nuevo, aunque
-            // el documento ya estuviera vigente antes del cambio.
+
             if (!fechaEmision) {
               const fechaGuardada = archivosExistentes[fpId]?.sd_fecha_emision;
               if (fechaGuardada) {
@@ -132,12 +120,6 @@ export const formularioRespuestasService = {
     const resultados = await Promise.all(tareas.map((tarea) => tarea()));
     let respuestasGuardadas = resultados.reduce((sum, n) => sum + n, 0);
 
-    // Documentos que el usuario confirmó reutilizar desde su archivo
-    // consolidado (Cliente_archivo, ver botón "Usar este documento" en
-    // DocumentoTablaField) — marcados localmente con
-    // sa_origen="cliente_archivo_pendiente" en archivosExistentes, sin
-    // fp_id propio en `respuestas` (no hay un File que subir). Se resuelven
-    // aparte del loop de arriba porque no vienen como respuesta nueva.
     const documentosAReutilizar = Object.entries(archivosExistentes).filter(
       ([, archivo]) =>
         (archivo as any)?.sa_origen === "cliente_archivo_pendiente" &&
@@ -221,33 +203,21 @@ export const formularioRespuestasService = {
     archivo: File,
     fechaEmision?: string,
   ) {
-    // console.log("🔵 [FRONTEND] guardarArchivoRespuesta iniciado:", {
-    //   solicitudId,
-    //   fp_id,
-    //   nombreArchivo: archivo?.name,
-    //   fechaEmision: fechaEmision || "NO RECIBIDA",
-    // });
+
 
     if (!solicitudId || isNaN(solicitudId)) {
-      // console.error("🔴 [FRONTEND] sa_sol_id inválido:", solicitudId);
       throw new Error("sa_sol_id inválido o no proporcionado");
     }
-
-    // console.log("📝 [FRONTEND] Construyendo FormData...");
     const formData = new FormData();
     formData.append("sa_sol_id", String(solicitudId));
     formData.append("fp_id", String(fp_id));
     formData.append("archivo", archivo);
     if (fechaEmision) {
-      // console.log("📅 [FRONTEND] Agregando fechaEmision:", fechaEmision);
       formData.append("fechaEmision", fechaEmision);
     } else {
       console.warn("⚠️  [FRONTEND] NO hay fechaEmision para agregar");
     }
 
-    // console.log(
-    //   "📤 [FRONTEND] Enviando POST a /solicitudes/respuestas/archivo...",
-    // );
     const response = await api.post(
       "/solicitudes/respuestas/archivo",
       formData,
@@ -257,7 +227,6 @@ export const formularioRespuestasService = {
         },
       },
     );
-    // console.log("✅ [FRONTEND] Respuesta recibida:", response.data);
     return response.data;
   },
 
@@ -293,11 +262,7 @@ export const formularioRespuestasService = {
     fpId: number,
     fechaEmision: string,
   ) {
-    console.log("📅 [actualizarFechaDocumento] Enviando PATCH:", {
-      solicitudId,
-      fpId,
-      fechaEmision,
-    });
+
     const response = await api.patch(
       `/solicitudes/${solicitudId}/respuestas/documento/fecha`,
       {

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X, ChevronDown, Search } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
-import { LoadingModal } from "@/components/modals";
+import { LoadingModal, ModalPortal } from "@/components/modals";
 import { useMenuModel, isModuloActivo, type Modulo } from "@/components/layout/useMenuModel";
 import { MenuSearchPanel } from "@/components/layout/MenuSearchPanel";
 
@@ -35,8 +35,9 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
   const pathname = usePathname();
   const isAdmin = ["ADMIN", "ADMINISTRACION", "ADMINISTRACIÓN"].includes(
     String(rol || "")
@@ -71,6 +72,20 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
     setActiveNestedSubMenu(activeNestedSubMenu === id ? null : id);
   };
 
+  // --- Swipe para abrir/cerrar menú móvil ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    // Deslizar de izquierda a derecha (≥50px) → abrir
+    if (dx > 50 && !mobileMenuOpen) setMobileMenuOpen(true);
+    // Deslizar de derecha a izquierda (≤-50px) → cerrar
+    if (dx < -50 && mobileMenuOpen) setMobileMenuOpen(false);
+  };
+
   const iniciales =
     String(nombreUsuario || "")
       .trim()
@@ -92,7 +107,11 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
   // Cerrar submenu cuando se hace click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Cerrar submenús solo si el clic fue fuera de AMBOS menús
+      const inDesktopNav = navRef.current?.contains(target);
+      const inMobileMenu = mobileMenuRef.current?.contains(target);
+      if (!inDesktopNav && !inMobileMenu) {
         setActiveSubMenu(null);
         setActiveNestedSubMenu(null);
       }
@@ -101,12 +120,6 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
         !userMenuRef.current.contains(event.target as Node)
       ) {
         setUserMenuOpen(false);
-      }
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
-        setSearchOpen(false);
       }
     };
 
@@ -118,17 +131,23 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
       className={`bg-brand-600 shadow-md sticky top-0 z-50 ${
         layout === "left" ? "md:hidden" : ""
       }`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="max-w-full h-15 px-3 sm:px-4 flex items-center justify-between">
-        {/* Logo + Nombre — en layout "left" el Sidebar ya lo muestra, así
-            que acá solo hace falta en mobile (el Sidebar está oculto por
-            debajo de md). */}
+        {/* Hamburguesa (mobile) + Logo */}
         <div
-          className={`items-center space-x-4 min-w-0 ${
+          className={`items-center space-x-3 min-w-0 ${
             layout === "left" ? "flex md:hidden" : "flex"
           }`}
         >
-          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+          <button
+            className="md:hidden p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
             <img
               src="/logo.jpg"
               alt="Logo Cartonera Nacional S.A."
@@ -210,7 +229,6 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
                                           key={`${nested.mod_id}-${nIdx}`}
                                           href={rutaAnidada}
                                           onClick={() => {
-                                            console.log(`[Header DESKTOP] Click en link: "${nested.mod_nombre}" → href="${rutaAnidada}"`);
                                             setActiveSubMenu(null);
                                             setActiveNestedSubMenu(null);
                                           }}
@@ -281,30 +299,43 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
 
         {/* Usuario, botón cerrar y menú móvil */}
         <div className="flex items-center space-x-4">
-          {layout === "top" && (
-            <div className="hidden md:block relative" ref={searchRef}>
-              <button
-                onClick={() => setSearchOpen((v) => !v)}
-                title="Buscar en el menú"
-                className={`p-2 rounded-lg transition-colors ${
-                  searchOpen ? "bg-white/14 hover:bg-white/20" : "hover:bg-white/14"
-                }`}
-              >
-                <Search className="w-4 h-4 text-white" />
-              </button>
+          {/* Botón de búsqueda - visible en ambos layouts */}
+          <button
+            onClick={() => setSearchOpen((v) => !v)}
+            title="Buscar en el menú"
+            className={`p-2 rounded-lg transition-colors ${
+              searchOpen ? "bg-white/14 hover:bg-white/20" : "hover:bg-white/14"
+            } ${layout === "left" ? "md:hidden" : ""}`}
+          >
+            <Search className="w-4 h-4 text-white" />
+          </button>
 
-              {searchOpen && (
-                <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-[#e5e7eb] rounded-xl shadow-[0_12px_32px_rgba(15,23,42,0.16)] p-3 z-50">
-                  <MenuSearchPanel
-                    modulos={modulos}
-                    isAdmin={isAdmin}
-                    pathname={pathname}
-                    variant="light"
-                    onNavigate={() => setSearchOpen(false)}
-                  />
+          {searchOpen && (
+            <ModalPortal>
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setSearchOpen(false)} />
+                <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto z-10">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                    <h2 className="text-lg font-bold text-gray-800">Buscar en el menú</h2>
+                    <button
+                      onClick={() => setSearchOpen(false)}
+                      className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                  <div className="px-5 py-4">
+                    <MenuSearchPanel
+                      modulos={modulos}
+                      isAdmin={isAdmin}
+                      pathname={pathname}
+                      variant="light"
+                      onNavigate={() => setSearchOpen(false)}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            </ModalPortal>
           )}
           <div
             className={`relative ${layout === "left" ? "hidden" : "hidden md:block"}`}
@@ -355,18 +386,22 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
               </div>
             )}
           </div>
-          <button
-            className="md:hidden p-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
       </div>
 
-      {/* Menú móvil */}
+      {/* Menú móvil — panel lateral 75% */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-gradient-to-b from-brand-600 to-brand-500 p-4 space-y-2">
+        <>
+          {/* Overlay oscuro */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Panel del menú */}
+          <div
+            ref={mobileMenuRef}
+            className="fixed top-15 left-0 bottom-0 w-[75%] max-w-sm bg-gradient-to-b from-brand-600 to-brand-500 p-4 overflow-y-auto overflow-x-auto z-50 md:hidden"
+          >
           <div className="px-3 py-2 text-white text-sm font-medium border-b border-brand-500">
             {nombreUsuario}
           </div>
@@ -508,7 +543,8 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
           >
             Cerrar sesión
           </button>
-        </div>
+          </div>
+        </>
       )}
 
       <LoadingModal isOpen={loggingOut} message="Cerrando sesión..." />

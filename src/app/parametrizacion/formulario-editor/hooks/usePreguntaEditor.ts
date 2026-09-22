@@ -489,7 +489,7 @@ export function usePreguntaEditor({
         fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
         fp_orden: ordenFinal,
         seccion_id: targetSeccionId,
-        frm_id: formularioIdNumber,
+        frs_id: formularioIdNumber,
         fp_version: version ? parseInt(version) : 1,
         fp_catalogo_base_datos:
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
@@ -523,9 +523,7 @@ export function usePreguntaEditor({
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
             ? String(formPregunta.catalogo_valor_condicion || "").trim() || null
             : null,
-        fp_tipo_documento_id: TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo)
-          ? formPregunta.tipo_documento_id
-          : null,
+        fp_tdo_id: TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo) ? formPregunta.tipo_documento_id : null,
         fp_pregunta_padre_id: formPregunta.dependiente ? formPregunta.dependencia_pregunta_id : null,
         fp_valor_padre_disparador: formPregunta.dependiente
           ? String(formPregunta.dependencia_valor || "").trim() || null
@@ -662,7 +660,7 @@ export function usePreguntaEditor({
             fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
             fp_orden: nuevoOrden + 1,
             seccion_id: targetSeccionId,
-            frm_id: formularioIdNumber,
+            frs_id: formularioIdNumber,
             fp_version: version ? parseInt(version) : 1,
             fp_pregunta_padre_id: creada.fp_id,
             fp_valor_padre_disparador: null,
@@ -724,7 +722,7 @@ export function usePreguntaEditor({
       patron: pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO ? (pregunta.fp_patron ?? "") : "",
       seccion_id: pregunta.seccion_id ?? null,
       requerida: Boolean(pregunta.fp_requerida),
-      tipo_documento_id: pregunta.fp_tipo_documento_id ?? null,
+      tipo_documento_id: pregunta.fp_tdo_id ?? null,
       catalogo_base_datos: pregunta.fp_catalogo_base_datos ?? "",
       catalogo_tabla: pregunta.fp_catalogo_tabla ?? "",
       catalogo_columna: pregunta.fp_catalogo_columna ?? "",

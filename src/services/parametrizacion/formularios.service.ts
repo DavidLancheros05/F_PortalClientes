@@ -1,14 +1,16 @@
 import api from "@/services/core/api";
 
-export interface Formulario {
-  frm_id: number;
-  frm_nombre: string;
-  frm_descripcion?: string;
+export interface Formularios_solicitudes {
+  frs_id: number;
+  frs_nombre: string;
+  frs_descripcion?: string;
   formulario_version: number;
   Formulario_versiones_totales?: number;
   created_at?: string;
-  frm_activo?: boolean;
+  frs_activo?: boolean;
 }
+
+export type Formulario = Formularios_solicitudes;
 
 export interface Seccion {
   fs_id: number;
@@ -26,7 +28,7 @@ export interface TipoPregunta {
 
 export interface Pregunta {
   fp_id: number;
-  frm_id: number;
+  frs_id: number;
   seccion_id?: number;
   fp_orden: number;
   fp_descripcion: string;

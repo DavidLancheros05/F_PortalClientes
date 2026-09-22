@@ -9,14 +9,9 @@ export default function InicioPage() {
   const [nombre, setUserName] = useState<string>("");
 
   useEffect(() => {
-    // Log para debug
-    // console.log('User:', user);
-    // console.log('Loading:', loading);
-
     if (user?.nombre) {
       setUserName(user.nombre);
     } else if (typeof window !== "undefined") {
-      // Intenta obtener del localStorage si AuthContext aún no cargó
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
@@ -27,6 +22,7 @@ export default function InicioPage() {
 
   return (
     <section className={styles.hero}>
+      {/* SVG decorativo superior-izquierdo */}
       <div className={`${styles.cajasSvg} ${styles.pos1}`}>
         <svg viewBox="0 0 100 120">
           <path className={styles.lineaOro} d="M25 45 L50 56 L75 45 L50 34 Z" />
@@ -42,23 +38,10 @@ export default function InicioPage() {
         </svg>
       </div>
 
-      <div className={`${styles.cajasSvg} ${styles.pos2}`}>
-        <svg viewBox="0 0 100 120">
-          <path className={styles.lineaOro} d="M25 45 L50 56 L75 45 L50 34 Z" />
-          <path
-            className={styles.lineaOro}
-            d="M25 45 L25 75 L50 86 L75 75 L75 45"
-          />
-          <path className={styles.lineaOro} d="M50 86 L50 56" />
-          <path className={styles.lineaOro} d="M25 45 L15 30 L40 19 L50 34" />
-          <path className={styles.lineaOro} d="M75 45 L85 30 L60 19 L50 34" />
-          <path className={styles.lineaOro} d="M25 45 L15 55 L40 66 L50 56" />
-          <path className={styles.lineaOro} d="M75 45 L85 55 L60 66 L50 56" />
-        </svg>
-      </div>
-
       <div className={styles.content}>
-        <div className={styles.logoBox}>CN</div>
+        <div className={styles.logoBox}>
+          <img src="/logo.jpg" alt="Cartonera Nacional S.A." className={styles.logoImg} />
+        </div>
         <div className={styles.subEmpresa}>Cartonera Nacional S.A.</div>
         <p className={styles.bienvenida}>Bienvenido</p>
         <h1 className={styles.nombrePersonal}>{nombre || "Usuario"}</h1>

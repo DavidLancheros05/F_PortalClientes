@@ -27,7 +27,7 @@ import { getTipoSolicitud } from "@/lib/tipo-solicitud.util";
 
 interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   cliente_nombre: string;
   co_id: number;
   centro_operacion_nombre: string;
@@ -181,15 +181,15 @@ export default function ConceptoEjecutivoPage() {
 
         let matchFecha = true;
         if (fechaInicio || fechaFin) {
-          const fechaCreacion = new Date(solicitud.fecha_creacion);
+          const fechaEnvio = solicitud.fecha_envio ? new Date(solicitud.fecha_envio) : null;
           if (fechaInicio) {
             const inicio = new Date(fechaInicio);
-            matchFecha = matchFecha && fechaCreacion >= inicio;
+            matchFecha = matchFecha && fechaEnvio !== null && fechaEnvio >= inicio;
           }
           if (fechaFin) {
             const fin = new Date(fechaFin);
             fin.setHours(23, 59, 59, 999);
-            matchFecha = matchFecha && fechaCreacion <= fin;
+            matchFecha = matchFecha && fechaEnvio !== null && fechaEnvio <= fin;
           }
         }
 
@@ -254,7 +254,6 @@ export default function ConceptoEjecutivoPage() {
       "Centro de operación",
       "Cliente",
       "Estado",
-      "Fecha diligenciamiento",
       "Fecha de envío",
       "Fecha estimada respuesta",
       "Días faltantes",
@@ -262,12 +261,11 @@ export default function ConceptoEjecutivoPage() {
     const data = solicitudesFiltradas.map((s) => {
       const diasRestantes = s.fecha_estimada_respuesta ? calcularDiasRestantes(s.fecha_estimada_respuesta) : null;
       return [
-        s.sol_numero_solicitud || s.numero_solicitud || "-",
+        s.sol_numero || s.numero_solicitud || "-",
         getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
         ESTADOS[s.sol_ses_id ?? s.estado_id] || "Desconocido",
-        formatDateTime(s.fecha_creacion),
         formatDateTime(s.fecha_envio),
         formatDate(s.fecha_estimada_respuesta),
         diasRestantes !== null ? diasRestantes : "-",
@@ -337,11 +335,7 @@ export default function ConceptoEjecutivoPage() {
           cliente_id: s.sol_cli_id ?? s.cliente_id,
           fecha_creacion: s.fecha_creacion ?? s.sol_fecha_creacion ?? null,
           fecha_envio: s.fecha_envio ?? s.sol_fecha_envio ?? null,
-          fecha_estimada_respuesta:
-            s.fecha_estimada_respuesta ??
-            (s as any).fecha_estimada_respuesta_comercial ??
-            (s as any).sol_fecha_est_gest_ejn ??
-            null,
+          fecha_estimada_respuesta: s.fecha_estimada_respuesta ?? (s as any).sol_fecha_est_gest_ejn ?? null,
           nuevoConsumo: s.consumo_mensual_proyectado ?? undefined,
           nuevasObservaciones: s.observacionesComercial ?? "",
         })),
@@ -489,7 +483,7 @@ export default function ConceptoEjecutivoPage() {
               )}
             </FilterField>
 
-            <FilterField label="Fecha inicio">
+            <FilterField label="Fecha envío inicio">
               <input
                 type="date"
                 value={fechaInicio}
@@ -498,7 +492,7 @@ export default function ConceptoEjecutivoPage() {
               />
             </FilterField>
 
-            <FilterField label="Fecha fin">
+            <FilterField label="Fecha envío fin">
               <input
                 type="date"
                 value={fechaFin}
@@ -558,7 +552,6 @@ export default function ConceptoEjecutivoPage() {
                       {/* <Th>Centro de operación</Th> */}
                       <Th>Cliente</Th>
                       <Th>Estado</Th>
-                      <Th>Fecha diligenciamiento</Th>
                       <Th>Fecha de envío</Th>
                       <Th>Ver formulario</Th>
                       <Th>Fecha estimada respuesta</Th>
@@ -574,7 +567,7 @@ export default function ConceptoEjecutivoPage() {
                       return (
                         <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
                           <Td className="whitespace-nowrap font-semibold text-blue-700">
-                            {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                            {solicitud.sol_numero || solicitud.numero_solicitud}
                           </Td>
 
                           <Td className="whitespace-nowrap">
@@ -595,8 +588,6 @@ export default function ConceptoEjecutivoPage() {
                               {ESTADOS[solicitud.sol_ses_id ?? solicitud.estado_id] || "Desconocido"}
                             </span>
                           </Td>
-
-                          <Td className="whitespace-nowrap">{formatDateTime(solicitud.fecha_creacion)}</Td>
 
                           <Td className="whitespace-nowrap">{formatDateTime(solicitud.fecha_envio)}</Td>
 

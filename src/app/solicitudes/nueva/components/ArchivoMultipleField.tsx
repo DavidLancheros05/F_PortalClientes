@@ -1,11 +1,11 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { LoadingModal, SuccessModal, ConfirmModal } from "@/components/modals";
+import { ConfirmModal } from "@/components/modals";
+import { useUpload } from "@/context/UploadContext";
 import { FileText, Upload, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
-import { flushSync } from "react-dom";
 
 interface ArchivoMultipleFieldProps {
   pregunta: any;
@@ -66,18 +66,24 @@ export function ArchivoMultipleField({
   // setRespuestas dispara un re-render sincrono de todo el formulario, sin
   // esto la pantalla queda "pegada" sin ninguna señal de que algo está
   // pasando.
-  const [procesandoArchivo, setProcesandoArchivo] = useState<"loading" | "ready" | null>(null);
+  const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    flushSync(() => setProcesandoArchivo("loading"));
+    startLoading("Cargando archivo...");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         agregarArchivo(file);
-        setProcesandoArchivo("ready");
+        window.setTimeout(() => {
+          showSuccess({
+            title: "Archivo cargado",
+            message:
+              "El archivo quedó listo en el formulario. Puedes continuar agregando archivos o completando la solicitud.",
+          });
+        }, 250);
       });
     });
   };
 
-  const quitarArchivoPendiente = (index: number) => {
+  const EliminarArchivoPendiente = (index: number) => {
     setRespuestas((prev) => {
       const actuales: File[] = prev[pregunta.fp_id]?.archivos || [];
       return {
@@ -194,11 +200,11 @@ export function ArchivoMultipleField({
               {!readOnly && (
                 <button
                   type="button"
-                  onClick={() => quitarArchivoPendiente(index)}
+                  onClick={() => EliminarArchivoPendiente(index)}
                   className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200 flex-shrink-0"
-                  title="Quitar archivo seleccionado (aún no se ha guardado)">
+                  title="Eliminar archivo seleccionado (aún no se ha guardado)">
                   <X className="h-3 w-3" />
-                  Quitar
+                  Eliminar
                 </button>
               )}
             </div>
@@ -207,9 +213,8 @@ export function ArchivoMultipleField({
           {!readOnly && !alcanzoMaximo && (
             <button
               type="button"
-              disabled={!!procesandoArchivo}
               onClick={seleccionarArchivo}
-              className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+              className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors ${
                 hasError
                   ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
                   : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
@@ -222,15 +227,6 @@ export function ArchivoMultipleField({
           {errors[pregunta.fp_id] && <p className="text-xs text-red-600">{errors[pregunta.fp_id]}</p>}
         </div>
       </div>
-
-      <LoadingModal isOpen={procesandoArchivo === "loading"} message="Cargando archivo..." />
-      <SuccessModal
-        isOpen={procesandoArchivo === "ready"}
-        title="Archivo cargado"
-        message="El archivo quedó listo en el formulario. Puedes continuar agregando archivos o completando la solicitud."
-        actionText="Aceptar"
-        onAction={() => setProcesandoArchivo(null)}
-      />
 
       <ConfirmModal
         isOpen={saIdAEliminar !== null}

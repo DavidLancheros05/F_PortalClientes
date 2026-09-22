@@ -30,24 +30,27 @@ function sanitizarNombreArchivo(texto: string): string {
     .trim();
 }
 
-/** "<nombre del documento> - <cliente> - <fecha y hora>.pdf", saneado para nombre de archivo. */
+/** "<YYYYMMDD>_<HHMMSS>_<número de solicitud>_<nombre del archivo>.pdf". */
 export function construirNombreDescargaPdf(
   nombreDocumento: string,
   clienteNombre?: string | null,
+  numeroSolicitud?: string | null,
 ): string {
-  const fechaHora = new Date()
-    .toLocaleString("es-CO", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("en-CA", { timeZone: "America/Bogota" }).replace(/-/g, "");
+  const hora = ahora
+    .toLocaleTimeString("es-CO", {
+      timeZone: "America/Bogota",
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
       hour12: false,
     })
-    .replace(",", "")
-    .replace(/[/:]/g, "-");
-  const partes = [nombreDocumento, clienteNombre, fechaHora].filter(Boolean);
-  return `${sanitizarNombreArchivo(partes.join(" - "))}.pdf`;
+    .replace(/:/g, "");
+  const nombre = sanitizarNombreArchivo(nombreDocumento).replace(/\s+/g, "_");
+  const numero = sanitizarNombreArchivo(numeroSolicitud || "SIN_NUMERO").replace(/\s+/g, "_");
+  const partes = [fecha, hora, numero, nombre].filter(Boolean);
+  return `${partes.join("_")}.pdf`;
 }
 
 export function descargarPdfBlob(blob: Blob, nombreArchivo: string) {
@@ -89,7 +92,7 @@ function esBloqueVineta(lineas: string[]): boolean {
 // Tamaño/Negrita — en ese caso el marcador queda antes del "•" (ej.
 // "{{size:14}}• texto{{/size}}") y un startsWith("• ") literal no lo
 // detectaría. Devuelve el prefijo de marcadores (para conservarlo) y el
-// resto de la línea ya sin ese prefijo, para poder chequear/quitar el "• "
+// resto de la línea ya sin ese prefijo, para poder chequear/Eliminar el "• "
 // real que viene después.
 function separarPrefijoDeMarcadores(linea: string): { prefijo: string; resto: string } {
   const match = linea.match(/^(?:\*\*|\{\{size:\d+\}\}|\{\{\/size\}\})*/);
@@ -121,9 +124,7 @@ type ParteTexto = (
   sangrado: boolean;
 };
 
-function agruparBloquesConEspacio(
-  contenido: string,
-): { lineas: string[]; espacioExtra: number; sangrado: boolean }[] {
+function agruparBloquesConEspacio(contenido: string): { lineas: string[]; espacioExtra: number; sangrado: boolean }[] {
   const bloques: { lineas: string[]; espacioExtra: number; sangrado: boolean }[] = [];
   let lineasActuales: string[] = [];
   let espacioExtraActual = 0;
@@ -206,8 +207,7 @@ function agruparBloquesConEspacio(
 // correcto (el último abierto se cierra primero).
 function balancearMarcadoresPorLinea(contenido: string): string {
   const pila: string[] = [];
-  const textoDeCierre = (marcador: string) =>
-    marcador === "**" ? "**" : "{{/size}}";
+  const textoDeCierre = (marcador: string) => (marcador === "**" ? "**" : "{{/size}}");
 
   const lineasFinal = contenido.split("\n").map((linea) => {
     const prefijo = pila.join("");
@@ -307,7 +307,7 @@ interface PalabraPdf {
 // máxima compatibilidad entre visores.
 const FONT_MAP: Record<string, { regular: string; bold: string }> = {
   "Times New Roman": { regular: "Times-Roman", bold: "Times-Bold" },
-  "Arial": { regular: "Helvetica", bold: "Helvetica-Bold" },
+  Arial: { regular: "Helvetica", bold: "Helvetica-Bold" },
   "Courier New": { regular: "Courier", bold: "Courier-Bold" },
 };
 
@@ -343,12 +343,10 @@ function envolverPalabrasPdf(
   let anchoActual = 0;
 
   for (const palabra of palabras) {
-    const font = (fuentesExtra ? resolverFuentePdf(palabra, fuentesExtra) : null) ?? (palabra.bold ? fontBold : fontRegular);
+    const font =
+      (fuentesExtra ? resolverFuentePdf(palabra, fuentesExtra) : null) ?? (palabra.bold ? fontBold : fontRegular);
     const anchoPalabra = font.widthOfTextAtSize(palabra.texto, palabra.size ?? fontSize);
-    const anchoConEspacio =
-      lineaActual.length > 0
-        ? anchoActual + spaceWidth + anchoPalabra
-        : anchoPalabra;
+    const anchoConEspacio = lineaActual.length > 0 ? anchoActual + spaceWidth + anchoPalabra : anchoPalabra;
     if (lineaActual.length > 0 && anchoConEspacio > maxWidth) {
       lineas.push(lineaActual);
       lineaActual = [palabra];
@@ -366,10 +364,7 @@ function envolverPalabrasPdf(
 // con tamaño puntual mayor al del bloque, la línea crece proporcionalmente
 // para no pisar la línea siguiente.
 function altoLineaPdf(lineaPalabras: PalabraPdf[], fontSizeBase: number, lineHeightBase: number): number {
-  const tamañoMax = lineaPalabras.reduce(
-    (max, p) => Math.max(max, p.size ?? fontSizeBase),
-    fontSizeBase,
-  );
+  const tamañoMax = lineaPalabras.reduce((max, p) => Math.max(max, p.size ?? fontSizeBase), fontSizeBase);
   return Math.max(lineHeightBase, lineHeightBase * (tamañoMax / fontSizeBase));
 }
 
@@ -462,11 +457,7 @@ function dibujarLineaMixtaPdf(
   }
 
   const anchoNatural =
-    palabras.reduce(
-      (suma, p) =>
-        suma + fontPara(p).widthOfTextAtSize(p.texto, p.size ?? fontSize),
-      0,
-    ) +
+    palabras.reduce((suma, p) => suma + fontPara(p).widthOfTextAtSize(p.texto, p.size ?? fontSize), 0) +
     spaceWidth * (palabras.length - 1);
   const espacioExtra = Math.max(0, maxWidth - anchoNatural);
   const espacioPorHueco = espacioExtra / (palabras.length - 1);
@@ -476,8 +467,7 @@ function dibujarLineaMixtaPdf(
     const font = fontPara(palabra);
     const size = palabra.size ?? fontSize;
     page.drawText(palabra.texto, { x: cursorX, y, size, font, color });
-    cursorX +=
-      font.widthOfTextAtSize(palabra.texto, size) + spaceWidth + espacioPorHueco;
+    cursorX += font.widthOfTextAtSize(palabra.texto, size) + spaceWidth + espacioPorHueco;
   });
 }
 
@@ -596,12 +586,7 @@ function dibujarListaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, lineas: str
 // queden alineados verticalmente.
 const INDENT_SANGRIA = 14;
 
-function dibujarVinetaPdf(
-  cursor: CursorPdf,
-  estilo: EstiloCuerpoPdf,
-  label: string,
-  restoLineas: string[],
-) {
+function dibujarVinetaPdf(cursor: CursorPdf, estilo: EstiloCuerpoPdf, label: string, restoLineas: string[]) {
   const indent = INDENT_SANGRIA;
   const maxWidth = estilo.contentWidth - indent;
 
@@ -739,12 +724,7 @@ function sanearTextoPdf(texto: string): string {
   return texto.replace(/[^\x20-\x7E¡¿À-ÿ]/g, "?");
 }
 
-function envolverTextoPlano(
-  texto: string,
-  maxWidth: number,
-  fontSize: number,
-  font: PDFFont,
-): string[] {
+function envolverTextoPlano(texto: string, maxWidth: number, fontSize: number, font: PDFFont): string[] {
   const palabras = texto.split(/\s+/).filter(Boolean);
   const lineas: string[] = [];
   let actual = "";
@@ -795,11 +775,7 @@ function dibujarTablaRevisionesPdf(
   });
   cursor.y -= 14;
 
-  const dibujarFila = (
-    celdasOriginales: [string, string, string],
-    font: PDFFont,
-    alturaMin: number,
-  ) => {
+  const dibujarFila = (celdasOriginales: [string, string, string], font: PDFFont, alturaMin: number) => {
     const celdas: [string, string, string] = [
       sanearTextoPdf(celdasOriginales[0]),
       sanearTextoPdf(celdasOriginales[1]),
@@ -954,8 +930,7 @@ function dibujarEncabezadoOficialPdf(
   } = config;
   const negro = rgb(0.1, 0.1, 0.1);
 
-  const anchoRazonSocial =
-    contentWidth - ENCABEZADO_ANCHO_LOGO - ENCABEZADO_ANCHO_FORMATO - ENCABEZADO_ANCHO_PAGINA;
+  const anchoRazonSocial = contentWidth - ENCABEZADO_ANCHO_LOGO - ENCABEZADO_ANCHO_FORMATO - ENCABEZADO_ANCHO_PAGINA;
   const anchoTitulo = contentWidth - ENCABEZADO_ANCHO_REVISION;
   const xRazonSocial = marginLeft + ENCABEZADO_ANCHO_LOGO;
   const xFormato = xRazonSocial + anchoRazonSocial;
@@ -1016,9 +991,7 @@ function dibujarEncabezadoOficialPdf(
     [
       { texto: "FORMATO", size: 7, font: fontBold },
       { texto: formatoCodigo, size: 8, font: fontRegular },
-      ...(formatoCodigoSecundario
-        ? [{ texto: formatoCodigoSecundario, size: 8, font: fontRegular }]
-        : []),
+      ...(formatoCodigoSecundario ? [{ texto: formatoCodigoSecundario, size: 8, font: fontRegular }] : []),
     ],
     xFormato,
     ENCABEZADO_ANCHO_FORMATO,
@@ -1118,10 +1091,7 @@ function dibujarPiePaginaTextoPdf(
 // (tipos-documentos.service.ts::subirEncabezadoImagen /
 // subirPiePaginaImagen), así que hay que intentar los dos formatos que
 // pdf-lib puede embeber directamente.
-async function embedImagenPdf(
-  pdfDoc: PDFDocument,
-  url: string,
-): Promise<PDFImage | null> {
+async function embedImagenPdf(pdfDoc: PDFDocument, url: string): Promise<PDFImage | null> {
   try {
     const bytes = await fetch(url).then((r) => r.arrayBuffer());
     try {
@@ -1130,10 +1100,7 @@ async function embedImagenPdf(
       return await pdfDoc.embedPng(bytes);
     }
   } catch (err) {
-    console.error(
-      "No se pudo cargar la imagen (encabezado o pie de página), se omite para este PDF:",
-      err,
-    );
+    console.error("No se pudo cargar la imagen (encabezado o pie de página), se omite para este PDF:", err);
     return null;
   }
 }
@@ -1197,10 +1164,7 @@ async function resolverEncabezadoDocumento(
 
 interface PiePaginaResuelto {
   altura: number;
-  dibujar: (
-    page: PDFPage,
-    config: { marginLeft: number; contentWidth: number; y: number },
-  ) => void;
+  dibujar: (page: PDFPage, config: { marginLeft: number; contentWidth: number; y: number }) => void;
 }
 
 /**
@@ -1304,6 +1268,8 @@ export interface GenerarCartaPdfOpciones {
    * default sigue siendo descargar (nombre de archivo real vs. UUID del
    * blob al guardar desde la pestaña). Default false. */
   previsualizar?: boolean;
+  /** false = solo devuelve el archivo para que otro flujo lo guarde. */
+  descargar?: boolean;
 }
 
 export async function generarCartaPdf({
@@ -1320,6 +1286,7 @@ export async function generarCartaPdf({
   piePaginaTexto,
   piePaginaImagenUrl,
   previsualizar = false,
+  descargar = true,
 }: GenerarCartaPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
@@ -1341,11 +1308,7 @@ export async function generarCartaPdf({
     ["Courier", { regular: courier, bold: courierBold }],
   ]);
 
-  const encabezado = await resolverEncabezadoDocumento(
-    pdfDoc,
-    encabezadoTipo,
-    encabezadoImagenUrl,
-  );
+  const encabezado = await resolverEncabezadoDocumento(pdfDoc, encabezadoTipo, encabezadoImagenUrl);
   const piePagina = await resolverPiePaginaDocumento(
     pdfDoc,
     piePaginaTipo,
@@ -1359,9 +1322,7 @@ export async function generarCartaPdf({
   const marginLeft = 50;
   const marginRight = 50;
   const marginTop = 50;
-  const marginBottom =
-    PIE_PAGINA_MARGEN_BASE +
-    (piePagina.altura > 0 ? piePagina.altura + PIE_PAGINA_GAP : 0);
+  const marginBottom = PIE_PAGINA_MARGEN_BASE + (piePagina.altura > 0 ? piePagina.altura + PIE_PAGINA_GAP : 0);
   const contentWidth = pageWidth - marginLeft - marginRight;
   const fontSizeBody = 11.5;
 
@@ -1458,7 +1419,7 @@ export async function generarCartaPdf({
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
   if (previsualizar) {
     window.open(URL.createObjectURL(blob), "_blank");
-  } else {
+  } else if (descargar) {
     descargarPdfBlob(blob, nombreArchivo);
   }
   return new File([blob], nombreArchivo, { type: "application/pdf" });
@@ -1502,6 +1463,8 @@ export interface GenerarFormatoOficialPdfOpciones {
   /** true = abrir el PDF en una pestaña nueva (vista previa) en vez de
    * forzar la descarga. Default false. */
   previsualizar?: boolean;
+  /** false = solo devuelve el archivo para que otro flujo lo guarde. */
+  descargar?: boolean;
 }
 
 export async function generarFormatoOficialPdf({
@@ -1519,6 +1482,7 @@ export async function generarFormatoOficialPdf({
   piePaginaTexto,
   piePaginaImagenUrl,
   previsualizar = false,
+  descargar = true,
 }: GenerarFormatoOficialPdfOpciones): Promise<File> {
   const partes = clasificarBloquesTexto(contenido);
 
@@ -1538,11 +1502,7 @@ export async function generarFormatoOficialPdf({
     ["Courier", { regular: courier, bold: courierBold }],
   ]);
 
-  const encabezado = await resolverEncabezadoDocumento(
-    pdfDoc,
-    encabezadoTipo,
-    encabezadoImagenUrl,
-  );
+  const encabezado = await resolverEncabezadoDocumento(pdfDoc, encabezadoTipo, encabezadoImagenUrl);
   const piePagina = await resolverPiePaginaDocumento(
     pdfDoc,
     piePaginaTipo,
@@ -1556,9 +1516,7 @@ export async function generarFormatoOficialPdf({
   const marginLeft = 50;
   const marginRight = 50;
   const marginTop = 50;
-  const marginBottom =
-    PIE_PAGINA_MARGEN_BASE +
-    (piePagina.altura > 0 ? piePagina.altura + PIE_PAGINA_GAP : 0);
+  const marginBottom = PIE_PAGINA_MARGEN_BASE + (piePagina.altura > 0 ? piePagina.altura + PIE_PAGINA_GAP : 0);
   const contentWidth = pageWidth - marginLeft - marginRight;
   const fontSizeBody = 10;
 
@@ -1629,7 +1587,7 @@ export async function generarFormatoOficialPdf({
   const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
   if (previsualizar) {
     window.open(URL.createObjectURL(blob), "_blank");
-  } else {
+  } else if (descargar) {
     descargarPdfBlob(blob, nombreArchivo);
   }
   return new File([blob], nombreArchivo, { type: "application/pdf" });
@@ -1687,6 +1645,8 @@ export interface GenerarPlantillaDocumentoOpciones {
   /** true = abrir el PDF en una pestaña nueva (vista previa) en vez de
    * forzar la descarga. Default false. */
   previsualizar?: boolean;
+  /** false = solo devuelve el archivo para guardarlo en el servidor. */
+  descargar?: boolean;
 }
 
 export interface PreguntaRenderizadaParaPlantilla {
@@ -1713,9 +1673,7 @@ function clavePregunta(seccionId: number, descripcion: string): string {
  * tipo TABLA — misma convención de "primera fila = principal" que ya usa
  * el resto del código para representante legal.
  */
-export function construirMapaRespuestasPregunta(
-  preguntas: PreguntaRenderizadaParaPlantilla[],
-): Record<string, string> {
+export function construirMapaRespuestasPregunta(preguntas: PreguntaRenderizadaParaPlantilla[]): Record<string, string> {
   const mapa: Record<string, string> = {};
   for (const p of preguntas) {
     // Ancla preferida: fp_codigo (estable ante renames y versiones nuevas).
@@ -1770,6 +1728,7 @@ export async function generarPlantillaDocumentoPdf({
   piePaginaImagenUrl,
   reemplazosExtra,
   previsualizar,
+  descargar,
 }: GenerarPlantillaDocumentoOpciones): Promise<File> {
   const reemplazos: Record<string, string> = {
     "{{cliente_nombre}}": clienteNombre || "",
@@ -1819,7 +1778,7 @@ export async function generarPlantillaDocumentoPdf({
     );
   }
 
-  const nombreArchivo = construirNombreDescargaPdf(tdoNombre, clienteNombre);
+  const nombreArchivo = construirNombreDescargaPdf(tdoNombre, clienteNombre, numeroSolicitud);
 
   // Solo los documentos configurados con "páginas totales" usan el estilo
   // de cuerpo "documento plano" (formato oficial) — el resto sigue con el
@@ -1840,6 +1799,7 @@ export async function generarPlantillaDocumentoPdf({
       piePaginaTexto,
       piePaginaImagenUrl,
       previsualizar,
+      descargar,
     });
   }
 
@@ -1853,5 +1813,6 @@ export async function generarPlantillaDocumentoPdf({
     piePaginaTexto,
     piePaginaImagenUrl,
     previsualizar,
+    descargar,
   });
 }

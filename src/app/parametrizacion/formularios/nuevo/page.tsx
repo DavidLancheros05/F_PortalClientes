@@ -30,7 +30,7 @@ export default function NuevoFormularioPage() {
         formulario_descripcion: descripcion.trim() || null,
       });
 
-      const nuevoId = Number(data?.frm_id);
+      const nuevoId = Number(data?.frs_id);
       if (!Number.isFinite(nuevoId) || nuevoId <= 0) {
         setShowConfirmModal(false);
         setErrorMessage("Se creó el formulario, pero no fue posible abrir el editor");
@@ -38,7 +38,7 @@ export default function NuevoFormularioPage() {
         return;
       }
 
-      router.replace(`/parametrizacion/formulario-editor?frm_id=${nuevoId}&version=1`);
+      router.replace(`/parametrizacion/formulario-editor?frs_id=${nuevoId}&version=1`);
     } catch (error: any) {
       console.error("Error creando formulario:", error);
       setShowConfirmModal(false);

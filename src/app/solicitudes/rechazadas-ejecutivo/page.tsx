@@ -15,7 +15,7 @@ import { Tr } from "@/components/tables/TableRow";
 
 interface SolicitudRechazada {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_co_id: number;
   sol_fecha_creacion: string;
   sol_gestion_rechazo_finalizada: boolean;
@@ -49,12 +49,8 @@ export default function SolicitudesRechazadasEjecutivoPage() {
   // Filtros inicializados desde la URL — mismo patrón que
   // gestion-ejecutivo-negocios/page.tsx, para que "Volver" desde el detalle
   // restaure la búsqueda en vez de reiniciar el formulario.
-  const [searchInput, setSearchInput] = useState(
-    () => searchParams.get("buscar") || "",
-  );
-  const [searchTerm, setSearchTerm] = useState(
-    () => searchParams.get("buscar") || "",
-  );
+  const [searchInput, setSearchInput] = useState(() => searchParams.get("buscar") || "");
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("buscar") || "");
   const [hasSearched, setHasSearched] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -66,7 +62,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
       solicitudes.filter((solicitud) => {
         const term = searchTerm.toLowerCase();
         const matchSearch =
-          solicitud.sol_numero_solicitud?.toLowerCase().includes(term) ||
+          solicitud.sol_numero?.toLowerCase().includes(term) ||
           solicitud.cliente_nombre?.toLowerCase().includes(term) ||
           solicitud.centro_operacion_nombre?.toLowerCase().includes(term);
 
@@ -91,7 +87,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
   // (antes de aplicar el filtro de texto).
   const buscarSugerencias = useMemo(
     () => [
-      ...solicitudes.map((s) => s.sol_numero_solicitud ?? ""),
+      ...solicitudes.map((s) => s.sol_numero ?? ""),
       ...solicitudes.map((s) => s.cliente_nombre ?? ""),
       ...solicitudes.map((s) => s.centro_operacion_nombre ?? ""),
     ],
@@ -122,9 +118,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
         return;
       }
       setLoading(true);
-      const data = await solicitudesService.getRechazadasParaEjecutivo(
-        user.usr_id,
-      );
+      const data = await solicitudesService.getRechazadasParaEjecutivo(user.usr_id);
       setSolicitudes(data);
       setSearchTerm(searchInput.trim());
       setHasSearched(true);
@@ -153,7 +147,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
 
     const data = solicitudesFiltradas.map((s) => [
       s.centro_operacion_nombre || "-",
-      s.sol_numero_solicitud,
+      s.sol_numero,
       s.cliente_nombre,
       s.etapa_rechazo_nombre || "-",
       s.usuario_rechazo_nombre || "-",
@@ -164,10 +158,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
     const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Rechazadas");
-    XLSX.writeFile(
-      wb,
-      `solicitudes-rechazadas-${new Date().toISOString().slice(0, 10)}.xlsx`,
-    );
+    XLSX.writeFile(wb, `solicitudes-rechazadas-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   return (
@@ -180,8 +171,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
             <button
               // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
               onClick={() => router.push("/solicitudes")}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <ArrowLeft size={15} strokeWidth={2.3} />
             </button>
             <div className="w-[42px] h-[42px] rounded-xl bg-white/[0.16] flex items-center justify-center flex-shrink-0">
@@ -191,15 +181,12 @@ export default function SolicitudesRechazadasEjecutivoPage() {
               <h1 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0">
                 Gestion Solicitudes Rechazadas
               </h1>
-              <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
-                Pendientes de gestión con el cliente
-              </p>
+              <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">Pendientes de gestión con el cliente</p>
             </div>
             <button
               onClick={() => setShowInfoModal(true)}
               aria-label="Información sobre esta pantalla"
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/[0.14] hover:bg-white/[0.26] flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <Info size={16} strokeWidth={2.3} />
             </button>
           </div>
@@ -219,15 +206,13 @@ export default function SolicitudesRechazadasEjecutivoPage() {
               <FilterActions className="col-span-full">
                 <button
                   onClick={limpiarFiltros}
-                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-[#475569] hover:text-[#0f172a] hover:bg-[#f1f5f9] rounded-lg transition-colors border border-[#e2e8f0] bg-white"
-                >
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-[#475569] hover:text-[#0f172a] hover:bg-[#f1f5f9] rounded-lg transition-colors border border-[#e2e8f0] bg-white">
                   <X className="h-4 w-4" />
                   Limpiar
                 </button>
                 <button
                   onClick={handleBuscar}
-                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-500 transition-colors"
-                >
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-500 transition-colors">
                   <Search className="h-4 w-4" />
                   Buscar
                 </button>
@@ -238,31 +223,21 @@ export default function SolicitudesRechazadasEjecutivoPage() {
 
         {!hasSearched ? (
           <div className="bg-white border border-[#e7ecf3] rounded-[16px] p-12 text-center">
-            <p className="text-[#475569] mb-2">
-              Presiona Buscar para cargar tus solicitudes rechazadas.
-            </p>
-            <p className="text-sm text-[#94a3b8]">
-              Opcionalmente puedes filtrar por centro o número de
-              solicitud.
-            </p>
+            <p className="text-[#475569] mb-2">Presiona Buscar para cargar tus solicitudes rechazadas.</p>
+            <p className="text-sm text-[#94a3b8]">Opcionalmente puedes filtrar por centro o número de solicitud.</p>
           </div>
         ) : solicitudesFiltradas.length === 0 ? (
           <div className="bg-white border border-[#e7ecf3] rounded-[16px] p-12 text-center">
             <div className="w-16 h-16 bg-[#ecfdf5] rounded-full flex items-center justify-center mx-auto mb-4">
               <Check size={28} strokeWidth={2.4} className="text-[#059669]" />
             </div>
-            <p className="text-[#475569]">
-              No tienes solicitudes rechazadas pendientes de gestión.
-            </p>
+            <p className="text-[#475569]">No tienes solicitudes rechazadas pendientes de gestión.</p>
           </div>
         ) : (
           <div className="bg-white border border-[#e7ecf3] rounded-[16px] overflow-hidden">
             <div className="px-6 py-4 border-b border-[#eef1f6] bg-[#f8fafc] flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-[#64748b]">
-                Mostrando{" "}
-                <span className="font-semibold text-[#0f172a]">
-                  {solicitudesFiltradas.length}
-                </span>{" "}
+                Mostrando <span className="font-semibold text-[#0f172a]">{solicitudesFiltradas.length}</span>{" "}
                 solicitud(es)
               </p>
               <ExportExcelButton onClick={exportarExcel} />
@@ -292,36 +267,21 @@ export default function SolicitudesRechazadasEjecutivoPage() {
                         {/* <Td className="whitespace-nowrap">
                           {solicitud.centro_operacion_nombre}
                         </Td> */}
-                        <Td className="whitespace-nowrap font-semibold text-[#b91c1c]">
-                          {solicitud.sol_numero_solicitud}
-                        </Td>
-                        <Td className="whitespace-nowrap">
-                          {solicitud.cliente_nombre}
-                        </Td>
+                        <Td className="whitespace-nowrap font-semibold text-[#b91c1c]">{solicitud.sol_numero}</Td>
+                        <Td className="whitespace-nowrap">{solicitud.cliente_nombre}</Td>
                         <Td className="whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5 text-[12px] font-bold px-[11px] py-1 rounded-full bg-[#fef2f2] text-[#b91c1c]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#b91c1c]" />
                             {solicitud.etapa_rechazo_nombre || "-"}
                           </span>
                         </Td>
-                        <Td className="whitespace-nowrap">
-                          {solicitud.usuario_rechazo_nombre || "-"}
-                        </Td>
-                        <Td className="whitespace-nowrap">
-                          {formatDateTime(solicitud.fecha_rechazo)}
-                        </Td>
-                        <Td className="max-w-xs truncate">
-                          {solicitud.motivo_rechazo || "-"}
-                        </Td>
+                        <Td className="whitespace-nowrap">{solicitud.usuario_rechazo_nombre || "-"}</Td>
+                        <Td className="whitespace-nowrap">{formatDateTime(solicitud.fecha_rechazo)}</Td>
+                        <Td className="max-w-xs truncate">{solicitud.motivo_rechazo || "-"}</Td>
                         <Td sticky className="whitespace-nowrap font-medium">
                           <button
-                            onClick={() =>
-                              router.push(
-                                `/solicitudes/rechazadas-ejecutivo/${solicitud.sol_id}`,
-                              )
-                            }
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#fecaca] text-[#b91c1c] text-xs font-semibold hover:bg-[#fef2f2] transition-colors"
-                          >
+                            onClick={() => router.push(`/solicitudes/rechazadas-ejecutivo/${solicitud.sol_id}`)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#fecaca] text-[#b91c1c] text-xs font-semibold hover:bg-[#fef2f2] transition-colors">
                             <Eye className="h-3.5 w-3.5" />
                             Ver
                           </button>
@@ -354,11 +314,7 @@ export default function SolicitudesRechazadasEjecutivoPage() {
         onClose={() => setShowInfoModal(false)}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </div>
   );
 }

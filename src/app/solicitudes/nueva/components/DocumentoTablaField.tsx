@@ -1,19 +1,11 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import {
-  generarPlantillaDocumentoPdf,
-  construirMapaRespuestasPregunta,
-  construirNombreDescargaPdf,
-  descargarPdfBlob,
-} from "@/lib/carta-pdf.util";
-import { solicitudesService } from "@/services/solicitudes.service";
-import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
-import { CheckCircle, Download, FileText, Upload, X } from "lucide-react";
-import { LoadingModal, SuccessModal, ConfirmModal } from "@/components/modals";
+import { CheckCircle, FileText, Upload, X } from "lucide-react";
+import { ConfirmModal } from "@/components/modals";
+import { useUpload } from "@/context/UploadContext";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
-import { flushSync } from "react-dom";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
@@ -85,7 +77,7 @@ export function DocumentoTablaField({
   numeroSolicitud,
 }: DocumentoTablaFieldProps) {
   const opcionFija = getOpcionDocumentoFija(pregunta);
-  // El tipo de documento ya queda determinado por fp_tipo_documento_id
+  // El tipo de documento ya queda determinado por fp_tdo_id
   // (el vínculo al catálogo), sin importar si además existe una fila en
   // Formulario_pregunta_opcion. El selector manual solo debe aparecer
   // para preguntas de documento genéricas, sin catálogo vinculado.
@@ -121,7 +113,6 @@ export function DocumentoTablaField({
     archivoExistente?.sa_origen === "cliente_archivo_pendiente" ||
     archivoExistente?.sa_origen === "cliente_archivo_reutilizado";
 
-  const [descargandoPlantilla, setDescargandoPlantilla] = useState(false);
   const [ofrecerReutilizarOmitido, setOfrecerReutilizarOmitido] = useState(false);
   const [confirmarEliminarArchivo, setConfirmarEliminarArchivo] = useState(false);
 
@@ -141,90 +132,20 @@ export function DocumentoTablaField({
   // setState de baja prioridad junto con el pesado de más abajo en el mismo
   // commit, dejando el modal sin pintarse nunca antes del freeze. flushSync
   // fuerza el commit del modal de una vez, sin depender de esa heurística.
-  const [procesandoArchivo, setProcesandoArchivo] = useState<"loading" | "ready" | null>(null);
+  const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    flushSync(() => setProcesandoArchivo("loading"));
+    startLoading("Cargando archivo...");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-        setProcesandoArchivo("ready");
+        window.setTimeout(() => {
+          showSuccess({
+            title: "Archivo cargado",
+            message: "El archivo quedó listo en el formulario. Puedes continuar completando la solicitud.",
+          });
+        }, 250);
       });
     });
-  };
-
-  const handleDescargarPlantilla = async () => {
-    if (documento?.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !documento?.tdo_plantilla_contenido) return;
-    setDescargandoPlantilla(true);
-    try {
-      if (documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") {
-        if (!solicitudId) return;
-        const blob = await solicitudesService.downloadPdf(solicitudId);
-        const nombreArchivo = construirNombreDescargaPdf(
-          tipoDocumentoFijo || documento!.tdo_nombre,
-          clienteInfo?.nombre,
-        );
-        descargarPdfBlob(blob, nombreArchivo);
-        const archivo = new File([blob], nombreArchivo, { type: "application/pdf" });
-        handleInputChange(pregunta.fp_id, archivo, "ARCHIVO");
-      } else {
-        const contenido = documento!.tdo_plantilla_contenido!;
-        let respuestasPregunta: Record<string, string> | undefined;
-        if (solicitudId && /\{\{pregunta\|/.test(contenido)) {
-          const renderizable = await solicitudesService.getFormularioRenderizable(solicitudId);
-          respuestasPregunta = construirMapaRespuestasPregunta(renderizable.preguntas);
-        }
-
-        let revisiones: { revision: string; descripcionCambio: string; fecha: string }[] = [];
-        if (documento?.tdo_id) {
-          try {
-            const revs = await documentosService.getRevisiones(documento.tdo_id);
-            revisiones = revs.map((r) => ({
-              revision: r.revision,
-              descripcionCambio: r.descripcionCambio,
-              fecha: new Date(`${r.fecha}T00:00:00`).toLocaleDateString("es-CO", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }),
-            }));
-          } catch (err) {
-            console.error("Error cargando historial de revisiones:", err);
-          }
-        }
-
-        const archivo = await generarPlantillaDocumentoPdf({
-          tdoNombre: tipoDocumentoFijo || documento!.tdo_nombre,
-          tdoPlantillaContenido: contenido,
-          clienteNombre: clienteInfo?.nombre,
-          clienteNit: clienteInfo?.nit,
-          numeroSolicitud,
-          representanteLegalNombre: representanteLegal?.nombre,
-          representanteLegalCedula: representanteLegal?.identificacion,
-          formatoCodigo: documento?.tdo_formato_codigo,
-          formatoCodigoSecundario: documento?.tdo_formato_codigo_secundario,
-          revision: documento?.tdo_revision,
-          paginasTotal: documento?.tdo_paginas_total,
-          respuestasPregunta,
-          revisiones,
-          encabezadoTipo: documento?.tdo_encabezado_tipo,
-          encabezadoImagenUrl: documento?.tdo_encabezado_imagen_url,
-          piePaginaTipo: documento?.tdo_pie_pagina_tipo,
-          piePaginaTexto: documento?.tdo_pie_pagina_texto,
-          piePaginaImagenUrl: documento?.tdo_pie_pagina_imagen_url,
-        });
-        handleInputChange(pregunta.fp_id, archivo, "ARCHIVO");
-      }
-    } catch (err) {
-      console.error("Error generando plantilla:", err);
-      // generarPlantillaDocumentoPdf lanza un Error con detalle específico
-      // cuando una variable {{pregunta|...}} no resuelve (pregunta
-      // renombrada/eliminada) — se muestra en el ErrorModal del padre sin
-      // auto-cerrar, a diferencia de los banners temporales de abajo, para
-      // dar tiempo a leer el detalle.
-      setErrorMessage(err instanceof Error ? err.message : "Error generando la plantilla descargable");
-    } finally {
-      setDescargandoPlantilla(false);
-    }
   };
 
   const handleEliminarArchivo = async () => {
@@ -262,18 +183,6 @@ export function DocumentoTablaField({
               {documento.tdo_descripcion}
             </p>
           )}
-
-          {documento?.tdo_tiene_plantilla &&
-            (documento?.tdo_plantilla_contenido || documento?.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
-              <button
-                type="button"
-                onClick={handleDescargarPlantilla}
-                disabled={descargandoPlantilla}
-                className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60">
-                <Download className="h-3 w-3" />
-                {descargandoPlantilla ? "Generando..." : "Descargar plantilla"}
-              </button>
-            )}
 
           {!tipoDocumentoFijo && !readOnly && (
             <div className="space-y-0.5">
@@ -333,7 +242,7 @@ export function DocumentoTablaField({
                       }}
                       className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
                       title="Elegir un archivo distinto en vez de este">
-                      Quitar
+                      Eliminar
                     </button>
                   )}
                   {!readOnly && !esDocumentoReutilizado && (
@@ -359,8 +268,7 @@ export function DocumentoTablaField({
                           };
                           tempInput.click();
                         }}
-                        disabled={!!procesandoArchivo}
-                        className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60">
+                        className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300">
                         Cambiar
                       </button>
                     </>
@@ -406,9 +314,9 @@ export function DocumentoTablaField({
                       });
                     }}
                     className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
-                    title="Quitar archivo seleccionado (aún no se ha guardado)">
+                    title="Eliminar archivo seleccionado (aún no se ha guardado)">
                     <X className="h-3 w-3" />
-                    Quitar
+                    Eliminar
                   </button>
                 )}
               </div>
@@ -471,7 +379,6 @@ export function DocumentoTablaField({
             (!documentoClienteDisponible || ofrecerReutilizarOmitido) && (
               <button
                 type="button"
-                disabled={!!procesandoArchivo}
                 onClick={() => {
                   const tempInput = document.createElement("input");
                   tempInput.type = "file";
@@ -485,7 +392,7 @@ export function DocumentoTablaField({
                   };
                   tempInput.click();
                 }}
-                className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+                className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors ${
                   hasError
                     ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
                     : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
@@ -512,15 +419,6 @@ export function DocumentoTablaField({
           )}
         </div>
       </div>
-
-      <LoadingModal isOpen={procesandoArchivo === "loading"} message="Cargando archivo..." />
-      <SuccessModal
-        isOpen={procesandoArchivo === "ready"}
-        title="Archivo cargado"
-        message="El archivo quedó listo en el formulario. Puedes continuar completando la solicitud."
-        actionText="Aceptar"
-        onAction={() => setProcesandoArchivo(null)}
-      />
 
       <ConfirmModal
         isOpen={confirmarEliminarArchivo}

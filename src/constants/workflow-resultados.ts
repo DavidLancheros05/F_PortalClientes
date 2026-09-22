@@ -5,9 +5,9 @@ export const WORKFLOW_RESULTADO = {
   PENDIENTE: { id: 1, codigo: "PENDIENTE", nombre: "Pendiente" },
   APROBADO: { id: 2, codigo: "APROBADO", nombre: "Aprobado" },
   RECHAZADO: { id: 3, codigo: "RECHAZADO", nombre: "Rechazado" },
-  PEND_DOCS: {
+  PEND_FIRMA: {
     id: 5,
-    codigo: "PEND_DOCS",
-    nombre: "Pendiente de documentos generados",
+    codigo: "PEND_FIRMA",
+    nombre: "Pendiente de firma",
   },
 } as const;

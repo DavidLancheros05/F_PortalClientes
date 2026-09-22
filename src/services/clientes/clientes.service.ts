@@ -41,16 +41,12 @@ export const clientesService = {
     return res.data;
   },
 
-  getClientesByCentro: async (
-    centroId: number,
-  ): Promise<ClienteListResponse[]> => {
+  getClientesByCentro: async (centroId: number): Promise<ClienteListResponse[]> => {
     const res = await api.get(`/clientes/centro/${centroId}`);
     return res.data;
   },
 
-  getEjecutivosNegocio: async (): Promise<
-    { ejng_id: number; ejng_nombre: string }[]
-  > => {
+  getEjecutivosNegocio: async (): Promise<{ ejng_id: number; ejng_nombre: string }[]> => {
     return cachedRequest("clientes/ejecutivos-negocio", async () => {
       const res = await api.get("/clientes/ejecutivos-negocio");
       return res.data;
@@ -62,9 +58,7 @@ export const clientesService = {
     return res.data;
   },
 
-  precargarSolicitud: async (
-    clienteId: number,
-  ): Promise<ClienteDetailResponse> => {
+  precargarSolicitud: async (clienteId: number): Promise<ClienteDetailResponse> => {
     const res = await api.get(`/clientes/${clienteId}/precarga-solicitud`);
     return res.data;
   },
@@ -124,37 +118,31 @@ export const clientesService = {
     }>,
   ): Promise<ClienteDetailResponse> => {
     const body: Record<string, unknown> = {};
-    if (payload.razonSocial !== undefined)
-      body.cli_razon_social = payload.razonSocial;
-    if (payload.nitDocumento !== undefined)
-      body.cli_nro_identificacion = payload.nitDocumento;
-    if (payload.tipoIdentificacion !== undefined)
-      body.cli_tipo_identificacion = payload.tipoIdentificacion;
+    if (payload.razonSocial !== undefined) body.cli_razon_social = payload.razonSocial;
+    if (payload.nitDocumento !== undefined) body.cli_nro_identificacion = payload.nitDocumento;
+    if (payload.tipoIdentificacion !== undefined) body.cli_tipo_identificacion = payload.tipoIdentificacion;
     if (payload.direccion !== undefined) body.cli_direccion = payload.direccion;
     if (payload.correo !== undefined) body.cli_correo = payload.correo;
-    if (payload.habilitaAcceso !== undefined)
-      body.cli_acceso_pc = payload.habilitaAcceso;
-    if (payload.esDistribuidor !== undefined)
-      body.cli_es_distribuidor = payload.esDistribuidor;
-    if (payload.nitDigVf !== undefined)
-      body.cli_nit_dig_vf = payload.nitDigVf;
-    if (payload.esExtranjero !== undefined)
-      body.cli_es_extranjero = payload.esExtranjero;
+    if (payload.habilitaAcceso !== undefined) body.cli_acceso_pc = payload.habilitaAcceso;
+    if (payload.esDistribuidor !== undefined) body.cli_es_distribuidor = payload.esDistribuidor;
+    if (payload.nitDigVf !== undefined) body.cli_nit_dig_vf = payload.nitDigVf;
+    if (payload.esExtranjero !== undefined) body.cli_es_extranjero = payload.esExtranjero;
     if (payload.ejecutivoId !== undefined) body.ejng_id = payload.ejecutivoId;
     if (payload.paisId !== undefined) body.pai_id = payload.paisId;
-    if (payload.departamentoId !== undefined)
-      body.dpto_id = payload.departamentoId;
+    if (payload.departamentoId !== undefined) body.dpto_id = payload.departamentoId;
     if (payload.ciudadId !== undefined) body.ciu_id = payload.ciudadId;
-    if (payload.centro_operacion_ids !== undefined)
-      body.centro_operacion_ids = payload.centro_operacion_ids;
+    if (payload.centro_operacion_ids !== undefined) body.centro_operacion_ids = payload.centro_operacion_ids;
 
     const res = await api.put(`/clientes/${clienteId}`, body);
     return res.data;
   },
 
-  getCentrosOperacion: async (
-    clienteId: number,
-  ): Promise<ClienteCentroResponse[]> => {
+  desbloquear: async (clienteId: number): Promise<{ message: string }> => {
+    const res = await api.post(`/clientes/${clienteId}/desbloquear`);
+    return res.data;
+  },
+
+  getCentrosOperacion: async (clienteId: number): Promise<ClienteCentroResponse[]> => {
     const res = await api.get(`/clientes/${clienteId}/centros-operacion`);
     return res.data;
   },
@@ -197,10 +185,7 @@ export const clientesService = {
     currentPassword: string;
     newPassword: string;
   }): Promise<{ message: string }> => {
-    const res = await api.patch(
-      "/clientes/perfil/cambiar-contrasena",
-      payload,
-    );
+    const res = await api.patch("/clientes/perfil/cambiar-contrasena", payload);
     return res.data;
   },
 
@@ -212,9 +197,7 @@ export const clientesService = {
   // Solo vista previa del EXEC contra SIESA — no envía nada, no hay
   // conexión real todavía. Ver Portal Clientes/SIESA/
   // plan-envio-solicitud-aprobada-a-siesa.md.
-  getSiesaPreview: async (
-    clienteId: number,
-  ): Promise<{ sql: string; camposFaltantes: string[] }> => {
+  getSiesaPreview: async (clienteId: number): Promise<{ sql: string; camposFaltantes: string[] }> => {
     const res = await api.get(`/clientes/${clienteId}/siesa-preview`);
     return res.data;
   },

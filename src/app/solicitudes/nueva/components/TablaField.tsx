@@ -36,7 +36,7 @@ type OpcionCatalogo = { op_id: number; op_descripcion: string };
 
 type ColumnaTabla = {
   nombre: string;
-  tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA";
+  tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA" | "EMAIL";
   catalogo_base_datos?: string;
   catalogo_tabla?: string;
   catalogo_columna?: string;
@@ -66,7 +66,8 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
               col.tipo === "SI_NO" ||
               col.tipo === "CATALOGO" ||
               col.tipo === "MONEDA" ||
-              col.tipo === "NUMERO"
+              col.tipo === "NUMERO" ||
+              col.tipo === "EMAIL"
                 ? col.tipo
                 : "TEXTO",
             catalogo_base_datos: col.catalogo_base_datos,
@@ -90,17 +91,9 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
 }
 
 // Nombres de todas las columnas que dependen (directa o transitivamente) de `nombreColumna`
-function obtenerDescendientes(
-  nombreColumna: string,
-  columnas: ColumnaTabla[],
-): string[] {
-  const directos = columnas
-    .filter((c) => c.catalogo_columna_padre === nombreColumna)
-    .map((c) => c.nombre);
-  return directos.reduce<string[]>(
-    (acc, nombre) => [...acc, ...obtenerDescendientes(nombre, columnas)],
-    directos,
-  );
+function obtenerDescendientes(nombreColumna: string, columnas: ColumnaTabla[]): string[] {
+  const directos = columnas.filter((c) => c.catalogo_columna_padre === nombreColumna).map((c) => c.nombre);
+  return directos.reduce<string[]>((acc, nombre) => [...acc, ...obtenerDescendientes(nombre, columnas)], directos);
 }
 
 // Para columnas NUMERO con minimo/maximo configurado: valida que el valor
@@ -115,6 +108,23 @@ function celdaEnRango(columna: ColumnaTabla, valorCelda: string): boolean {
   if (columna.minimo !== undefined && numero < columna.minimo) return false;
   if (columna.maximo !== undefined && numero > columna.maximo) return false;
   return true;
+}
+
+function esColumnaCorreo(columna: ColumnaTabla): boolean {
+  return columna.tipo === "EMAIL" || /correo|e-?mail/i.test(columna.nombre);
+}
+
+function esColumnaIdentificacion(columna: ColumnaTabla): boolean {
+  return (
+    columna.tipo === "NUMERO" ||
+    /identificacion|identificación|cedula|cédula|nit|numero de identificacion|número de identificación|documento/i.test(
+      columna.nombre,
+    )
+  );
+}
+
+function correoValido(valor: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
 }
 
 function parseFilas(valorTexto: string | undefined): FilaTabla[] {
@@ -172,9 +182,7 @@ function CeldaCatalogoDependiente({
         columnaPadre.catalogo_valor_condicion,
       )
       .then((opcionesPadre) => {
-        const padreId = opcionesPadre.find(
-          (o) => o.op_descripcion === valorPadreTexto,
-        )?.op_id;
+        const padreId = opcionesPadre.find((o) => o.op_descripcion === valorPadreTexto)?.op_id;
         if (!padreId || !columna.catalogo_tabla) return [];
         return maestrosService.getCatalogoValores(
           columna.catalogo_tabla,
@@ -235,24 +243,13 @@ function CeldaCatalogoDependiente({
   );
 }
 
-export function TablaField({
-  pregunta,
-  preguntas,
-  respuestas,
-  readOnly,
-  handleInputChange,
-}: TablaFieldProps) {
-  const columnas = useMemo(
-    () => parseColumnas(pregunta.fp_tabla_columnas),
-    [pregunta.fp_tabla_columnas],
-  );
+export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleInputChange }: TablaFieldProps) {
+  const columnas = useMemo(() => parseColumnas(pregunta.fp_tabla_columnas), [pregunta.fp_tabla_columnas]);
 
   // Opciones de columnas CATALOGO independientes (no dependen de otra columna);
   // las columnas dependientes cargan sus opciones por fila, filtradas por el
   // valor del padre (ver <CeldaCatalogoDependiente />).
-  const [valoresCatalogo, setValoresCatalogo] = useState<
-    Record<string, OpcionCatalogo[]>
-  >({});
+  const [valoresCatalogo, setValoresCatalogo] = useState<Record<string, OpcionCatalogo[]>>({});
 
   useEffect(() => {
     const columnasCatalogo = columnas.filter(
@@ -296,17 +293,10 @@ export function TablaField({
       return pregunta.fp_maximo ?? null;
     }
     if (modo === "CONDICIONAL" && pregunta.fp_tabla_limite_pregunta_id) {
-      const preguntaDisparadora = preguntas.find(
-        (p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id,
-      );
-      const valorActual = resolverValorPreguntaDisparadora(
-        preguntaDisparadora,
-        respuestas,
-      ).trim().toLowerCase();
+      const preguntaDisparadora = preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id);
+      const valorActual = resolverValorPreguntaDisparadora(preguntaDisparadora, respuestas).trim().toLowerCase();
       const reglas = parseReglasLimite(pregunta.fp_tabla_limite_reglas);
-      const regla = reglas.find(
-        (r) => r.valor.trim().toLowerCase() === valorActual,
-      );
+      const regla = reglas.find((r) => r.valor.trim().toLowerCase() === valorActual);
       return regla ? regla.limite : null;
     }
     return null;
@@ -319,8 +309,7 @@ export function TablaField({
     respuestas,
   ]);
 
-  const limiteAlcanzado =
-    limiteFilas !== null && filasVisibles.length >= limiteFilas;
+  const limiteAlcanzado = limiteFilas !== null && filasVisibles.length >= limiteFilas;
 
   const actualizarFilas = (nuevasFilas: FilaTabla[]) => {
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
@@ -361,29 +350,23 @@ export function TablaField({
 
   return (
     <div className="rounded-2xl border border-slate-200 shadow-md shadow-slate-200/60">
-      <div className="overflow-x-auto" style={{overflowY: 'visible'}}>
+      <div className="overflow-x-auto" style={{ overflowY: "visible" }}>
         <table className="w-full text-[11px] border-collapse">
           <thead>
             <tr className="bg-gradient-to-r from-blue-600 to-blue-700">
               {columnas.map((columna) => (
                 <th
                   key={columna.nombre}
-                  className="px-2 py-1 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl"
-                >
+                  className="px-2 py-1 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl">
                   {columna.nombre}
                 </th>
               ))}
-              {!readOnly && (
-                <th className="w-9 rounded-tr-2xl px-2 py-1"></th>
-              )}
+              {!readOnly && <th className="w-9 rounded-tr-2xl px-2 py-1"></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
             {filasVisibles.map((fila, filaIndex) => (
-              <tr
-                key={filaIndex}
-                className="transition-colors hover:bg-blue-50/40"
-              >
+              <tr key={filaIndex} className="transition-colors hover:bg-blue-50/40">
                 {columnas.map((columna) => {
                   if (columna.tipo === "SI_NO") {
                     return (
@@ -394,9 +377,7 @@ export function TablaField({
                             { id: "No", label: "No" },
                           ]}
                           value={fila[columna.nombre] || ""}
-                          onChange={(value) =>
-                            actualizarCelda(filaIndex, columna.nombre, String(value))
-                          }
+                          onChange={(value) => actualizarCelda(filaIndex, columna.nombre, String(value))}
                           disabled={readOnly}
                           placeholder="Selecciona..."
                         />
@@ -405,9 +386,7 @@ export function TablaField({
                   }
 
                   if (columna.tipo === "CATALOGO" && columna.catalogo_columna_padre) {
-                    const columnaPadre = columnas.find(
-                      (c) => c.nombre === columna.catalogo_columna_padre,
-                    );
+                    const columnaPadre = columnas.find((c) => c.nombre === columna.catalogo_columna_padre);
                     if (!columnaPadre) {
                       return (
                         <td key={columna.nombre} className="p-1 text-[11px] text-amber-700">
@@ -423,9 +402,7 @@ export function TablaField({
                           valorPadreTexto={fila[columnaPadre.nombre] || ""}
                           valor={fila[columna.nombre] || ""}
                           disabled={readOnly}
-                          onChange={(valor) =>
-                            actualizarCelda(filaIndex, columna.nombre, valor)
-                          }
+                          onChange={(valor) => actualizarCelda(filaIndex, columna.nombre, valor)}
                         />
                       </td>
                     );
@@ -441,9 +418,7 @@ export function TablaField({
                             label: op.op_descripcion,
                           }))}
                           value={fila[columna.nombre] || ""}
-                          onChange={(value) =>
-                            actualizarCelda(filaIndex, columna.nombre, String(value))
-                          }
+                          onChange={(value) => actualizarCelda(filaIndex, columna.nombre, String(value))}
                           disabled={readOnly || opciones.length === 0}
                           placeholder={opciones.length === 0 ? "Sin opciones" : "Selecciona..."}
                         />
@@ -462,11 +437,7 @@ export function TablaField({
                             type="text"
                             inputMode="numeric"
                             disabled={readOnly}
-                            value={
-                              fila[columna.nombre]
-                                ? Number(fila[columna.nombre]).toLocaleString("es-CO")
-                                : ""
-                            }
+                            value={fila[columna.nombre] ? Number(fila[columna.nombre]).toLocaleString("es-CO") : ""}
                             onChange={(e) => {
                               const soloDigitos = e.target.value.replace(/\D/g, "");
                               actualizarCelda(filaIndex, columna.nombre, soloDigitos);
@@ -478,17 +449,16 @@ export function TablaField({
                     );
                   }
 
-                  if (columna.tipo === "NUMERO") {
+                  if (columna.tipo === "NUMERO" || esColumnaIdentificacion(columna)) {
                     const valorCelda = fila[columna.nombre] || "";
                     const enRango = celdaEnRango(columna, valorCelda);
-                    const tieneRango =
-                      columna.minimo !== undefined ||
-                      columna.maximo !== undefined;
+                    const tieneRango = columna.minimo !== undefined || columna.maximo !== undefined;
                     return (
                       <td key={columna.nombre} className="p-1">
                         <input
                           type="text"
                           inputMode="numeric"
+                          pattern="[0-9]*"
                           disabled={readOnly}
                           value={valorCelda}
                           onChange={(e) => {
@@ -503,14 +473,12 @@ export function TablaField({
                         />
                         {!enRango && (
                           <p className="mt-0.5 text-[10px] text-red-600">
-                            Debe estar entre {columna.minimo ?? "-∞"} y{" "}
-                            {columna.maximo ?? "∞"}
+                            Debe estar entre {columna.minimo ?? "-∞"} y {columna.maximo ?? "∞"}
                           </p>
                         )}
                         {enRango && tieneRango && !readOnly && (
                           <p className="mt-0.5 text-[10px] text-slate-400">
-                            Rango: {columna.minimo ?? "-∞"} a{" "}
-                            {columna.maximo ?? "∞"}
+                            Rango: {columna.minimo ?? "-∞"} a {columna.maximo ?? "∞"}
                           </p>
                         )}
                       </td>
@@ -519,15 +487,29 @@ export function TablaField({
 
                   return (
                     <td key={columna.nombre} className="p-1">
-                      <input
-                        type="text"
-                        disabled={readOnly}
-                        value={fila[columna.nombre] || ""}
-                        onChange={(e) =>
-                          actualizarCelda(filaIndex, columna.nombre, e.target.value)
-                        }
-                        className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 text-[11px] text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
-                      />
+                      {(() => {
+                        const valorCelda = fila[columna.nombre] || "";
+                        const esCorreo = esColumnaCorreo(columna);
+                        const correoInvalido = esCorreo && valorCelda.trim() !== "" && !correoValido(valorCelda);
+                        return (
+                          <>
+                            <input
+                              type={esCorreo ? "email" : "text"}
+                              disabled={readOnly}
+                              value={valorCelda}
+                              onChange={(e) => actualizarCelda(filaIndex, columna.nombre, e.target.value)}
+                              className={`w-full rounded-lg border bg-transparent px-2 py-1 text-[11px] text-slate-700 transition-all focus:bg-white focus:outline-none focus:ring-2 disabled:text-slate-400 ${
+                                correoInvalido
+                                  ? "border-red-300 focus:border-red-400 focus:ring-red-500/40"
+                                  : "border-transparent focus:border-blue-300 focus:ring-blue-500/40"
+                              }`}
+                            />
+                            {correoInvalido && (
+                              <p className="mt-0.5 text-[10px] text-red-600">Ingrese un correo válido</p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </td>
                   );
                 })}
@@ -537,8 +519,7 @@ export function TablaField({
                       type="button"
                       onClick={() => eliminarFila(filaIndex)}
                       disabled={filasVisibles.length === 1}
-                      className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
+                      className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed">
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </td>
@@ -561,15 +542,13 @@ export function TablaField({
                   ? undefined
                   : "Completa todas las columnas de todas las filas antes de agregar otra"
             }
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm"
-          >
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm">
             <Plus className="h-3 w-3" />
             Agregar fila
           </button>
           {limiteAlcanzado ? (
             <p className="mt-1 text-[11px] text-amber-700">
-              Alcanzaste el límite de {limiteFilas} fila{limiteFilas === 1 ? "" : "s"} para
-              esta pregunta.
+              Alcanzaste el límite de {limiteFilas} fila{limiteFilas === 1 ? "" : "s"} para esta pregunta.
             </p>
           ) : (
             !todasLasFilasCompletas && (

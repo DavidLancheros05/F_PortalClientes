@@ -14,7 +14,7 @@ import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 
 interface UltimaSolicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_fecha_creacion: string;
   cliente_nombre: string;
   sol_consumo_mensual_proyectado?: number | null;
@@ -362,9 +362,7 @@ export default function AmpliacionCupoPage() {
                       <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
                         No. Solicitud
                       </p>
-                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                        {ultimaSolicitud.sol_numero_solicitud}
-                      </p>
+                      <p className="text-[13.5px] font-bold text-[#0f172a] m-0">{ultimaSolicitud.sol_numero}</p>
                     </div>
                     <div>
                       <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">

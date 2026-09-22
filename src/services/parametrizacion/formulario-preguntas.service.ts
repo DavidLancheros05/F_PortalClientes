@@ -15,13 +15,13 @@ export interface FormularioPregunta {
   fp_requerida?: boolean;
   fp_orden?: number;
   fp_version?: number;
-  frm_id?: number;
+  frs_id?: number;
   fp_pregunta_padre_id?: number | null;
   fp_valor_padre_disparador?: string | null;
   fp_catalogo_base_datos?: string | null;
   fp_catalogo_tabla?: string | null;
   fp_catalogo_columna?: string | null;
-  fp_tipo_documento_id?: number | null;
+  fp_tdo_id?: number | null;
   fp_precarga_fuente?: string | null;
   fp_precarga_campo_cliente?: string | null;
   seccion_nombre?: string | null;

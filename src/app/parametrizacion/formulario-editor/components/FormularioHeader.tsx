@@ -44,7 +44,7 @@ export function FormularioHeader({
 
         <div className="min-w-0 text-center">
           <h1 className="text-sm font-bold truncate">
-            {formulario?.frm_nombre || formulario?.formulario_nombre}
+            {formulario?.frs_nombre || formulario?.formulario_nombre}
             {readonly && (
               <span className="ml-2 text-[10px] font-normal text-blue-100 bg-blue-900/30 px-2 py-0.5 rounded-full inline-block">
                 Solo lectura
@@ -57,10 +57,10 @@ export function FormularioHeader({
             )}
           </h1>
           <p className="text-[11px] text-blue-100 mt-0.5 truncate">
-            {(formulario?.frm_descripcion ||
+            {(formulario?.frs_descripcion ||
               formulario?.formulario_descripcion) && (
               <>
-                {formulario?.frm_descripcion ||
+                {formulario?.frs_descripcion ||
                   formulario?.formulario_descripcion}{" "}
                 ·{" "}
               </>

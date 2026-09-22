@@ -41,8 +41,8 @@ export function useFormulario(formularioId: string | null, version: string | nul
       let preguntasFiltradas: Pregunta[] = [];
       if (formularioIdNumber) {
         preguntasFiltradas = data.preguntas.filter(
-          (p: Pregunta & { frm_id?: number; fp_version?: number }) =>
-            p.frm_id === formularioIdNumber && (version ? p.fp_version === parseInt(version) : true),
+          (p: Pregunta & { frs_id?: number; fp_version?: number }) =>
+            p.frs_id === formularioIdNumber && (version ? p.fp_version === parseInt(version) : true),
         );
       }
 

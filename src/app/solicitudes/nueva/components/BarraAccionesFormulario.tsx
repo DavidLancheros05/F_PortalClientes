@@ -123,8 +123,8 @@ export function BarraAccionesFormulario({
                 {isSavingFinal
                   ? "Guardando solicitud..."
                   : isCorrecionASC
-                    ? "Corregir y enviar"
-                    : "Guardar y Enviar"}
+                    ? "Corregir y Guardar"
+                    : "Guardar"}
               </button>
             )}
           </div>

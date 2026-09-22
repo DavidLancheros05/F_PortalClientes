@@ -6,7 +6,7 @@ import Link from "next/link";
 import ReCAPTCHA from "react-google-recaptcha";
 import { AuthContext } from "@/context/AuthContext";
 import { loginService } from "@/services/auth/login.service";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, User, Users } from "lucide-react";
 
 // Mientras no se configure esta env var (ver B_PortalClientes/.env,
 // RECAPTCHA_SECRET_KEY), el widget no se muestra y el login sigue
@@ -116,7 +116,6 @@ function LoginForm() {
 
       if (data.modulos && Array.isArray(data.modulos)) {
         localStorage.setItem("modulos", JSON.stringify(data.modulos));
-        console.log("[LoginPage] Módulos guardados:", data.modulos);
       } else {
         console.log("[LoginPage] Sin módulos en response:", data);
       }
@@ -136,165 +135,228 @@ function LoginForm() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#fdfffe] via-white to-[#fffffe]">
-      <div className="relative w-full max-w-md bg-white/90 backdrop-blur-sm p-10 rounded-3xl shadow-2xl border border-[#003366]/20">
-        <div className="text-center mb-10">
-          {/* LOGO DE CARTONERA NACIONAL S.A. - IMAGEN */}
-          <div className="flex flex-col items-center justify-center mb-6">
-            <div className="relative">
-              {/* Círculo decorativo azul claro */}
-              <div className="absolute inset-0 bg-[#0072C6]/10 rounded-full blur-xl"></div>
-              {/* Contenedor de la imagen */}
-              <div className="relative bg-white p-4 rounded-2xl shadow-lg border border-[#003366]/10">
+    <main className="min-h-screen flex">
+      {/* ─── Panel izquierdo: branding + imagen de planta ─── */}
+      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden bg-gradient-to-br from-[#003366] via-[#004080] to-[#002244]">
+        {/* Patrón geométrico decorativo */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-white rounded-full translate-y-1/3 -translate-x-1/4" />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+        </div>
+
+        {/* Imagen de planta de fondo */}
+        <div className="absolute inset-0">
+          <img
+            src="/planta.png"
+            alt=""
+            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
+          />
+        </div>
+
+        {/* Contenido del panel */}
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          <div>
+            <img
+              src="/logo.jpg"
+              alt="Cartonera Nacional S.A."
+              className="w-20 h-20 rounded-xl object-contain bg-white/10 p-2 backdrop-blur-sm"
+            />
+          </div>
+
+          <div className="space-y-6">
+            <h1 className="text-4xl font-black text-white leading-tight tracking-tight">
+              CARTONERA
+              <br />
+              NACIONAL S.A.
+            </h1>
+            <div className="w-16 h-1 bg-[#0072C6] rounded-full" />
+            <p className="text-white/80 text-lg font-medium leading-relaxed max-w-xs">
+              Comprometidos con la calidad y el desarrollo del país
+            </p>
+          </div>
+
+          <div />
+        </div>
+      </div>
+
+      {/* ─── Panel derecho: formulario ─── */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-[#f0f4f8] via-white to-[#e8eef5] relative overflow-hidden">
+        {/* Formas geométricas decorativas */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[#0072C6]/5 rounded-full -translate-y-1/3 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#003366]/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+        <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-[#0072C6]/5 rounded-full rotate-45" />
+
+        <div className="relative z-10 w-full max-w-md">
+          <div className="bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/60">
+            {/* Logo + título */}
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
                 <img
                   src="/logo.jpg"
-                  alt="Cartonera Nacional S.A. Logo"
-                  className="w-48 h-auto object-contain"
+                  alt="Cartonera Nacional S.A."
+                  className="w-32 h-auto object-contain"
                 />
               </div>
-            </div>
-          </div>
-
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#003366] to-[#0072C6]">
-            Iniciar Sesión
-          </h1>
-          <p className="text-[#003366]/70 mt-2 text-sm font-medium">
-            Accede a tu cuenta para continuar
-          </p>
-        </div>
-
-        {/* Selector de tipo de acceso */}
-        <div className="flex gap-2 mb-6">
-          <button
-            type="button"
-            onClick={() => setAccessType("cliente")}
-            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-              accessType === "cliente"
-                ? "bg-gradient-to-r from-[#003366] to-[#0072C6] text-white shadow-lg"
-                : "bg-[#003366]/10 text-[#003366] hover:bg-[#003366]/20"
-            }`}
-          >
-            Cliente
-          </button>
-          <button
-            type="button"
-            onClick={() => setAccessType("usuario")}
-            className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${
-              accessType === "usuario"
-                ? "bg-gradient-to-r from-[#003366] to-[#0072C6] text-white shadow-lg"
-                : "bg-[#003366]/10 text-[#003366] hover:bg-[#003366]/20"
-            }`}
-          >
-            Usuario Interno
-          </button>
-        </div>
-
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-[#003366] mb-2">
-              {accessType === "cliente"
-                ? "Número de Identificación"
-                : "Usuario"}
-            </label>
-            <input
-              type={accessType === "cliente" ? "text" : "text"}
-              placeholder={
-                accessType === "cliente"
-                  ? "Ej: 1234567890"
-                  : "Tu usuario"
-              }
-              value={identifier}
-              onChange={(e) => {
-                setIdentifier(e.target.value);
-                if (identifierError) setIdentifierError("");
-                if (loginError) setLoginError("");
-              }}
-              className="block w-full pl-3 pr-4 py-3.5 bg-white border-2 border-[#003366]/20 rounded-xl shadow-sm focus:ring-2 focus:ring-[#0072C6] focus:border-[#0072C6] outline-none transition-all duration-200 text-[#003366] placeholder-[#003366]/40"
-            />
-            {identifierError && (
-              <p className="mt-2 text-sm text-[#003366] bg-[#003366]/10 px-3 py-2 rounded-lg">
-                {identifierError}
+              <div className="w-12 h-1 bg-[#0072C6] rounded-full mx-auto mb-5" />
+              <h2 className="text-2xl font-bold text-[#003366]">
+                Iniciar Sesión
+              </h2>
+              <p className="text-[#003366]/50 mt-1.5 text-sm">
+                Accede a tu cuenta para continuar
               </p>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-[#003366]">
-                Contraseña
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-[#0072C6] hover:text-[#003366]"
-              >
-                ¿Olvidaste tu contraseña?
-              </Link>
             </div>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (passwordError) setPasswordError("");
-                  if (loginError) setLoginError("");
-                }}
-                className="block w-full pl-3 pr-11 py-3.5 bg-white border-2 border-[#003366]/20 rounded-xl shadow-sm focus:ring-2 focus:ring-[#0072C6] focus:border-[#0072C6] outline-none transition-all duration-200 text-[#003366] placeholder-[#003366]/40"
-              />
+
+            {/* Tabs Cliente / Usuario Interno */}
+            <div className="flex gap-2 mb-7 bg-[#f1f5f9] p-1 rounded-xl">
               <button
                 type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-[#003366]/40 hover:text-[#003366]"
-                tabIndex={-1}
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                onClick={() => setAccessType("cliente")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  accessType === "cliente"
+                    ? "bg-white text-[#003366] shadow-md"
+                    : "text-[#003366]/50 hover:text-[#003366]/70"
+                }`}
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <User className="w-4 h-4" />
+                Cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccessType("usuario")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  accessType === "usuario"
+                    ? "bg-[#003366] text-white shadow-md"
+                    : "text-[#003366]/50 hover:text-[#003366]/70"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Usuario Interno
               </button>
             </div>
-            {passwordError && (
-              <p className="mt-2 text-sm text-[#003366] bg-[#003366]/10 px-3 py-2 rounded-lg">
-                {passwordError}
-              </p>
-            )}
-          </div>
 
-          {RECAPTCHA_SITE_KEY && (
-            <div>
-              <div className="flex justify-center">
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  sitekey={RECAPTCHA_SITE_KEY}
-                  onChange={(token) => {
-                    setCaptchaToken(token);
-                    if (captchaError) setCaptchaError("");
-                  }}
-                  onExpired={() => setCaptchaToken(null)}
-                />
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {/* Campo usuario */}
+              <div>
+                <label className="block text-sm font-semibold text-[#003366] mb-1.5">
+                  {accessType === "cliente"
+                    ? "Número de Identificación"
+                    : "Usuario"}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#003366]/30">
+                    <User className="w-4.5 h-4.5" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder={
+                      accessType === "cliente" ? "Ej: 1234567890" : "Tu usuario"
+                    }
+                    value={identifier}
+                    onChange={(e) => {
+                      setIdentifier(e.target.value);
+                      if (identifierError) setIdentifierError("");
+                      if (loginError) setLoginError("");
+                    }}
+                    className="w-full pl-11 pr-4 py-3 bg-[#f8fafc] border border-[#003366]/15 rounded-xl text-sm text-[#003366] placeholder-[#003366]/30 focus:ring-2 focus:ring-[#0072C6]/30 focus:border-[#0072C6] outline-none transition-all"
+                  />
+                </div>
+                {identifierError && (
+                  <p className="mt-1.5 text-xs text-red-600">{identifierError}</p>
+                )}
               </div>
-              {captchaError && (
-                <p className="mt-2 text-sm text-[#003366] bg-[#003366]/10 px-3 py-2 rounded-lg text-center">
-                  {captchaError}
-                </p>
+
+              {/* Campo contraseña */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-semibold text-[#003366]">
+                    Contraseña
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-[#0072C6] hover:text-[#003366] transition-colors"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#003366]/30">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError("");
+                      if (loginError) setLoginError("");
+                    }}
+                    className="w-full pl-11 pr-11 py-3 bg-[#f8fafc] border border-[#003366]/15 rounded-xl text-sm text-[#003366] placeholder-[#003366]/30 focus:ring-2 focus:ring-[#0072C6]/30 focus:border-[#0072C6] outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#003366]/30 hover:text-[#003366]/60 transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passwordError && (
+                  <p className="mt-1.5 text-xs text-red-600">{passwordError}</p>
+                )}
+              </div>
+
+              {/* reCAPTCHA */}
+              {RECAPTCHA_SITE_KEY && (
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    onChange={(token) => {
+                      setCaptchaToken(token);
+                      if (captchaError) setCaptchaError("");
+                    }}
+                    onExpired={() => setCaptchaToken(null)}
+                  />
+                </div>
               )}
-            </div>
-          )}
+              {captchaError && (
+                <p className="text-xs text-red-600 text-center">{captchaError}</p>
+              )}
 
-          {loginError && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{loginError}</p>
-            </div>
-          )}
+              {/* Error de login */}
+              {loginError && (
+                <div className="flex items-center gap-2.5 p-3 rounded-xl bg-red-50 border border-red-200">
+                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                  <p className="text-xs text-red-700">{loginError}</p>
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-[#003366] to-[#0072C6] text-white rounded-xl shadow-lg font-semibold disabled:opacity-50 transition-all duration-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-          >
-            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-          </button>
-        </form>
+              {/* Botón submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 bg-gradient-to-r from-[#003366] to-[#0072C6] text-white rounded-xl font-semibold text-sm shadow-lg shadow-[#003366]/25 disabled:opacity-50 transition-all duration-200 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  "Iniciando sesión..."
+                ) : (
+                  <>
+                    Iniciar Sesión
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </main>
   );

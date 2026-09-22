@@ -59,8 +59,12 @@ export interface DocumentoDiferido extends DocumentoDiferidoPendiente {
 export interface MisDocumentosResponse {
   solicitud: {
     sol_id: number;
-    sol_numero_solicitud: string;
+    sol_numero: string;
     sol_ses_id: number;
+    sol_wet_id?: number;
+    sol_wee_id?: number;
+    etapa_codigo?: string | null;
+    resultado_codigo?: string | null;
     cliente_nombre?: string | null;
     cliente_nit?: string | null;
   } | null;

@@ -2,26 +2,11 @@
 import { clientesService } from "@/services/clientes/clientes.service";
 import { centrosOperacionService } from "@/services/centros-operacion/centros-operacion.service";
 import type { TipoIdentificacionResponse } from "@/types/api.types";
-import {
-  maestrosService,
-  type Pais,
-  type Departamento,
-  type Ciudad,
-} from "@/services/maestros/maestros.service";
+import { maestrosService, type Pais, type Departamento, type Ciudad } from "@/services/maestros/maestros.service";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Building,
-  FileText,
-  KeyRound,
-  Loader2,
-  MapPin,
-  Mail,
-  Save,
-  User,
-} from "lucide-react";
+import { ArrowLeft, Building, FileText, KeyRound, Loader2, MapPin, Mail, Save, User } from "lucide-react";
 import { LoadingModal, ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 
 export default function EditarClientePage() {
@@ -31,9 +16,7 @@ export default function EditarClientePage() {
 
   const [razonSocial, setRazonSocial] = useState("");
   const [tipoIdentificacion, setTipoIdentificacion] = useState<number | undefined>(undefined);
-  const [tiposIdentificacion, setTiposIdentificacion] = useState<
-    Array<{ id: number; nombre: string }>
-  >([]);
+  const [tiposIdentificacion, setTiposIdentificacion] = useState<Array<{ id: number; nombre: string }>>([]);
   const [nitDocumento, setNitDocumento] = useState("");
   const [correo, setCorreo] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -41,9 +24,7 @@ export default function EditarClientePage() {
   const [esDistribuidor, setEsDistribuidor] = useState(false);
   const [nitDigVf, setNitDigVf] = useState("");
   const [esExtranjero, setEsExtranjero] = useState(false);
-  const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
-    [],
-  );
+  const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>([]);
   const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
   const [ejecutivos, setEjecutivos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [ejecutivoId, setEjecutivoId] = useState<number | null>(null);
@@ -67,9 +48,7 @@ export default function EditarClientePage() {
 
   const toggleCentro = (centroId: number) => {
     setCentroOperacionIds((prev) =>
-      prev.includes(centroId)
-        ? prev.filter((id) => id !== centroId)
-        : [...prev, centroId],
+      prev.includes(centroId) ? prev.filter((id) => id !== centroId) : [...prev, centroId],
     );
   };
 
@@ -85,34 +64,23 @@ export default function EditarClientePage() {
 
       try {
         setLoadingInitial(true);
-        const [
-          clienteData,
-          centrosData,
-          ejecutivosData,
-          clienteCentrosData,
-          paisesData,
-          tiposResult,
-        ] = await Promise.all([
-          clientesService.getById(clienteId),
-          centrosOperacionService.getAll(),
-          clientesService.getEjecutivosNegocio(),
-          clientesService.getCentrosOperacion(clienteId),
-          maestrosService.getPaises(),
-          clientesService
-            .getTiposIdentificacion()
-            .then((data) => ({ ok: true as const, data }))
-            .catch((err) => ({ ok: false as const, err })),
-        ]);
+        const [clienteData, centrosData, ejecutivosData, clienteCentrosData, paisesData, tiposResult] =
+          await Promise.all([
+            clientesService.getById(clienteId),
+            centrosOperacionService.getAll(),
+            clientesService.getEjecutivosNegocio(),
+            clientesService.getCentrosOperacion(clienteId),
+            maestrosService.getPaises(),
+            clientesService
+              .getTiposIdentificacion()
+              .then((data) => ({ ok: true as const, data }))
+              .catch((err) => ({ ok: false as const, err })),
+          ]);
         if (cancelled) return;
 
-        const tiposData: TipoIdentificacionResponse[] = tiposResult.ok
-          ? tiposResult.data
-          : [];
+        const tiposData: TipoIdentificacionResponse[] = tiposResult.ok ? tiposResult.data : [];
         if (!tiposResult.ok) {
-          console.warn(
-            "Error cargando tipos de identificación:",
-            tiposResult.err,
-          );
+          console.warn("Error cargando tipos de identificación:", tiposResult.err);
         }
 
         setRazonSocial(clienteData.cli_razon_social || "");
@@ -125,9 +93,7 @@ export default function EditarClientePage() {
               : undefined;
         setTipoIdentificacion(tipoIdentificacionResuelto);
         if (tipoIdentificacionResuelto === undefined) {
-          setError(
-            "No se pudo cargar el catálogo de tipos de identificación. Recarga la página antes de guardar.",
-          );
+          setError("No se pudo cargar el catálogo de tipos de identificación. Recarga la página antes de guardar.");
         }
         setNitDocumento(clienteData.cli_nro_identificacion || "");
         setCorreo(clienteData.cli_correo || "");
@@ -136,16 +102,8 @@ export default function EditarClientePage() {
         setEsDistribuidor(Boolean(clienteData.cli_es_distribuidor));
         setNitDigVf(clienteData.cli_nit_dig_vf || "");
         setEsExtranjero(Boolean(clienteData.cli_es_extranjero));
-        setCentroOperacionIds(
-          Array.isArray(clienteCentrosData)
-            ? clienteCentrosData.map((c) => c.cop_id)
-            : [],
-        );
-        setCentros(
-          Array.isArray(centrosData)
-            ? centrosData.map((c) => ({ id: c.cop_id, nombre: c.cop_nombre }))
-            : [],
-        );
+        setCentroOperacionIds(Array.isArray(clienteCentrosData) ? clienteCentrosData.map((c) => c.cop_id) : []);
+        setCentros(Array.isArray(centrosData) ? centrosData.map((c) => ({ id: c.cop_id, nombre: c.cop_nombre })) : []);
         setEjecutivos(
           Array.isArray(ejecutivosData)
             ? ejecutivosData.map((e) => ({
@@ -234,11 +192,7 @@ export default function EditarClientePage() {
       setSuccess(true);
     } catch (err: any) {
       setShowConfirmModal(false);
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Error actualizando cliente",
-      );
+      setError(err?.response?.data?.message || err?.message || "Error actualizando cliente");
     } finally {
       setSaving(false);
     }
@@ -252,11 +206,7 @@ export default function EditarClientePage() {
       setResetPasswordSuccess(message);
     } catch (err: any) {
       setShowResetPasswordConfirm(false);
-      setResetPasswordError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Error restableciendo la contraseña",
-      );
+      setResetPasswordError(err?.response?.data?.message || err?.message || "Error restableciendo la contraseña");
     } finally {
       setResettingPassword(false);
     }
@@ -271,21 +221,16 @@ export default function EditarClientePage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <button
-            onClick={() => router.push("/parametrizacion/clientes")}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
-          >
+            onClick={() => router.push("/parametrizacion/clientes/listado")}
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-4">
             <ArrowLeft className="w-5 h-5 mr-2" />
             Volver a clientes
           </button>
 
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Editar Cliente
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Actualiza la información del cliente
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900">Editar Cliente</h1>
+              <p className="text-gray-600 mt-2">Actualiza la información del cliente</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-xl">
               <Building className="w-8 h-8 text-blue-600" />
@@ -295,26 +240,18 @@ export default function EditarClientePage() {
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-            <h2 className="text-xl font-semibold text-white">
-              Información del Cliente
-            </h2>
-            <p className="text-blue-100 text-sm mt-1">
-              Ajusta los campos requeridos y guarda los cambios
-            </p>
+            <h2 className="text-xl font-semibold text-white">Información del Cliente</h2>
+            <p className="text-blue-100 text-sm mt-1">Ajusta los campos requeridos y guarda los cambios</p>
           </div>
 
           <SuccessModal
             isOpen={success}
             title="¡Cliente actualizado!"
             message="Los cambios se guardaron correctamente."
-            onAction={() => router.push("/parametrizacion/clientes")}
+            onAction={() => router.push("/parametrizacion/clientes/listado")}
           />
 
-          <ErrorModal
-            isOpen={!!error}
-            message={error || ""}
-            onAction={() => setError(null)}
-          />
+          <ErrorModal isOpen={!!error} message={error || ""} onAction={() => setError(null)} />
 
           <ConfirmModal
             isOpen={showConfirmModal}
@@ -373,19 +310,15 @@ export default function EditarClientePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <span className="flex items-center">
-                    <FileText className="w-4 h-4 mr-2" /> Tipo de identificación
-                    *
+                    <FileText className="w-4 h-4 mr-2" /> Tipo de identificación *
                   </span>
                 </label>
                 <select
                   value={tipoIdentificacion ?? ""}
-                  onChange={(e) =>
-                    setTipoIdentificacion(e.target.value ? Number(e.target.value) : undefined)
-                  }
+                  onChange={(e) => setTipoIdentificacion(e.target.value ? Number(e.target.value) : undefined)}
                   required
                   disabled={saving || success}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">Selecciona tipo</option>
                   {tiposIdentificacion.map((tipo, idx) => (
                     <option key={tipo.id || idx} value={tipo.id}>
@@ -426,7 +359,6 @@ export default function EditarClientePage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-
             </div>
 
             <div>
@@ -453,12 +385,9 @@ export default function EditarClientePage() {
               </label>
               <select
                 value={ejecutivoId ?? ""}
-                onChange={(e) =>
-                  setEjecutivoId(e.target.value ? Number(e.target.value) : null)
-                }
+                onChange={(e) => setEjecutivoId(e.target.value ? Number(e.target.value) : null)}
                 disabled={saving || success}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <option value="">Sin ejecutivo asignado</option>
                 {ejecutivos.map((ej, idx) => (
                   <option key={ej.id || idx} value={ej.id}>
@@ -470,9 +399,7 @@ export default function EditarClientePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  País *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">País *</label>
                 <select
                   value={paisId}
                   onChange={(e) => {
@@ -482,8 +409,7 @@ export default function EditarClientePage() {
                   }}
                   required
                   disabled={saving || success}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value={0}>Selecciona un país</option>
                   {paises.map((p) => (
                     <option key={p.pais_id} value={p.pais_id}>
@@ -494,9 +420,7 @@ export default function EditarClientePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Departamento *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Departamento *</label>
                 <select
                   value={departamentoId}
                   onChange={(e) => {
@@ -505,8 +429,7 @@ export default function EditarClientePage() {
                   }}
                   required
                   disabled={saving || success || !paisId}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                >
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
                   <option value={0}>Selecciona un departamento</option>
                   {departamentos.map((d) => (
                     <option key={d.depto_id} value={d.depto_id}>
@@ -517,16 +440,13 @@ export default function EditarClientePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ciudad *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Ciudad *</label>
                 <select
                   value={ciudadId}
                   onChange={(e) => setCiudadId(Number(e.target.value))}
                   required
                   disabled={saving || success || !departamentoId}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                >
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100">
                   <option value={0}>Selecciona una ciudad</option>
                   {ciudades.map((c) => (
                     <option key={c.ciudad_id} value={c.ciudad_id}>
@@ -547,25 +467,18 @@ export default function EditarClientePage() {
                   disabled={saving || success}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                 />
-                <label
-                  htmlFor="habilitaAcceso"
-                  className="ml-3 text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="habilitaAcceso" className="ml-3 text-sm font-medium text-gray-700">
                   Habilitar acceso al portal cliente
                 </label>
               </div>
 
               <div className="pt-4 border-t border-gray-200 flex items-center justify-between gap-4">
-                <p className="text-sm text-gray-500">
-                  Genera una contraseña nueva y la envía al correo del
-                  cliente.
-                </p>
+                <p className="text-sm text-gray-500">Genera una contraseña nueva y la envía al correo del cliente.</p>
                 <button
                   type="button"
                   onClick={() => setShowResetPasswordConfirm(true)}
                   disabled={saving || success || resettingPassword}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 whitespace-nowrap"
-                >
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 disabled:opacity-50 whitespace-nowrap">
                   <KeyRound className="w-4 h-4" />
                   Restablecer contraseña
                 </button>
@@ -575,9 +488,7 @@ export default function EditarClientePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Dígito Verificación NIT */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Dígito Verificación NIT
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dígito Verificación NIT</label>
                 <input
                   type="text"
                   maxLength={1}
@@ -599,10 +510,7 @@ export default function EditarClientePage() {
                   disabled={saving || success}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                 />
-                <label
-                  htmlFor="esDistribuidor"
-                  className="ml-3 text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="esDistribuidor" className="ml-3 text-sm font-medium text-gray-700">
                   Cliente Distribuidor
                 </label>
               </div>
@@ -617,30 +525,20 @@ export default function EditarClientePage() {
                   disabled={saving || success}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                 />
-                <label
-                  htmlFor="esExtranjero"
-                  className="ml-3 text-sm font-medium text-gray-700"
-                >
+                <label htmlFor="esExtranjero" className="ml-3 text-sm font-medium text-gray-700">
                   Cliente Extranjero
                 </label>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Centros de Operación
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Centros de Operación</label>
               <div className="border border-gray-300 rounded-xl p-4 bg-gray-50 max-h-56 overflow-y-auto space-y-2">
                 {centros.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No hay centros de operación disponibles
-                  </p>
+                  <p className="text-sm text-gray-500">No hay centros de operación disponibles</p>
                 ) : (
                   centros.map((centro, idx) => (
-                    <label
-                      key={centro.id || idx}
-                      className="flex items-center gap-3 text-sm text-gray-700"
-                    >
+                    <label key={centro.id || idx} className="flex items-center gap-3 text-sm text-gray-700">
                       <input
                         type="checkbox"
                         checked={centro_operacion_ids.includes(centro.id)}
@@ -653,29 +551,24 @@ export default function EditarClientePage() {
                   ))
                 )}
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                Puedes asociar el cliente a uno o varios centros.
-              </p>
+              <p className="mt-1 text-sm text-gray-500">Puedes asociar el cliente a uno o varios centros.</p>
             </div>
 
             <div className="pt-6 border-t border-gray-200 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => router.push("/parametrizacion/clientes")}
+                onClick={() => router.push("/parametrizacion/clientes/listado")}
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
-                disabled={saving || success}
-              >
+                disabled={saving || success}>
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={saving || success}
-                className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50"
-              >
+                className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50">
                 {saving ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />{" "}
-                    Guardando...
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Guardando...
                   </>
                 ) : (
                   <>

@@ -304,22 +304,12 @@ export default function SolicitudFormContent({
 
   // EFECTO: Pre-llenar tipo de solicitud basado en si el cliente tiene solicitudes previas
   useEffect(() => {
-    // console.log(`[🟣 EFECTO TIPO SOLICITUD] Disparado:`, {
-    //   solicitudId,
-    //   preguntas: preguntas.length,
-    //   ultimaSolicitud: ultimaSolicitud ? { sol_id: ultimaSolicitud.sol_id, sol_ses_id: ultimaSolicitud.sol_ses_id } : null,
-    //   tieneSolicitudesPrevias,
-    //   fechaDisparo: new Date().toISOString(),
-    // });
-
     if (solicitudId) {
-      // console.log(`[⚪ EFECTO] Saltando: estamos editando solicitud`);
       return;
     }
 
     const tipoSolicitudPregunta = preguntas.find((p) => p.fp_codigo === "TIPO_SOLICITUD");
     if (!tipoSolicitudPregunta) {
-      console.log(`[⚠️ EFECTO] No encontrada pregunta con fp_codigo=TIPO_SOLICITUD`);
       return;
     }
 
@@ -342,12 +332,6 @@ export default function SolicitudFormContent({
     if (!opcionAUsar) {
       return;
     }
-
-    console.log(`[✨ EFECTO] Preseleccionando:`, {
-      tieneSolicitudesPrevias,
-      opcion: opcionAUsar.op_descripcion,
-      opcionId: opcionAUsar.op_id,
-    });
 
     setRespuestas((prev) => {
       // SIEMPRE sobrescribir el tipo de solicitud cuando ultimaSolicitud cambia
@@ -475,7 +459,7 @@ export default function SolicitudFormContent({
       return null;
     }
 
-    const documento = pregunta.fp_tipo_documento_id ? documentosCatalogoMap[pregunta.fp_tipo_documento_id] : null;
+    const documento = pregunta.fp_tdo_id ? documentosCatalogoMap[pregunta.fp_tdo_id] : null;
 
     if (!documento) {
       return opciones[0];
@@ -577,9 +561,23 @@ export default function SolicitudFormContent({
       if (pregunta.fp_minimo) rules.minLength = pregunta.fp_minimo;
       if (pregunta.fp_maximo) rules.maxLength = pregunta.fp_maximo;
 
+      if (pregunta.fp_subtipo === "EMAIL") {
+        rules.custom = (value) => {
+          if (!value) return null;
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim())
+            ? null
+            : "Ingrese un correo electrónico válido";
+        };
+      }
+
       // Agregar validación de patrón si existe
       if (pregunta.fp_patron) {
+        const customPrevio = rules.custom;
         rules.custom = (value) => {
+          if (customPrevio) {
+            const errorPrevio = customPrevio(value);
+            if (errorPrevio) return errorPrevio;
+          }
           if (value && pregunta.fp_patron) {
             const regex = new RegExp(pregunta.fp_patron);
             if (!regex.test(String(value))) {
@@ -601,6 +599,31 @@ export default function SolicitudFormContent({
           return null;
         };
       }
+    }
+
+    if (pregunta.fp_tipo === "TABLA") {
+      rules.custom = (value) => {
+        if (!value) return null;
+        try {
+          const columnas = JSON.parse(pregunta.fp_tabla_columnas || "[]");
+          const filas = JSON.parse(String(value));
+          if (!Array.isArray(columnas) || !Array.isArray(filas)) return null;
+          const columnasCorreo = columnas.filter(
+            (columna: any) => columna?.tipo === "EMAIL" || /correo|e-?mail/i.test(String(columna?.nombre || "")),
+          );
+          for (const fila of filas) {
+            for (const columna of columnasCorreo) {
+              const correo = String(fila?.[columna.nombre] || "").trim();
+              if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+                return `Ingrese un correo válido en "${columna.nombre}"`;
+              }
+            }
+          }
+        } catch {
+          return "Revisa los datos de la tabla";
+        }
+        return null;
+      };
     }
 
     if (pregunta.fp_tipo === "NUMERO") {
@@ -754,7 +777,7 @@ export default function SolicitudFormContent({
       }
 
       if (pregunta.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA) {
-        const documento = pregunta.fp_tipo_documento_id ? documentosCatalogoMap[pregunta.fp_tipo_documento_id] : null;
+        const documento = pregunta.fp_tdo_id ? documentosCatalogoMap[pregunta.fp_tdo_id] : null;
         const requiereFecha = documentoRequiereFechaEmision(documento);
 
         if (requiereFecha) {
@@ -958,7 +981,7 @@ export default function SolicitudFormContent({
 
       if (isFechaHijaDeArchivo) {
         const preguntaArchivo = preguntasById.get(actual.fp_pregunta_padre_id!);
-        const documentoId = preguntaArchivo?.fp_tipo_documento_id;
+        const documentoId = preguntaArchivo?.fp_tdo_id;
         const requiereFechaPorVigencia = documentoId
           ? documentosCatalogoMap[documentoId]?.tdo_vigencia_dias !== null
           : true;
@@ -1070,12 +1093,12 @@ export default function SolicitudFormContent({
     if (pregunta.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA) {
       const valorOpcion = respuesta.valor_opcion_id as unknown;
       const tieneSeleccionDocumento =
-        Boolean(pregunta.fp_tipo_documento_id) ||
+        Boolean(pregunta.fp_tdo_id) ||
         (typeof valorOpcion === "number" && !Number.isNaN(valorOpcion)) ||
         (typeof valorOpcion === "string" && valorOpcion.trim() !== "") ||
         (Array.isArray(valorOpcion) && valorOpcion.length > 0);
 
-      const documento = pregunta.fp_tipo_documento_id ? documentosCatalogoMap[pregunta.fp_tipo_documento_id] : null;
+      const documento = pregunta.fp_tdo_id ? documentosCatalogoMap[pregunta.fp_tdo_id] : null;
       const requiereFecha = documentoRequiereFechaEmision(documento);
 
       // Buscar fecha en la pregunta hija, en la misma respuesta, o en archivo existente
@@ -1490,14 +1513,12 @@ export default function SolicitudFormContent({
     }
 
     // Validar documentos con vigencia: requieren archivo + fecha
-    const documentosConVigencia = preguntas.filter(
-      (p) => p.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && p.fp_tipo_documento_id,
-    );
+    const documentosConVigencia = preguntas.filter((p) => p.fp_tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA && p.fp_tdo_id);
 
     for (const doc of documentosConVigencia) {
-      if (!doc.fp_tipo_documento_id) continue;
+      if (!doc.fp_tdo_id) continue;
 
-      const documento = documentosCatalogoMap?.[doc.fp_tipo_documento_id];
+      const documento = documentosCatalogoMap?.[doc.fp_tdo_id];
       const tieneVigencia = documento?.tdo_vigencia_dias && documento.tdo_vigencia_dias > 0;
 
       if (tieneVigencia) {
@@ -1513,12 +1534,6 @@ export default function SolicitudFormContent({
           (preguntaFechaHija ? respuestas[preguntaFechaHija.fp_id]?.valor_fecha : respuestas[doc.fp_id]?.valor_fecha)
         );
 
-        console.log(`✅ Validando documento ${doc.fp_id}:`, {
-          nombre: documento?.tdo_descripcion,
-          tieneArchivo,
-          tieneFecha,
-        });
-
         if (!tieneArchivo || !tieneFecha) {
           const mensajes: string[] = [];
           if (!tieneArchivo) mensajes.push("archivo");
@@ -1528,11 +1543,6 @@ export default function SolicitudFormContent({
           return;
         }
       }
-      // La regla de vigencia por año (tdo_regla_vigencia === "ANIO") ya no
-      // bloquea aquí con un mensaje aparte: si el documento es obligatorio
-      // y la fecha elegida no cae en el año permitido, isAnswered() lo
-      // cuenta como "no respondido" y el gate genérico de
-      // overallDisplayProgress.percent < 100 (arriba) ya impide guardar.
     }
 
     // Si es cliente, pasar NULL como usuarioId. Si es admin/ejecutivo, pasar usr_id
@@ -1573,10 +1583,9 @@ export default function SolicitudFormContent({
       const documentosDiferidosFaltantes = (result as any)?.documentosDiferidosFaltantes || [];
 
       if (documentosDiferidosFaltantes.length > 0) {
-        const nombres = documentosDiferidosFaltantes.map((d: any) => d.tdo_nombre).join(", ");
         setSuccessTitle("Solicitud registrada");
         setSuccessMessage(
-          `Tu solicitud fue registrada. Aún faltan generar y subir: ${nombres}. Te llevamos al paso "Firmar documentación" para continuar.`,
+          'Tu solicitud fue guardada. Los documentos generados o firmados anteriormente deben generarse y firmarse nuevamente. Te llevamos al paso "Firmar documentación" para continuar.',
         );
         // Sin clienteId, un usuario interno (admin/ejecutivo) cae en la
         // pantalla de "elegir cliente" de /solicitudes/nueva en vez del
@@ -1756,7 +1765,7 @@ export default function SolicitudFormContent({
             <h2 className="text-base font-bold text-gray-900 mb-2">Solicitud en Proceso</h2>
             <p className="text-xs text-gray-600 mb-4">
               Actualmente tienes una solicitud en estado <span className="font-semibold">{estadoTexto}</span>
-              {ultimaSolicitud && <span> ({ultimaSolicitud.sol_numero_solicitud})</span>}.
+              {ultimaSolicitud && <span> ({ultimaSolicitud.sol_numero})</span>}.
             </p>
             <p className="text-xs text-gray-600 mb-6">
               No puedes crear una nueva solicitud mientras exista una en estos estados. Por favor, espera a que se
@@ -1810,27 +1819,27 @@ export default function SolicitudFormContent({
     formularioVersionObjetivo ?? formulario?.sol_formulario_version ?? formulario?.formulario_version ?? null;
   const encabezadoNumeroDescripcion = solicitudId
     ? numeroSolicitud
-      ? `${numeroSolicitud} • ${formulario?.frm_descripcion || "Completa el formulario por secciones"}`
+      ? `${numeroSolicitud} • ${formulario?.frs_descripcion || "Completa el formulario por secciones"}`
       : "Cargando..."
-    : formulario?.frm_descripcion || "Completa el formulario por secciones";
+    : formulario?.frs_descripcion || "Completa el formulario por secciones";
   return (
     <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
       <div className="w-full max-w-[1400px] mx-auto h-full bg-white border border-gray-200 rounded-xl shadow p-2 flex flex-col overflow-hidden">
         <div className="mb-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
-          <div className="relative">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleVolver}
-              className="absolute left-0 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-100">
+              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-100">
               <ArrowLeft className="h-3 w-3" />
               Atrás
             </button>
 
-            <div className="mx-auto w-full px-8 sm:px-12 text-center">
+            <div className="min-w-0 flex-1 text-center">
               <h2 className="text-xs font-bold tracking-tight text-gray-900 leading-tight truncate">
-                {formulario?.frm_nombre?.trim() || "Cargando..."}
+                {formulario?.frs_nombre?.trim() || "Cargando..."}
               </h2>
-              <p className="text-[11px] text-gray-600 mt-0.5">
+              <p className="text-[11px] text-gray-600 mt-0.5 truncate">
                 {encabezadoNumeroDescripcion} · Versión{" "}
                 {versionFormularioMostrar != null ? Number(versionFormularioMostrar) : "Cargando..."}
               </p>
@@ -1863,9 +1872,9 @@ export default function SolicitudFormContent({
 
         <ConfirmModal
           isOpen={showConfirmGuardar}
-          title="Confirmar envío"
-          message="¿Estás seguro de que deseas guardar y enviar esta solicitud?"
-          confirmText="Sí, enviar"
+          title="Guardar y continuar"
+          message="¿Estás seguro de que deseas guardar el progreso del formulario y continuar con la solicitud?"
+          confirmText="Sí, continuar"
           cancelText="Cancelar"
           isLoading={isSavingFinal}
           onConfirm={confirmarGuardar}
@@ -1902,7 +1911,7 @@ export default function SolicitudFormContent({
           </div>
         ) : (
           <>
-            <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden lg:flex-row">
               <SeccionesSidebar
                 secciones={secciones}
                 seccionSeleccionada={seccionSeleccionada}
@@ -1913,7 +1922,7 @@ export default function SolicitudFormContent({
               />
 
               {/* PANEL DERECHO - CAMPOS */}
-              <div className="w-[77%] flex h-full min-h-0">
+              <div className="w-full flex h-full min-h-0 lg:w-[77%]">
                 {seccionActual && (
                   <div className="w-full h-full bg-white rounded-lg shadow p-2 flex flex-col">
                     <div className="mb-1">

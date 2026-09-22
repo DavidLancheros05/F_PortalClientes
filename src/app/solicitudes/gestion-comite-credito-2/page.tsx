@@ -26,7 +26,7 @@ import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_cli_id: number;
   cliente_nombre: string;
   sol_co_id: number;
@@ -37,7 +37,6 @@ interface Solicitud {
   etapa_nombre?: string;
   resultado_nombre?: string;
   fecha_creacion: string;
-  fecha_estimada_respuesta_comercial: string | null;
   fecha_real_respuesta_comercial: string | null;
   sol_fecha_envio?: string | null;
   // Fecha en que Comité de Crédito 1 (etapa anterior a Comité de Crédito 2
@@ -149,7 +148,7 @@ export default function GestionComiteCredito2Page() {
         })
         .filter((s: Solicitud) => {
           const cumpleNumero = numeroBuscado
-            ? (s.sol_numero_solicitud || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
+            ? (s.sol_numero || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
             : true;
           return cumpleNumero;
         })
@@ -205,7 +204,7 @@ export default function GestionComiteCredito2Page() {
   // numeroFiltro al construir `solicitudes`, pero mientras no se haya
   // acotado por número, este array sigue siendo el listado completo).
   const numeroSugerencias = useMemo(
-    () => solicitudes.map((s) => s.sol_numero_solicitud || s.numero_solicitud || ""),
+    () => solicitudes.map((s) => s.sol_numero || s.numero_solicitud || ""),
     [solicitudes],
   );
 
@@ -229,10 +228,10 @@ export default function GestionComiteCredito2Page() {
       "Dias Faltantes",
     ];
     const data = solicitudes.map((s) => {
-      const fechaEstimada = (s as any).sol_fecha_est_gest_cc2 || s.fecha_estimada_respuesta_comercial;
+      const fechaEstimada = (s as any).sol_fecha_est_gest_cc2;
       const diasRestantes = calcularDiasRestantes(fechaEstimada);
       return [
-        s.sol_numero_solicitud || s.numero_solicitud || "-",
+        s.sol_numero || s.numero_solicitud || "-",
         getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
@@ -339,13 +338,12 @@ export default function GestionComiteCredito2Page() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {solicitudesActuales.map((solicitud) => {
-                        const fechaEstimada =
-                          (solicitud as any).sol_fecha_est_gest_cc2 || solicitud.fecha_estimada_respuesta_comercial;
+                        const fechaEstimada = (solicitud as any).sol_fecha_est_gest_cc2;
 
                         return (
                           <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
                             <Td className="whitespace-nowrap font-medium text-blue-600">
-                              {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                              {solicitud.sol_numero || solicitud.numero_solicitud}
                             </Td>
                             <Td className="whitespace-nowrap">
                               <TipoSolicitudBadge esAmpliacionCupo={solicitud.es_ampliacion_cupo} />

@@ -19,6 +19,8 @@ export interface ClienteListResponse {
   cli_nit_dig_vf?: string;
   cli_es_extranjero?: boolean;
   cli_siesa?: boolean;
+  cli_intentos_login: number;
+  cli_bloqueado: boolean;
   ejng_id?: number;
   ejecutivo?: { nombre: string } | null;
 }
@@ -35,6 +37,8 @@ export interface ClienteDetailResponse {
   cli_es_distribuidor?: boolean;
   cli_nit_dig_vf?: string;
   cli_es_extranjero?: boolean;
+  cli_intentos_login?: number;
+  cli_bloqueado?: boolean;
   ejng_id?: number;
   pai_id?: number;
   dpto_id?: number;
@@ -140,13 +144,13 @@ export interface FormularioPreguntaResponse {
   fp_patron: string | null;
   fp_precarga_fuente: string | null;
   fp_precarga_campo_cliente: string | null;
-  frm_id: number | null;
+  frs_id: number | null;
   seccion_id: number | null;
   fp_catalogo_base_datos: string | null;
   fp_catalogo_tabla: string | null;
   fp_catalogo_columna: string | null;
   fp_catalogo_pk_column?: string | null;
-  fp_tipo_documento_id: number | null;
+  fp_tdo_id: number | null;
   fp_pregunta_padre_id: number | null;
   fp_valor_padre_disparador: string | null;
   fp_tabla_columnas?: string | null;

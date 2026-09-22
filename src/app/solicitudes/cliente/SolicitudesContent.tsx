@@ -56,6 +56,13 @@ const formatearFecha = (fecha?: string | null, conHora = false): string => {
   }
 };
 
+const resumirObservacionCliente = (observacion: string): string => {
+  if (observacion.startsWith("Aún faltan subir los documentos firmados:")) {
+    return "Faltan subir documentos firmados y enviar.";
+  }
+  return observacion.length > 180 ? `${observacion.slice(0, 177)}...` : observacion;
+};
+
 interface ClienteOpcion {
   cli_id: number;
   cli_razon_social: string;
@@ -225,7 +232,6 @@ export default function SolicitudesContent() {
           setEjecutivos(ejecutivosMapeados.filter((ejecutivo: EjecutivoOpcion) => ejecutivo.ejecutivo_id > 0));
         })
         .catch((error) => {
-          console.error("[SolicitudesContent] Error cargando selectores", error);
           setModalState({
             isOpen: true,
             type: "error",
@@ -333,7 +339,6 @@ export default function SolicitudesContent() {
         throw new Error("No se encontró el cliente ID");
       }
 
-      console.log("[SolicitudesContent] fetchSolicitudes -> cliente_id:", clienteId, "filters:", filters);
       setLoading(true);
 
       const params: any = {};
@@ -351,10 +356,8 @@ export default function SolicitudesContent() {
       }
 
       const data = await solicitudesService.getAllByCliente(clienteId, params);
-      console.log("[SolicitudesContent] fetchSolicitudes -> data recibida:", data);
 
       if (requestSequence !== fetchSequenceRef.current) {
-        console.log("[SolicitudesContent] fetchSolicitudes -> respuesta obsoleta ignorada");
         return;
       }
 
@@ -364,7 +367,6 @@ export default function SolicitudesContent() {
         return;
       }
 
-      console.error("[SolicitudesContent] Error cargando solicitudes:", error);
       setModalState({
         isOpen: true,
         type: "error",
@@ -379,28 +381,16 @@ export default function SolicitudesContent() {
   }
 
   const handleVerDetalle = (id: number) => {
-    console.log("[SolicitudesContent] handleVerDetalle -> sa_sol_id:", id);
     router.push(`/solicitudes/${id}`);
   };
 
   const handleEditar = (id: number) => {
-    console.log("[SolicitudesContent] handleEditar -> sa_sol_id:", id);
-    // Ya no entra directo al editor del formulario (/solicitudes/{id}/editar)
-    // — pasa por /solicitudes/nueva, que ahora es la página de gestión del
-    // proceso completo (Diligenciar/Firmar/Enviar vía FlujoSolicitud) y
-    // decide desde ahí a dónde corresponde llevar al usuario según el
-    // estado real de la solicitud (BORRADOR sigue redirigiendo sola al
-    // editor, ver useUltimaSolicitud/page.tsx::tieneBorrador).
-    const clienteId = esCliente ? undefined : clienteSeleccionado?.cli_id;
-    router.push(clienteId ? `/solicitudes/nueva?clienteId=${clienteId}` : "/solicitudes/nueva");
+    const query = !esCliente && clienteSeleccionado ? `?clienteId=${clienteSeleccionado.cli_id}` : "";
+    router.push(`/solicitudes/nueva${query}`);
   };
 
   const handleNuevaSolicitud = () => {
-    console.log("[SolicitudesContent] handleNuevaSolicitud");
-    // Feedback inmediato: el formulario de nueva solicitud tarda en abrir
-    // y sin esto el clic parece no hacer nada
     setNavegandoNueva(true);
-    // new solicitud page lives at /solicitudes/nueva
     router.push("/solicitudes/nueva");
   };
 
@@ -423,7 +413,6 @@ export default function SolicitudesContent() {
             return;
           }
 
-          console.error("[SolicitudesContent] Error eliminando solicitud:", error);
           setModalState({
             isOpen: true,
             type: "error",
@@ -438,7 +427,6 @@ export default function SolicitudesContent() {
   };
 
   const handleRefresh = () => {
-    console.log("[SolicitudesContent] handleRefresh");
     fetchSolicitudes();
   };
 
@@ -731,7 +719,7 @@ export default function SolicitudesContent() {
                     return (
                       <Tr key={solicitud.sol_id}>
                         <Td className="whitespace-nowrap">
-                          <div className="font-semibold text-blue-600 text-sm">{solicitud.sol_numero_solicitud}</div>
+                          <div className="font-semibold text-blue-600 text-sm">{solicitud.sol_numero}</div>
                         </Td>
                         <Td className="whitespace-nowrap">
                           <TipoSolicitudBadge esAmpliacionCupo={solicitud.es_ampliacion_cupo} />
@@ -780,7 +768,7 @@ export default function SolicitudesContent() {
                             </button>
                           ) : solicitud.estado_codigo === ESTADO_SOLICITUD.PENDIENTE.codigo &&
                             solicitud.etapa_codigo === WORKFLOW_ETAPA.CLI.codigo &&
-                            solicitud.resultado_codigo === WORKFLOW_RESULTADO.PEND_DOCS.codigo ? (
+                            solicitud.resultado_codigo === WORKFLOW_RESULTADO.PEND_FIRMA.codigo ? (
                             <button
                               onClick={() =>
                                 router.push(
@@ -797,7 +785,9 @@ export default function SolicitudesContent() {
                             // (ver cambiarEstado() en solicitudes-workflow.service.ts).
                             // Los casos de abajo son respaldo para solicitudes
                             // viejas o transiciones que aun no la escriben.
-                            <span className="text-sm text-gray-700">{solicitud.sol_observacion_cliente}</span>
+                            <span className="text-sm text-gray-700" title={solicitud.sol_observacion_cliente}>
+                              {resumirObservacionCliente(solicitud.sol_observacion_cliente)}
+                            </span>
                           ) : solicitud.estado_codigo === ESTADO_SOLICITUD.PENDIENTE.codigo ? (
                             <span className="text-sm text-emerald-700">
                               Formulario y documentos cargados correctamente. Puedes editar hasta que Cartonera revise
@@ -850,7 +840,7 @@ export default function SolicitudesContent() {
                               )}
                             {solicitud.estado_codigo === ESTADO_SOLICITUD.BORRADOR.codigo && (
                               <button
-                                onClick={() => handleEliminar(solicitud.sol_id, solicitud.sol_numero_solicitud)}
+                                onClick={() => handleEliminar(solicitud.sol_id, solicitud.sol_numero)}
                                 disabled={deletingId === solicitud.sol_id}
                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Eliminar solicitud borrador">

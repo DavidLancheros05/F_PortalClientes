@@ -10,12 +10,14 @@ interface Version {
   total_solicitudes: number;
 }
 
-interface Formulario {
-  frm_id: number;
+interface Formularios_solicitudes {
+  frs_id: number;
   formulario_nombre: string;
   formulario_version: number;
   formulario_activo: boolean;
 }
+
+type Formulario = Formularios_solicitudes;
 
 export const versionesService = {
   async obtenerVersiones(formularioId: number) {

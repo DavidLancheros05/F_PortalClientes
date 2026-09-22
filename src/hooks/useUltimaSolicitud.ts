@@ -5,7 +5,7 @@ import { RespuestasState } from "@/app/solicitudes/nueva/types";
 
 export interface UltimaSolicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_ses_id: number;
   sol_fecha_creacion: string;
   sol_fecha_envio: string | null;
@@ -48,8 +48,6 @@ export function useUltimaSolicitud({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // console.log(`[🔴 EFECTO useUltimaSolicitud] NUEVA EJECUCIÓN - enabled=${enabled}, clienteId=${clienteId}, timestamp=${Date.now()}`);
-
     if (tienePrefetch) {
       setUltimaSolicitud(prefetched);
       setError(null);
@@ -63,19 +61,15 @@ export function useUltimaSolicitud({
       return;
     }
 
-    console.log(`[🟡 EFECTO] Iniciando fetch...`);
     let cancelled = false;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        console.log(`[🔵 useUltimaSolicitud] INICIANDO - cliente_id=${clienteId}`);
         const data = await solicitudesService.getUltimaSolicitud(clienteId);
-        console.log(`[🟢 useUltimaSolicitud] RESPUESTA DEL API:`, data);
 
         if (cancelled) {
-          console.log(`[⚪ useUltimaSolicitud] Request cancelado`);
           return;
         }
 
@@ -96,19 +90,11 @@ export function useUltimaSolicitud({
             });
           }
 
-          console.log(`[✅ useUltimaSolicitud] Última solicitud encontrada:`, {
-            sol_id: data.sol_id,
-            sol_numero_solicitud: data.sol_numero_solicitud,
-            sol_ses_id: data.sol_ses_id,
-            respuestas_count: Object.keys(respuestasIndexadas).length,
-          });
-
           setUltimaSolicitud({
             ...data,
             respuestas: respuestasIndexadas,
           });
         } else {
-          console.log(`[⚠️ useUltimaSolicitud] No hay solicitud previa (data=${JSON.stringify(data)})`);
           setUltimaSolicitud(null);
         }
       } catch (err) {

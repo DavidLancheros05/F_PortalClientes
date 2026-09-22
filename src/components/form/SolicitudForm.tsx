@@ -8,7 +8,7 @@ interface CopiaInfo {
     valor: string;
     copiado: boolean;
     sol_id?: number;
-    sol_numero_solicitud?: string;
+    sol_numero?: string;
   };
 }
 
@@ -25,7 +25,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
   const [loading, setLoading] = useState(false);
   const [infoCopia, setInfoCopia] = useState<{
     sol_id?: number;
-    sol_numero_solicitud?: string;
+    sol_numero?: string;
   } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,26 +36,24 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
         const preguntas = await formulariosService.getPreguntasActivas();
         setPreguntas(preguntas);
 
-        const data =
-          await solicitudesService.getUltimaSolicitudRespuestas(clienteId);
+        const data = await solicitudesService.getUltimaSolicitudRespuestas(clienteId);
         if (data && data.respuestas && data.respuestas.length > 0) {
           const respuestasCopia: Record<number, string> = {};
           const copiasInfo: CopiaInfo = {};
           data.respuestas.forEach((resp: any) => {
-            respuestasCopia[resp.fp_id] =
-              resp.valor_texto || resp.valor_numero || "";
+            respuestasCopia[resp.fp_id] = resp.valor_texto || resp.valor_numero || "";
             copiasInfo[resp.fp_id] = {
               valor: respuestasCopia[resp.fp_id],
               copiado: true,
               sol_id: data.sol_id,
-              sol_numero_solicitud: data.sol_numero_solicitud,
+              sol_numero: data.sol_numero,
             };
           });
           setRespuestas(respuestasCopia);
           setCopias(copiasInfo);
           setInfoCopia({
             sol_id: data.sol_id,
-            sol_numero_solicitud: data.sol_numero_solicitud,
+            sol_numero: data.sol_numero,
           });
         }
       } catch (err) {
@@ -69,9 +67,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
     setRespuestas((prev) => ({ ...prev, [fp_id]: value }));
     setCopias((prev) => ({
       ...prev,
-      [fp_id]: prev[fp_id]
-        ? { ...prev[fp_id], valor: value, copiado: false }
-        : { valor: value, copiado: false },
+      [fp_id]: prev[fp_id] ? { ...prev[fp_id], valor: value, copiado: false } : { valor: value, copiado: false },
     }));
   };
 
@@ -107,12 +103,11 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
     <form onSubmit={submit}>
       <h2>Formulario del Cliente</h2>
 
-      {infoCopia && infoCopia.sol_numero_solicitud && (
+      {infoCopia && infoCopia.sol_numero && (
         <div style={{ marginBottom: 16, color: "#888", fontSize: 13 }}>
           <span>
-            Algunos campos fueron copiados de la solicitud previa:{" "}
-            <b>{infoCopia.sol_numero_solicitud}</b>. Puedes editarlos antes de
-            enviar.
+            Algunos campos fueron copiados de la solicitud previa: <b>{infoCopia.sol_numero}</b>. Puedes editarlos antes
+            de enviar.
           </span>
         </div>
       )}
@@ -123,7 +118,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
             {p.fp_descripcion}
             {copias[p.fp_id]?.copiado && (
               <span style={{ color: "blue", fontSize: 12, marginLeft: 8 }}>
-                (copiado de solicitud {copias[p.fp_id].sol_numero_solicitud})
+                (copiado de solicitud {copias[p.fp_id].sol_numero})
               </span>
             )}
           </label>
@@ -138,9 +133,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
         </div>
       ))}
 
-      <button disabled={loading}>
-        {loading ? "Guardando..." : "Enviar solicitud"}
-      </button>
+      <button disabled={loading}>{loading ? "Guardando..." : "Enviar solicitud"}</button>
 
       <SuccessModal
         isOpen={showSuccess}
@@ -150,11 +143,7 @@ export default function SolicitudForm({ clienteId }: { clienteId: number }) {
         onAction={() => setShowSuccess(false)}
       />
 
-      <ErrorModal
-        isOpen={!!errorMessage}
-        message={errorMessage || ""}
-        onAction={() => setErrorMessage(null)}
-      />
+      <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
     </form>
   );
 }

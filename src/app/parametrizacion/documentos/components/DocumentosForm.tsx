@@ -2,10 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  TipoDocumento,
-  TipoDocumentoPayload,
-} from "@/services/admin/parametrizacion/documentos.types";
+import { TipoDocumento, TipoDocumentoPayload } from "@/services/admin/parametrizacion/documentos.types";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { tiposVigenciaService } from "@/services/admin/parametrizacion/tipos-vigencia.service";
 import { TipoVigencia } from "@/services/admin/parametrizacion/tipos-vigencia.types";
@@ -20,10 +17,7 @@ import { GenerarPlantillaModal } from "./GenerarPlantillaModal";
 import { SelectorEncabezadoTipo } from "./SelectorEncabezadoTipo";
 import { SelectorPiePaginaTipo } from "./SelectorPiePaginaTipo";
 import { SubidaImagenPdf } from "./SubidaImagenPdf";
-import {
-  buildRegexVariablePlantilla,
-  construirEtiquetaVariable,
-} from "@/lib/plantilla-variables.util";
+import { buildRegexVariablePlantilla, construirEtiquetaVariable } from "@/lib/plantilla-variables.util";
 import {
   variablesPlantillaService,
   VariablePlantilla,
@@ -54,8 +48,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     message: "",
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingPayload, setPendingPayload] =
-    useState<TipoDocumentoPayload | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<TipoDocumentoPayload | null>(null);
   const [saving, setSaving] = useState(false);
   const {
     register,
@@ -115,30 +108,19 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
   const [showGenerarPlantilla, setShowGenerarPlantilla] = useState(false);
   const [subiendoEncabezado, setSubiendoEncabezado] = useState(false);
-  const [encabezadoImagenUrl, setEncabezadoImagenUrl] = useState<
-    string | null
-  >(editItem?.encabezadoImagenUrl ?? null);
+  const [encabezadoImagenUrl, setEncabezadoImagenUrl] = useState<string | null>(editItem?.encabezadoImagenUrl ?? null);
   const [subiendoPiePagina, setSubiendoPiePagina] = useState(false);
-  const [piePaginaImagenUrl, setPiePaginaImagenUrl] = useState<
-    string | null
-  >(editItem?.piePaginaImagenUrl ?? null);
-  const [imagenSubidaOk, setImagenSubidaOk] = useState<
-    "encabezado" | "pie_pagina" | null
-  >(null);
+  const [piePaginaImagenUrl, setPiePaginaImagenUrl] = useState<string | null>(editItem?.piePaginaImagenUrl ?? null);
+  const [imagenSubidaOk, setImagenSubidaOk] = useState<"encabezado" | "pie_pagina" | null>(null);
 
-  const handleSubirEncabezadoImagen = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleSubirEncabezadoImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !editItem?.tipoDocumentoId) return;
 
     setSubiendoEncabezado(true);
     try {
-      const actualizado = await documentosService.subirEncabezadoImagen(
-        editItem.tipoDocumentoId,
-        file,
-      );
+      const actualizado = await documentosService.subirEncabezadoImagen(editItem.tipoDocumentoId, file);
       setEncabezadoImagenUrl(actualizado.encabezadoImagenUrl);
       setValue("encabezadoTipo", "IMAGEN", { shouldDirty: true });
       setImagenSubidaOk("encabezado");
@@ -154,19 +136,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     }
   };
 
-  const handleSubirPiePaginaImagen = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleSubirPiePaginaImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !editItem?.tipoDocumentoId) return;
 
     setSubiendoPiePagina(true);
     try {
-      const actualizado = await documentosService.subirPiePaginaImagen(
-        editItem.tipoDocumentoId,
-        file,
-      );
+      const actualizado = await documentosService.subirPiePaginaImagen(editItem.tipoDocumentoId, file);
       setPiePaginaImagenUrl(actualizado.piePaginaImagenUrl);
       setValue("piePaginaTipo", "IMAGEN", { shouldDirty: true });
       setImagenSubidaOk("pie_pagina");
@@ -193,9 +170,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
   // Preguntas del formulario activo, para el selector de variables de la
   // plantilla ("Insertar variable" -> {{pregunta_<fp_id>}}).
-  const [preguntasFormulario, setPreguntasFormulario] = useState<
-    FormularioPregunta[]
-  >([]);
+  const [preguntasFormulario, setPreguntasFormulario] = useState<FormularioPregunta[]>([]);
   const [seccionFiltro, setSeccionFiltro] = useState("");
   const [preguntaSeleccionada, setPreguntaSeleccionada] = useState("");
   const [preguntasError, setPreguntasError] = useState("");
@@ -243,9 +218,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   // ver Parametrización > Variables de Plantilla. Se carga siempre (no solo
   // cuando hay plantilla) porque se necesita para reconocer/mostrar el
   // contenido guardado apenas se abre el formulario en modo editar.
-  const [variablesCatalogo, setVariablesCatalogo] = useState<VariablePlantilla[]>(
-    [],
-  );
+  const [variablesCatalogo, setVariablesCatalogo] = useState<VariablePlantilla[]>([]);
   useEffect(() => {
     variablesPlantillaService
       .getAll()
@@ -266,16 +239,11 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   }, [preguntasFormulario]);
 
   const preguntasFiltradas = useMemo(() => {
-    return preguntasFormulario.filter(
-      (p) => !seccionFiltro || (p.seccion_nombre || "Sin sección") === seccionFiltro,
-    );
+    return preguntasFormulario.filter((p) => !seccionFiltro || (p.seccion_nombre || "Sin sección") === seccionFiltro);
   }, [preguntasFormulario, seccionFiltro]);
 
   const preguntaSeleccionadaObj = useMemo(
-    () =>
-      preguntasFormulario.find(
-        (p) => String(p.fp_id) === preguntaSeleccionada,
-      ) || null,
+    () => preguntasFormulario.find((p) => String(p.fp_id) === preguntaSeleccionada) || null,
     [preguntasFormulario, preguntaSeleccionada],
   );
 
@@ -285,8 +253,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   // guardan como objetos {nombre, tipo, ...}, columnas antiguas como
   // strings planos.
   const columnasTabla = useMemo(() => {
-    if (!esPreguntaTabla || !preguntaSeleccionadaObj?.fp_tabla_columnas)
-      return [];
+    if (!esPreguntaTabla || !preguntaSeleccionadaObj?.fp_tabla_columnas) return [];
     try {
       const parsed = JSON.parse(preguntaSeleccionadaObj.fp_tabla_columnas);
       if (!Array.isArray(parsed)) return [];
@@ -327,10 +294,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     for (const p of preguntasFormulario) {
       if (p.fp_codigo && !mapa.has(p.fp_codigo)) {
         const seccion = p.seccion_nombre || "";
-        mapa.set(
-          p.fp_codigo,
-          seccion ? `${seccion} › ${p.fp_descripcion}` : p.fp_descripcion,
-        );
+        mapa.set(p.fp_codigo, seccion ? `${seccion} › ${p.fp_descripcion}` : p.fp_descripcion);
       }
     }
     return mapa;
@@ -350,41 +314,26 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     [variablesCatalogo],
   );
 
-  const regexVariable = useMemo(
-    () => buildRegexVariablePlantilla(catalogoParaEtiquetas),
-    [catalogoParaEtiquetas],
-  );
+  const regexVariable = useMemo(() => buildRegexVariablePlantilla(catalogoParaEtiquetas), [catalogoParaEtiquetas]);
 
   const variablesInsertablesFijas = useMemo(
-    () =>
-      variablesCatalogo.filter(
-        (v) => v.pvp_ambito === "FIJA" && v.pvp_estado && v.pvp_resuelta,
-      ),
+    () => variablesCatalogo.filter((v) => v.pvp_ambito === "FIJA" && v.pvp_estado && v.pvp_resuelta),
     [variablesCatalogo],
   );
 
   const variablesInsertablesCarta = useMemo(
-    () =>
-      variablesCatalogo.filter(
-        (v) => v.pvp_ambito === "CARTA_APROBACION" && v.pvp_estado && v.pvp_resuelta,
-      ),
+    () => variablesCatalogo.filter((v) => v.pvp_ambito === "CARTA_APROBACION" && v.pvp_estado && v.pvp_resuelta),
     [variablesCatalogo],
   );
 
   const etiquetaDeVariable = useCallback(
     (placeholder: string) =>
-      construirEtiquetaVariable(
-        placeholder,
-        seccionPorId,
-        etiquetaPorCodigo,
-        catalogoParaEtiquetas,
-      ),
+      construirEtiquetaVariable(placeholder, seccionPorId, etiquetaPorCodigo, catalogoParaEtiquetas),
     [seccionPorId, etiquetaPorCodigo, catalogoParaEtiquetas],
   );
 
   const variablesUsadas = useMemo(() => {
-    const encontradas: { indice: number; etiqueta: string; placeholder: string }[] =
-      [];
+    const encontradas: { indice: number; etiqueta: string; placeholder: string }[] = [];
 
     const regex = new RegExp(regexVariable);
     let match: RegExpExecArray | null;
@@ -494,54 +443,32 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     const payload: TipoDocumentoPayload = {
       ...data,
       aplicaZonaFranca: false,
-      reglaVigencia: data.aplicaFechaEmision
-        ? data.reglaVigencia || undefined
-        : undefined,
-      vigenciaDias:
-        data.aplicaFechaEmision && data.reglaVigencia === "DIAS"
-          ? data.vigenciaDias
-          : undefined,
+      reglaVigencia: data.aplicaFechaEmision ? data.reglaVigencia || undefined : undefined,
+      vigenciaDias: data.aplicaFechaEmision && data.reglaVigencia === "DIAS" ? data.vigenciaDias : undefined,
       aniosAtrasPermitidos:
-        data.aplicaFechaEmision && data.reglaVigencia === "ANIO"
-          ? data.aniosAtrasPermitidos
-          : undefined,
+        data.aplicaFechaEmision && data.reglaVigencia === "ANIO" ? data.aniosAtrasPermitidos : undefined,
       tienePlantilla: data.tienePlantilla || false,
-      tipoPlantilla: data.tienePlantilla
-        ? data.tipoPlantilla || "TEXTO"
-        : undefined,
+      tipoPlantilla: data.tienePlantilla ? data.tipoPlantilla || "TEXTO" : undefined,
       plantillaContenido:
         data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
           ? data.plantillaContenido || undefined
           : undefined,
       formatoCodigo:
-        data.tienePlantilla && data.origen !== "CARTA_APROBACION"
-          ? data.formatoCodigo || undefined
-          : undefined,
+        data.tienePlantilla && data.origen !== "CARTA_APROBACION" ? data.formatoCodigo || undefined : undefined,
       formatoCodigoSecundario:
         data.tienePlantilla && data.origen !== "CARTA_APROBACION"
           ? data.formatoCodigoSecundario || undefined
           : undefined,
-      revision:
-        data.tienePlantilla && data.origen !== "CARTA_APROBACION"
-          ? data.revision || undefined
-          : undefined,
+      revision: data.tienePlantilla && data.origen !== "CARTA_APROBACION" ? data.revision || undefined : undefined,
       paginasTotal:
-        data.tienePlantilla && data.origen !== "CARTA_APROBACION"
-          ? data.paginasTotal || undefined
-          : undefined,
+        data.tienePlantilla && data.origen !== "CARTA_APROBACION" ? data.paginasTotal || undefined : undefined,
       origen: data.origen || "CLIENTE",
       encabezadoTipo:
-        data.tienePlantilla && data.tipoPlantilla === "TEXTO"
-          ? data.encabezadoTipo || "NINGUNO"
-          : "NINGUNO",
+        data.tienePlantilla && data.tipoPlantilla === "TEXTO" ? data.encabezadoTipo || "NINGUNO" : "NINGUNO",
       piePaginaTipo:
-        data.tienePlantilla && data.tipoPlantilla === "TEXTO"
-          ? data.piePaginaTipo || "NINGUNO"
-          : "NINGUNO",
+        data.tienePlantilla && data.tipoPlantilla === "TEXTO" ? data.piePaginaTipo || "NINGUNO" : "NINGUNO",
       piePaginaTexto:
-        data.tienePlantilla &&
-        data.tipoPlantilla === "TEXTO" &&
-        data.piePaginaTipo === "TEXTO"
+        data.tienePlantilla && data.tipoPlantilla === "TEXTO" && data.piePaginaTipo === "TEXTO"
           ? data.piePaginaTexto || undefined
           : undefined,
     };
@@ -570,8 +497,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       setShowConfirmModal(false);
       setPendingPayload(null);
       const mensaje =
-        (err as { response?: { data?: { message?: string } }; message?: string })
-          ?.response?.data?.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Error al guardar tipo de documento";
       setModalState({
@@ -596,9 +522,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     setModalState({
       isOpen: true,
       title: "Revisá el formulario",
-      message:
-        (primerError as { message?: string })?.message ||
-        "Hay campos incompletos o inválidos en el formulario.",
+      message: (primerError as { message?: string })?.message || "Hay campos incompletos o inválidos en el formulario.",
     });
   };
 
@@ -606,17 +530,12 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
     <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="md:col-span-2 rounded-lg border border-violet-200 bg-violet-50/50 p-3">
-          <label className="mb-1 block text-xs font-semibold text-slate-700">
-            Origen del documento
-          </label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Origen del documento</label>
           <select
             {...register("origen")}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          >
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
             <option value="CLIENTE">Cliente — lo sube durante el formulario</option>
-            <option value="CARTA_APROBACION">
-              Sistema — Carta de Vinculación (se genera y envía sola al aprobar)
-            </option>
+            <option value="CARTA_APROBACION">Sistema — Carta de Vinculación (se genera y envía sola al aprobar)</option>
           </select>
           <p className="mt-1 text-xs text-slate-500">
             {esCartaAprobacion
@@ -626,24 +545,18 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs font-semibold text-slate-700">
-            Nombre del documento
-          </label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Nombre del documento</label>
           <input
             type="text"
             {...register("nombre", { required: "Campo obligatorio" })}
             placeholder="Ej. Certificado de Cámara y Comercio"
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
-          {errors.nombre && (
-            <p className="text-red-600 text-xs mt-1">{errors.nombre.message}</p>
-          )}
+          {errors.nombre && <p className="text-red-600 text-xs mt-1">{errors.nombre.message}</p>}
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs font-semibold text-slate-700">
-            Descripcion del documento
-          </label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">Descripcion del documento</label>
           <textarea
             rows={3}
             {...register("descripcion", {
@@ -656,11 +569,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             placeholder="Ej. Documento que certifica existencia y representacion legal de la empresa."
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
-          {errors.descripcion && (
-            <p className="text-red-600 text-xs mt-1">
-              {errors.descripcion.message}
-            </p>
-          )}
+          {errors.descripcion && <p className="text-red-600 text-xs mt-1">{errors.descripcion.message}</p>}
         </div>
 
         {!esCartaAprobacion && (
@@ -674,8 +583,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               <span>
                 Aplica fecha de emisión / vencimiento
                 <span className="mt-1 block text-xs font-normal text-slate-500">
-                  Al adjuntar este documento, se solicitará la fecha y se validará
-                  su vigencia.
+                  Al adjuntar este documento, se solicitará la fecha y se validará su vigencia.
                 </span>
               </span>
             </label>
@@ -684,10 +592,9 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
         {!esCartaAprobacion && (
           <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-500">
-            Si un documento debe ser obligatorio u opcional se define por
-            pregunta en el editor de formularios (campo &quot;Requerida&quot;),
-            no aquí — el mismo tipo de documento puede ser obligatorio en una
-            pregunta y opcional en otra.
+            Si un documento debe ser obligatorio u opcional se define por pregunta en el editor de formularios (campo
+            &quot;Requerida&quot;), no aquí — el mismo tipo de documento puede ser obligatorio en una pregunta y
+            opcional en otra.
           </div>
         )}
 
@@ -709,9 +616,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
         {aplicaFechaEmision && (
           <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-3">
-            <label className="mb-1 block text-xs font-semibold text-slate-700">
-              Regla de vigencia
-            </label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Regla de vigencia</label>
 
             <div className="space-y-2">
               <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-700">
@@ -726,8 +631,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               {tiposVigencia.map((tv) => (
                 <label
                   key={tv.tipoVigenciaId}
-                  className="flex cursor-pointer items-center gap-2 text-xs text-slate-700"
-                >
+                  className="flex cursor-pointer items-center gap-2 text-xs text-slate-700">
                   <input
                     type="radio"
                     value={tv.codigo}
@@ -741,9 +645,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
             {reglaVigencia === "DIAS" && (
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Tiempo de validez (días)
-                </label>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">Tiempo de validez (días)</label>
                 <input
                   type="number"
                   min={1}
@@ -754,19 +656,13 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                   })}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
-                {errors.vigenciaDias && (
-                  <p className="text-red-600 text-xs mt-1">
-                    {errors.vigenciaDias.message}
-                  </p>
-                )}
+                {errors.vigenciaDias && <p className="text-red-600 text-xs mt-1">{errors.vigenciaDias.message}</p>}
               </div>
             )}
 
             {reglaVigencia === "ANIO" && (
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Años hacia atrás permitidos
-                </label>
+                <label className="mb-1 block text-xs font-semibold text-slate-700">Años hacia atrás permitidos</label>
                 <input
                   type="number"
                   min={0}
@@ -778,13 +674,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
                 {errors.aniosAtrasPermitidos && (
-                  <p className="text-red-600 text-xs mt-1">
-                    {errors.aniosAtrasPermitidos.message}
-                  </p>
+                  <p className="text-red-600 text-xs mt-1">{errors.aniosAtrasPermitidos.message}</p>
                 )}
                 <p className="mt-1 text-xs text-slate-500">
-                  Con 0, solo se acepta {anioActual}. Con 1, se acepta{" "}
-                  {anioActual - 1} o {anioActual}.
+                  Con 0, solo se acepta {anioActual}. Con 1, se acepta {anioActual - 1} o {anioActual}.
                 </p>
               </div>
             )}
@@ -796,8 +689,8 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             <p className="text-xs font-medium text-slate-700">
               Tiene plantilla descargable
               <span className="mt-1 block text-xs font-normal text-slate-500">
-                Siempre activo para este origen: el contenido de abajo es el
-                que se usa para generar el PDF que se envía por correo.
+                Siempre activo para este origen: el contenido de abajo es el que se usa para generar el PDF que se envía
+                por correo.
               </span>
             </p>
           ) : (
@@ -810,9 +703,8 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               <span>
                 Tiene plantilla descargable
                 <span className="mt-1 block text-xs font-normal text-slate-500">
-                  El cliente podrá descargar un PDF pre-llenado con datos de su
-                  solicitud, firmarlo, y volver a subirlo con el mismo control de
-                  carga de este documento.
+                  El cliente podrá descargar un PDF pre-llenado con datos de su solicitud, firmarlo, y volver a subirlo
+                  con el mismo control de carga de este documento.
                 </span>
               </span>
             </label>
@@ -820,13 +712,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
           {tienePlantilla && !esCartaAprobacion && (
             <div className="mt-3">
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Tipo de generación
-              </label>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Tipo de generación</label>
               <select
                 {...register("tipoPlantilla")}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                 <option value="TEXTO">Texto con placeholders</option>
                 <option value="PDF_SOLICITUD">PDF de la solicitud completa</option>
               </select>
@@ -840,14 +729,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
           {tienePlantilla && !esCartaAprobacion && tipoPlantilla === "PDF_SOLICITUD" && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-700">
-                Logo del documento
-              </p>
+              <p className="text-xs font-semibold text-slate-700">Logo del documento</p>
               <p className="text-xs text-slate-500">
-                Logo que se dibuja en el encabezado de "formato oficial" (junto
-                al código de FORMATO, página y revisión) de todas las páginas
-                de este PDF. Sin uno propio, usa el logo por defecto de
-                Cartonera.
+                Logo que se dibuja en el encabezado de "formato oficial" (junto al código de FORMATO, página y revisión)
+                de todas las páginas de este PDF. Sin uno propio, usa el logo por defecto de Cartonera.
               </p>
               <SubidaImagenPdf
                 imagenUrl={encabezadoImagenUrl}
@@ -862,14 +747,11 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
           {tienePlantilla && esCartaAprobacion && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-700">
-                Tipo de encabezado
-              </p>
+              <p className="text-xs font-semibold text-slate-700">Tipo de encabezado</p>
               <p className="text-xs text-slate-500">
-                Qué se dibuja arriba de cada página del PDF que se envía por
-                correo. La tabla de "formato oficial" con código de FORMATO
-                (como usan otros documentos) no está disponible para este
-                origen todavía — solo "Ninguno" o una imagen propia.
+                Qué se dibuja arriba de cada página del PDF que se envía por correo. La tabla de "formato oficial" con
+                código de FORMATO (como usan otros documentos) no está disponible para este origen todavía — solo
+                "Ninguno" o una imagen propia.
               </p>
               <SelectorEncabezadoTipo
                 mostrarFormatoOficial={false}
@@ -885,14 +767,11 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
           {tienePlantilla && !esCartaAprobacion && tipoPlantilla === "TEXTO" && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-700">
-                Tipo de encabezado
-              </p>
+              <p className="text-xs font-semibold text-slate-700">Tipo de encabezado</p>
               <p className="text-xs text-slate-500">
-                Qué se dibuja arriba de cada página del PDF que descarga el
-                cliente. "Formato oficial" usa la tabla de logo/código de
-                FORMATO/página/revisión (ver campos debajo); "Imagen propia"
-                reemplaza esa tabla por completo con la imagen que subas.
+                Qué se dibuja arriba de cada página del PDF que descarga el cliente. "Formato oficial" usa la tabla de
+                logo/código de FORMATO/página/revisión (ver campos debajo); "Imagen propia" reemplaza esa tabla por
+                completo con la imagen que subas.
               </p>
               <SelectorEncabezadoTipo
                 mostrarFormatoOficial={true}
@@ -914,14 +793,12 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               </p>
               <p className="text-xs text-slate-500">
                 {tipoPlantilla === "PDF_SOLICITUD"
-                  ? 'Código de FORMATO, código secundario y revisión que se muestran en el encabezado (logo, código, página y revisión) que llevan todas las páginas de este PDF.'
+                  ? "Código de FORMATO, código secundario y revisión que se muestran en el encabezado (logo, código, página y revisión) que llevan todas las páginas de este PDF."
                   : 'Código, código secundario y revisión que se muestran cuando el "Tipo de encabezado" de arriba es "Formato oficial". "Páginas totales" no controla el encabezado (eso ya lo elige el selector de arriba) — controla el estilo del cuerpo: con un valor, se genera como documento plano; vacío, sigue siendo la carta simple con destinatario y asunto.'}
               </p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Código de formato
-                  </label>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">Código de formato</label>
                   <input
                     type="text"
                     {...register("formatoCodigo")}
@@ -930,9 +807,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Código secundario
-                  </label>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">Código secundario</label>
                   <input
                     type="text"
                     {...register("formatoCodigoSecundario")}
@@ -941,9 +816,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Revisión
-                  </label>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">Revisión</label>
                   <input
                     type="text"
                     {...register("revision")}
@@ -953,9 +826,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 </div>
                 {tipoPlantilla !== "PDF_SOLICITUD" && (
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">
-                      Páginas totales
-                    </label>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">Páginas totales</label>
                     <input
                       type="number"
                       min={1}
@@ -969,9 +840,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             </div>
           )}
 
-          {tienePlantilla && !esCartaAprobacion && (
-            <RevisionesTable tipoDocumentoId={editItem?.tipoDocumentoId} />
-          )}
+          {tienePlantilla && !esCartaAprobacion && <RevisionesTable tipoDocumentoId={editItem?.tipoDocumentoId} />}
 
           {tienePlantilla && tipoPlantilla === "PDF_SOLICITUD" && editItem?.tipoDocumentoId && (
             <div className="mt-3">
@@ -979,8 +848,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 type="button"
                 onClick={() => setShowGenerarPlantilla(true)}
                 title="Generar el PDF con los datos reales de un cliente y una solicitud ya existentes"
-                className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-              >
+                className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
                 Generar de prueba
               </button>
             </div>
@@ -989,17 +857,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
           {tienePlantilla && tipoPlantilla !== "PDF_SOLICITUD" && (
             <div className="mt-3">
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Contenido de la plantilla
-                </label>
+                <label className="block text-xs font-semibold text-slate-700">Contenido de la plantilla</label>
                 <div className="flex items-center gap-1.5">
                   {editItem?.tipoDocumentoId && (
                     <button
                       type="button"
                       onClick={() => setShowGenerarPlantilla(true)}
                       title="Generar el PDF con los datos reales de un cliente y una solicitud ya existentes"
-                      className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                    >
+                      className="rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
                       Generar plantilla
                     </button>
                   )}
@@ -1007,16 +872,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                     type="button"
                     onClick={aplicarNegrita}
                     title="Selecciona texto arriba y hacé clic acá para ponerlo en negrita"
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                  >
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50">
                     Negrita
                   </button>
                   <select
                     value={tamañoLetra}
                     onChange={(e) => setTamañoLetra(e.target.value)}
                     title="Tamaño a aplicar con el botón Tamaño"
-                    className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  >
+                    className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                     {TAMAÑOS_LETRA.map((t) => (
                       <option key={t} value={t}>
                         {t}pt
@@ -1027,16 +890,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                     type="button"
                     onClick={aplicarTamaño}
                     title="Selecciona texto arriba y hacé clic acá para aplicarle el tamaño elegido"
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
                     Tamaño
                   </button>
                   <select
                     value={fuenteLetra}
                     onChange={(e) => setFuenteLetra(e.target.value)}
                     title="Fuente a aplicar con el botón Fuente"
-                    className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  >
+                    className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                     {FUENTES_LETRA.map((f) => (
                       <option key={f.value} value={f.value}>
                         {f.label}
@@ -1047,16 +908,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                     type="button"
                     onClick={aplicarFuente}
                     title="Selecciona texto arriba y hacé clic acá para aplicarle la fuente elegida"
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
                     Fuente
                   </button>
                   <button
                     type="button"
                     onClick={aplicarVineta}
                     title="Ubicá el cursor en una línea y hacé clic acá para agregarle una viñeta (•) al inicio"
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
                     • Viñeta
                   </button>
                 </div>
@@ -1072,28 +931,20 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 }
               />
               <p className="mt-1 text-[11px] text-slate-500">
-                Las variables se muestran como etiquetas de color — hacé clic
-                en la × para quitar una puntual. Lo que ves acá (negrita,
-                tamaño, viñetas) es igual a como se ve en el PDF descargado:
-                seleccioná una frase y usá los botones de arriba, o ubicá el
-                cursor en una línea y hacé clic en "• Viñeta" para marcarla
-                como punto de lista.
+                Las variables se muestran como etiquetas de color — hacé clic en la × para Eliminar una puntual. Lo que
+                ves acá (negrita, tamaño, viñetas) es igual a como se ve en el PDF descargado: seleccioná una frase y
+                usá los botones de arriba, o ubicá el cursor en una línea y hacé clic en "• Viñeta" para marcarla como
+                punto de lista.
               </p>
               {errors.plantillaContenido && (
-                <p className="text-red-600 text-xs mt-1">
-                  {errors.plantillaContenido.message}
-                </p>
+                <p className="text-red-600 text-xs mt-1">{errors.plantillaContenido.message}</p>
               )}
 
               <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
-                <p className="text-xs font-semibold text-slate-700">
-                  Insertar variable
-                </p>
+                <p className="text-xs font-semibold text-slate-700">Insertar variable</p>
                 <p className="text-[11px] text-slate-500">
-                  Hacé clic primero en el texto de arriba, en el punto exacto
-                  donde querés que aparezca la variable, y recién después
-                  presioná "Insertar" — se inserta justo ahí, no al final ni
-                  donde "tendría sentido".
+                  Hacé clic primero en el texto de arriba, en el punto exacto donde querés que aparezca la variable, y
+                  recién después presioná "Insertar" — se inserta justo ahí, no al final ni donde "tendría sentido".
                 </p>
 
                 {esCartaAprobacion && (
@@ -1104,16 +955,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                         type="button"
                         onClick={() => insertarVariable(v.pvp_placeholder)}
                         title={v.pvp_placeholder}
-                        className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100"
-                      >
+                        className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100">
                         {v.pvp_etiqueta}
                       </button>
                     ))}
                     {variablesInsertablesCarta.length === 0 && (
                       <p className="text-[11px] text-slate-500">
-                        No hay variables activas para Carta de Vinculación.
-                        Administralas en Parametrización → Variables de
-                        Plantilla.
+                        No hay variables activas para Carta de Vinculación. Administralas en Parametrización → Variables
+                        de Plantilla.
                       </p>
                     )}
                   </div>
@@ -1121,9 +970,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
                 {!esCartaAprobacion && variablesInsertablesFijas.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-[11px] font-medium text-slate-500">
-                      Datos fijos de la solicitud:
-                    </p>
+                    <p className="text-[11px] font-medium text-slate-500">Datos fijos de la solicitud:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {variablesInsertablesFijas.map((v) => (
                         <button
@@ -1131,8 +978,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                           type="button"
                           onClick={() => insertarVariable(v.pvp_placeholder)}
                           title={v.pvp_placeholder}
-                          className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100"
-                        >
+                          className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100">
                           {v.pvp_etiqueta}
                         </button>
                       ))}
@@ -1141,13 +987,9 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 )}
 
                 {!esCartaAprobacion && cargandoPreguntas && (
-                  <p className="text-[11px] text-slate-500">
-                    Cargando secciones y preguntas del formulario activo...
-                  </p>
+                  <p className="text-[11px] text-slate-500">Cargando secciones y preguntas del formulario activo...</p>
                 )}
-                {!esCartaAprobacion && preguntasError && (
-                  <p className="text-[11px] text-red-600">{preguntasError}</p>
-                )}
+                {!esCartaAprobacion && preguntasError && <p className="text-[11px] text-red-600">{preguntasError}</p>}
 
                 {variablesUsadas.length > 0 && (
                   <div className="space-y-1">
@@ -1161,8 +1003,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                           type="button"
                           onClick={() => insertarVariable(placeholder)}
                           title={placeholder}
-                          className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100"
-                        >
+                          className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100">
                           {etiqueta}
                         </button>
                       ))}
@@ -1171,102 +1012,87 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 )}
 
                 {!esCartaAprobacion && (
-                <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-600">
-                      Sección
-                    </label>
-                    <select
-                      value={seccionFiltro}
-                      onChange={(e) => {
-                        setSeccionFiltro(e.target.value);
-                        setPreguntaSeleccionada("");
-                      }}
-                      className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      <option value="">Todas las secciones</option>
-                      {secciones.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex-1 min-w-55">
-                    <label className="mb-1 block text-[11px] font-medium text-slate-600">
-                      Pregunta
-                    </label>
-                    <select
-                      value={preguntaSeleccionada}
-                      onChange={(e) => {
-                        setPreguntaSeleccionada(e.target.value);
-                        setColumnaSeleccionada("");
-                      }}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      <option value="">Selecciona una pregunta...</option>
-                      {preguntasFiltradas.map((p) => (
-                        <option key={p.fp_id} value={p.fp_id}>
-                          {p.fp_descripcion}
-                          {p.fp_tipo === "TABLA" ? " (tabla)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {esPreguntaTabla && (
-                    <div className="flex-1 min-w-55">
-                      <label className="mb-1 block text-[11px] font-medium text-slate-600">
-                        Columna (primera fila)
-                      </label>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-slate-600">Sección</label>
                       <select
-                        value={columnaSeleccionada}
-                        onChange={(e) => setColumnaSeleccionada(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        <option value="">Selecciona una columna...</option>
-                        {columnasTabla.map((col) => (
-                          <option key={col} value={col}>
-                            {col}
+                        value={seccionFiltro}
+                        onChange={(e) => {
+                          setSeccionFiltro(e.target.value);
+                          setPreguntaSeleccionada("");
+                        }}
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <option value="">Todas las secciones</option>
+                        {secciones.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
                           </option>
                         ))}
                       </select>
                     </div>
-                  )}
 
-                  <button
-                    type="button"
-                    disabled={
-                      !preguntaSeleccionadaObj ||
-                      (esPreguntaTabla && !columnaSeleccionada)
-                    }
-                    onClick={() => {
-                      if (!preguntaSeleccionadaObj) return;
-                      // Ancla preferida: fp_codigo (estable ante renames y
-                      // versiones nuevas). Fallback para preguntas sin
-                      // código: sección+texto, el formato legado.
-                      const base = preguntaSeleccionadaObj.fp_codigo
-                        ? `cod:${preguntaSeleccionadaObj.fp_codigo}`
-                        : `${preguntaSeleccionadaObj.seccion_id ?? 0}|${preguntaSeleccionadaObj.fp_descripcion}`;
-                      insertarVariable(
-                        esPreguntaTabla
-                          ? `{{pregunta|${base}|col:${columnaSeleccionada}}}`
-                          : `{{pregunta|${base}}}`,
-                      );
-                    }}
-                    className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    Insertar
-                  </button>
-                </div>
+                    <div className="flex-1 min-w-55">
+                      <label className="mb-1 block text-[11px] font-medium text-slate-600">Pregunta</label>
+                      <select
+                        value={preguntaSeleccionada}
+                        onChange={(e) => {
+                          setPreguntaSeleccionada(e.target.value);
+                          setColumnaSeleccionada("");
+                        }}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <option value="">Selecciona una pregunta...</option>
+                        {preguntasFiltradas.map((p) => (
+                          <option key={p.fp_id} value={p.fp_id}>
+                            {p.fp_descripcion}
+                            {p.fp_tipo === "TABLA" ? " (tabla)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {esPreguntaTabla && (
+                      <div className="flex-1 min-w-55">
+                        <label className="mb-1 block text-[11px] font-medium text-slate-600">
+                          Columna (primera fila)
+                        </label>
+                        <select
+                          value={columnaSeleccionada}
+                          onChange={(e) => setColumnaSeleccionada(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                          <option value="">Selecciona una columna...</option>
+                          {columnasTabla.map((col) => (
+                            <option key={col} value={col}>
+                              {col}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={!preguntaSeleccionadaObj || (esPreguntaTabla && !columnaSeleccionada)}
+                      onClick={() => {
+                        if (!preguntaSeleccionadaObj) return;
+                        // Ancla preferida: fp_codigo (estable ante renames y
+                        // versiones nuevas). Fallback para preguntas sin
+                        // código: sección+texto, el formato legado.
+                        const base = preguntaSeleccionadaObj.fp_codigo
+                          ? `cod:${preguntaSeleccionadaObj.fp_codigo}`
+                          : `${preguntaSeleccionadaObj.seccion_id ?? 0}|${preguntaSeleccionadaObj.fp_descripcion}`;
+                        insertarVariable(
+                          esPreguntaTabla ? `{{pregunta|${base}|col:${columnaSeleccionada}}}` : `{{pregunta|${base}}}`,
+                        );
+                      }}
+                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300">
+                      Insertar
+                    </button>
+                  </div>
                 )}
                 {!esCartaAprobacion && esPreguntaTabla && (
                   <p className="text-[11px] text-amber-700">
-                    Es una pregunta tipo tabla: la variable toma el valor de
-                    esa columna en la primera fila registrada (el mismo
-                    criterio que usan hoy las variables de representante
-                    legal).
+                    Es una pregunta tipo tabla: la variable toma el valor de esa columna en la primera fila registrada
+                    (el mismo criterio que usan hoy las variables de representante legal).
                   </p>
                 )}
                 <p className="text-[11px] text-slate-500">
@@ -1280,14 +1106,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
 
           {tienePlantilla && tipoPlantilla === "TEXTO" && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-700">
-                Tipo de pie de página
-              </p>
+              <p className="text-xs font-semibold text-slate-700">Tipo de pie de página</p>
               <p className="text-xs text-slate-500">
-                Qué se dibuja abajo de cada página del PDF generado —
-                independiente del encabezado y del texto de cierre que ya se
-                muestra una sola vez al final del documento. Si no lo
-                configurás, no se dibuja nada.
+                Qué se dibuja abajo de cada página del PDF generado — independiente del encabezado y del texto de cierre
+                que ya se muestra una sola vez al final del documento. Si no lo configurás, no se dibuja nada.
               </p>
               <SelectorPiePaginaTipo
                 registerProps={register("piePaginaTipo")}
@@ -1307,8 +1129,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+          className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed">
           {editItem ? "Actualizar" : "Guardar"}
         </button>
         <button
@@ -1318,19 +1139,14 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
             onCancel();
           }}
           disabled={saving}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
           Cancelar
         </button>
       </div>
 
       <LoadingModal
         isOpen={subiendoEncabezado || subiendoPiePagina}
-        message={
-          subiendoEncabezado
-            ? "Subiendo imagen de encabezado..."
-            : "Subiendo imagen de pie de página..."
-        }
+        message={subiendoEncabezado ? "Subiendo imagen de encabezado..." : "Subiendo imagen de pie de página..."}
       />
       <SuccessModal
         isOpen={imagenSubidaOk !== null}
@@ -1358,9 +1174,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         isOpen={showConfirmModal}
         title={editItem ? "Confirmar cambios" : "Confirmar creación"}
         message={
-          editItem
-            ? "¿Deseas guardar los cambios de este tipo de documento?"
-            : "¿Deseas crear este tipo de documento?"
+          editItem ? "¿Deseas guardar los cambios de este tipo de documento?" : "¿Deseas crear este tipo de documento?"
         }
         confirmText={editItem ? "Sí, guardar" : "Sí, crear"}
         isLoading={saving}

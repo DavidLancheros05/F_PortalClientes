@@ -117,14 +117,14 @@ export default function VersionesPage() {
                         <FileText className="h-6 w-6 text-white" />
                       </div>
                       <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-                        {formulario?.frm_nombre || formulario?.formulario_nombre}
+                        {formulario?.frs_nombre || formulario?.formulario_nombre}
                       </h1>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-sm">
                       <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <span className="text-green-700 font-medium">
-                          Versión activa: v{formulario.formulario_version}
+                          Versión activa: v{formulario?.frs_version || formulario?.formulario_version}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-500">
@@ -241,7 +241,7 @@ export default function VersionesPage() {
                               <button
                                 onClick={() =>
                                   router.push(
-                                    `/parametrizacion/formulario-editor?frm_id=${formularioId}&version=${version.fv_numero || version.version_numero}&readonly=true`,
+                                    `/parametrizacion/formulario-editor?frs_id=${formularioId}&version=${version.fv_numero || version.version_numero}&readonly=true`,
                                   )
                                 }
                                 className="group flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200">
@@ -262,7 +262,7 @@ export default function VersionesPage() {
                                 <button
                                   onClick={() =>
                                     router.push(
-                                      `/parametrizacion/formulario-editor?frm_id=${formularioId}&version=${version.fv_numero || version.version_numero}`,
+                                      `/parametrizacion/formulario-editor?frs_id=${formularioId}&version=${version.fv_numero || version.version_numero}`,
                                     )
                                   }
                                   className="group flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200">

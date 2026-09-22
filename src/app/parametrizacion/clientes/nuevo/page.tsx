@@ -3,42 +3,107 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clientesService } from "@/services/clientes/clientes.service";
-import {
-  maestrosService,
-  type Pais,
-  type Departamento,
-  type Ciudad,
-} from "@/services/maestros/maestros.service";
+import { maestrosService, type Pais, type Departamento, type Ciudad } from "@/services/maestros/maestros.service";
 import { SuccessModal, ErrorModal, ConfirmModal } from "@/components/modals";
-import {
-  Building,
-  FileText,
-  MapPin,
-  Phone,
-  Mail,
-  Save,
-  CheckCircle,
-  Loader2,
-  Shield,
-} from "lucide-react";
+import { Building, FileText, MapPin, Phone, Mail, Save, CheckCircle, Loader2, Shield } from "lucide-react";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
+
+type LocationOption = {
+  id: number;
+  name: string;
+};
+
+function LocationCombobox({
+  label,
+  placeholder,
+  value,
+  options,
+  onChange,
+  onQueryChange,
+  disabled = false,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  options: LocationOption[];
+  onChange: (option: LocationOption | null) => void;
+  onQueryChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const normalizedValue = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const filteredOptions = options.filter((option) =>
+    option.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .includes(normalizedValue),
+  );
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label} *</label>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-autocomplete="list"
+        onFocus={() => setIsOpen(true)}
+        onChange={(event) => {
+          onChange(null);
+          onQueryChange(event.target.value);
+          setIsOpen(true);
+        }}
+        onBlur={() => window.setTimeout(() => setIsOpen(false), 150)}
+        disabled={disabled}
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition disabled:bg-gray-100"
+      />
+      {isOpen && !disabled && (
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+          <div className="max-h-56 overflow-y-auto py-1" role="listbox">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="option"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700">
+                  {option.name}
+                </button>
+              ))
+            ) : (
+              <p className="px-4 py-3 text-sm text-slate-500">No hay coincidencias</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function NuevoClientePage() {
   const router = useRouter();
-  const [tiposIdentificacion, setTiposIdentificacion] = useState<
-    Array<{ id: number; codigo: string; nombre: string }>
-  >([]);
-  const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>(
+  const [tiposIdentificacion, setTiposIdentificacion] = useState<Array<{ id: number; codigo: string; nombre: string }>>(
     [],
   );
+  const [centros, setCentros] = useState<Array<{ id: number; nombre: string }>>([]);
   const [centro_operacion_ids, setCentroOperacionIds] = useState<number[]>([]);
   // Un solo flag: tipos de identificación y centros se piden en el mismo
   // Promise.all y siempre terminan de cargar juntos, así que dos estados
   // separados nunca podían diferir entre sí (código muerto redundante).
   const [loadingCatalogos, setLoadingCatalogos] = useState(true);
-  const [ejecutivos, setEjecutivos] = useState<
-    Array<{ ejng_id: number; ejng_nombre: string }>
-  >([]);
+  const [ejecutivos, setEjecutivos] = useState<Array<{ ejng_id: number; ejng_nombre: string }>>([]);
   const [ejecutivoId, setEjecutivoId] = useState<number>(0);
   const [paises, setPaises] = useState<Pais[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
@@ -46,6 +111,9 @@ export default function NuevoClientePage() {
   const [paisId, setPaisId] = useState<number>(0);
   const [departamentoId, setDepartamentoId] = useState<number>(0);
   const [ciudadId, setCiudadId] = useState<number>(0);
+  const [paisQuery, setPaisQuery] = useState("");
+  const [departamentoQuery, setDepartamentoQuery] = useState("");
+  const [ciudadQuery, setCiudadQuery] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
   const [tipoIdentificacion, setTipoIdentificacion] = useState<number>(0);
   const [nit, setNit] = useState("");
@@ -66,33 +134,23 @@ export default function NuevoClientePage() {
       try {
         setLoadingCatalogos(true);
 
-        const [tiposData, centrosData, ejecutivosData, paisesData] =
-          await Promise.all([
-            clientesService.getTiposIdentificacion(),
-            clientesService.getAllCentrosOperacion(),
-            clientesService.getEjecutivosNegocio(),
-            maestrosService.getPaises(),
-          ]);
+        const [tiposData, centrosData, ejecutivosData, paisesData] = await Promise.all([
+          clientesService.getTiposIdentificacion(),
+          clientesService.getAllCentrosOperacion(),
+          clientesService.getEjecutivosNegocio(),
+          maestrosService.getPaises(),
+        ]);
         setPaises(Array.isArray(paisesData) ? paisesData : []);
 
         const tipos = Array.isArray(tiposData) ? tiposData : [];
-        setCentros(
-          Array.isArray(centrosData)
-            ? centrosData.map((c) => ({ id: c.cop_id, nombre: c.cop_nombre }))
-            : [],
-        );
+        setCentros(Array.isArray(centrosData) ? centrosData.map((c) => ({ id: c.cop_id, nombre: c.cop_nombre })) : []);
         setEjecutivos(Array.isArray(ejecutivosData) ? ejecutivosData : []);
         setTiposIdentificacion(tipos);
         if (!tipoIdentificacion && tipos.length > 0) {
           setTipoIdentificacion(tipos[0].id);
         }
       } catch (err: any) {
-        setError(
-          (prev) =>
-            prev ||
-            err?.message ||
-            "Error cargando datos de configuración del formulario",
-        );
+        setError((prev) => prev || err?.message || "Error cargando datos de configuración del formulario");
       } finally {
         setLoadingCatalogos(false);
       }
@@ -105,6 +163,8 @@ export default function NuevoClientePage() {
     if (!paisId) {
       setDepartamentos([]);
       setDepartamentoId(0);
+      setDepartamentoQuery("");
+      setCiudadQuery("");
       return;
     }
     maestrosService
@@ -112,7 +172,9 @@ export default function NuevoClientePage() {
       .then((data) => setDepartamentos(Array.isArray(data) ? data : []))
       .catch(() => setDepartamentos([]));
     setDepartamentoId(0);
+    setDepartamentoQuery("");
     setCiudadId(0);
+    setCiudadQuery("");
     setCiudades([]);
   }, [paisId]);
 
@@ -120,6 +182,7 @@ export default function NuevoClientePage() {
     if (!departamentoId) {
       setCiudades([]);
       setCiudadId(0);
+      setCiudadQuery("");
       return;
     }
     maestrosService
@@ -127,13 +190,12 @@ export default function NuevoClientePage() {
       .then((data) => setCiudades(Array.isArray(data) ? data : []))
       .catch(() => setCiudades([]));
     setCiudadId(0);
+    setCiudadQuery("");
   }, [departamentoId]);
 
   const toggleCentro = (centroId: number) => {
     setCentroOperacionIds((prev) =>
-      prev.includes(centroId)
-        ? prev.filter((id) => id !== centroId)
-        : [...prev, centroId],
+      prev.includes(centroId) ? prev.filter((id) => id !== centroId) : [...prev, centroId],
     );
   };
 
@@ -185,11 +247,7 @@ export default function NuevoClientePage() {
       setSuccess(true);
     } catch (err: any) {
       setShowConfirmModal(false);
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Error creando cliente",
-      );
+      setError(err?.response?.data?.message || err?.message || "Error creando cliente");
       console.error(err);
     } finally {
       setLoading(false);
@@ -212,14 +270,10 @@ export default function NuevoClientePage() {
             isOpen={success}
             title="¡Cliente creado exitosamente!"
             message="El cliente fue registrado correctamente."
-            onAction={() => router.push("/parametrizacion/clientes")}
+            onAction={() => router.push("/parametrizacion/clientes/listado")}
           />
 
-          <ErrorModal
-            isOpen={!!error}
-            message={error || ""}
-            onAction={() => setError(null)}
-          />
+          <ErrorModal isOpen={!!error} message={error || ""} onAction={() => setError(null)} />
 
           <ConfirmModal
             isOpen={showConfirmModal}
@@ -252,9 +306,7 @@ export default function NuevoClientePage() {
                   placeholder="Ej: Empresa S.A."
                   disabled={loading || success}
                 />
-                <p className="mt-1 text-sm text-gray-500">
-                  Nombre legal completo de la empresa
-                </p>
+                <p className="mt-1 text-sm text-gray-500">Nombre legal completo de la empresa</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -270,8 +322,7 @@ export default function NuevoClientePage() {
                     onChange={(e) => setTipoIdentificacion(Number(e.target.value))}
                     required
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    disabled={loading || success || loadingCatalogos}
-                  >
+                    disabled={loading || success || loadingCatalogos}>
                     <option value="">Selecciona tipo</option>
                     {tiposIdentificacion.map((tipo) => (
                       <option key={tipo.id} value={tipo.id}>
@@ -359,16 +410,13 @@ export default function NuevoClientePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ejecutivo asignado *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ejecutivo asignado *</label>
                   <select
                     value={ejecutivoId}
                     onChange={(e) => setEjecutivoId(Number(e.target.value))}
                     required
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    disabled={loading || success}
-                  >
+                    disabled={loading || success}>
                     <option value={0}>Selecciona un ejecutivo</option>
                     {ejecutivos.map((ej) => (
                       <option key={ej.ejng_id} value={ej.ejng_id}>
@@ -389,19 +437,13 @@ export default function NuevoClientePage() {
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       disabled={loading || success}
                     />
-                    <label
-                      htmlFor="habilita_acceso"
-                      className="ml-3 flex items-center"
-                    >
+                    <label htmlFor="habilita_acceso" className="ml-3 flex items-center">
                       <Shield className="w-4 h-4 text-gray-600 mr-2" />
-                      <span className="text-sm font-medium text-gray-700">
-                        Habilitar acceso al portal cliente
-                      </span>
+                      <span className="text-sm font-medium text-gray-700">Habilitar acceso al portal cliente</span>
                     </label>
                   </div>
                   <p className="mt-2 ml-7 text-sm text-gray-500">
-                    Al habilitar esta opción, el cliente podrá acceder al
-                    sistema con credenciales específicas
+                    Al habilitar esta opción, el cliente podrá acceder al sistema con credenciales específicas
                   </p>
                 </div>
               </div>
@@ -409,9 +451,7 @@ export default function NuevoClientePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Dígito Verificación NIT */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dígito Verificación NIT
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Dígito Verificación NIT</label>
                   <input
                     type="text"
                     maxLength={1}
@@ -433,10 +473,7 @@ export default function NuevoClientePage() {
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     disabled={loading || success}
                   />
-                  <label
-                    htmlFor="es_distribuidor"
-                    className="ml-3 text-sm font-medium text-gray-700"
-                  >
+                  <label htmlFor="es_distribuidor" className="ml-3 text-sm font-medium text-gray-700">
                     Cliente Distribuidor
                   </label>
                 </div>
@@ -451,94 +488,72 @@ export default function NuevoClientePage() {
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     disabled={loading || success}
                   />
-                  <label
-                    htmlFor="es_extranjero"
-                    className="ml-3 text-sm font-medium text-gray-700"
-                  >
+                  <label htmlFor="es_extranjero" className="ml-3 text-sm font-medium text-gray-700">
                     Cliente Extranjero
                   </label>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    País *
-                  </label>
-                  <select
-                    value={paisId}
-                    onChange={(e) => setPaisId(Number(e.target.value))}
-                    required
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                    disabled={loading || success}
-                  >
-                    <option value={0}>Selecciona un país</option>
-                    {paises.map((p) => (
-                      <option key={p.pais_id} value={p.pais_id}>
-                        {p.pais_nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <LocationCombobox
+                  label="País"
+                  placeholder="Escribe para buscar un país"
+                  value={paisQuery}
+                  options={paises.map((pais) => ({
+                    id: pais.pais_id,
+                    name: pais.pais_nombre,
+                  }))}
+                  onQueryChange={setPaisQuery}
+                  onChange={(option) => {
+                    setPaisId(option?.id || 0);
+                    setPaisQuery(option?.name || "");
+                  }}
+                  disabled={loading || success}
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Departamento *
-                  </label>
-                  <select
-                    value={departamentoId}
-                    onChange={(e) => setDepartamentoId(Number(e.target.value))}
-                    required
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition disabled:bg-gray-100"
-                    disabled={loading || success || !paisId}
-                  >
-                    <option value={0}>Selecciona un departamento</option>
-                    {departamentos.map((d) => (
-                      <option key={d.depto_id} value={d.depto_id}>
-                        {d.depto_nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <LocationCombobox
+                  label="Departamento"
+                  placeholder="Escribe para buscar un departamento"
+                  value={departamentoQuery}
+                  options={departamentos.map((departamento) => ({
+                    id: departamento.depto_id,
+                    name: departamento.depto_nombre,
+                  }))}
+                  onQueryChange={setDepartamentoQuery}
+                  onChange={(option) => {
+                    setDepartamentoId(option?.id || 0);
+                    setDepartamentoQuery(option?.name || "");
+                  }}
+                  disabled={loading || success || !paisId}
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ciudad *
-                  </label>
-                  <select
-                    value={ciudadId}
-                    onChange={(e) => setCiudadId(Number(e.target.value))}
-                    required
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition disabled:bg-gray-100"
-                    disabled={loading || success || !departamentoId}
-                  >
-                    <option value={0}>Selecciona una ciudad</option>
-                    {ciudades.map((c) => (
-                      <option key={c.ciudad_id} value={c.ciudad_id}>
-                        {c.ciudad_nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <LocationCombobox
+                  label="Ciudad"
+                  placeholder="Escribe para buscar una ciudad"
+                  value={ciudadQuery}
+                  options={ciudades.map((ciudad) => ({
+                    id: ciudad.ciudad_id,
+                    name: ciudad.ciudad_nombre,
+                  }))}
+                  onQueryChange={setCiudadQuery}
+                  onChange={(option) => {
+                    setCiudadId(option?.id || 0);
+                    setCiudadQuery(option?.name || "");
+                  }}
+                  disabled={loading || success || !departamentoId}
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Centros de Operación
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Centros de Operación</label>
                 <div className="border border-slate-300 rounded-lg p-4 bg-gray-50 max-h-56 overflow-y-auto space-y-2">
                   {loadingCatalogos ? (
                     <p className="text-sm text-gray-500">Cargando centros...</p>
                   ) : centros.length === 0 ? (
-                    <p className="text-sm text-gray-500">
-                      No hay centros de operación disponibles
-                    </p>
+                    <p className="text-sm text-gray-500">No hay centros de operación disponibles</p>
                   ) : (
                     centros.map((centro) => (
-                      <label
-                        key={centro.id}
-                        className="flex items-center gap-3 text-sm text-gray-700"
-                      >
+                      <label key={centro.id} className="flex items-center gap-3 text-sm text-gray-700">
                         <input
                           type="checkbox"
                           checked={centro_operacion_ids.includes(centro.id)}
@@ -551,9 +566,7 @@ export default function NuevoClientePage() {
                     ))
                   )}
                 </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Puedes asociar el cliente a uno o varios centros.
-                </p>
+                <p className="mt-1 text-sm text-gray-500">Puedes asociar el cliente a uno o varios centros.</p>
               </div>
             </div>
 
@@ -563,15 +576,13 @@ export default function NuevoClientePage() {
                 type="button"
                 onClick={() => router.back()}
                 className="px-6 py-3 border border-slate-300 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition font-medium"
-                disabled={loading || success}
-              >
+                disabled={loading || success}>
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading || success}
-                className="flex items-center justify-center px-8 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-[0_6px_16px_rgba(0,61,153,0.22)] transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+                className="flex items-center justify-center px-8 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 shadow-[0_6px_16px_rgba(0,61,153,0.22)] transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -602,9 +613,7 @@ export default function NuevoClientePage() {
               </div>
             </div>
             <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-900">
-                Información importante
-              </h3>
+              <h3 className="text-sm font-medium text-gray-900">Información importante</h3>
               <ul className="mt-2 space-y-1 text-sm text-gray-600">
                 <li className="flex items-start">
                   <span className="text-brand-600 mr-2">•</span>
@@ -616,13 +625,11 @@ export default function NuevoClientePage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-brand-600 mr-2">•</span>
-                  Puede habilitar el acceso al portal después de crear el
-                  cliente
+                  Puede habilitar el acceso al portal después de crear el cliente
                 </li>
                 <li className="flex items-start">
                   <span className="text-brand-600 mr-2">•</span>
-                  El tipo de identificación se carga dinámicamente desde
-                  parametrización
+                  El tipo de identificación se carga dinámicamente desde parametrización
                 </li>
               </ul>
             </div>

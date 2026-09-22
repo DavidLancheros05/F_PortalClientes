@@ -3,7 +3,7 @@ import { solicitudesService } from "@/services/solicitudes.service";
 
 export interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_ses_id: number;
   sol_cli_id: number;
   sol_fecha_creacion: string;

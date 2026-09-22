@@ -4,8 +4,9 @@ import { changePassword } from "@/services/auth.service";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { useContext, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
-import Link from "next/link";
-import { ArrowLeft, KeyRound, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { KeyRound, Eye, EyeOff } from "lucide-react";
+import { ErrorModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
 
 export default function ChangePasswordPage() {
   const { user } = useContext(AuthContext);
@@ -20,10 +21,7 @@ export default function ChangePasswordPage() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  const isFormValid =
-    currentPassword.trim().length > 0 &&
-    newPassword.length >= 6 &&
-    newPassword === confirmPassword;
+  const isFormValid = currentPassword.trim().length > 0 && newPassword.length >= 6 && newPassword === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,54 +42,33 @@ export default function ChangePasswordPage() {
       setConfirmPassword("");
     } catch (err: any) {
       setIsError(true);
-      setMessage(
-        err?.response?.data?.message || err?.message || "Error cambiando la contraseña",
-      );
+      setMessage(err?.response?.data?.message || err?.message || "Error cambiando la contraseña");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-md mx-auto">
-        {esCliente && (
-          <Link
-            href="/perfil"
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4 text-sm"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver a mi perfil
-          </Link>
-        )}
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-2xl mx-auto">
+        <PageHeaderCard
+          icon={KeyRound}
+          eyebrow="Seguridad"
+          title="Cambiar contraseña"
+          subtitle="Ingresa tu contraseña actual y la nueva"
+          onBack={() => (window.location.href = "/perfil")}
+        />
 
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Cambiar contraseña</h1>
-            <p className="text-gray-600 mt-2">Actualiza tu clave de acceso</p>
-          </div>
-          <div className="p-3 bg-blue-100 rounded-xl">
-            <KeyRound className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-            <h2 className="text-xl font-semibold text-white">Datos de acceso</h2>
-            <p className="text-blue-100 text-sm mt-1">
-              Ingresa tu contraseña actual y la nueva
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-8 space-y-5">
+        <div className="bg-white rounded-[22px] border border-[#e9ecf2] shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)] overflow-hidden">
+          <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[10.5px] font-bold uppercase tracking-wide text-[#94a3b8] mb-2">
                 Contraseña actual
               </label>
               <div className="relative">
                 <input
                   type={showCurrentPassword ? "text" : "password"}
-                  className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-11 border border-[#eef1f6] rounded-[11px] bg-[#fafbfd] focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
@@ -101,20 +78,20 @@ export default function ChangePasswordPage() {
                   onClick={() => setShowCurrentPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
-                  aria-label={showCurrentPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
+                  aria-label={showCurrentPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
                   {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[10.5px] font-bold uppercase tracking-wide text-[#94a3b8] mb-2">
                 Nueva contraseña
               </label>
               <div className="relative">
                 <input
                   type={showNewPassword ? "text" : "password"}
-                  className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-11 border border-[#eef1f6] rounded-[11px] bg-[#fafbfd] focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   minLength={6}
@@ -125,23 +102,23 @@ export default function ChangePasswordPage() {
                   onClick={() => setShowNewPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
-                  aria-label={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
+                  aria-label={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {newPassword.length > 0 && newPassword.length < 6 && (
-                <p className="text-xs text-red-500 mt-1">Mínimo 6 caracteres</p>
+                <p className="text-[11px] text-red-500 mt-1">Mínimo 6 caracteres</p>
               )}
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[10.5px] font-bold uppercase tracking-wide text-[#94a3b8] mb-2">
                 Confirmar nueva contraseña
               </label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
-                  className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-11 border border-[#eef1f6] rounded-[11px] bg-[#fafbfd] focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -151,41 +128,30 @@ export default function ChangePasswordPage() {
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
-                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
+                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                <p className="text-xs text-red-500 mt-1">Las contraseñas no coinciden</p>
+                <p className="text-[11px] text-red-500 mt-1">Las contraseñas no coinciden</p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-              disabled={loading || !isFormValid}
-            >
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0"
+              disabled={loading || !isFormValid}>
               <KeyRound className="w-4 h-4" />
               {loading ? "Cambiando..." : "Cambiar contraseña"}
             </button>
 
-            {message && (
-              <div
-                className={`flex items-center gap-2 p-3 rounded-xl text-sm ${
-                  isError
-                    ? "bg-red-50 text-red-700 border-l-4 border-red-500"
-                    : "bg-green-50 text-green-700 border-l-4 border-green-500"
-                }`}
-              >
-                {isError ? (
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                )}
-                {message}
-              </div>
-            )}
+            <SuccessModal
+              isOpen={Boolean(message) && !isError}
+              title="Contraseña actualizada"
+              message={message}
+              onAction={() => setMessage("")}
+            />
+            <ErrorModal isOpen={Boolean(message) && isError} message={message} onAction={() => setMessage("")} />
           </form>
         </div>
       </div>

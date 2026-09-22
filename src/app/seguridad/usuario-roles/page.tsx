@@ -2,10 +2,7 @@
 
 import { useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
-import {
-  usuarioRolesService,
-  type UsuarioRol,
-} from "@/services/usuario-roles/usuario-roles.service";
+import { usuarioRolesService, type UsuarioRol } from "@/services/usuario-roles/usuario-roles.service";
 import { rolesService, type Rol } from "@/services/roles/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
@@ -13,17 +10,7 @@ import { SuggestField } from "@/components/filters/SuggestField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import { ConfirmModal, ErrorModal } from "@/components/modals";
 
-import {
-  Shield,
-  Users,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  ChevronDown,
-  Plus,
-  X,
-  Search,
-} from "lucide-react";
+import { Shield, Users, Loader2, AlertCircle, RefreshCw, ChevronDown, Plus, X, Search } from "lucide-react";
 
 export default function UsuarioRolesPage() {
   const { loading: authLoading } = useContext(AuthContext);
@@ -34,9 +21,7 @@ export default function UsuarioRolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
 
-  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(
-    null,
-  );
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(null);
   const [usuarioRoles, setUsuarioRoles] = useState<UsuarioRol[]>([]);
   const [expandido, setExpandido] = useState<number | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<{
@@ -104,33 +89,18 @@ export default function UsuarioRolesPage() {
     if (!nombre && !correo && !usuarioLogin) return usuarios;
 
     return usuarios.filter((usuario) => {
-      const cumpleNombre = nombre
-        ? usuario.nombre?.toLowerCase().includes(nombre)
-        : true;
-      const cumpleCorreo = correo
-        ? usuario.usuario_correo?.toLowerCase().includes(correo)
-        : true;
-      const cumpleUsuario = usuarioLogin
-        ? usuario.usuario_login?.toLowerCase().includes(usuarioLogin)
-        : true;
+      const cumpleNombre = nombre ? usuario.nombre?.toLowerCase().includes(nombre) : true;
+      const cumpleCorreo = correo ? usuario.usuario_correo?.toLowerCase().includes(correo) : true;
+      const cumpleUsuario = usuarioLogin ? usuario.usuario_login?.toLowerCase().includes(usuarioLogin) : true;
       return cumpleNombre && cumpleCorreo && cumpleUsuario;
     });
   }, [usuarios, nombreTerm, correoTerm, usuarioTerm]);
 
   // Pool crudo de sugerencias por campo — SuggestField filtra/deduplica/
   // limita internamente, acá solo se mapea la columna correspondiente.
-  const nombreSugerencias = useMemo(
-    () => usuarios.map((u) => u.nombre ?? ""),
-    [usuarios],
-  );
-  const correoSugerencias = useMemo(
-    () => usuarios.map((u) => u.usuario_correo ?? ""),
-    [usuarios],
-  );
-  const usuarioSugerencias = useMemo(
-    () => usuarios.map((u) => u.usuario_login ?? ""),
-    [usuarios],
-  );
+  const nombreSugerencias = useMemo(() => usuarios.map((u) => u.nombre ?? ""), [usuarios]);
+  const correoSugerencias = useMemo(() => usuarios.map((u) => u.usuario_correo ?? ""), [usuarios]);
+  const usuarioSugerencias = useMemo(() => usuarios.map((u) => u.usuario_login ?? ""), [usuarios]);
 
   const handleSelectUsuario = async (usuarioId: number) => {
     try {
@@ -141,9 +111,7 @@ export default function UsuarioRolesPage() {
         setUsuarioRoles(rolesData);
       }
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Error al cargar roles",
-      );
+      setActionError(err instanceof Error ? err.message : "Error al cargar roles");
     }
   };
 
@@ -153,9 +121,7 @@ export default function UsuarioRolesPage() {
       const rolesData = await usuarioRolesService.getByUsuario(usuarioId);
       setUsuarioRoles(rolesData);
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Error al asignar rol",
-      );
+      setActionError(err instanceof Error ? err.message : "Error al asignar rol");
     }
   };
 
@@ -167,9 +133,7 @@ export default function UsuarioRolesPage() {
       const rolesData = await usuarioRolesService.getByUsuario(usuarioId);
       setUsuarioRoles(rolesData);
     } catch (err) {
-      setActionError(
-        err instanceof Error ? err.message : "Error al remover rol",
-      );
+      setActionError(err instanceof Error ? err.message : "Error al remover rol");
     } finally {
       setConfirmRemove(null);
     }
@@ -186,13 +150,11 @@ export default function UsuarioRolesPage() {
           actions={
             <button
               onClick={() => fetchData()}
-              className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
-            >
+              className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20">
               <RefreshCw className="w-4 h-4" />
               Actualizar
             </button>
-          }
-        >
+          }>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <SuggestField
               label="Nombre"
@@ -224,15 +186,13 @@ export default function UsuarioRolesPage() {
             <FilterActions className="col-span-full">
               <button
                 onClick={handleLimpiarFiltros}
-                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white"
-              >
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white">
                 <X className="h-4 w-4" />
                 Limpiar
               </button>
               <button
                 onClick={handleBuscar}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors"
-              >
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors">
                 <Search className="h-4 w-4" />
                 Buscar
               </button>
@@ -256,8 +216,7 @@ export default function UsuarioRolesPage() {
                 <p className="text-red-700 mt-1">{error}</p>
                 <button
                   onClick={() => fetchData()}
-                  className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition flex items-center"
-                >
+                  className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition flex items-center">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Reintentar
                 </button>
@@ -277,10 +236,7 @@ export default function UsuarioRolesPage() {
             subtitle="Opcionalmente puedes filtrar antes de buscar."
           />
         ) : usuariosFiltrados.length === 0 ? (
-          <EmptyStateCard
-            icon={Users}
-            title="Ningún usuario coincide con los filtros"
-          />
+          <EmptyStateCard icon={Users} title="Ningún usuario coincide con los filtros" />
         ) : (
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             <div className="divide-y divide-gray-200">
@@ -288,31 +244,21 @@ export default function UsuarioRolesPage() {
                 <div key={usuario.usr_id}>
                   <button
                     onClick={() => handleSelectUsuario(usuario.usr_id)}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition text-left"
-                  >
+                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition text-left">
                     <div className="flex items-center flex-1">
                       <div className="h-10 w-10 rounded-lg bg-[#eef3ff] flex items-center justify-center mr-4">
                         <Users className="w-5 h-5 text-brand-600" />
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900">
-                          {usuario.nombre}
-                        </div>
+                        <div className="font-semibold text-gray-900">{usuario.nombre}</div>
                         <div className="text-sm text-gray-500">
-                          {usuario.usuario_correo ||
-                            usuario.usuario_login ||
-                            "Sin correo registrado"}
+                          {usuario.usuario_correo || usuario.usuario_login || "Sin correo registrado"}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="px-3 py-1 bg-[#eef3ff] text-brand-700 rounded-full text-xs font-medium">
-                        {
-                          usuarioRoles.filter(
-                            (ur) => ur.usuarioId === usuario.usr_id,
-                          ).length
-                        }{" "}
-                        roles
+                        {usuarioRoles.filter((ur) => ur.usuarioId === usuario.usr_id).length} roles
                       </span>
                       <ChevronDown
                         className={`w-5 h-5 text-gray-400 transition ${
@@ -325,29 +271,20 @@ export default function UsuarioRolesPage() {
                   {/* Roles del Usuario */}
                   {expandido === usuario.usr_id && (
                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-4">
-                        Roles asignados:
-                      </h4>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-4">Roles asignados:</h4>
                       {usuarioRoles.length === 0 ? (
-                        <p className="text-sm text-gray-500 italic">
-                          Sin roles asignados
-                        </p>
+                        <p className="text-sm text-gray-500 italic">Sin roles asignados</p>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                           {usuarioRoles.map((rol) => (
                             <div
                               key={`${rol.usuarioId}-${rol.rolId}`}
-                              className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200"
-                            >
+                              className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200">
                               <div className="flex items-center flex-1">
                                 <Shield className="w-4 h-4 text-gray-400 mr-2" />
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {rol.rolNombre}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {rol.rolCodigo}
-                                  </div>
+                                  <div className="text-sm font-medium text-gray-900">{rol.rolNombre}</div>
+                                  <div className="text-xs text-gray-500">{rol.rolCodigo}</div>
                                 </div>
                               </div>
                               <button
@@ -359,8 +296,7 @@ export default function UsuarioRolesPage() {
                                   })
                                 }
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                title="Remover rol"
-                              >
+                                title="Remover rol">
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
@@ -370,39 +306,23 @@ export default function UsuarioRolesPage() {
 
                       {/* Roles Disponibles */}
                       <div className="mt-6 pt-6 border-t border-gray-200">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-4">
-                          Roles disponibles para asignar:
-                        </h4>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-4">Roles disponibles para asignar:</h4>
                         {roles.length === 0 ? (
-                          <p className="text-sm text-gray-500 italic">
-                            No hay roles disponibles
-                          </p>
+                          <p className="text-sm text-gray-500 italic">No hay roles disponibles</p>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {roles
-                              .filter(
-                                (rol) =>
-                                  !usuarioRoles.some(
-                                    (ur) => ur.rolId === rol.rolId,
-                                  ),
-                              )
+                              .filter((rol) => !usuarioRoles.some((ur) => ur.rolId === rol.rolId))
                               .map((rol) => (
                                 <button
                                   key={rol.rolId}
-                                  onClick={() =>
-                                    handleAssignRole(usuario.usr_id, rol.rolId)
-                                  }
-                                  className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-[#eef3ff] hover:border-[#b9d0f7] transition"
-                                >
+                                  onClick={() => handleAssignRole(usuario.usr_id, rol.rolId)}
+                                  className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-[#eef3ff] hover:border-[#b9d0f7] transition">
                                   <div className="flex items-center flex-1 text-left">
                                     <Plus className="w-4 h-4 text-brand-600 mr-2" />
                                     <div>
-                                      <div className="text-sm font-medium text-gray-900">
-                                        {rol.rolNombre}
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        {rol.rolCodigo}
-                                      </div>
+                                      <div className="text-sm font-medium text-gray-900">{rol.rolNombre}</div>
+                                      <div className="text-xs text-gray-500">{rol.rolCodigo}</div>
                                     </div>
                                   </div>
                                 </button>
@@ -421,20 +341,16 @@ export default function UsuarioRolesPage() {
 
       <ConfirmModal
         isOpen={confirmRemove !== null}
-        title="Quitar rol"
-        message={`¿Deseas quitar el rol "${confirmRemove?.rolNombre}" a este usuario?`}
-        confirmText="Quitar"
+        title="Eliminar rol"
+        message={`¿Deseas Eliminar el rol "${confirmRemove?.rolNombre}" a este usuario?`}
+        confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous
         onConfirm={performRemoveRole}
         onCancel={() => setConfirmRemove(null)}
       />
 
-      <ErrorModal
-        isOpen={!!actionError}
-        message={actionError}
-        onAction={() => setActionError("")}
-      />
+      <ErrorModal isOpen={!!actionError} message={actionError} onAction={() => setActionError("")} />
     </div>
   );
 }

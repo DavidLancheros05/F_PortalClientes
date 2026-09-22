@@ -50,9 +50,7 @@ export function SeccionesSidebar({
 
   const mostrarSeccionActiva = () => {
     if (seccionSeleccionada == null) return;
-    refsSecciones.current
-      .get(seccionSeleccionada)
-      ?.scrollIntoView({ block: "nearest" });
+    refsSecciones.current.get(seccionSeleccionada)?.scrollIntoView({ block: "nearest" });
   };
 
   useEffect(() => {
@@ -63,21 +61,21 @@ export function SeccionesSidebar({
   }, [seccionSeleccionada]);
 
   return (
-    <div className="w-[23%] bg-white rounded-lg shadow p-2 flex flex-col min-h-0">
-      <h2 className="text-sm font-bold mb-2">Secciones</h2>
+    <div className="w-full bg-white rounded-lg shadow p-2 flex flex-col min-h-0 lg:w-[23%]">
+      <h2 className="hidden text-sm font-bold mb-2 lg:block">Secciones</h2>
 
-      <div className="flex-1 overflow-y-auto space-y-1">
+      <div className="flex gap-1.5 overflow-x-auto pb-1 snap-x snap-mandatory lg:flex-1 lg:flex-col lg:overflow-y-auto lg:space-y-1 lg:pb-0">
         {secciones.map((seccion) => {
           const seccionPreguntas = seccion.preguntas;
           const seccionRespondibles = seccionPreguntas.filter(
             (pregunta) =>
-              shouldShowQuestionForCurrentUser(pregunta) &&
-              !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
+              shouldShowQuestionForCurrentUser(pregunta) && !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
           ).length;
           const progresoSeccion = seccionProgress.get(seccion.seccion_id);
           const todasCompletadas =
             (progresoSeccion?.displayTotal ?? 0) > 0 &&
             progresoSeccion?.displayAnswered === progresoSeccion?.displayTotal;
+          const selected = seccion.seccion_id === seccionSeleccionada;
 
           return (
             <div
@@ -86,52 +84,50 @@ export function SeccionesSidebar({
                 if (el) refsSecciones.current.set(seccion.seccion_id, el);
                 else refsSecciones.current.delete(seccion.seccion_id);
               }}
-              className={`p-2 border rounded cursor-pointer transition-all ${
-                seccion.seccion_id === seccionSeleccionada
-                  ? "bg-blue-50 border-blue-500 shadow-sm"
-                  : "hover:bg-gray-50 border-gray-200"
+              className={`group relative flex-shrink-0 snap-start rounded-xl border px-2.5 py-2 cursor-pointer transition-all min-w-[150px] lg:min-w-0 lg:flex-none ${
+                selected ? "bg-blue-50 border-blue-500 shadow-sm" : "bg-white border-slate-200 hover:bg-slate-50"
               }`}
               onClick={() => setSeccionSeleccionada(seccion.seccion_id)}
-            >
-              <div className="flex items-start justify-between gap-1">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1">
-                    <p className="font-medium text-[11px]">{seccion.seccion_nombre}</p>
-                    {todasCompletadas && seccionPreguntas.length > 0 && (
-                      <Check className="h-3 w-3 text-blue-600" />
-                    )}
-                  </div>
-                  {seccion.seccion_descripcion && (
-                    <p className="text-[11px] text-gray-600 mt-0.5">
-                      {seccion.seccion_descripcion}
+              aria-pressed={selected}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-[10px] sm:text-[11px] font-semibold text-slate-800">
+                      {seccion.seccion_nombre}
                     </p>
-                  )}
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    {seccionRespondibles} campo(s) respondible(s)
+                    {todasCompletadas && seccionPreguntas.length > 0 && <Check className="h-3 w-3 text-blue-600" />}
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    {seccionRespondibles} campo{seccionRespondibles === 1 ? "" : "s"}
                   </p>
-                  {progresoSeccion && (
-                    <div className="mt-1">
-                      <div className="flex items-center justify-between text-[11px] text-gray-600 mb-0.5">
-                        <span>
-                          {progresoSeccion.usesRequired
-                            ? "Obligatorias"
-                            : "Respondidas"}
-                        </span>
-                        <span>
-                          {progresoSeccion.displayAnswered}/
-                          {progresoSeccion.displayTotal}
-                        </span>
-                      </div>
-                      <div className="h-1 w-full bg-gray-200 rounded">
-                        <div
-                          className="h-1 bg-blue-500 rounded"
-                          style={{ width: `${progresoSeccion.displayPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
+                {progresoSeccion && (
+                  <span className="hidden rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 lg:inline-flex">
+                    {progresoSeccion.displayPercent}%
+                  </span>
+                )}
               </div>
+
+              {seccion.seccion_descripcion && (
+                <p className="mt-1 hidden text-[11px] text-slate-600 lg:block">{seccion.seccion_descripcion}</p>
+              )}
+
+              {progresoSeccion && (
+                <div className="hidden lg:block mt-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 mb-1">
+                    <span>{progresoSeccion.usesRequired ? "Obligatorias" : "Respondidas"}</span>
+                    <span>
+                      {progresoSeccion.displayAnswered}/{progresoSeccion.displayTotal}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-blue-500 transition-all"
+                      style={{ width: `${progresoSeccion.displayPercent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

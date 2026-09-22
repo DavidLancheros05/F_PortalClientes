@@ -41,18 +41,14 @@ export function useDocumentoVigencia({
   calcularVigenciaDocumento,
   calcularEstadoAnioDocumento,
 }: UseDocumentoVigenciaParams) {
-  const documento = pregunta.fp_tipo_documento_id
-    ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
-    : null;
+  const documento = pregunta.fp_tdo_id ? documentosCatalogoMap[pregunta.fp_tdo_id] : null;
   const vigenciaDias = documento?.tdo_vigencia_dias ?? null;
   const esReglaAnio = documento?.tdo_regla_vigencia === "ANIO";
   const archivoExistente = archivosExistentes[pregunta.fp_id];
 
   const calcularFechaFormato = () => {
     let fecha =
-      (preguntaFechaAsociada
-        ? respuestas[preguntaFechaAsociada.fp_id]?.valor_fecha
-        : null) ||
+      (preguntaFechaAsociada ? respuestas[preguntaFechaAsociada.fp_id]?.valor_fecha : null) ||
       respuestas[pregunta.fp_id]?.valor_fecha ||
       archivoExistente?.sd_fecha_emision ||
       "";
@@ -79,14 +75,10 @@ export function useDocumentoVigencia({
 
   const hoy = new Date().toISOString().split("T")[0];
   const resumenVigencia = calcularVigenciaDocumento(fechaInputValue, vigenciaDias);
-  const resumenAnio = calcularEstadoAnioDocumento(
-    fechaInputValue,
-    documento?.tdo_anios_atras_permitidos,
-  );
+  const resumenAnio = calcularEstadoAnioDocumento(fechaInputValue, documento?.tdo_anios_atras_permitidos);
 
   const mostrarCampoFecha =
-    Boolean(preguntaFechaAsociada || documento?.tdo_permite_vencimiento) &&
-    documentoRequiereFechaEmision(documento);
+    Boolean(preguntaFechaAsociada || documento?.tdo_permite_vencimiento) && documentoRequiereFechaEmision(documento);
 
   const guardarFecha = (fechaSeleccionada: string) => {
     setFechaInputValue(fechaSeleccionada);

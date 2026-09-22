@@ -26,7 +26,7 @@ import { ErrorModal } from "@/components/modals";
 
 interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_cli_id: number;
   cliente_nombre: string;
   sol_co_id: number;
@@ -39,7 +39,6 @@ interface Solicitud {
   etapa_nombre?: string;
   resultado_nombre?: string;
   fecha_creacion: string;
-  fecha_estimada_respuesta_comercial: string | null;
   fecha_real_respuesta_comercial: string | null;
   sol_fecha_envio?: string | null;
   // Fecha en que el Ejecutivo de Negocios (etapa anterior a Auxiliar
@@ -225,7 +224,7 @@ export default function AprobacionDesaprobacionPage() {
         })
         .filter((s: Solicitud) => {
           const cumpleNumero = numeroBuscado
-            ? (s.sol_numero_solicitud || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
+            ? (s.sol_numero || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
             : true;
           return cumpleNumero;
         })
@@ -280,7 +279,7 @@ export default function AprobacionDesaprobacionPage() {
   // numeroFiltro al construir `solicitudes`, pero mientras no se haya
   // acotado por número, este array sigue siendo el listado completo).
   const numeroSugerencias = useMemo(
-    () => solicitudes.map((s) => s.sol_numero_solicitud || s.numero_solicitud || ""),
+    () => solicitudes.map((s) => s.sol_numero || s.numero_solicitud || ""),
     [solicitudes],
   );
 
@@ -304,10 +303,10 @@ export default function AprobacionDesaprobacionPage() {
       "Dias Faltantes",
     ];
     const data = solicitudes.map((s) => {
-      const fechaEstimada = (s as any).sol_fecha_est_gest_asc || s.fecha_estimada_respuesta_comercial;
+      const fechaEstimada = (s as any).sol_fecha_est_gest_asc;
       const diasRestantes = calcularDiasRestantes(fechaEstimada);
       return [
-        s.sol_numero_solicitud || s.numero_solicitud || "-",
+        s.sol_numero || s.numero_solicitud || "-",
         getTipoSolicitud(s.es_ampliacion_cupo),
         s.centro_operacion_nombre || "-",
         s.cliente_nombre || "-",
@@ -459,13 +458,12 @@ export default function AprobacionDesaprobacionPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {solicitudesActuales.map((solicitud) => {
-                        const fechaEstimada =
-                          (solicitud as any).sol_fecha_est_gest_asc || solicitud.fecha_estimada_respuesta_comercial;
+                        const fechaEstimada = (solicitud as any).sol_fecha_est_gest_asc;
 
                         return (
                           <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
                             <Td className="whitespace-nowrap font-medium text-blue-600">
-                              {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                              {solicitud.sol_numero || solicitud.numero_solicitud}
                             </Td>
                             <Td className="whitespace-nowrap">
                               <TipoSolicitudBadge esAmpliacionCupo={solicitud.es_ampliacion_cupo} />

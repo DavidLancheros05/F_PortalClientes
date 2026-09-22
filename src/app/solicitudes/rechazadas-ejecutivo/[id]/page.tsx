@@ -6,13 +6,11 @@ import { ArrowLeft, FileText, AlertTriangle, CheckCircle } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { ESTADOS } from "@/lib/workflow-labels";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
-import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
-import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 
 interface SolicitudDetalle {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   cliente_nombre: string;
   cliente_nit?: string;
   centro_operacion_nombre?: string;
@@ -58,7 +56,6 @@ export default function RechazoEjecutivoDetallePage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
-  const { historial } = useHistorialWorkflow(Number.isFinite(solicitudId) ? solicitudId : null);
 
   // Token de la petición en curso: si `solicitudId` cambia o el
   // componente se desmonta antes de que responda, una respuesta tardía no
@@ -130,7 +127,7 @@ export default function RechazoEjecutivoDetallePage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Solicitud</p>
-                  <h1 className="text-3xl font-bold text-red-800">{solicitud.sol_numero_solicitud}</h1>
+                  <h1 className="text-3xl font-bold text-red-800">{solicitud.sol_numero}</h1>
                   <p className="text-sm text-gray-600 mt-1">{solicitud.cliente_nombre}</p>
                 </div>
                 <span className="inline-block px-4 py-2 rounded-lg font-semibold border text-center bg-red-100 text-red-800 border-red-300">
@@ -216,9 +213,6 @@ export default function RechazoEjecutivoDetallePage() {
                   </div>
                 </div>
                 <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
-              </div>
-              <div className="lg:col-span-1">
-                <HistorialSolicitud historial={historial} />
               </div>
             </div>
           </>

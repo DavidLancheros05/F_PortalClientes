@@ -113,7 +113,7 @@ export function useSolicitudEdicion({
           return;
         }
 
-        setNumeroSolicitud(data?.sol_numero_solicitud || null);
+        setNumeroSolicitud(data?.sol_numero || null);
         const versionSolicitud = Number(data?.sol_formulario_version ?? 1);
         setFormularioVersionObjetivo(versionSolicitud);
         if (setEstadoId) {

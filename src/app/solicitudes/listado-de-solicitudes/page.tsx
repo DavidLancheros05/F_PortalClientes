@@ -22,6 +22,7 @@ import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+
 import { TipoSolicitudBadge } from "@/components/badges/TipoSolicitudBadge";
 import { getTipoSolicitud } from "@/lib/tipo-solicitud.util";
 
@@ -39,7 +40,7 @@ interface Ejecutivo {
 
 interface SolicitudListado {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_cli_id: number | null;
   cliente_nombre: string | null;
   sol_ejng_id: number | null;
@@ -57,7 +58,6 @@ interface SolicitudListado {
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_formulario_version: number | null;
-  sol_fecha_estimada_respuesta_comercial: string | null;
   sol_fecha_est_gest_oc: string | null;
   sol_fecha_gest_oc: string | null;
   sol_fecha_est_gest_cc1: string | null;
@@ -397,7 +397,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
     ];
 
     const data = rows.map((row) => [
-      row.sol_numero_solicitud,
+      row.sol_numero,
       getTipoSolicitud(row.es_ampliacion_cupo),
       row.cliente_nombre || "-",
       row.ejecutivo_nombre || "-",
@@ -446,9 +446,10 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           icon={ClipboardList}
           eyebrow="Solicitudes"
           title="Listado de solicitudes"
+          subtitle="Consulta y filtra las solicitudes según tus necesidades."
           // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
           onBack={() => router.push("/solicitudes")}>
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-4 gap-y-3">
             <FilterField label="Ejecutivo" className="relative" ref={ejecutivoContainerRef}>
               <input
                 type="text"
@@ -616,35 +617,21 @@ export default function SolicitudesListadoDeSolicitudesPage() {
 
             <FilterActions className="col-span-full">
               <button
-                onClick={limpiarFiltros}
-                className="px-6 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded border border-gray-300 bg-white transition-colors inline-flex items-center justify-center gap-2">
+                onClick={() => {
+                  limpiarFiltros();
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg border border-gray-300 bg-white transition-colors">
                 <X className="h-4 w-4" />
                 Limpiar
               </button>
               <button
                 onClick={buscar}
                 disabled={!canSearch || loading}
-                className="px-6 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-2">
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
                 <Search className="h-4 w-4" />
                 Buscar
               </button>
             </FilterActions>
-          </div>
-
-          <div className="flex gap-2 mt-0 justify-end hidden">
-            <button
-              onClick={limpiarFiltros}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300 bg-white">
-              <X className="h-4 w-4" />
-              Limpiar
-            </button>
-            <button
-              onClick={buscar}
-              disabled={!canSearch || loading}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-              <Search className="h-4 w-4" />
-              Buscar
-            </button>
           </div>
         </PageHeaderCard>
 
@@ -688,7 +675,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   <tbody className="divide-y divide-gray-100">
                     {paginatedRows.map((row) => (
                       <Tr key={row.sol_id}>
-                        <Td>{row.sol_numero_solicitud || "-"}</Td>
+                        <Td>{row.sol_numero || "-"}</Td>
                         <Td>
                           <TipoSolicitudBadge esAmpliacionCupo={row.es_ampliacion_cupo} />
                         </Td>
@@ -725,7 +712,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => setSlaSolicitud({ numero: row.sol_numero_solicitud })}
+                              onClick={() => setSlaSolicitud({ numero: row.sol_numero })}
                               aria-label="Ver SLA"
                               title="Ver SLA"
                               className="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-700 transition-colors hover:bg-amber-100">
@@ -736,7 +723,7 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                                 onClick={() =>
                                   setSolicitudAEliminar({
                                     sol_id: row.sol_id,
-                                    numero: row.sol_numero_solicitud,
+                                    numero: row.sol_numero,
                                   })
                                 }
                                 aria-label="Eliminar solicitud"
@@ -764,15 +751,6 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                 setCurrentPage(1);
               }}
             />
-          </div>
-        )}
-
-        {hasSearched && (
-          <div className="grid grid-cols-1 gap-4 mt-6">
-            <div className="bg-white/80 border border-slate-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Total resultados</p>
-              <p className="text-2xl font-semibold text-slate-800 mt-1">{rows.length}</p>
-            </div>
           </div>
         )}
       </div>

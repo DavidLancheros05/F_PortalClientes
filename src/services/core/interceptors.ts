@@ -35,11 +35,7 @@ export const setupInterceptors = (api: AxiosInstance) => {
       // aunque el usuario ya vea el mensaje correcto en el formulario —
       // console.warn no lo dispara y sigue quedando en la consola para
       // depurar.
-      const logger = esIntentoDeLogin ? console.warn : console.error;
-      logger(
-        `🔴 [API] ${method} ${url} → ${error.response?.status ?? "sin respuesta"}`,
-        error.response?.data ?? error.message,
-      );
+
 
       if (error.response?.status === 401 && !esIntentoDeLogin) {
         // Log temporal para diagnosticar el bloqueo de cookies de terceros

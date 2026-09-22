@@ -125,32 +125,24 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
   // useCallback con deps vacías mantiene la misma referencia entre renders
   // de esta instancia, así el ref solo corre al montar (tamaño inicial de
   // un valor precargado), no en cada render de TODO el formulario.
-  const ajustarAlturaTextoLibre = useCallback(
-    (el: HTMLTextAreaElement | null) => {
-      if (!el) return;
-      el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
-    },
-    [],
-  );
+  const ajustarAlturaTextoLibre = useCallback((el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   const preguntaPadre = pregunta.fp_pregunta_padre_id
     ? preguntas.find((p) => p.fp_id === pregunta.fp_pregunta_padre_id)
     : null;
-  const esFechaHijaDeArchivo =
-    pregunta.fp_tipo === "FECHA" && preguntaPadre?.fp_tipo === "ARCHIVO";
+  const esFechaHijaDeArchivo = pregunta.fp_tipo === "FECHA" && preguntaPadre?.fp_tipo === "ARCHIVO";
   if (esFechaHijaDeArchivo) return null;
 
   const preguntaFechaAsociada = getPreguntaFechaAsociada(pregunta);
 
-  const documentoVinculado = pregunta.fp_tipo_documento_id
-    ? documentosCatalogoMap[pregunta.fp_tipo_documento_id]
-    : null;
-  const requiereFechaAsociada =
-    !documentoVinculado || documentoVinculado.tdo_vigencia_dias !== null;
+  const documentoVinculado = pregunta.fp_tdo_id ? documentosCatalogoMap[pregunta.fp_tdo_id] : null;
+  const requiereFechaAsociada = !documentoVinculado || documentoVinculado.tdo_vigencia_dias !== null;
   const shouldShowFechaAsociada = preguntaFechaAsociada
-    ? shouldShowQuestionForCurrentUser(preguntaFechaAsociada) &&
-      requiereFechaAsociada
+    ? shouldShowQuestionForCurrentUser(preguntaFechaAsociada) && requiereFechaAsociada
     : false;
 
   const rules = getValidationRules(pregunta);
@@ -162,40 +154,27 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
   // desde Parametrización) — NOTA y FECHA_HORA_ACTUAL son los únicos tipos
   // forzados a ancho completo siempre, porque no tiene sentido mostrarlos a
   // 1/3 de columna.
-  const anchoColumnas = ["NOTA", "FECHA_HORA_ACTUAL"].includes(
-    pregunta.fp_tipo,
-  )
+  const anchoColumnas = ["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo)
     ? 3
     : (pregunta.fp_ancho_columnas ?? 1);
-  const anchoClassName =
-    anchoColumnas === 3
-      ? "md:col-span-3"
-      : anchoColumnas === 2
-        ? "md:col-span-2"
-        : "max-w-sm";
+  const anchoClassName = anchoColumnas === 3 ? "md:col-span-3" : anchoColumnas === 2 ? "md:col-span-2" : "max-w-sm";
 
   return (
     <div key={pregunta.fp_id} className={anchoClassName}>
-      {!["NOTA", "FECHA_HORA_ACTUAL", "DOCUMENTOS_TABLA", "ARCHIVO"].includes(
-        pregunta.fp_tipo,
-      ) && (
+      {!["NOTA", "FECHA_HORA_ACTUAL", "DOCUMENTOS_TABLA", "ARCHIVO"].includes(pregunta.fp_tipo) && (
         <>
           <label className="block text-[11px] font-medium mb-0.5">
             {pregunta.fp_descripcion}
-            {pregunta.fp_requerida && (
-              <span className="text-red-500 ml-1">*</span>
-            )}
+            {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
           </label>
-          {pregunta.fp_descripcion_adicional?.trim() &&
-            pregunta.fp_tipo !== "SELECT_CONDICIONAL" && (
-              <p className="mb-1 text-[11px] text-slate-600 leading-relaxed">
-                {pregunta.fp_descripcion_adicional.trim()}
-              </p>
-            )}
+          {pregunta.fp_descripcion_adicional?.trim() && pregunta.fp_tipo !== "SELECT_CONDICIONAL" && (
+            <p className="mb-1 text-[11px] text-slate-600 leading-relaxed">
+              {pregunta.fp_descripcion_adicional.trim()}
+            </p>
+          )}
           {pregunta.fp_codigo === "CUPO_SOLICITADO" && cupoActualAprobado && (
             <p className="mb-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-              Cupo actual: ${cupoActualAprobado.toLocaleString("es-CO")} — el
-              nuevo cupo debe ser mayor a este valor.
+              Cupo actual: ${cupoActualAprobado.toLocaleString("es-CO")} — el nuevo cupo debe ser mayor a este valor.
             </p>
           )}
         </>
@@ -207,16 +186,8 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             const nota = getNotaDisplay(pregunta);
             return (
               <>
-                {nota.titulo && (
-                  <p className="text-[11px] font-semibold text-blue-950 leading-tight">
-                    {nota.titulo}
-                  </p>
-                )}
-                {nota.subtitulo && (
-                  <p className="mt-0.5 text-[11px] font-medium text-blue-900">
-                    {nota.subtitulo}
-                  </p>
-                )}
+                {nota.titulo && <p className="text-[11px] font-semibold text-blue-950 leading-tight">{nota.titulo}</p>}
+                {nota.subtitulo && <p className="mt-0.5 text-[11px] font-medium text-blue-900">{nota.subtitulo}</p>}
                 {nota.cuerpo && (
                   <p className="mt-1 text-[11px] text-blue-900 whitespace-pre-wrap break-words leading-relaxed text-justify">
                     {nota.cuerpo}
@@ -231,13 +202,9 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       {pregunta.fp_tipo === "FECHA_HORA_ACTUAL" && (
         <div className="flex justify-end">
           <div className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-gradient-to-r from-indigo-50 to-sky-50 px-2 py-1 shadow-sm text-[11px]">
-            <span className="font-semibold uppercase tracking-tight text-indigo-700">
-              Fecha y hora
-            </span>
+            <span className="font-semibold uppercase tracking-tight text-indigo-700">Fecha y hora</span>
             <span className="h-3 w-px bg-indigo-200" />
-            <span className="font-semibold text-indigo-900 tabular-nums">
-              {fechaHoraActualFormateada}
-            </span>
+            <span className="font-semibold text-indigo-900 tabular-nums">{fechaHoraActualFormateada}</span>
           </div>
         </div>
       )}
@@ -247,9 +214,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           rows={4}
           disabled={readOnly || isLockedPrefillField}
           value={respuestas[pregunta.fp_id]?.valor_texto || ""}
-          onChange={(e) =>
-            handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")
-          }
+          onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
           className={`w-full border rounded px-2 py-1 text-[11px] resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
@@ -290,18 +255,12 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             inputMode="numeric"
             value={
               respuestas[pregunta.fp_id]?.valor_numero
-                ? Number(
-                    respuestas[pregunta.fp_id]?.valor_numero,
-                  ).toLocaleString("es-CO")
+                ? Number(respuestas[pregunta.fp_id]?.valor_numero).toLocaleString("es-CO")
                 : ""
             }
             onChange={(e) => {
               const soloDigitos = e.target.value.replace(/\D/g, "");
-              handleInputChange(
-                pregunta.fp_id,
-                soloDigitos ? Number(soloDigitos) : "",
-                "NUMERO",
-              );
+              handleInputChange(pregunta.fp_id, soloDigitos ? Number(soloDigitos) : "", "NUMERO");
             }}
             onBlur={() => validateField(pregunta.fp_id, rules)}
             className={`w-full border rounded pl-5 pr-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -314,18 +273,11 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       {pregunta.fp_tipo === "NUMERO" && pregunta.fp_subtipo === "DIA_MES" && (
         <select
           value={respuestas[pregunta.fp_id]?.valor_numero || ""}
-          onChange={(e) =>
-            handleInputChange(
-              pregunta.fp_id,
-              e.target.value ? Number(e.target.value) : "",
-              "NUMERO",
-            )
-          }
+          onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value ? Number(e.target.value) : "", "NUMERO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
           className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
-          }`}
-        >
+          }`}>
           <option value="">Selecciona un día</option>
           {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
             <option key={dia} value={dia}>
@@ -339,18 +291,9 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         pregunta.fp_subtipo === "DURACION_ANIOS_MESES" &&
         (() => {
           const totalMeses = respuestas[pregunta.fp_id]?.valor_numero;
-          const anios =
-            totalMeses !== undefined && totalMeses !== null
-              ? Math.floor(totalMeses / 12)
-              : "";
-          const meses =
-            totalMeses !== undefined && totalMeses !== null
-              ? totalMeses % 12
-              : "";
-          const actualizarTotal = (
-            nuevoAnios: number | "",
-            nuevoMeses: number | "",
-          ) => {
+          const anios = totalMeses !== undefined && totalMeses !== null ? Math.floor(totalMeses / 12) : "";
+          const meses = totalMeses !== undefined && totalMeses !== null ? totalMeses % 12 : "";
+          const actualizarTotal = (nuevoAnios: number | "", nuevoMeses: number | "") => {
             if (nuevoAnios === "" && nuevoMeses === "") {
               handleInputChange(pregunta.fp_id, "", "NUMERO");
               return;
@@ -366,35 +309,22 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   min={0}
                   placeholder="Años"
                   value={anios}
-                  onChange={(e) =>
-                    actualizarTotal(
-                      e.target.value === "" ? "" : Number(e.target.value),
-                      meses,
-                    )
-                  }
+                  onChange={(e) => actualizarTotal(e.target.value === "" ? "" : Number(e.target.value), meses)}
                   onBlur={() => validateField(pregunta.fp_id, rules)}
                   className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     hasError ? "border-red-500" : "border-gray-300"
                   }`}
                 />
-                <span className="mt-0.5 block text-[11px] text-gray-500">
-                  Años
-                </span>
+                <span className="mt-0.5 block text-[11px] text-gray-500">Años</span>
               </div>
               <div className="flex-1">
                 <select
                   value={meses}
-                  onChange={(e) =>
-                    actualizarTotal(
-                      anios,
-                      e.target.value === "" ? "" : Number(e.target.value),
-                    )
-                  }
+                  onChange={(e) => actualizarTotal(anios, e.target.value === "" ? "" : Number(e.target.value))}
                   onBlur={() => validateField(pregunta.fp_id, rules)}
                   className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     hasError ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
+                  }`}>
                   <option value="">Meses</option>
                   {Array.from({ length: 12 }, (_, i) => i).map((mes) => (
                     <option key={mes} value={mes}>
@@ -402,9 +332,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                     </option>
                   ))}
                 </select>
-                <span className="mt-0.5 block text-[11px] text-gray-500">
-                  Meses
-                </span>
+                <span className="mt-0.5 block text-[11px] text-gray-500">Meses</span>
               </div>
             </div>
           );
@@ -417,9 +345,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           <input
             type="number"
             value={respuestas[pregunta.fp_id]?.valor_numero || ""}
-            onChange={(e) =>
-              handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")
-            }
+            onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")}
             onBlur={() => validateField(pregunta.fp_id, rules)}
             className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               hasError ? "border-red-500" : "border-gray-300"
@@ -431,9 +357,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         <input
           type="date"
           value={respuestas[pregunta.fp_id]?.valor_fecha || ""}
-          onChange={(e) =>
-            handleInputChange(pregunta.fp_id, e.target.value, "FECHA")
-          }
+          onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "FECHA")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
           className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
@@ -441,43 +365,38 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         />
       )}
 
-      {pregunta.fp_tipo === "DOCUMENTOS_TABLA" && (() => {
-        const preguntaFechaAsociada =
-          seccionPreguntas.find(
-            (p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id,
-          ) || null;
-        return (
-          <DocumentoTablaField
-            pregunta={pregunta}
-            respuestas={respuestas}
-            archivosExistentes={archivosExistentes}
-            documentosCatalogoMap={documentosCatalogoMap}
-            documentoClienteDisponible={
-              pregunta.fp_tipo_documento_id
-                ? documentosClienteMap[pregunta.fp_tipo_documento_id]
-                : undefined
-            }
-            readOnly={readOnly}
-            solicitudId={solicitudId}
-            hasError={hasError}
-            rules={rules}
-            preguntaFechaAsociada={preguntaFechaAsociada}
-            handleInputChange={handleInputChange}
-            setRespuestas={setRespuestas}
-            setArchivosExistentes={setArchivosExistentes}
-            setSuccessMessage={setSuccessMessage}
-            setErrorMessage={setErrorMessage}
-            validateField={validateField}
-            getArchivoPreviewUrl={getArchivoPreviewUrl}
-            getOpcionDocumentoFija={getOpcionDocumentoFija}
-            calcularVigenciaDocumento={calcularVigenciaDocumento}
-            calcularEstadoAnioDocumento={calcularEstadoAnioDocumento}
-            representanteLegal={representanteLegal}
-            clienteInfo={clienteInfo}
-            numeroSolicitud={numeroSolicitud}
-          />
-        );
-      })()}
+      {pregunta.fp_tipo === "DOCUMENTOS_TABLA" &&
+        (() => {
+          const preguntaFechaAsociada =
+            seccionPreguntas.find((p) => p.fp_tipo === "FECHA" && p.fp_pregunta_padre_id === pregunta.fp_id) || null;
+          return (
+            <DocumentoTablaField
+              pregunta={pregunta}
+              respuestas={respuestas}
+              archivosExistentes={archivosExistentes}
+              documentosCatalogoMap={documentosCatalogoMap}
+              documentoClienteDisponible={pregunta.fp_tdo_id ? documentosClienteMap[pregunta.fp_tdo_id] : undefined}
+              readOnly={readOnly}
+              solicitudId={solicitudId}
+              hasError={hasError}
+              rules={rules}
+              preguntaFechaAsociada={preguntaFechaAsociada}
+              handleInputChange={handleInputChange}
+              setRespuestas={setRespuestas}
+              setArchivosExistentes={setArchivosExistentes}
+              setSuccessMessage={setSuccessMessage}
+              setErrorMessage={setErrorMessage}
+              validateField={validateField}
+              getArchivoPreviewUrl={getArchivoPreviewUrl}
+              getOpcionDocumentoFija={getOpcionDocumentoFija}
+              calcularVigenciaDocumento={calcularVigenciaDocumento}
+              calcularEstadoAnioDocumento={calcularEstadoAnioDocumento}
+              representanteLegal={representanteLegal}
+              clienteInfo={clienteInfo}
+              numeroSolicitud={numeroSolicitud}
+            />
+          );
+        })()}
 
       {((pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo !== "CHECK") ||
         ["SELECT_CONDICIONAL", "SELECT_TABLA"].includes(pregunta.fp_tipo)) && (
@@ -485,51 +404,40 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           <SearchableSelect
             options={
               pregunta.fp_catalogo_filtro_pregunta_id
-                ? (catalogoDependienteMap?.[pregunta.fp_id] || []).map(
-                    (opcion: any) => ({
-                      id: String(opcion.op_id ?? opcion.fpo_id),
-                      label: opcion.op_descripcion ?? opcion.fpo_valor,
-                    }),
-                  )
-                : pregunta.fp_id === maestroPreguntaIds.paisId && Array.isArray(paises)
-                ? paises.map((pais: any) => ({
-                    id: String(pais.pais_id),
-                    label: pais.pais_nombre,
+                ? (catalogoDependienteMap?.[pregunta.fp_id] || []).map((opcion: any) => ({
+                    id: String(opcion.op_id ?? opcion.fpo_id),
+                    label: opcion.op_descripcion ?? opcion.fpo_valor,
                   }))
-                : pregunta.fp_id === maestroPreguntaIds.departamentoId &&
-                    Array.isArray(departamentos)
-                  ? departamentos.map((depto: any) => ({
-                      id: String(depto.depto_id),
-                      label: depto.depto_nombre,
+                : pregunta.fp_id === maestroPreguntaIds.paisId && Array.isArray(paises)
+                  ? paises.map((pais: any) => ({
+                      id: String(pais.pais_id),
+                      label: pais.pais_nombre,
                     }))
-                  : pregunta.fp_id === maestroPreguntaIds.ciudadId &&
-                      Array.isArray(ciudades)
-                    ? ciudades.map((ciudad: any) => ({
-                        id: String(ciudad.ciudad_id),
-                        label: ciudad.ciudad_nombre,
+                  : pregunta.fp_id === maestroPreguntaIds.departamentoId && Array.isArray(departamentos)
+                    ? departamentos.map((depto: any) => ({
+                        id: String(depto.depto_id),
+                        label: depto.depto_nombre,
                       }))
-                    : pregunta.opciones?.map((opcion: any) => {
-                        const id = opcion.op_id ?? opcion.fpo_id;
-                        const label =
-                          opcion.op_descripcion ?? opcion.fpo_valor;
-                        return {
-                          id: String(id),
-                          label,
-                        };
-                      }) || []
+                    : pregunta.fp_id === maestroPreguntaIds.ciudadId && Array.isArray(ciudades)
+                      ? ciudades.map((ciudad: any) => ({
+                          id: String(ciudad.ciudad_id),
+                          label: ciudad.ciudad_nombre,
+                        }))
+                      : pregunta.opciones?.map((opcion: any) => {
+                          const id = opcion.op_id ?? opcion.fpo_id;
+                          const label = opcion.op_descripcion ?? opcion.fpo_valor;
+                          return {
+                            id: String(id),
+                            label,
+                          };
+                        }) || []
             }
             value={String(
               pregunta.fp_tipo === "SELECT_TABLA"
                 ? respuestas[pregunta.fp_id]?.valor_numero || ""
-                : respuestas[pregunta.fp_id]?.valor_opcion_id || ""
+                : respuestas[pregunta.fp_id]?.valor_opcion_id || "",
             )}
-            onChange={(value) =>
-              handleInputChange(
-                pregunta.fp_id,
-                Number(value) || value,
-                pregunta.fp_tipo,
-              )
-            }
+            onChange={(value) => handleInputChange(pregunta.fp_id, Number(value) || value, pregunta.fp_tipo)}
             placeholder="Selecciona una opción"
             disabled={readOnly || isLockedPrefillField}
           />
@@ -541,8 +449,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         </>
       )}
 
-      {(pregunta.fp_tipo === "MULTISELECT" ||
-        (pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo === "CHECK")) && (
+      {(pregunta.fp_tipo === "MULTISELECT" || (pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo === "CHECK")) && (
         <div className="space-y-1 border border-gray-300 rounded p-2 text-[11px]">
           {(() => {
             const esSeleccionUnica = pregunta.fp_tipo === "SELECT";
@@ -552,7 +459,9 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
               const valorOpcionId = respuestas[pregunta.fp_id]?.valor_opcion_id;
               const opcionesSeleccionadas: number[] = Array.isArray(valorOpcionId)
                 ? valorOpcionId.map((v) => Number(v))
-                : (valorOpcionId ? [Number(valorOpcionId)] : []);
+                : valorOpcionId
+                  ? [Number(valorOpcionId)]
+                  : [];
 
               return (
                 <label key={id} className="flex items-center gap-1">
@@ -620,11 +529,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           respuestas={respuestas}
           archivosExistentes={archivosExistentes}
           documentosCatalogoMap={documentosCatalogoMap}
-          documentoClienteDisponible={
-            pregunta.fp_tipo_documento_id
-              ? documentosClienteMap[pregunta.fp_tipo_documento_id]
-              : undefined
-          }
+          documentoClienteDisponible={pregunta.fp_tdo_id ? documentosClienteMap[pregunta.fp_tdo_id] : undefined}
           errors={errors}
           readOnly={readOnly}
           solicitudId={solicitudId}
@@ -660,39 +565,33 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         />
       )}
 
-      {isPrefilledField &&
-        ["TEXTO", "SELECT", "SELECT_CONDICIONAL", "SELECT_TABLA"].includes(
-          pregunta.fp_tipo,
-        ) && (
-          <p className="mt-1 text-[11px] text-sky-700 font-medium">
-            {prefillSourceByFieldId[pregunta.fp_id] === "ultimoFormulario"
-              ? "Precargado desde el ultimo formulario diligenciado"
-              : "Precargado desde datos del cliente"}
-          </p>
-        )}
+      {isPrefilledField && ["TEXTO", "SELECT", "SELECT_CONDICIONAL", "SELECT_TABLA"].includes(pregunta.fp_tipo) && (
+        <p className="mt-1 text-[11px] text-sky-700 font-medium">
+          {prefillSourceByFieldId[pregunta.fp_id] === "ultimoFormulario"
+            ? "Precargado desde el ultimo formulario diligenciado"
+            : "Precargado desde datos del cliente"}
+        </p>
+      )}
 
-      {pregunta.fp_tipo === "SELECT_CONDICIONAL" &&
-        shouldShowConditionalField(pregunta) && (
-          <div className="mt-1 p-2 bg-blue-50 rounded border border-blue-200">
-            <label className="block text-[11px] font-medium mb-1">
-              {pregunta.fp_descripcion_adicional}
-            </label>
-            <input
-              type="text"
-              value={respuestas[pregunta.fp_id]?.valor_texto || ""}
-              onChange={(e) =>
-                setRespuestas((prev: any) => ({
-                  ...prev,
-                  [pregunta.fp_id]: {
-                    ...prev[pregunta.fp_id],
-                    valor_texto: e.target.value,
-                  },
-                }))
-              }
-              className="w-full border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        )}
+      {pregunta.fp_tipo === "SELECT_CONDICIONAL" && shouldShowConditionalField(pregunta) && (
+        <div className="mt-1 p-2 bg-blue-50 rounded border border-blue-200">
+          <label className="block text-[11px] font-medium mb-1">{pregunta.fp_descripcion_adicional}</label>
+          <input
+            type="text"
+            value={respuestas[pregunta.fp_id]?.valor_texto || ""}
+            onChange={(e) =>
+              setRespuestas((prev: any) => ({
+                ...prev,
+                [pregunta.fp_id]: {
+                  ...prev[pregunta.fp_id],
+                  valor_texto: e.target.value,
+                },
+              }))
+            }
+            className="w-full border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      )}
 
       {!readOnly && hasError && (
         <div className="flex items-center gap-1 text-red-500 text-[11px] mt-1">

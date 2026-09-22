@@ -1,21 +1,19 @@
 "use client";
 import { solicitudesService } from "@/services/solicitudes.service";
-import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
-import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
-import { ESTADOS } from "@/lib/workflow-labels";
-import { ESTADO_TOKENS } from "@/constants/estado-tokens";
+import { SolicitudInfoBlock } from "@/components/solicitudes/SolicitudInfoBlock";
+import { EtapasPreviasBlock } from "@/components/solicitudes/EtapasPreviasBlock";
+import { DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
-import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import { ArrowLeft, CheckCircle2, FileText, DollarSign, Package, MessageSquare, CreditCard } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, DollarSign, Package, MessageSquare } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_cli_id: number;
   cliente_nombre: string;
   cliente_nit?: string | null;
@@ -27,7 +25,6 @@ interface Solicitud {
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_fecha_creacion: string;
-  sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
   cliente_consumo_mensual_proyectado?: number | null;
@@ -41,7 +38,6 @@ interface Solicitud {
   usuario_revision?: string;
   fecha_revision?: string;
   fecha_creacion?: string;
-  fecha_estimada_respuesta_comercial?: string | null;
   consumo_mensual_proyectado?: number | null;
   sa_sol_id?: number;
   numero_solicitud?: string;
@@ -66,7 +62,6 @@ export default function RegistrarConceptoPage() {
 
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
-  const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
   const [registro, setRegistro] = useState<RegistroState>({
     consumoMensual: null,
     consumoMensualDisplay: "",
@@ -78,14 +73,7 @@ export default function RegistrarConceptoPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const {
-    loading: loadingCupo,
-    solicitaCredito,
-    montoSolicitadoTexto,
-    formaPagoSolicitada,
-    tipoSolicitud,
-  } = useSolicitudCupoSolicitado(solicitudId);
-
+  const { historial } = useHistorialWorkflow(solicitudId);
   useEffect(() => {
     let cancelled = false;
 
@@ -198,14 +186,11 @@ export default function RegistrarConceptoPage() {
     try {
       setRegistro((prev) => ({ ...prev, guardando: true }));
 
-      const ahora = new Date().toISOString();
-
       await solicitudesService.guardarGestionEjecutivo(solicitud.sol_id ?? solicitud.sa_sol_id!, {
         consumo_mensual_proyectado: registro.consumoMensual,
         toneladas_proyectadas: registro.toneladasProyectadas,
         observacionesComercial: registro.observaciones,
         usuario_modifica: usuarioId,
-        fecha_real_ejecutivo: ahora,
       });
 
       setShowConfirmModal(false);
@@ -219,8 +204,7 @@ export default function RegistrarConceptoPage() {
     }
   };
 
-  const estadoId = solicitud?.sol_ses_id ?? solicitud?.estado_id ?? 1;
-  const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
+  const fechaEstimada = (solicitud as any)?.sol_fecha_est_gest_ejn;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a]">
@@ -243,12 +227,23 @@ export default function RegistrarConceptoPage() {
               {solicitud && (
                 <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
                   Solicitud{" "}
-                  <span className="font-bold text-white">
-                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
-                  </span>
+                  <span className="font-bold text-white">{solicitud.sol_numero || solicitud.numero_solicitud}</span>
                 </p>
               )}
             </div>
+            {fechaEstimada && (
+              <div className="ml-auto flex-shrink-0 bg-white/[0.14] border border-white/[0.18] rounded-2xl px-5 py-2.5 text-right">
+                <p className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#c3d5f5] m-0 mb-1">
+                  Fecha estimada respuesta
+                </p>
+                <div className="flex items-center justify-end gap-2.5">
+                  <p className="text-[17px] font-extrabold text-white m-0 leading-none">
+                    {new Date(fechaEstimada).toLocaleDateString("es-CO")}
+                  </p>
+                  <DiasRestantesBadge fecha={fechaEstimada} />
+                </div>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -269,157 +264,74 @@ export default function RegistrarConceptoPage() {
           ) : (
             <>
               {/* Info block */}
-              <div className="px-7 py-[26px] border-b border-[#eef1f6]">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Cliente</p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
-                    {solicitud.cliente_nit && (
-                      <p className="text-[11.5px] text-[#94a3b8] mt-0.5">NIT {solicitud.cliente_nit}</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Estado</p>
-                    <span
-                      className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
-                      {ESTADOS[estadoId] || "Desconocido"}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Tipo de Solicitud
-                    </p>
-                    {solicitud.sol_cupo_solicitado ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full text-emerald-800 bg-emerald-100">
-                        Ampliación de Cupo
-                      </span>
-                    ) : loadingCupo ? (
-                      <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full ${
-                          tipoSolicitud === "Ampliación de Cupo"
-                            ? "text-emerald-800 bg-emerald-100"
-                            : "text-blue-800 bg-blue-100"
-                        }`}>
-                        {tipoSolicitud || "Cliente Nuevo"}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              <SolicitudInfoBlock solicitud={solicitud} fechaEstimada={fechaEstimada} />
 
-                {/* Solicita Cupo — el dato que más pesa en esta gestión, por
-                    eso destacado aparte del grid y no como una celda más */}
-                {solicitud.sol_cupo_solicitado ? (
-                  <div className="mt-[22px]">
-                    <AmpliacionCupoResumen
-                      cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
-                      cupoSolicitado={solicitud.sol_cupo_solicitado}
-                      justificacion={solicitud.sol_justificacion_ampliacion}
-                      consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
-                      toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="rounded-2xl p-5 border mt-[22px]"
-                    style={{
-                      borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
-                      background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
-                    }}>
-                    <div className="flex items-center gap-[9px] mb-2.5">
-                      <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                        <CreditCard
-                          size={14}
-                          strokeWidth={2.2}
-                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                        />
-                      </div>
-                      <span
-                        className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
-                        style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}>
-                        Solicita cupo de crédito
-                      </span>
-                    </div>
-                    {loadingCupo ? (
-                      <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
-                    ) : solicitaCredito ? (
-                      <div className="flex items-baseline gap-2.5 flex-wrap">
-                        <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
-                          {montoSolicitadoTexto || "Monto no especificado"}
-                        </span>
-                        {formaPagoSolicitada && (
-                          <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
-                            {formaPagoSolicitada}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
-                    )}
-                  </div>
-                )}
-              </div>
+              {/* Etapas previas */}
+              <EtapasPreviasBlock
+                solicitud={solicitud}
+                historial={historial}
+                etapaActual="EJN"
+              />
 
               {/* Cuerpo: registro + historial abajo */}
-              <div className="grid grid-cols-1 gap-6 p-7">
+              <div className="grid grid-cols-1 gap-5 px-7 pt-4 pb-7">
                 <div className="min-w-0">
-                  <h2 className="text-base font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
+                  <h2 className="text-base font-extrabold text-[#0f172a] mb-3 flex items-center gap-[9px] tracking-[-0.01em]">
                     <div className="w-[30px] h-[30px] rounded-[9px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 size={16} strokeWidth={2.2} className="text-brand-600" />
                     </div>
                     Registrar Concepto
                   </h2>
 
-                  <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-                    {/* Consumo Mensual Proyectado */}
-                    <div>
-                      <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
-                        <DollarSign size={15} strokeWidth={2} className="text-brand-600" />
-                        Consumo Mensual Proyectado (COP) <span className="text-[#dc2626]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={registro.consumoMensualDisplay}
-                        onChange={handleConsumoChange}
-                        placeholder="Ej: 5.000.000"
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
-                      />
-                      {solicitud.cliente_consumo_mensual_proyectado != null && (
-                        <p className="mt-1.5 text-[11.5px] text-[#94a3b8]">
-                          El cliente declaró en el formulario: $
-                          {solicitud.cliente_consumo_mensual_proyectado.toLocaleString("es-CO")}
-                        </p>
-                      )}
-                    </div>
+                  <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 grid grid-cols-1 md:grid-cols-2 gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-[18px] md:col-span-2">
+                      {/* Consumo Mensual Proyectado */}
+                      <div>
+                        <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                          <DollarSign size={15} strokeWidth={2} className="text-brand-600" />
+                          Consumo Mensual Proyectado (COP) <span className="text-[#dc2626]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={registro.consumoMensualDisplay}
+                          onChange={handleConsumoChange}
+                          placeholder="Ej: 5.000.000"
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
+                        />
+                        {solicitud.cliente_consumo_mensual_proyectado != null && (
+                          <p className="mt-1.5 text-[11.5px] text-[#94a3b8]">
+                            El cliente declaró en el formulario: $
+                            {solicitud.cliente_consumo_mensual_proyectado.toLocaleString("es-CO")}
+                          </p>
+                        )}
+                      </div>
 
-                    {/* Toneladas Mensuales Proyectadas */}
-                    <div>
-                      <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
-                        <Package size={15} strokeWidth={2} className="text-brand-600" />
-                        Toneladas Mensuales Proyectadas <span className="text-[#dc2626]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={registro.toneladasProyectadasDisplay}
-                        onChange={handleToneladasChange}
-                        placeholder="Ej: 500"
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
-                      />
-                      {solicitud.cliente_toneladas_proyectadas != null && (
-                        <p className="mt-1.5 text-[11.5px] text-[#94a3b8]">
-                          El cliente declaró en el formulario:{" "}
-                          {solicitud.cliente_toneladas_proyectadas.toLocaleString("es-CO")} toneladas
-                        </p>
-                      )}
+                      {/* Toneladas Mensuales Proyectadas */}
+                      <div>
+                        <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                          <Package size={15} strokeWidth={2} className="text-brand-600" />
+                          Toneladas Mensuales Proyectadas <span className="text-[#dc2626]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={registro.toneladasProyectadasDisplay}
+                          onChange={handleToneladasChange}
+                          placeholder="Ej: 500"
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
+                        />
+                        {solicitud.cliente_toneladas_proyectadas != null && (
+                          <p className="mt-1.5 text-[11.5px] text-[#94a3b8]">
+                            El cliente declaró en el formulario:{" "}
+                            {solicitud.cliente_toneladas_proyectadas.toLocaleString("es-CO")} toneladas
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Observaciones */}
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
                         <MessageSquare size={15} strokeWidth={2} className="text-brand-600" />
                         Observaciones <span className="text-[#dc2626]">*</span>
@@ -439,7 +351,7 @@ export default function RegistrarConceptoPage() {
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="flex gap-2.5">
+                    <div className="flex w-full justify-center gap-2.5 md:col-span-2">
                       <button
                         onClick={handleGuardarConcepto}
                         disabled={
@@ -448,14 +360,8 @@ export default function RegistrarConceptoPage() {
                           !registro.observaciones.trim() ||
                           registro.guardando
                         }
-                        className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+                        className="min-w-[180px] flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] px-5 py-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                         {registro.guardando ? "Guardando..." : "Guardar Concepto"}
-                      </button>
-                      <button
-                        onClick={() => router.back()}
-                        disabled={registro.guardando}
-                        className="bg-white text-[#475569] border-[1.5px] border-[#dfe5ee] rounded-[11px] px-[18px] py-3 text-[13.5px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-                        Cancelar
                       </button>
                     </div>
                   </div>
@@ -463,11 +369,6 @@ export default function RegistrarConceptoPage() {
                   <div className="mt-[18px]">
                     <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
                   </div>
-                </div>
-
-                <div className="min-w-0">
-                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">Historial de la solicitud</h2>
-                  <HistorialSolicitud historial={historialWorkflow} />
                 </div>
               </div>
             </>

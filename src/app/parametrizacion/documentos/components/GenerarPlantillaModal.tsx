@@ -62,13 +62,9 @@ export function GenerarPlantillaModal({
   piePaginaImagenUrl,
 }: Props) {
   const [mounted, setMounted] = useState(false);
-  const [clientes, setClientes] = useState<
-    { id: number; label: string; nit?: string }[]
-  >([]);
+  const [clientes, setClientes] = useState<{ id: number; label: string; nit?: string }[]>([]);
   const [clienteId, setClienteId] = useState<number | "">("");
-  const [solicitudes, setSolicitudes] = useState<
-    { id: number; label: string; numero: string }[]
-  >([]);
+  const [solicitudes, setSolicitudes] = useState<{ id: number; label: string; numero: string }[]>([]);
   const [solicitudId, setSolicitudId] = useState<number | "">("");
   const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
   const [generando, setGenerando] = useState(false);
@@ -113,8 +109,8 @@ export function GenerarPlantillaModal({
         setSolicitudes(
           (Array.isArray(data) ? data : []).map((s) => ({
             id: s.sol_id,
-            numero: s.sol_numero_solicitud,
-            label: `${s.sol_numero_solicitud} — ${s.etapa_nombre || s.resultado_nombre || ""}`,
+            numero: s.sol_numero,
+            label: `${s.sol_numero} — ${s.etapa_nombre || s.resultado_nombre || ""}`,
           })),
         ),
       )
@@ -136,14 +132,8 @@ export function GenerarPlantillaModal({
     setError("");
     try {
       if (tipoPlantilla === "PDF_SOLICITUD") {
-        const blob = await solicitudesService.downloadPdf(
-          solicitudSeleccionada.id,
-          tipoDocumentoId,
-        );
-        descargarPdfBlob(
-          blob,
-          construirNombreDescargaPdf(tdoNombre, clienteSeleccionado.label),
-        );
+        const blob = await solicitudesService.downloadPdf(solicitudSeleccionada.id, tipoDocumentoId);
+        descargarPdfBlob(blob, construirNombreDescargaPdf(tdoNombre, clienteSeleccionado.label));
         onClose();
         return;
       }
@@ -153,29 +143,20 @@ export function GenerarPlantillaModal({
       let representanteLegalCedula: string | undefined;
 
       if (/\{\{pregunta\|/.test(tdoPlantillaContenido)) {
-        const renderizable = await solicitudesService.getFormularioRenderizable(
-          solicitudSeleccionada.id,
-        );
-        respuestasPregunta = construirMapaRespuestasPregunta(
-          renderizable.preguntas,
-        );
+        const renderizable = await solicitudesService.getFormularioRenderizable(solicitudSeleccionada.id);
+        respuestasPregunta = construirMapaRespuestasPregunta(renderizable.preguntas);
 
         // Mismo criterio que SolicitudFormContent.tsx: ancla preferida
         // fp_codigo REP_LEGAL_TABLA, fallback por descripción.
         const preguntaRepLegal =
+          renderizable.preguntas.find((p: any) => p.fp_tipo === "TABLA" && p.fp_codigo === "REP_LEGAL_TABLA") ||
           renderizable.preguntas.find(
-            (p: any) => p.fp_tipo === "TABLA" && p.fp_codigo === "REP_LEGAL_TABLA",
-          ) ||
-          renderizable.preguntas.find(
-            (p: any) =>
-              p.fp_tipo === "TABLA" && /repres.*legal/i.test(p.fp_descripcion || ""),
+            (p: any) => p.fp_tipo === "TABLA" && /repres.*legal/i.test(p.fp_descripcion || ""),
           );
         const primeraFila = preguntaRepLegal?.tabla_filas?.[0];
         if (primeraFila) {
-          representanteLegalNombre =
-            primeraFila["Apellidos y Nombre"] || primeraFila["Nombre"] || "";
-          representanteLegalCedula =
-            primeraFila["Identificacion"] || primeraFila["Identificación"] || "";
+          representanteLegalNombre = primeraFila["Apellidos y Nombre"] || primeraFila["Nombre"] || "";
+          representanteLegalCedula = primeraFila["Identificacion"] || primeraFila["Identificación"] || "";
         }
       }
 
@@ -187,9 +168,7 @@ export function GenerarPlantillaModal({
       // valores fijos como base, este objeto solo los complementa/sustituye.
       let reemplazosDinamicos: Record<string, string> = {};
       try {
-        reemplazosDinamicos = await variablesPlantillaService.resolverParaSolicitud(
-          solicitudSeleccionada.id,
-        );
+        reemplazosDinamicos = await variablesPlantillaService.resolverParaSolicitud(solicitudSeleccionada.id);
       } catch (err) {
         console.error("Error resolviendo variables con mapeo automático:", err);
       }
@@ -237,11 +216,7 @@ export function GenerarPlantillaModal({
       onClose();
     } catch (err) {
       console.error("Error generando vista previa:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error generando la vista previa de la plantilla.",
-      );
+      setError(err instanceof Error ? err.message : "Error generando la vista previa de la plantilla.");
     } finally {
       setGenerando(false);
     }
@@ -251,29 +226,20 @@ export function GenerarPlantillaModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-900">
-            Generar vista previa de la plantilla
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
-          >
+          <h2 className="text-sm font-bold text-slate-900">Generar vista previa de la plantilla</h2>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={18} />
           </button>
         </div>
 
         <p className="mb-4 text-xs text-slate-500">
-          Elegí un cliente y una de sus solicitudes ya registradas — se genera
-          el PDF con los datos reales de esa solicitud, igual que lo vería el
-          cliente al descargar la plantilla desde su formulario.
+          Elegí un cliente y una de sus solicitudes ya registradas — se genera el PDF con los datos reales de esa
+          solicitud, igual que lo vería el cliente al descargar la plantilla desde su formulario.
         </p>
 
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-700">
-              Cliente
-            </label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Cliente</label>
             <SearchableSelect
               options={clientes.map((c) => ({ id: c.id, label: c.label }))}
               value={clienteId}
@@ -284,9 +250,7 @@ export function GenerarPlantillaModal({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-700">
-              Número de solicitud
-            </label>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">Número de solicitud</label>
             <SearchableSelect
               options={solicitudes.map((s) => ({ id: s.id, label: s.label }))}
               value={solicitudId}
@@ -311,8 +275,7 @@ export function GenerarPlantillaModal({
             type="button"
             onClick={handleGenerar}
             disabled={!clienteId || !solicitudId || generando}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">
             <FileDown size={14} />
             {generando ? "Generando..." : "Generar PDF"}
           </button>
@@ -320,8 +283,7 @@ export function GenerarPlantillaModal({
             type="button"
             onClick={onClose}
             disabled={generando}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-          >
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50">
             Cancelar
           </button>
         </div>

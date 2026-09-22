@@ -2,16 +2,12 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FileText, Upload, Trash2, Download, Search, RefreshCw } from "lucide-react";
+import { FileText, RefreshCw, Search, Trash2, Upload } from "lucide-react";
 import { PdfIcon } from "@/components/icons/FileIcons";
 import { AuthContext } from "@/context/AuthContext";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { cachedRequest } from "@/services/core/requestCache";
-import {
-  misDocumentosService,
-  type MiDocumento,
-  type MisDocumentosResponse,
-} from "@/services/mis-documentos.service";
+import { misDocumentosService, type MiDocumento, type MisDocumentosResponse } from "@/services/mis-documentos.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import {
   calcularVigenciaDocumento,
@@ -19,47 +15,22 @@ import {
   documentoRequiereFechaEmision,
   getArchivoPreviewUrl,
 } from "@/lib/documentos-vigencia.util";
-import {
-  generarPlantillaDocumentoPdf,
-  construirMapaRespuestasPregunta,
-  construirNombreDescargaPdf,
-  descargarPdfBlob,
-} from "@/lib/carta-pdf.util";
-import { solicitudesService } from "@/services/solicitudes.service";
-import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { ConfirmModal, LoadingModal, SuccessModal } from "@/components/modals";
+import { useUpload } from "@/context/UploadContext";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Th, Td } from "@/components/tables/TableCell";
 import { Tr } from "@/components/tables/TableRow";
-
-async function abrirPdfSolicitud(
-  solicitudId: number,
-  nombreDocumento: string,
-  clienteNombre?: string | null,
-  tdoId?: number | null,
-) {
-  const blob = await solicitudesService.downloadPdf(solicitudId, tdoId);
-  descargarPdfBlob(
-    blob,
-    construirNombreDescargaPdf(nombreDocumento, clienteNombre),
-  );
-}
 
 function requiereFecha(doc: MiDocumento) {
   return documentoRequiereFechaEmision(doc);
 }
 
 function getEstadoVigencia(doc: MiDocumento) {
-  const fecha = doc.sd_fecha_emision
-    ? doc.sd_fecha_emision.split("T")[0]
-    : undefined;
+  const fecha = doc.sd_fecha_emision ? doc.sd_fecha_emision.split("T")[0] : undefined;
 
   if (doc.tdo_regla_vigencia === "ANIO") {
-    const estado = calcularEstadoAnioDocumento(
-      fecha,
-      doc.tdo_anios_atras_permitidos,
-    );
+    const estado = calcularEstadoAnioDocumento(fecha, doc.tdo_anios_atras_permitidos);
     if (!estado)
       return {
         estado: "Sin fecha",
@@ -152,9 +123,13 @@ export default function MisDocumentosPage() {
   const solicitudIdParam = searchParams.get("solicitudId");
   const modoStaff = Boolean(solicitudIdParam);
   const esCliente =
-    String(user?.rol?.nombre || "").toUpperCase().trim() === "CLIENTE";
+    String(user?.rol?.nombre || "")
+      .toUpperCase()
+      .trim() === "CLIENTE";
   const esEjecutivo =
-    String(user?.rol?.nombre || "").toUpperCase().trim() === "EJECUTIVO";
+    String(user?.rol?.nombre || "")
+      .toUpperCase()
+      .trim() === "EJECUTIVO";
 
   // Personal interno que entra sin solicitudId (ej. desde el menú, no desde
   // corregir-formulario-asc) no tiene cliente_id propio — antes esto
@@ -162,43 +137,28 @@ export default function MisDocumentosPage() {
   // cliente y se le muestra la última solicitud de ese cliente, mismo
   // patrón que el selector de /solicitudes/nueva.
   const [clientes, setClientes] = useState<ClienteOpcion[]>([]);
-  const [clienteSeleccionado, setClienteSeleccionado] =
-    useState<ClienteOpcion | null>(null);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteOpcion | null>(null);
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [mostrarListaClientes, setMostrarListaClientes] = useState(false);
   const clienteSelectorRef = useRef<HTMLDivElement>(null);
-  const debeElegirCliente =
-    !authLoading && !esCliente && !modoStaff && !clienteSeleccionado;
+  const debeElegirCliente = !authLoading && !esCliente && !modoStaff && !clienteSeleccionado;
 
   const [loading, setLoading] = useState(true);
-  const [solicitud, setSolicitud] =
-    useState<MisDocumentosResponse["solicitud"]>(null);
+  const [solicitud, setSolicitud] = useState<MisDocumentosResponse["solicitud"]>(null);
   const [documentos, setDocumentos] = useState<MiDocumento[]>([]);
   const [puedeCorregir, setPuedeCorregir] = useState(false);
   const [rechazadoPorAuxiliar, setRechazadoPorAuxiliar] = useState(false);
-  const [representanteLegal, setRepresentanteLegal] = useState<{
-    nombre: string;
-    identificacion: string;
-  } | null>(null);
-  const [generandoPlantillaId, setGenerandoPlantillaId] = useState<
-    number | null
-  >(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [confirmEliminar, setConfirmEliminar] = useState<MiDocumento | null>(
-    null,
-  );
+  const [confirmEliminar, setConfirmEliminar] = useState<MiDocumento | null>(null);
   // Las fechas de emisión se acumulan en edición y solo se guardan al
   // presionar "Actualizar e informar a Cartonera". Los archivos, en cambio,
   // se suben de inmediato al seleccionarlos (ver handleSeleccionarArchivo) —
   // por eso `huboSubidaSesion` marca que hubo al menos una subida desde la
   // última vez que se informó a Cartonera, para no desactivar el botón.
-  const [pendingFechas, setPendingFechas] = useState<Record<number, string>>(
-    {},
-  );
-  const [uploadingSaId, setUploadingSaId] = useState<number | null>(null);
+  const [pendingFechas, setPendingFechas] = useState<Record<number, string>>({});
+  const { startLoading, showSuccess, showError } = useUpload();
   const [huboSubidaSesion, setHuboSubidaSesion] = useState(false);
-  const huboCambios =
-    Object.keys(pendingFechas).length > 0 || huboSubidaSesion;
+  const huboCambios = Object.keys(pendingFechas).length > 0 || huboSubidaSesion;
   const [enviando, setEnviando] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [busquedaInput, setBusquedaInput] = useState("");
@@ -207,8 +167,7 @@ export default function MisDocumentosPage() {
     ? documentos.filter((doc) => {
         const termino = busqueda.trim().toLowerCase();
         return (
-          doc.tdo_nombre?.toLowerCase().includes(termino) ||
-          doc.sa_nombre_original?.toLowerCase().includes(termino)
+          doc.tdo_nombre?.toLowerCase().includes(termino) || doc.sa_nombre_original?.toLowerCase().includes(termino)
         );
       })
     : documentos;
@@ -249,9 +208,7 @@ export default function MisDocumentosPage() {
   // listado-de-solicitudes y solicitudes/nueva.
   useEffect(() => {
     if (authLoading || esCliente || modoStaff) return;
-    cachedRequest("listado-solicitudes-clientes", () =>
-      clientesService.getAll(),
-    )
+    cachedRequest("listado-solicitudes-clientes", () => clientesService.getAll())
       .then((data: any) => {
         const mapeados = Array.isArray(data)
           ? data.map((item: any) => ({
@@ -270,10 +227,7 @@ export default function MisDocumentosPage() {
   useEffect(() => {
     if (!mostrarListaClientes) return;
     function handleClickOutside(event: MouseEvent) {
-      if (
-        clienteSelectorRef.current &&
-        !clienteSelectorRef.current.contains(event.target as Node)
-      ) {
+      if (clienteSelectorRef.current && !clienteSelectorRef.current.contains(event.target as Node)) {
         setMostrarListaClientes(false);
       }
     }
@@ -282,142 +236,32 @@ export default function MisDocumentosPage() {
   }, [mostrarListaClientes]);
 
   const clientesFiltrados = clientes
-    .filter((c) =>
-      esEjecutivo && user?.ejng_id ? c.ejng_id === user.ejng_id : true,
-    )
-    .filter((c) =>
-      busquedaCliente
-        ? c.cli_razon_social.toLowerCase().includes(busquedaCliente.toLowerCase())
-        : true,
-    );
+    .filter((c) => (esEjecutivo && user?.ejng_id ? c.ejng_id === user.ejng_id : true))
+    .filter((c) => (busquedaCliente ? c.cli_razon_social.toLowerCase().includes(busquedaCliente.toLowerCase()) : true));
 
   const handleSeleccionarArchivo = async (doc: MiDocumento, file: File) => {
     if (!solicitud) return;
-    setUploadingSaId(doc.sa_id);
+    startLoading("Subiendo archivo...");
     try {
       await formularioRespuestasService.guardarArchivoRespuesta(
         solicitud.sol_id,
         doc.fp_id,
         file,
-        pendingFechas[doc.sa_id] ??
-          (doc.sd_fecha_emision
-            ? doc.sd_fecha_emision.split("T")[0]
-            : undefined),
+        pendingFechas[doc.sa_id] ?? (doc.sd_fecha_emision ? doc.sd_fecha_emision.split("T")[0] : undefined),
       );
       setHuboSubidaSesion(true);
+      showSuccess({
+        title: "Archivo cargado",
+        message: `"${doc.tdo_nombre || doc.sa_nombre_original}" quedó listo para continuar.`,
+      });
       await cargar();
     } catch (error) {
       console.error("[MisDocumentosPage] Error subiendo archivo:", error);
-      setErrorMessage(
-        `No se pudo subir el nuevo archivo de "${doc.tdo_nombre || doc.sa_nombre_original}".`,
-      );
-    } finally {
-      setUploadingSaId(null);
-    }
-  };
-
-  // El representante legal solo hace falta para las plantillas de tipo TEXTO
-  // (para rellenar {{representante_legal_nombre}}, etc). Se pide bajo demanda
-  // justo antes de generar una de esas plantillas, no en la carga inicial de
-  // la página — requiere reconstruir el formulario completo en el backend,
-  // que es la parte más lenta, y las de tipo PDF_SOLICITUD ni lo necesitan.
-  const obtenerRepresentanteLegal = async (solicitudId: number) => {
-    if (representanteLegal) return representanteLegal;
-    try {
-      const data = await misDocumentosService.getRepresentanteLegal(solicitudId);
-      setRepresentanteLegal(data);
-      return data;
-    } catch (error) {
-      console.error(
-        "[MisDocumentosPage] Error obteniendo representante legal:",
-        error,
-      );
-      return null;
-    }
-  };
-
-  // Historial de revisiones ("CONTROL DE CAMBIOS") del tipo de documento,
-  // ya formateado para el generador de PDF — mismo criterio que
-  // DocumentoTablaField.tsx al diligenciar el formulario.
-  const obtenerRevisionesPdf = async (tdoId: number | null | undefined) => {
-    if (!tdoId) return [];
-    try {
-      const revs = await documentosService.getRevisiones(tdoId);
-      return revs.map((r) => ({
-        revision: r.revision,
-        descripcionCambio: r.descripcionCambio,
-        fecha: new Date(`${r.fecha}T00:00:00`).toLocaleDateString("es-CO", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      }));
-    } catch (error) {
-      console.error(
-        "[MisDocumentosPage] Error cargando historial de revisiones:",
-        error,
-      );
-      return [];
-    }
-  };
-
-  const handleGenerarPlantillaDocumento = async (doc: MiDocumento) => {
-    if (!solicitud) return;
-    if (doc.tdo_tipo_plantilla !== "PDF_SOLICITUD" && !doc.tdo_plantilla_contenido) return;
-    try {
-      setGenerandoPlantillaId(doc.sa_id);
-      if (doc.tdo_tipo_plantilla === "PDF_SOLICITUD") {
-        await abrirPdfSolicitud(
-          solicitud.sol_id,
-          doc.tdo_nombre || doc.sa_nombre_original,
-          solicitud.cliente_nombre,
-          doc.tdo_id,
-        );
-      } else {
-        const repLegal = await obtenerRepresentanteLegal(solicitud.sol_id);
-        let respuestasPregunta: Record<string, string> | undefined;
-        if (/\{\{pregunta\|/.test(doc.tdo_plantilla_contenido!)) {
-          const renderizable = await solicitudesService.getFormularioRenderizable(
-            solicitud.sol_id,
-          );
-          respuestasPregunta = construirMapaRespuestasPregunta(
-            renderizable.preguntas,
-          );
-        }
-        await generarPlantillaDocumentoPdf({
-          tdoNombre: doc.tdo_nombre || doc.sa_nombre_original,
-          tdoPlantillaContenido: doc.tdo_plantilla_contenido!,
-          clienteNombre: solicitud.cliente_nombre,
-          clienteNit: solicitud.cliente_nit,
-          numeroSolicitud: solicitud.sol_numero_solicitud,
-          representanteLegalNombre: repLegal?.nombre,
-          representanteLegalCedula: repLegal?.identificacion,
-          formatoCodigo: doc.tdo_formato_codigo,
-          formatoCodigoSecundario: doc.tdo_formato_codigo_secundario,
-          revision: doc.tdo_revision,
-          paginasTotal: doc.tdo_paginas_total,
-          respuestasPregunta,
-          revisiones: await obtenerRevisionesPdf(doc.tdo_id),
-          encabezadoTipo: doc.tdo_encabezado_tipo,
-          encabezadoImagenUrl: doc.tdo_encabezado_imagen_url,
-          piePaginaTipo: doc.tdo_pie_pagina_tipo,
-          piePaginaTexto: doc.tdo_pie_pagina_texto,
-          piePaginaImagenUrl: doc.tdo_pie_pagina_imagen_url,
-        });
-      }
-    } catch (error) {
-      console.error("[MisDocumentosPage] Error generando plantilla:", error);
-      // generarPlantillaDocumentoPdf lanza un Error con detalle específico
-      // cuando una variable de la plantilla ({{pregunta|...}}) no resuelve
-      // (pregunta renombrada/eliminada) — mostrarlo tal cual en vez de un
-      // genérico ayuda a diagnosticar sin tener que ver la consola.
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : `No se pudo generar la plantilla de "${doc.tdo_nombre}".`,
-      );
-    } finally {
-      setGenerandoPlantillaId(null);
+      setErrorMessage(`No se pudo subir el nuevo archivo de "${doc.tdo_nombre || doc.sa_nombre_original}".`);
+      showError({
+        title: "No se pudo subir el archivo",
+        message: `No se pudo subir el nuevo archivo de "${doc.tdo_nombre || doc.sa_nombre_original}".`,
+      });
     }
   };
 
@@ -432,21 +276,14 @@ export default function MisDocumentosPage() {
     if (!solicitud) return;
     setPendingFechas((prev) => ({ ...prev, [doc.sa_id]: fecha }));
     try {
-      await formularioRespuestasService.actualizarFechaDocumento(
-        solicitud.sol_id,
-        doc.fp_id,
-        fecha,
-      );
+      await formularioRespuestasService.actualizarFechaDocumento(solicitud.sol_id, doc.fp_id, fecha);
       setPendingFechas((prev) => {
         const { [doc.sa_id]: _omit, ...resto } = prev;
         return resto;
       });
       await cargar();
     } catch (error) {
-      console.error(
-        "[MisDocumentosPage] Error guardando fecha de emisión:",
-        error,
-      );
+      console.error("[MisDocumentosPage] Error guardando fecha de emisión:", error);
       setErrorMessage("No se pudo guardar la fecha de emisión.");
     }
   };
@@ -459,11 +296,7 @@ export default function MisDocumentosPage() {
       for (const doc of documentos) {
         const fecha = pendingFechas[doc.sa_id];
         if (fecha) {
-          await formularioRespuestasService.actualizarFechaDocumento(
-            solicitud.sol_id,
-            doc.fp_id,
-            fecha,
-          );
+          await formularioRespuestasService.actualizarFechaDocumento(solicitud.sol_id, doc.fp_id, fecha);
         }
       }
 
@@ -474,10 +307,7 @@ export default function MisDocumentosPage() {
       setShowSuccessModal(true);
       await cargar();
     } catch (error) {
-      console.error(
-        "[MisDocumentosPage] Error actualizando e informando:",
-        error,
-      );
+      console.error("[MisDocumentosPage] Error actualizando e informando:", error);
       setErrorMessage("No se pudo actualizar e informar a Cartonera.");
     } finally {
       setEnviando(false);
@@ -487,10 +317,7 @@ export default function MisDocumentosPage() {
   const handleEliminar = async () => {
     if (!solicitud || !confirmEliminar) return;
     try {
-      await formularioRespuestasService.eliminarArchivoRespuesta(
-        solicitud.sol_id,
-        confirmEliminar.sa_id,
-      );
+      await formularioRespuestasService.eliminarArchivoRespuesta(solicitud.sol_id, confirmEliminar.sa_id);
       setConfirmEliminar(null);
       await cargar();
     } catch (error) {
@@ -514,9 +341,7 @@ export default function MisDocumentosPage() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 flex flex-col items-center">
             <div className="w-full max-w-md" ref={clienteSelectorRef}>
               <Search className="h-10 w-10 text-brand-600 mx-auto mb-4" />
-              <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">
-                ¿De qué cliente son los documentos?
-              </h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">¿De qué cliente son los documentos?</h2>
               <div className="relative">
                 <input
                   type="text"
@@ -532,9 +357,7 @@ export default function MisDocumentosPage() {
                 {mostrarListaClientes && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
                     {clientesFiltrados.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-500">
-                        Sin resultados
-                      </div>
+                      <div className="px-3 py-2 text-sm text-gray-500">Sin resultados</div>
                     ) : (
                       clientesFiltrados.map((cliente) => (
                         <div
@@ -544,8 +367,7 @@ export default function MisDocumentosPage() {
                             setBusquedaCliente(cliente.cli_razon_social);
                             setMostrarListaClientes(false);
                           }}
-                          className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100"
-                        >
+                          className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b border-gray-100">
                           {cliente.cli_razon_social}
                         </div>
                       ))
@@ -566,18 +388,14 @@ export default function MisDocumentosPage() {
         <PageHeaderCard
           icon={FileText}
           eyebrow="Documentos"
-          title={
-            modoStaff || clienteSeleccionado
-              ? "Documentos de la Solicitud"
-              : "Mis Documentos"
-          }
+          title={modoStaff || clienteSeleccionado ? "Documentos de la Solicitud" : "Mis Documentos"}
           subtitle={
             solicitud
               ? modoStaff
-                ? `Solicitud ${solicitud.sol_numero_solicitud} — ${solicitud.cliente_nombre ?? "cliente"}. Corrige en su nombre los documentos marcados.`
+                ? `Solicitud ${solicitud.sol_numero} — ${solicitud.cliente_nombre ?? "cliente"}. Corrige en su nombre los documentos marcados.`
                 : clienteSeleccionado
-                  ? `Solicitud ${solicitud.sol_numero_solicitud} — ${clienteSeleccionado.cli_razon_social}.`
-                  : `Documentos de la solicitud ${solicitud.sol_numero_solicitud}.`
+                  ? `Solicitud ${solicitud.sol_numero} — ${clienteSeleccionado.cli_razon_social}.`
+                  : `Documentos de la solicitud ${solicitud.sol_numero}.`
               : "Consulta el estado de tus documentos y corrígelos si hace falta."
           }
           onBack={() => {
@@ -596,8 +414,7 @@ export default function MisDocumentosPage() {
             <button
               onClick={cargar}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
-            >
+              className="inline-flex items-center gap-2 rounded-lg bg-white/14 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Actualizar
             </button>
@@ -622,20 +439,15 @@ export default function MisDocumentosPage() {
           <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
             {modoStaff ? (
               <>
-                Rechazaste esta solicitud con modo de solución "Auxiliar
-                Actualiza". Corrige los documentos marcados como{" "}
-                <strong>&quot;Requiere cambio&quot;</strong> (o los que
-                aparezcan vencidos) subiendo el archivo correcto en nombre
-                del cliente. Los demás documentos solo se pueden consultar.
+                Rechazaste esta solicitud con modo de solución "Auxiliar Actualiza". Corrige los documentos marcados
+                como <strong>&quot;Requiere cambio&quot;</strong> (o los que aparezcan vencidos) subiendo el archivo
+                correcto en nombre del cliente. Los demás documentos solo se pueden consultar.
               </>
             ) : (
               <>
-                El auxiliar de servicio al cliente rechazó tu solicitud
-                porque algunos documentos tienen la fecha de emisión
-                incorrecta. Corrige los documentos marcados como{" "}
-                <strong>&quot;Requiere cambio&quot;</strong> (o los que
-                aparezcan vencidos). Los demás documentos solo se pueden
-                consultar en este momento.
+                El auxiliar de servicio al cliente rechazó tu solicitud porque algunos documentos tienen la fecha de
+                emisión incorrecta. Corrige los documentos marcados como <strong>&quot;Requiere cambio&quot;</strong> (o
+                los que aparezcan vencidos). Los demás documentos solo se pueden consultar en este momento.
               </>
             )}
           </div>
@@ -669,10 +481,7 @@ export default function MisDocumentosPage() {
             }
           />
         ) : documentos.length === 0 ? (
-          <EmptyStateCard
-            icon={FileText}
-            title="No hay documentos cargados en esta solicitud."
-          />
+          <EmptyStateCard icon={FileText} title="No hay documentos cargados en esta solicitud." />
         ) : (
           <>
             <form
@@ -680,8 +489,7 @@ export default function MisDocumentosPage() {
                 e.preventDefault();
                 setBusqueda(busquedaInput);
               }}
-              className="mb-3 flex gap-2"
-            >
+              className="mb-3 flex gap-2">
               <input
                 type="text"
                 value={busquedaInput}
@@ -691,8 +499,7 @@ export default function MisDocumentosPage() {
               />
               <button
                 type="submit"
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-              >
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
                 Buscar
               </button>
               {busqueda && (
@@ -702,8 +509,7 @@ export default function MisDocumentosPage() {
                     setBusquedaInput("");
                     setBusqueda("");
                   }}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   Limpiar
                 </button>
               )}
@@ -721,197 +527,153 @@ export default function MisDocumentosPage() {
             ) : (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <Th>Documento</Th>
-                      <Th>Fecha Emisión Doc</Th>
-                      <Th>Estado</Th>
-                      <Th>Fecha Vencimiento</Th>
-                      <Th align="center" sticky>
-                        Acciones
-                      </Th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {documentosFiltrados.map((doc) => {
-                  const estado = getEstadoVigencia(doc);
-                  const editable = esDocumentoEditable(
-                    doc,
-                    puedeCorregir,
-                    rechazadoPorAuxiliar,
-                    estado.vencido,
-                  );
-                  const archivoUrl = getArchivoPreviewUrl(
-                    {
-                      sa_id: doc.sa_id,
-                      sa_ruta_almacenamiento: doc.sa_ruta_almacenamiento,
-                      sa_nombre_guardado: doc.sa_nombre_guardado,
-                    },
-                    solicitud.sol_id,
-                  );
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <Th>Documento</Th>
+                        <Th>Fecha Emisión Doc</Th>
+                        <Th>Estado</Th>
+                        <Th>Fecha Vencimiento</Th>
+                        <Th align="center" sticky>
+                          Acciones
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {documentosFiltrados.map((doc) => {
+                        const estado = getEstadoVigencia(doc);
+                        const esDocumentoGeneradoOFirmado =
+                          Boolean(doc.tdo_tiene_plantilla) || /firmad/i.test(doc.tdo_nombre || "");
+                        const editable =
+                          !esDocumentoGeneradoOFirmado &&
+                          esDocumentoEditable(doc, puedeCorregir, rechazadoPorAuxiliar, estado.vencido);
+                        const archivoUrl = getArchivoPreviewUrl(
+                          {
+                            sa_id: doc.sa_id,
+                            sa_ruta_almacenamiento: doc.sa_ruta_almacenamiento,
+                            sa_nombre_guardado: doc.sa_nombre_guardado,
+                          },
+                          solicitud.sol_id,
+                        );
 
-                  return (
-                    <Tr key={doc.sa_id} className="align-top">
-                      <Td className="min-w-[220px]">
-                        <div className="flex items-start gap-2">
-                          <FileText className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <p className="font-medium text-gray-900 break-words">
-                            {doc.tdo_nombre || doc.sa_nombre_original}
-                          </p>
-                        </div>
-                      </Td>
+                        return (
+                          <Tr key={doc.sa_id} className="align-top">
+                            <Td className="min-w-[220px]">
+                              <div className="flex items-start gap-2">
+                                <FileText className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                <p className="font-medium text-gray-900 break-words">
+                                  {doc.tdo_nombre || doc.sa_nombre_original}
+                                </p>
+                              </div>
+                            </Td>
 
-                      <Td>
-                        {requiereFecha(doc) ? (
-                          <input
-                            type="date"
-                            value={
-                              pendingFechas[doc.sa_id] ??
-                              (doc.sd_fecha_emision
-                                ? doc.sd_fecha_emision.split("T")[0]
-                                : "")
-                            }
-                            min="1900-01-01"
-                            max={new Date().toISOString().split("T")[0]}
-                            disabled={!editable}
-                            onChange={(e) =>
-                              e.target.value &&
-                              handleCambiarFecha(doc, e.target.value)
-                            }
-                            className="border border-gray-300 rounded-lg px-2 py-1 text-sm disabled:bg-gray-100 disabled:text-gray-500"
-                          />
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </Td>
-
-                      <Td>
-                        <div className="flex flex-col items-start gap-1">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${estado.className}`}
-                          >
-                            {estado.estado}
-                          </span>
-                          {rechazadoPorAuxiliar && doc.sd_requiere_cambio && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-orange-100 text-orange-800">
-                              Requiere cambio
-                            </span>
-                          )}
-                        </div>
-                      </Td>
-
-                      <Td className="text-xs whitespace-nowrap">
-                        {estado.detalle}
-                      </Td>
-
-                      <Td sticky>
-                        <div className="flex flex-wrap items-center gap-3">
-                          {archivoUrl && (
-                            <a
-                              href={archivoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={`Ver ${doc.sa_nombre_original}`}
-                              className="inline-flex items-center text-blue-600 hover:text-blue-800"
-                            >
-                              <PdfIcon />
-                            </a>
-                          )}
-                          {editable &&
-                            doc.tdo_tiene_plantilla &&
-                            (doc.tdo_plantilla_contenido ||
-                              doc.tdo_tipo_plantilla === "PDF_SOLICITUD") && (
-                            <button
-                              type="button"
-                              onClick={() => handleGenerarPlantillaDocumento(doc)}
-                              disabled={generandoPlantillaId === doc.sa_id}
-                              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200 disabled:opacity-60"
-                            >
-                              <Download className="h-3 w-3" />
-                              {generandoPlantillaId === doc.sa_id
-                                ? "Generando..."
-                                : "Descargar plantilla"}
-                            </button>
-                          )}
-                          {editable ? (
-                            <>
-                              <label className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
-                                <Upload className="h-3.5 w-3.5" />
-                                {uploadingSaId === doc.sa_id
-                                  ? "Subiendo..."
-                                  : "Reemplazar"}
+                            <Td>
+                              {requiereFecha(doc) ? (
                                 <input
-                                  type="file"
-                                  accept=".pdf,application/pdf,image/*"
-                                  className="hidden"
-                                  disabled={uploadingSaId === doc.sa_id}
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file)
-                                      handleSeleccionarArchivo(doc, file);
-                                    e.target.value = "";
-                                  }}
+                                  type="date"
+                                  value={
+                                    pendingFechas[doc.sa_id] ??
+                                    (doc.sd_fecha_emision ? doc.sd_fecha_emision.split("T")[0] : "")
+                                  }
+                                  min="1900-01-01"
+                                  max={new Date().toISOString().split("T")[0]}
+                                  disabled={!editable}
+                                  onChange={(e) => e.target.value && handleCambiarFecha(doc, e.target.value)}
+                                  className="border border-gray-300 rounded-lg px-2 py-1 text-sm disabled:bg-gray-100 disabled:text-gray-500"
                                 />
-                              </label>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </Td>
 
-                              <button
-                                onClick={() => setConfirmEliminar(doc)}
-                                className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-800"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Eliminar
-                              </button>
-                            </>
-                          ) : (
-                            rechazadoPorAuxiliar && (
-                              <span className="text-xs text-gray-400">
-                                Solo lectura
-                              </span>
-                            )
-                          )}
-                        </div>
-                      </Td>
-                    </Tr>
-                  );
-                })}
-                  </tbody>
-                </table>
+                            <Td>
+                              <div className="flex flex-col items-start gap-1">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${estado.className}`}>
+                                  {estado.estado}
+                                </span>
+                                {rechazadoPorAuxiliar && doc.sd_requiere_cambio && (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-orange-100 text-orange-800">
+                                    Requiere cambio
+                                  </span>
+                                )}
+                              </div>
+                            </Td>
+
+                            <Td className="text-xs whitespace-nowrap">{estado.detalle}</Td>
+
+                            <Td sticky>
+                              <div className="flex items-center justify-center gap-1.5">
+                                {archivoUrl && (
+                                  <a
+                                    href={archivoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={`Ver ${doc.sa_nombre_original}`}
+                                    aria-label={`Ver ${doc.sa_nombre_original}`}
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100 hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1">
+                                    <PdfIcon className="h-5 w-5" />
+                                  </a>
+                                )}
+                                {editable ? (
+                                  <>
+                                    <label
+                                      title="Reemplazar documento"
+                                      aria-label="Reemplazar documento"
+                                      className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-1">
+                                      <Upload className="h-4 w-4" aria-hidden="true" />
+                                      <input
+                                        type="file"
+                                        accept=".pdf,application/pdf,image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleSeleccionarArchivo(doc, file);
+                                          e.target.value = "";
+                                        }}
+                                      />
+                                    </label>
+
+                                    <button
+                                      type="button"
+                                      title="Eliminar documento"
+                                      aria-label="Eliminar documento"
+                                      onClick={() => setConfirmEliminar(doc)}
+                                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition-colors hover:border-red-300 hover:bg-red-100 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-1">
+                                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  rechazadoPorAuxiliar && <span className="text-xs text-gray-400">Solo lectura</span>
+                                )}
+                              </div>
+                            </Td>
+                          </Tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
           </>
         )}
 
-        {rechazadoPorAuxiliar &&
-          puedeCorregir &&
-          !loading &&
-          documentos.length > 0 && (
-            <div className="sticky bottom-4 mt-6 flex justify-end rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
-              <button
-                onClick={handleActualizarEInformar}
-                disabled={!huboCambios || enviando}
-                className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                {enviando
-                  ? "Actualizando..."
-                  : modoStaff
-                    ? "Actualizar y devolver a revisión"
-                    : "Actualizar e informar a Cartonera"}
-              </button>
-            </div>
-          )}
+        {rechazadoPorAuxiliar && puedeCorregir && !loading && documentos.length > 0 && (
+          <div className="sticky bottom-4 mt-6 flex justify-end rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
+            <button
+              onClick={handleActualizarEInformar}
+              disabled={!huboCambios || enviando}
+              className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-gray-300">
+              {enviando
+                ? "Actualizando..."
+                : modoStaff
+                  ? "Actualizar y devolver a revisión"
+                  : "Actualizar e informar a Cartonera"}
+            </button>
+          </div>
+        )}
       </div>
-
-      <LoadingModal
-        isOpen={generandoPlantillaId !== null}
-        message="Generando plantilla..."
-      />
-
-      <LoadingModal
-        isOpen={uploadingSaId !== null}
-        message="Subiendo archivo..."
-      />
 
       <SuccessModal
         isOpen={showSuccessModal}

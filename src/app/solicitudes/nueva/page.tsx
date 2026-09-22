@@ -5,14 +5,11 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthContext } from "@/context/AuthContext";
 import { useUltimaSolicitud } from "@/hooks/useUltimaSolicitud";
-import { AlertCircle, ArrowRight, FileText, Search } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { cachedRequest } from "@/services/core/requestCache";
 import { FlujoSolicitud, type EstadoPaso } from "./components/FlujoSolicitud";
-import {
-  PanelFirmaDocumentos,
-  type PanelFirmaDocumentosHandle,
-} from "./components/PanelFirmaDocumentos";
+import { PanelFirmaDocumentos, type PanelFirmaDocumentosHandle } from "./components/PanelFirmaDocumentos";
 import type { DocumentoDiferido } from "@/services/mis-documentos.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
@@ -76,9 +73,7 @@ export default function NuevaSolicitudPage() {
           ? clientesData.map((item: any) => ({
               cli_id: Number(item.cli_id ?? 0),
               cli_razon_social: String(item.cli_razon_social ?? ""),
-              cli_nro_identificacion: String(
-                item.cli_nro_identificacion ?? "",
-              ),
+              cli_nro_identificacion: String(item.cli_nro_identificacion ?? ""),
               ejng_id: item.ejng_id != null ? Number(item.ejng_id) : null,
             }))
           : [];
@@ -152,9 +147,7 @@ export default function NuevaSolicitudPage() {
     if (!busqueda) return porEjecutivo;
     const term = busqueda.toLowerCase();
     return porEjecutivo.filter(
-      (c) =>
-        c.cli_razon_social.toLowerCase().includes(term) ||
-        c.cli_nro_identificacion.toLowerCase().includes(term),
+      (c) => c.cli_razon_social.toLowerCase().includes(term) || c.cli_nro_identificacion.toLowerCase().includes(term),
     );
   }, [clientes, busqueda, ejecutivoId]);
 
@@ -163,28 +156,17 @@ export default function NuevaSolicitudPage() {
   // null = todavía no se sabe (PanelFirmaDocumentos no ha cargado, o no
   // aplica porque no hay solicitudActiva) — evita mostrar "completo" antes
   // de tiempo mientras se hace el fetch.
-  const [documentosDiferidos, setDocumentosDiferidos] = useState<
-    DocumentoDiferido[] | null
-  >(null);
+  const [documentosDiferidos, setDocumentosDiferidos] = useState<DocumentoDiferido[] | null>(null);
   const panelFirmaRef = useRef<PanelFirmaDocumentosHandle>(null);
 
   const {
     ultimaSolicitud,
     loading: solicitudLoading,
-    tieneBorrador,
     puedeCrearNueva,
   } = useUltimaSolicitud({
     clienteId,
     enabled: !authLoading && !!clienteId,
   });
-
-  // Si hay una solicitud BORRADOR, redirige a editarla (Caso 2)
-  useEffect(() => {
-    if (!solicitudLoading && tieneBorrador && ultimaSolicitud?.sol_id) {
-      console.log(`[📝 NUEVA SOLICITUD] Redirigiendo a BORRADOR existente: ${ultimaSolicitud.sol_id}`);
-      router.replace(`/solicitudes/${ultimaSolicitud.sol_id}/editar`);
-    }
-  }, [solicitudLoading, tieneBorrador, ultimaSolicitud, router]);
 
   if (authLoading) {
     return <LoadingModal isOpen message="Verificando sesión..." />;
@@ -200,8 +182,7 @@ export default function NuevaSolicitudPage() {
             icon={FileText}
             eyebrow="Nueva solicitud"
             title="¿Para qué cliente es esta solicitud?"
-            subtitle="Selecciona el cliente en cuyo nombre vas a diligenciar la solicitud."
-          >
+            subtitle="Selecciona el cliente en cuyo nombre vas a diligenciar la solicitud.">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FilterField label="Ejecutivo de Negocios" className="relative" ref={ejecutivoContainerRef}>
                 <input
@@ -279,9 +260,7 @@ export default function NuevaSolicitudPage() {
                           className="block w-full px-3 py-2 text-left text-xs cursor-pointer hover:bg-gray-100 border-b border-gray-100">
                           <div>{cliente.cli_razon_social}</div>
                           {cliente.cli_nro_identificacion && (
-                            <div className="text-[11px] text-gray-500">
-                              NIT {cliente.cli_nro_identificacion}
-                            </div>
+                            <div className="text-[11px] text-gray-500">NIT {cliente.cli_nro_identificacion}</div>
                           )}
                         </button>
                       ))
@@ -303,9 +282,11 @@ export default function NuevaSolicitudPage() {
   }
 
   const solicitudActiva = !puedeCrearNueva ? ultimaSolicitud : null;
+  const esBorrador = Number(solicitudActiva?.sol_ses_id) === 1;
+  const returnToPuente = clienteId ? `/solicitudes/nueva?clienteId=${clienteId}` : "/solicitudes/nueva";
   const irAlFormulario = () => {
     if (solicitudActiva?.sol_id) {
-      router.push(`/solicitudes/${solicitudActiva.sol_id}/editar`);
+      router.push(`/solicitudes/${solicitudActiva.sol_id}/editar?returnTo=${encodeURIComponent(returnToPuente)}`);
       return;
     }
     const query = !esCliente && clienteId ? `?clienteId=${clienteId}` : "";
@@ -325,25 +306,26 @@ export default function NuevaSolicitudPage() {
   // "Enviar e informar a Cartonera" (ya eliminado, quedaba redundante con
   // este paso).
   const diferidosCargados = documentosDiferidos !== null;
-  const diferidosPendientesPorSubir =
-    diferidosCargados && documentosDiferidos!.some((d) => !d.yaSubido);
+  const diferidosPendientesPorSubir = diferidosCargados && documentosDiferidos!.some((d) => !d.yaSubido);
   const diferidosYaEnviados = diferidosCargados && documentosDiferidos!.length === 0;
   const diferidosListosParaEnviar =
     diferidosCargados && documentosDiferidos!.length > 0 && !diferidosPendientesPorSubir;
 
-  const estados: [EstadoPaso, EstadoPaso, EstadoPaso] = solicitudActiva
-    ? [
-        "completo",
-        !diferidosCargados ? "actual" : diferidosPendientesPorSubir ? "actual" : "completo",
-        !diferidosCargados
-          ? "pendiente"
-          : diferidosYaEnviados
-            ? "completo"
-            : diferidosListosParaEnviar
-              ? "actual"
-              : "pendiente",
-      ]
-    : ["actual", "pendiente", "pendiente"];
+  const estados: [EstadoPaso, EstadoPaso, EstadoPaso] = !solicitudActiva
+    ? ["actual", "pendiente", "pendiente"]
+    : esBorrador
+      ? ["actual", "pendiente", "pendiente"]
+      : [
+          "completo",
+          !diferidosCargados ? "actual" : diferidosPendientesPorSubir ? "actual" : "completo",
+          !diferidosCargados
+            ? "pendiente"
+            : diferidosYaEnviados
+              ? "completo"
+              : diferidosListosParaEnviar
+                ? "actual"
+                : "pendiente",
+        ];
 
   // Página principal del proceso: el formulario vive en la ruta hija
   // /solicitudes/nueva/formulario.
@@ -352,7 +334,7 @@ export default function NuevaSolicitudPage() {
       <div className="max-w-5xl mx-auto">
         <PageHeaderCard
           icon={FileText}
-          eyebrow="Nueva solicitud"
+          eyebrow="Solicitud"
           title="Completa tu solicitud paso a paso"
           subtitle="Diligencia la información, revisa la documentación y envía la solicitud."
           onBack={!esCliente ? () => setClienteSeleccionado(null) : undefined}
@@ -365,45 +347,9 @@ export default function NuevaSolicitudPage() {
           }
         />
 
-        {solicitudActiva && !diferidosPendientesPorSubir && (
-          <div className="mb-3 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
-              <div>
-                <p className="text-sm font-bold text-amber-900">Solicitud en proceso</p>
-                <p className="text-xs text-amber-800">
-                  {esCliente
-                    ? "Ya tienes una solicitud activa. Puedes continuarla desde aquí."
-                    : `${clienteSeleccionado?.cli_razon_social} ya tiene una solicitud activa. Puedes continuarla desde aquí.`}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 sm:flex-shrink-0">
-              <button
-                type="button"
-                onClick={irAlFormulario}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">
-                Continuar solicitud
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              {!esCliente && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClienteSeleccionado(null);
-                    setBusqueda("");
-                  }}
-                  className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100">
-                  Elegir otro cliente
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         <FlujoSolicitud
           estados={estados}
-          formularioPorcentaje={solicitudActiva ? 100 : 0}
+          formularioPorcentaje={solicitudActiva && !esBorrador ? 100 : 0}
           documentosProgreso={
             documentosDiferidos && documentosDiferidos.length > 0
               ? {
@@ -414,22 +360,28 @@ export default function NuevaSolicitudPage() {
           }
           onStepClick={(step: number) => {
             if (step === 0) irAlFormulario();
+            if (step === 1) {
+              document.getElementById("panel-firma-documentos")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
             if (step === 2 && diferidosListosParaEnviar) panelFirmaRef.current?.enviar();
           }}
         />
 
-        {solicitudActiva && (
-          <PanelFirmaDocumentos
-            ref={panelFirmaRef}
-            solicitudId={solicitudActiva.sol_id}
-            onCargado={setDocumentosDiferidos}
-            onEnviado={() => {
-              const redirectUrl = esCliente
-                ? "/solicitudes/cliente"
-                : "/solicitudes/listado-de-solicitudes";
-              router.push(redirectUrl);
-            }}
-          />
+        {solicitudActiva && !esBorrador && (
+          <div id="panel-firma-documentos" className="scroll-mt-5">
+            <PanelFirmaDocumentos
+              ref={panelFirmaRef}
+              solicitudId={solicitudActiva.sol_id}
+              onCargado={setDocumentosDiferidos}
+              onEnviado={() => {
+                const redirectUrl = esCliente ? "/solicitudes/cliente" : "/solicitudes/listado-de-solicitudes";
+                router.push(redirectUrl);
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

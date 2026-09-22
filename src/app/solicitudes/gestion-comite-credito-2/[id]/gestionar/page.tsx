@@ -5,26 +5,22 @@ import {
   condicionesFinancierasService,
   FormaPago,
 } from "@/services/condiciones-financieras/condiciones-financieras.service";
-import HistorialSolicitud from "@/components/historial/HistorialSolicitud";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
-import { AmpliacionCupoResumen } from "@/components/solicitudes/AmpliacionCupoResumen";
+import { SolicitudInfoBlock } from "@/components/solicitudes/SolicitudInfoBlock";
+import { EtapasPreviasBlock } from "@/components/solicitudes/EtapasPreviasBlock";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
-import { ESTADOS } from "@/lib/workflow-labels";
-import { formatDate } from "@/lib/date-utils";
 import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
-import { ESTADO_TOKENS } from "@/constants/estado-tokens";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
-import { useSolicitudCupoSolicitado } from "@/hooks/useSolicitudCupoSolicitado";
-import { ArrowLeft, FileText, CheckCircle2, CreditCard, Check, X, Wallet } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, CreditCard, Check, X } from "lucide-react";
 
 interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_cli_id: number;
   cliente_nombre: string;
   cliente_nit?: string;
@@ -36,7 +32,6 @@ interface Solicitud {
   etapa_nombre?: string;
   resultado_nombre?: string;
   sol_fecha_creacion: string;
-  sol_fecha_estimada_respuesta_comercial: string | null;
   sol_consumo_mensual_proyectado: number | null;
   sol_toneladas_proyectadas?: number | null;
   sol_observacion_ejn?: string | null;
@@ -50,7 +45,6 @@ interface Solicitud {
   usuario_revision?: string;
   fecha_revision?: string;
   fecha_creacion?: string;
-  fecha_estimada_respuesta_comercial?: string | null;
   consumo_mensual_proyectado?: number | null;
   sa_sol_id?: number;
   numero_solicitud?: string;
@@ -86,22 +80,6 @@ export default function GestionComiteCredito2Page() {
   const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
   const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
   const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
-  // Etapas previas a Comité de Crédito 2 — CC2 necesita ver qué se subió y
-  // qué se comentó en cada una, no solo el formulario del cliente.
-  // El concepto del Ejecutivo de Negocios se muestra en su propia
-  // subsección (consumo + observación), por eso no se repite aquí.
-  const etapasPrevias = [
-    {
-      codigo: WORKFLOW_ETAPA.OFC.codigo,
-      wetId: WORKFLOW_ETAPA.OFC.id,
-      nombre: "Oficial de Cumplimiento",
-    },
-    {
-      codigo: WORKFLOW_ETAPA.CC1.codigo,
-      wetId: WORKFLOW_ETAPA.CC1.id,
-      nombre: "Comité de Crédito 1",
-    },
-  ];
   const [registro, setRegistro] = useState<RegistroState>({
     recomendacion: "",
     guardando: false,
@@ -124,14 +102,6 @@ export default function GestionComiteCredito2Page() {
   const [documentosArchivoConError, setDocumentosArchivoConError] = useState<
     { tdo_id: number; tdo_nombre: string; error: string }[]
   >([]);
-  const {
-    loading: loadingCupo,
-    solicitaCredito,
-    montoSolicitadoTexto,
-    formaPagoSolicitada,
-    tipoSolicitud,
-  } = useSolicitudCupoSolicitado(solicitudId);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -224,13 +194,7 @@ export default function GestionComiteCredito2Page() {
     }
   };
 
-  const fechaEstimada =
-    (solicitud as any)?.sol_fecha_est_gest_cc2 ||
-    solicitud?.sol_fecha_estimada_respuesta_comercial ||
-    solicitud?.fecha_estimada_respuesta_comercial;
-
-  const estadoId = solicitud?.sol_ses_id ?? solicitud?.estado_id ?? 1;
-  const estadoTokens = ESTADO_TOKENS[estadoId] || ESTADO_TOKENS[1];
+  const fechaEstimada = (solicitud as any)?.sol_fecha_est_gest_cc2;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a]">
@@ -251,9 +215,7 @@ export default function GestionComiteCredito2Page() {
               {solicitud && (
                 <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
                   Solicitud{" "}
-                  <span className="font-bold text-white">
-                    {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
-                  </span>
+                  <span className="font-bold text-white">{solicitud.sol_numero || solicitud.numero_solicitud}</span>
                 </p>
               )}
             </div>
@@ -291,184 +253,14 @@ export default function GestionComiteCredito2Page() {
           ) : (
             <>
               {/* Info block */}
-              <div className="px-7 py-[26px] border-b border-[#eef1f6]">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Cliente</p>
-                    <p className="text-sm font-bold text-[#0f172a] m-0">{solicitud.cliente_nombre}</p>
-                    {solicitud.cliente_nit && <p className="text-xs text-[#64748b] m-0">NIT {solicitud.cliente_nit}</p>}
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">Estado</p>
-                    <span
-                      className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full"
-                      style={{ color: estadoTokens.color, background: estadoTokens.bg }}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: estadoTokens.color }} />
-                      {ESTADOS[estadoId] || "Desconocido"}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-[#94a3b8] mb-1">
-                      Tipo de Solicitud
-                    </p>
-                    {solicitud.sol_cupo_solicitado ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full text-emerald-800 bg-emerald-100">
-                        Ampliación de Cupo
-                      </span>
-                    ) : loadingCupo ? (
-                      <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
-                    ) : (
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold px-[11px] py-1 rounded-full ${
-                          tipoSolicitud === "Ampliación de Cupo"
-                            ? "text-emerald-800 bg-emerald-100"
-                            : "text-blue-800 bg-blue-100"
-                        }`}>
-                        {tipoSolicitud || "Cliente Nuevo"}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              <SolicitudInfoBlock solicitud={solicitud} fechaEstimada={fechaEstimada} />
 
-                {solicitud.sol_cupo_solicitado ? (
-                  <div className="mt-[22px]">
-                    <AmpliacionCupoResumen
-                      cupoActualReferencia={solicitud.sol_cupo_actual_referencia}
-                      cupoSolicitado={solicitud.sol_cupo_solicitado}
-                      justificacion={solicitud.sol_justificacion_ampliacion}
-                      consumoMensualProyectado={solicitud.sol_consumo_mensual_proyectado}
-                      toneladasProyectadas={solicitud.sol_toneladas_proyectadas}
-                    />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-4 mt-[22px]">
-                    {/* Solicita cupo de crédito */}
-                    <div
-                      className="rounded-2xl p-5 border"
-                      style={{
-                        borderColor: solicitaCredito ? "#a7f3d0" : "#dfe5ee",
-                        background: solicitaCredito ? "#ecfdf5" : "#f8fafc",
-                      }}>
-                      <div className="flex items-center gap-[9px] mb-2.5">
-                        <div className="w-[26px] h-[26px] rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                          <Wallet
-                            size={14}
-                            strokeWidth={2.2}
-                            style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}
-                          />
-                        </div>
-                        <span
-                          className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
-                          style={{ color: solicitaCredito ? "#059669" : "#94a3b8" }}>
-                          Solicita cupo de crédito
-                        </span>
-                      </div>
-                      {solicitaCredito ? (
-                        <div className="flex items-baseline gap-2.5 flex-wrap">
-                          <span className="text-[25px] font-extrabold text-[#065f46] whitespace-nowrap tracking-[-0.01em]">
-                            {montoSolicitadoTexto || "Monto no especificado"}
-                          </span>
-                          {formaPagoSolicitada && (
-                            <span className="inline-block text-[11.5px] font-bold text-[#065f46] bg-white border border-[#a7f3d0] px-[11px] py-1 rounded-full whitespace-nowrap leading-tight">
-                              {formaPagoSolicitada}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-sm font-semibold text-[#94a3b8] m-0">No</p>
-                      )}
-                    </div>
-
-                    {/* Concepto del ejecutivo de negocios — mismo tratamiento
-                      azul que los conceptos de OFC/CC1 de abajo: los tres
-                      son bloques narrativos de solo lectura de una etapa
-                      previa. Solo "Solicita cupo" se mantiene verde, porque
-                      es un dato accionable/destacado, no un concepto. */}
-                    <div className="rounded-2xl p-5 border border-[#dbeafe] bg-[#eff6ff]">
-                      <div className="flex items-baseline justify-between gap-3 mb-3">
-                        <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8] m-0">
-                          Concepto del ejecutivo de negocios
-                        </p>
-                        {(solicitud.ejecutivo_nombre || solicitud.sol_fecha_gest_ejn) && (
-                          <p className="text-[11px] text-[#64748b] m-0 whitespace-nowrap">
-                            {solicitud.ejecutivo_nombre || "-"}
-                            {solicitud.sol_fecha_gest_ejn && (
-                              <>
-                                {` · ${formatDate(solicitud.sol_fecha_gest_ejn)}`}
-                                {!Number.isNaN(new Date(solicitud.sol_fecha_gest_ejn).getTime()) && (
-                                  <span className="text-[10px] text-[#94a3b8]">
-                                    {` ${new Date(solicitud.sol_fecha_gest_ejn).toLocaleTimeString("es-CO", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}`}
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
-                        <div>
-                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Consumo mensual proyectado</p>
-                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                            {solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                              ? `$${(
-                                  solicitud.sol_consumo_mensual_proyectado || solicitud.consumo_mensual_proyectado
-                                )?.toLocaleString("es-CO", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}`
-                              : "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-[#94a3b8] mb-0.5">Toneladas mensuales</p>
-                          <p className="text-[13.5px] font-bold text-[#0f172a] m-0">
-                            {solicitud.sol_toneladas_proyectadas
-                              ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                              : "-"}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-[#94a3b8] mb-0.5">Observaciones</p>
-                      <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-wrap">
-                        {solicitud.sol_observacion_ejn || "-"}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Conceptos de etapas previas (OFC, CC1) — contexto de
-                    solo lectura, se mantienen con su color azul distintivo
-                    para diferenciarlos de la decisión de este comité */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-4 mt-4">
-                  {etapasPrevias.map((etapa) => {
-                    const comentario = historialWorkflow.find((h) => h.etapaCodigo === etapa.codigo)?.comentario;
-                    return (
-                      <div
-                        key={etapa.codigo}
-                        className="flex flex-col h-full rounded-2xl p-5 border border-[#dbeafe] bg-[#eff6ff] space-y-4">
-                        <p className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-[#1d4ed8]">
-                          Concepto de {etapa.nombre}
-                        </p>
-                        <SoportesAnalisis
-                          solicitudId={solicitud.sol_id}
-                          wetId={etapa.wetId}
-                          titulo={`Soportes de ${etapa.nombre}`}
-                          readOnly
-                        />
-                        {comentario && (
-                          <div className="flex-1">
-                            <p className="text-[11px] text-[#94a3b8] mb-0.5">Comentario</p>
-                            <p className="text-[12.5px] text-[#334155] m-0 whitespace-pre-line">{comentario}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Etapas previas */}
+              <EtapasPreviasBlock
+                solicitud={solicitud}
+                historial={historialWorkflow}
+                etapaActual="CC2"
+              />
 
               {/* Cuerpo: decisión + historial abajo */}
               <div className="grid grid-cols-1 gap-6 p-7">
@@ -623,11 +415,6 @@ export default function GestionComiteCredito2Page() {
                   <div className="mt-[18px]">
                     <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
                   </div>
-                </div>
-
-                <div className="min-w-0">
-                  <h2 className="text-[13px] font-bold text-[#374151] mb-3">Historial de la solicitud</h2>
-                  <HistorialSolicitud historial={historialWorkflow} />
                 </div>
               </div>
             </>

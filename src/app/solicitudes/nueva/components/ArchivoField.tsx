@@ -1,11 +1,11 @@
 "use client";
 
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
-import { LoadingModal, SuccessModal, ConfirmModal } from "@/components/modals";
+import { ConfirmModal } from "@/components/modals";
+import { useUpload } from "@/context/UploadContext";
 import { AlertTriangle, CheckCircle, FileText, Upload, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
-import { flushSync } from "react-dom";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
 
@@ -116,13 +116,18 @@ export function ArchivoField({
   const [ofrecerReutilizarOmitido, setOfrecerReutilizarOmitido] = useState(false);
   const [confirmarEliminarArchivo, setConfirmarEliminarArchivo] = useState(false);
 
-  const [procesandoArchivo, setProcesandoArchivo] = useState<"loading" | "ready" | null>(null);
+  const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    flushSync(() => setProcesandoArchivo("loading"));
+    startLoading("Cargando archivo...");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");
-        setProcesandoArchivo("ready");
+        window.setTimeout(() => {
+          showSuccess({
+            title: "Archivo cargado",
+            message: "El archivo quedó listo en el formulario. Puedes continuar completando la solicitud.",
+          });
+        }, 250);
       });
     });
   };
@@ -202,7 +207,7 @@ export function ArchivoField({
                       }}
                       className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300"
                       title="Elegir un archivo distinto en vez de este">
-                      Quitar
+                      Eliminar
                     </button>
                   )}
                   {!readOnly && !esDocumentoReutilizado && (
@@ -228,8 +233,7 @@ export function ArchivoField({
                           };
                           tempInput.click();
                         }}
-                        disabled={!!procesandoArchivo}
-                        className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300 disabled:opacity-60">
+                        className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-slate-700 rounded-md hover:bg-slate-100 transition-colors font-medium border border-slate-300">
                         Cambiar
                       </button>
                     </>
@@ -275,9 +279,9 @@ export function ArchivoField({
                       });
                     }}
                     className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 bg-white text-red-700 rounded-md hover:bg-red-100 transition-colors font-medium border border-red-200"
-                    title="Quitar archivo seleccionado (aún no se ha guardado)">
+                    title="Eliminar archivo seleccionado (aún no se ha guardado)">
                     <X className="h-3 w-3" />
-                    Quitar
+                    Eliminar
                   </button>
                 )}
               </div>
@@ -340,7 +344,6 @@ export function ArchivoField({
             (!documentoClienteDisponible || ofrecerReutilizarOmitido) && (
               <button
                 type="button"
-                disabled={!!procesandoArchivo}
                 onClick={() => {
                   const tempInput = document.createElement("input");
                   tempInput.type = "file";
@@ -354,7 +357,7 @@ export function ArchivoField({
                   };
                   tempInput.click();
                 }}
-                className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+                className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors ${
                   hasError
                     ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
                     : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
@@ -394,15 +397,6 @@ export function ArchivoField({
           )}
         </div>
       </div>
-
-      <LoadingModal isOpen={procesandoArchivo === "loading"} message="Cargando archivo..." />
-      <SuccessModal
-        isOpen={procesandoArchivo === "ready"}
-        title="Archivo cargado"
-        message="El archivo quedó listo en el formulario. Puedes continuar completando la solicitud."
-        actionText="Aceptar"
-        onAction={() => setProcesandoArchivo(null)}
-      />
 
       <ConfirmModal
         isOpen={confirmarEliminarArchivo}

@@ -28,7 +28,6 @@ export const workflowSolicitudesService = {
       aprobado: boolean;
       motivo_rechazo_id?: number | null;
       modo_solucion?: string | null;
-      fecha_estimada_respuesta_comercial?: string | null;
       fecha_real_respuesta_comercial?: string | null;
       usuario_modifica?: number;
       documentos_faltantes?: number[];

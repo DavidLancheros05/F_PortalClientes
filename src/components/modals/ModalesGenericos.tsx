@@ -60,12 +60,8 @@ export function ConfirmModal({
             <div
               className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
                 isDangerous ? "bg-red-100" : "bg-blue-100"
-              }`}
-            >
-              <AlertCircle
-                size={24}
-                className={isDangerous ? "text-red-600" : "text-blue-600"}
-              />
+              }`}>
+              <AlertCircle size={24} className={isDangerous ? "text-red-600" : "text-blue-600"} />
             </div>
             <h2 className="text-lg font-bold text-gray-900">{title}</h2>
           </div>
@@ -76,19 +72,15 @@ export function ConfirmModal({
             <button
               onClick={onCancel}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {cancelText}
             </button>
             <button
               onClick={handleConfirm}
               disabled={isLoading}
               className={`flex-1 px-4 py-3 rounded-lg font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                isDangerous
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
+                isDangerous ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+              }`}>
               {isLoading ? "Procesando..." : confirmText}
             </button>
           </div>
@@ -141,8 +133,7 @@ export function SuccessModal({
 
             <button
               onClick={onAction}
-              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-            >
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
               {actionText}
             </button>
           </div>
@@ -157,10 +148,7 @@ interface LoadingModalProps {
   message?: string;
 }
 
-export function LoadingModal({
-  isOpen,
-  message = "Cargando...",
-}: LoadingModalProps) {
+export function LoadingModal({ isOpen, message = "Cargando..." }: LoadingModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -206,8 +194,7 @@ export function ErrorModal({
             <p className="text-gray-600 mb-8 leading-relaxed">{message}</p>
             <button
               onClick={onAction}
-              className="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-            >
+              className="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">
               {actionText}
             </button>
           </div>
@@ -257,15 +244,13 @@ export function WarningModal({
             <button
               onClick={onCancel}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 rounded-lg font-medium text-white bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="flex-1 px-4 py-3 rounded-lg font-medium text-white bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {isLoading ? "Procesando..." : confirmText}
             </button>
           </div>
@@ -285,13 +270,7 @@ interface InfoModalProps {
 
 // Modal informativo genérico — para texto explicativo que antes vivía
 // suelto en la página (ej. detrás de un ícono de información en un header).
-export function InfoModal({
-  isOpen,
-  title,
-  message,
-  actionText = "Entendido",
-  onClose,
-}: InfoModalProps) {
+export function InfoModal({ isOpen, title, message, actionText = "Entendido", onClose }: InfoModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -309,8 +288,7 @@ export function InfoModal({
 
           <button
             onClick={onClose}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
             {actionText}
           </button>
         </div>
@@ -363,26 +341,18 @@ export function DetalleModal({
     <ModalPortal>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div
-          className={`bg-white rounded-[22px] shadow-[0_20px_50px_rgba(15,23,42,0.15)] w-full ${maxWidthClassName} max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95`}
-        >
+          className={`bg-white rounded-[22px] shadow-[0_20px_50px_rgba(15,23,42,0.15)] w-full ${maxWidthClassName} max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95`}>
           <div className="bg-brand-gradient rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4 flex-shrink-0">
             <div className="w-[42px] h-[42px] rounded-xl bg-white/16 flex items-center justify-center flex-shrink-0">
               <Icon size={20} className="text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0 truncate">
-                {titulo}
-              </h2>
-              {subtitulo && (
-                <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">
-                  {subtitulo}
-                </p>
-              )}
+              <h2 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0 truncate">{titulo}</h2>
+              {subtitulo && <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">{subtitulo}</p>}
             </div>
             <button
               onClick={onClose}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <X size={16} strokeWidth={2.3} />
             </button>
           </div>
@@ -416,23 +386,16 @@ export function DetalleModal({
             )}
           </div>
 
-          <div className="flex gap-3 justify-end px-7 py-5 border-t border-[#eef1f6] flex-shrink-0">
-            <button
-              onClick={onClose}
-              className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-            >
-              {closeText}
-            </button>
-            {onEdit && (
+          {onEdit && (
+            <div className="flex gap-3 justify-end px-7 py-5 border-t border-[#eef1f6] flex-shrink-0">
               <button
                 onClick={onEdit}
                 disabled={loading || !!error || editDisabled}
-                className="px-5 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors disabled:opacity-50 shadow-[0_6px_16px_rgba(0,61,153,0.22)]"
-              >
+                className="px-5 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium transition-colors disabled:opacity-50 shadow-[0_6px_16px_rgba(0,61,153,0.22)]">
                 {editText}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </ModalPortal>

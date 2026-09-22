@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X, ShieldCheck } from "lucide-react";
-import {
-  solicitudesService,
-  type TablaPersonaResuelta,
-} from "@/services/solicitudes.service";
+import { solicitudesService, type TablaPersonaResuelta } from "@/services/solicitudes.service";
 import { TablaPersonaConEvidencia } from "@/components/TablaPersonaConEvidencia";
 import { ModalPortal } from "@/components/modals";
 
@@ -20,10 +17,7 @@ interface TablasCumplimientoModalProps {
  * por fila — mismos datos que gestion-oficial-de-cumplimiento, pero
  * accesibles desde el detalle de la solicitud sin duplicar esa página.
  */
-export function TablasCumplimientoModal({
-  solicitudId,
-  onClose,
-}: TablasCumplimientoModalProps) {
+export function TablasCumplimientoModal({ solicitudId, onClose }: TablasCumplimientoModalProps) {
   const [tablas, setTablas] = useState<{
     representanteLegal: TablaPersonaResuelta | null;
     representantesSuplentes: TablaPersonaResuelta | null;
@@ -69,8 +63,7 @@ export function TablasCumplimientoModal({
             </div>
             <button
               onClick={onClose}
-              className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors"
-            >
+              className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors">
               <X size={16} strokeWidth={2.3} />
             </button>
           </div>
@@ -115,15 +108,6 @@ export function TablasCumplimientoModal({
                 />
               </>
             )}
-          </div>
-
-          <div className="flex gap-3 justify-end px-7 py-5 border-t border-[#eef1f6] flex-shrink-0">
-            <button
-              onClick={onClose}
-              className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
-            >
-              Cerrar
-            </button>
           </div>
         </div>
       </div>

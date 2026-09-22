@@ -13,7 +13,7 @@ import { PanelPreguntas } from "./components/PanelPreguntas";
 export default function FormularioEditorPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const formularioId = searchParams.get("frm_id");
+  const formularioId = searchParams.get("frs_id");
   const version = searchParams.get("version");
   const readonly = searchParams.get("readonly") === "true";
 
@@ -176,7 +176,7 @@ export default function FormularioEditorPage() {
   const seccionActual = secciones.find((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
   const indiceSeccion = secciones.findIndex((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
   const editorUrlParams = new URLSearchParams();
-  if (formularioId) editorUrlParams.set("frm_id", formularioId);
+  if (formularioId) editorUrlParams.set("frs_id", formularioId);
   if (version) editorUrlParams.set("version", version);
   const editorModeUrl = `/parametrizacion/formulario-editor${
     editorUrlParams.toString() ? `?${editorUrlParams.toString()}` : ""

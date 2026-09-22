@@ -21,9 +21,9 @@ export interface Pregunta {
   fp_catalogo_base_datos: string | null;
   fp_catalogo_tabla: string | null;
   fp_catalogo_columna: string | null;
-  fp_tipo_documento_id: number | null;
+  fp_tdo_id: number | null;
   seccion_id: number;
-  frm_id: number;
+  frs_id: number;
 }
 
 export interface Seccion {

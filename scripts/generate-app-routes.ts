@@ -2,7 +2,7 @@
 // bajo src/app) a un JSON estático. Se usa en la pantalla de administración
 // de módulos (seguridad/modulos) para avisar si la ruta que se le va a
 // asignar a un módulo de menú no corresponde a ninguna página real —
-// exactamente el tipo de error que causó que "Listado de clientes" quedara
+// exactamente el tipo de error que causó que "" quedara
 // apuntando a una ruta que nunca existió (ver
 // documentacion/CLAUDE.md, gotcha de 2026-09-13).
 //

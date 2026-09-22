@@ -5,7 +5,7 @@ import { agruparUltimaRespuestaPorPregunta } from "@/lib/agruparUltimaRespuestaP
 
 export interface UltimaSolicitudAprobada {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_ses_id: number;
   sol_fecha_creacion: string;
   sol_fecha_envio: string | null;

@@ -20,7 +20,7 @@ import { TableContainer } from "@/components/tables/TableContainer";
 
 interface Solicitud {
   sol_id: number;
-  sol_numero_solicitud: string;
+  sol_numero: string;
   sol_cli_id: number;
   cliente_nombre: string;
   sol_co_id: number;
@@ -31,7 +31,6 @@ interface Solicitud {
   etapa_nombre?: string;
   resultado_nombre?: string;
   fecha_creacion: string;
-  fecha_estimada_respuesta_comercial: string | null;
   fecha_real_respuesta_comercial: string | null;
   consumo_mensual_proyectado: number | null;
   observacionesComercial: string | null;
@@ -151,7 +150,7 @@ export default function CorregirFormularioASCPage() {
         })
         .filter((s: Solicitud) => {
           const cumpleNumero = numeroBuscado
-            ? (s.sol_numero_solicitud || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
+            ? (s.sol_numero || s.numero_solicitud || "").toLowerCase().includes(numeroBuscado)
             : true;
           return cumpleNumero;
         });
@@ -215,7 +214,7 @@ export default function CorregirFormularioASCPage() {
       "Fecha Creación",
     ];
     const data = solicitudes.map((s) => [
-      s.sol_numero_solicitud || s.numero_solicitud || "-",
+      s.sol_numero || s.numero_solicitud || "-",
       s.centro_operacion_nombre || "-",
       s.cliente_nombre || "-",
       ESTADOS[s.sol_ses_id ?? s.estado_id] || "Desconocido",
@@ -324,7 +323,7 @@ export default function CorregirFormularioASCPage() {
                           return (
                             <Tr key={solicitud.sol_id ?? solicitud.sa_sol_id}>
                               <Td className="whitespace-nowrap font-medium text-brand-600">
-                                {solicitud.sol_numero_solicitud || solicitud.numero_solicitud}
+                                {solicitud.sol_numero || solicitud.numero_solicitud}
                               </Td>
                               {/* <Td className="whitespace-nowrap">
                             {solicitud.centro_operacion_nombre}

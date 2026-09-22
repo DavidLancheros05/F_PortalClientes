@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 export interface PlantillaEditorHandle {
   /** Inserta el placeholder de una variable como chip en la posición del cursor. */
@@ -47,7 +42,7 @@ function htmlChip(placeholder: string, etiqueta: string): string {
   return (
     `<span class="pe-chip inline-flex items-center gap-1 rounded-md border border-violet-300 bg-violet-50 px-1.5 py-0.5 align-baseline text-[11px] font-medium text-violet-700" contenteditable="false" data-placeholder="${escaparAtributo(placeholder)}">` +
     `${escaparHtml(etiqueta)}` +
-    `<button type="button" data-chip-remove="1" contenteditable="false" aria-label="Quitar variable" class="pe-chip-x rounded-full px-1 leading-none text-violet-500 hover:bg-violet-200 hover:text-violet-900">×</button>` +
+    `<button type="button" data-chip-remove="1" contenteditable="false" aria-label="Eliminar variable" class="pe-chip-x rounded-full px-1 leading-none text-violet-500 hover:bg-violet-200 hover:text-violet-900">×</button>` +
     `</span>`
   );
 }
@@ -137,11 +132,7 @@ function segmentarEstilos(texto: string): TramoEstilo[] {
 // Texto plano guardado -> HTML del editor: negrita/tamaño se dibujan como
 // elementos reales (<strong>/<span style>), no como marcadores literales —
 // así se ven en el editor tal cual se van a ver en el PDF descargado.
-function textoAHtml(
-  texto: string,
-  etiquetaDeVariable: (p: string) => string,
-  regexVariable: RegExp,
-): string {
+function textoAHtml(texto: string, etiquetaDeVariable: (p: string) => string, regexVariable: RegExp): string {
   return segmentarEstilos(texto)
     .map((tramo) => {
       let html = contenidoConChipsAHtml(tramo.contenido, etiquetaDeVariable, regexVariable);
@@ -175,8 +166,7 @@ function domATexto(el: HTMLElement): string {
   const tramos: { texto: string; estilo: Estilo }[] = [];
 
   const negritaActiva = (nodo: Node): boolean => {
-    let actual: HTMLElement | null =
-      nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
+    let actual: HTMLElement | null = nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
     while (actual && actual !== el) {
       if (actual.tagName === "STRONG" || actual.tagName === "B") return true;
       actual = actual.parentElement;
@@ -184,8 +174,7 @@ function domATexto(el: HTMLElement): string {
     return false;
   };
   const tamañoActivo = (nodo: Node): number | null => {
-    let actual: HTMLElement | null =
-      nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
+    let actual: HTMLElement | null = nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
     while (actual && actual !== el) {
       const fontSize = actual.style?.fontSize;
       if (fontSize) {
@@ -197,13 +186,15 @@ function domATexto(el: HTMLElement): string {
     return null;
   };
   const fuenteActiva = (nodo: Node): string | null => {
-    let actual: HTMLElement | null =
-      nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
+    let actual: HTMLElement | null = nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
     while (actual && actual !== el) {
       const ff = actual.style?.fontFamily;
       if (ff) {
         // Extraer el nombre de la primera fuente (sin comillas, sin fallback)
-        const primera = ff.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "");
+        const primera = ff
+          .split(",")[0]
+          ?.trim()
+          .replace(/^['"]|['"]$/g, "");
         if (primera && primera !== "serif" && primera !== "sans-serif" && primera !== "monospace") {
           return primera;
         }
@@ -313,8 +304,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
       }
     };
     document.addEventListener("selectionchange", guardarRangoSiEsDelEditor);
-    return () =>
-      document.removeEventListener("selectionchange", guardarRangoSiEsDelEditor);
+    return () => document.removeEventListener("selectionchange", guardarRangoSiEsDelEditor);
   }, []);
 
   // Reconstrucción TOTAL del DOM — solo cuando `value` cambia desde afuera
@@ -332,11 +322,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
       return;
     }
     if (editorRef.current) {
-      editorRef.current.innerHTML = textoAHtml(
-        value,
-        etiquetaDeVariableRef.current,
-        regexRef.current,
-      );
+      editorRef.current.innerHTML = textoAHtml(value, etiquetaDeVariableRef.current, regexRef.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
@@ -419,11 +405,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
   // chips de variables u otro <strong>/<span> ya aplicado (negrita+tamaño
   // combinados). Sin selección, inserta `textoSiVacio` ya seleccionado
   // dentro del elemento nuevo, para que el usuario lo sobreescriba.
-  const envolverEnElemento = (
-    rango: Range,
-    crearElemento: () => HTMLElement,
-    textoSiVacio: string,
-  ) => {
+  const envolverEnElemento = (rango: Range, crearElemento: () => HTMLElement, textoSiVacio: string) => {
     const elemento = crearElemento();
     if (rango.collapsed) {
       elemento.textContent = textoSiVacio;
@@ -472,8 +454,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
     raiz: HTMLElement,
     esDelEstilo: (el: HTMLElement) => boolean,
   ): HTMLElement | null => {
-    let actual: HTMLElement | null =
-      nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
+    let actual: HTMLElement | null = nodo.nodeType === Node.ELEMENT_NODE ? (nodo as HTMLElement) : nodo.parentElement;
     while (actual && actual !== raiz) {
       if (esDelEstilo(actual)) return actual;
       actual = actual.parentElement;
@@ -490,10 +471,10 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
 
   // Aplica un estilo con toggle: si CADA nodo de texto de la selección ya
   // está envuelto en un ancestro que cumple `esDelEstilo`, se desenvuelven
-  // esos ancestros (quitar); si no, se envuelve la selección en un
+  // esos ancestros (Eliminar); si no, se envuelve la selección en un
   // elemento nuevo (aplicar). Simplificación aceptada: si el ancestro en
   // negrita se extiende más allá de lo seleccionado (el usuario negrilló
-  // "Hola mundo" pero solo reselecciona "mundo"), quitar desenvuelve el
+  // "Hola mundo" pero solo reselecciona "mundo"), Eliminar desenvuelve el
   // ancestro COMPLETO, no solo la porción elegida — cubre el caso normal
   // (reseleccionar exactamente lo que se negrilló antes) sin la
   // complejidad de partir un elemento parcialmente seleccionado a mano.
@@ -506,8 +487,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
   ) => {
     const nodosTexto = nodosDeTextoEnRango(rango);
     const todosEnvueltos =
-      nodosTexto.length > 0 &&
-      nodosTexto.every((n) => ancestroDeEstilo(n, el, esDelEstilo) !== null);
+      nodosTexto.length > 0 && nodosTexto.every((n) => ancestroDeEstilo(n, el, esDelEstilo) !== null);
 
     if (todosEnvueltos) {
       const wrappers = new Set<HTMLElement>();
@@ -540,7 +520,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
       botonX.type = "button";
       botonX.setAttribute("data-chip-remove", "1");
       botonX.contentEditable = "false";
-      botonX.setAttribute("aria-label", "Quitar variable");
+      botonX.setAttribute("aria-label", "Eliminar variable");
       botonX.className =
         "pe-chip-x rounded-full px-1 leading-none text-violet-500 hover:bg-violet-200 hover:text-violet-900";
       botonX.textContent = "×";
@@ -626,7 +606,10 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
       const esCualquierFont = (elNodo: HTMLElement) => {
         const ff = elNodo.style?.fontFamily;
         if (!ff) return false;
-        const primera = ff.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "");
+        const primera = ff
+          .split(",")[0]
+          ?.trim()
+          .replace(/^['"]|['"]$/g, "");
         return !!primera && primera !== "serif" && primera !== "sans-serif" && primera !== "monospace";
       };
       const nodosTexto = nodosDeTextoEnRango(rango);
@@ -636,7 +619,10 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
           const ancestro = ancestroDeEstilo(n, el, esCualquierFont);
           if (!ancestro) return false;
           const ff = ancestro.style.fontFamily;
-          const primera = ff.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "");
+          const primera = ff
+            .split(",")[0]
+            ?.trim()
+            .replace(/^['"]|['"]$/g, "");
           return primera === fontFamily;
         });
 
@@ -692,7 +678,7 @@ const PlantillaEditor = forwardRef<PlantillaEditorHandle, Props>(function Planti
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const objetivo = e.target as HTMLElement;
-    const boton = objetivo.closest('[data-chip-remove]');
+    const boton = objetivo.closest("[data-chip-remove]");
     if (boton) {
       e.preventDefault();
       boton.closest(".pe-chip")?.remove();
