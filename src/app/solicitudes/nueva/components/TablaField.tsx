@@ -351,13 +351,13 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
   return (
     <div className="rounded-2xl border border-slate-200 shadow-md shadow-slate-200/60">
       <div className="overflow-x-auto" style={{ overflowY: "visible" }}>
-        <table className="w-full text-[11px] border-collapse">
+        <table className="w-full text-xs border-collapse">
           <thead>
-            <tr className="bg-gradient-to-r from-blue-600 to-blue-700">
+            <tr className="bg-brand-gradient">
               {columnas.map((columna) => (
                 <th
                   key={columna.nombre}
-                  className="px-2 py-1 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl">
+                  className="px-3 py-2 text-left font-semibold text-white tracking-wide first:rounded-tl-2xl">
                   {columna.nombre}
                 </th>
               ))}
@@ -430,7 +430,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                     return (
                       <td key={columna.nombre} className="p-1">
                         <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
+                          <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-slate-500">
                             $
                           </span>
                           <input
@@ -442,7 +442,8 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                               const soloDigitos = e.target.value.replace(/\D/g, "");
                               actualizarCelda(filaIndex, columna.nombre, soloDigitos);
                             }}
-                            className="w-full rounded-lg border border-transparent bg-transparent py-1 pl-5 pr-2 text-[11px] text-slate-700 transition-all focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:text-slate-400"
+                            placeholder="0"
+                            className="w-full rounded border border-blue-200 bg-white py-1.5 pl-6 pr-3 text-sm text-slate-800 placeholder:text-slate-300 transition-all hover:border-blue-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
                           />
                         </div>
                       </td>
@@ -465,9 +466,10 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                             const soloDigitos = e.target.value.replace(/\D/g, "");
                             actualizarCelda(filaIndex, columna.nombre, soloDigitos);
                           }}
-                          className={`w-full rounded-lg border bg-transparent px-2 py-1 text-[11px] text-slate-700 transition-all focus:bg-white focus:outline-none focus:ring-2 disabled:text-slate-400 ${
+                          placeholder="Escribe aquí"
+                          className={`w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 transition-all focus:outline-none focus:ring-2 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
                             enRango
-                              ? "border-transparent focus:border-blue-300 focus:ring-blue-500/40"
+                              ? "border-blue-200 hover:border-blue-400 focus:border-blue-400 focus:ring-blue-500/30"
                               : "border-red-300 focus:border-red-400 focus:ring-red-500/40"
                           }`}
                         />
@@ -498,10 +500,11 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                               disabled={readOnly}
                               value={valorCelda}
                               onChange={(e) => actualizarCelda(filaIndex, columna.nombre, e.target.value)}
-                              className={`w-full rounded-lg border bg-transparent px-2 py-1 text-[11px] text-slate-700 transition-all focus:bg-white focus:outline-none focus:ring-2 disabled:text-slate-400 ${
+                              placeholder="Escribe aquí"
+                              className={`w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 transition-all focus:outline-none focus:ring-2 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
                                 correoInvalido
                                   ? "border-red-300 focus:border-red-400 focus:ring-red-500/40"
-                                  : "border-transparent focus:border-blue-300 focus:ring-blue-500/40"
+                                  : "border-blue-200 hover:border-blue-400 focus:border-blue-400 focus:ring-blue-500/30"
                               }`}
                             />
                             {correoInvalido && (

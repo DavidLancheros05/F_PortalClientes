@@ -1775,22 +1775,22 @@ export default function SolicitudFormContent({
     : formulario?.frs_descripcion || "Completa el formulario por secciones";
   return (
     <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
-      <div className="w-full max-w-[1400px] mx-auto h-full bg-white border border-gray-200 rounded-xl shadow p-2 flex flex-col overflow-hidden">
-        <div className="mb-1 bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
+      <div className="w-full max-w-[1800px] mx-auto h-full bg-white border border-gray-200 rounded-xl shadow p-2 flex flex-col overflow-hidden">
+        <div className="mb-1 rounded-lg bg-brand-gradient px-2 py-1.5 shadow-sm">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleVolver}
-              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-100">
+              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/30 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/20">
               <ArrowLeft className="h-3 w-3" />
               Atrás
             </button>
 
             <div className="min-w-0 flex-1 text-center">
-              <h2 className="text-xs font-bold tracking-tight text-gray-900 leading-tight truncate">
+              <h2 className="text-xs font-bold tracking-tight text-white leading-tight truncate">
                 {formulario?.frs_nombre?.trim() || "Cargando..."}
               </h2>
-              <p className="text-[11px] text-gray-600 mt-0.5 truncate">
+              <p className="text-[11px] text-[#c3d5f5] mt-0.5 truncate">
                 {encabezadoNumeroDescripcion} · Versión{" "}
                 {versionFormularioMostrar != null ? Number(versionFormularioMostrar) : "Cargando..."}
               </p>
@@ -1874,7 +1874,7 @@ export default function SolicitudFormContent({
 
                     {/* Preguntas */}
                     <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
                         {seccionActual.preguntas.filter(shouldShowQuestion).map((pregunta) => (
                           <PreguntaRenderer
                             key={pregunta.fp_id}

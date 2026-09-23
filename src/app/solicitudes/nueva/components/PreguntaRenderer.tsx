@@ -149,13 +149,13 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
   const anchoColumnas = ["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo)
     ? 3
     : (pregunta.fp_ancho_columnas ?? 1);
-  const anchoClassName = anchoColumnas === 3 ? "md:col-span-3" : anchoColumnas === 2 ? "md:col-span-2" : "max-w-sm";
+  const anchoClassName = anchoColumnas === 3 ? "md:col-span-3" : anchoColumnas === 2 ? "md:col-span-2" : "";
 
   return (
     <div key={pregunta.fp_id} className={anchoClassName}>
       {!["NOTA", "FECHA_HORA_ACTUAL", "DOCUMENTOS_TABLA", "ARCHIVO"].includes(pregunta.fp_tipo) && (
         <>
-          <label className="block text-[11px] font-medium mb-0.5">
+          <label className="block text-xs font-medium text-gray-800 mb-1">
             {pregunta.fp_descripcion}
             {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -208,7 +208,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           value={respuestas[pregunta.fp_id]?.valor_texto || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-2 py-1 text-[11px] resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />
@@ -231,7 +231,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             if (e.key === "Enter") e.preventDefault();
           }}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-2 py-1 text-[11px] resize-none overflow-hidden leading-normal focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm resize-none overflow-hidden leading-normal focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />
@@ -239,7 +239,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
 
       {pregunta.fp_tipo === "NUMERO" && pregunta.fp_subtipo === "MONEDA" && (
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-gray-500">
+          <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-gray-500">
             $
           </span>
           <input
@@ -255,7 +255,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
               handleInputChange(pregunta.fp_id, soloDigitos ? Number(soloDigitos) : "", "NUMERO");
             }}
             onBlur={() => validateField(pregunta.fp_id, rules)}
-            className={`w-full border rounded pl-5 pr-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full border rounded pl-6 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               hasError ? "border-red-500" : "border-gray-300"
             }`}
           />
@@ -267,7 +267,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           value={respuestas[pregunta.fp_id]?.valor_numero || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value ? Number(e.target.value) : "", "NUMERO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}>
           <option value="">Selecciona un día</option>
@@ -303,7 +303,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   value={anios}
                   onChange={(e) => actualizarTotal(e.target.value === "" ? "" : Number(e.target.value), meses)}
                   onBlur={() => validateField(pregunta.fp_id, rules)}
-                  className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     hasError ? "border-red-500" : "border-gray-300"
                   }`}
                 />
@@ -314,7 +314,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   value={meses}
                   onChange={(e) => actualizarTotal(anios, e.target.value === "" ? "" : Number(e.target.value))}
                   onBlur={() => validateField(pregunta.fp_id, rules)}
-                  className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     hasError ? "border-red-500" : "border-gray-300"
                   }`}>
                   <option value="">Meses</option>
@@ -339,7 +339,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             value={respuestas[pregunta.fp_id]?.valor_numero || ""}
             onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")}
             onBlur={() => validateField(pregunta.fp_id, rules)}
-            className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               hasError ? "border-red-500" : "border-gray-300"
             }`}
           />
@@ -351,7 +351,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           value={respuestas[pregunta.fp_id]?.valor_fecha || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "FECHA")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />
@@ -442,7 +442,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       )}
 
       {(pregunta.fp_tipo === "MULTISELECT" || (pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo === "CHECK")) && (
-        <div className="space-y-1 border border-gray-300 rounded p-2 text-[11px]">
+        <div className="space-y-1 border border-gray-300 rounded p-2 text-sm">
           {(() => {
             const esSeleccionUnica = pregunta.fp_tipo === "SELECT";
             return pregunta.opciones?.map((opcion: any) => {
@@ -480,7 +480,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                     disabled={readOnly}
                     className={readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" ? "accent-blue-600" : ""}
                   />
-                  <span className="text-[11px]">{label}</span>
+                  <span className="text-sm">{label}</span>
                 </label>
               );
             });
@@ -572,7 +572,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                 },
               }))
             }
-            className="w-full border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       )}

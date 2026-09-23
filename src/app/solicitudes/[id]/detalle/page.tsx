@@ -45,7 +45,6 @@ interface SolicitudDetalle {
   sol_plazo_pago?: number;
   sol_forma_pago?: string;
   sol_observacion_ejn?: string | null;
-  sol_es_zona_franca?: boolean;
   sol_formulario_version?: number;
   fecha_aprobacion?: string;
   sol_cupo_solicitado?: number;

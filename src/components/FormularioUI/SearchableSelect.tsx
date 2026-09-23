@@ -115,7 +115,7 @@ export function SearchableSelect({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="w-full px-2 py-1 rounded border border-gray-300 bg-white text-left text-[11px] text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-500 transition-colors flex items-center justify-between gap-2"
+        className="w-full px-3 py-1.5 rounded border border-gray-300 bg-white text-left text-sm text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-500 transition-colors flex items-center justify-between gap-2"
       >
         <span className="truncate">
           {selectedOption?.label || placeholder}
@@ -161,7 +161,7 @@ export function SearchableSelect({
                     setIsOpen(false);
                   }
                 }}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 autoComplete="off"
               />
             </div>
@@ -170,11 +170,11 @@ export function SearchableSelect({
           {/* Lista de opciones */}
           <ul className="max-h-64 overflow-y-auto">
             {!options || options.length === 0 ? (
-              <li className="px-4 py-3 text-center text-[11px] text-gray-500">
+              <li className="px-4 py-3 text-center text-sm text-gray-500">
                 No hay opciones disponibles
               </li>
             ) : filteredOptions.length === 0 ? (
-              <li className="px-4 py-3 text-center text-[11px] text-gray-500">
+              <li className="px-4 py-3 text-center text-sm text-gray-500">
                 No se encontraron opciones para "{searchTerm}"
               </li>
             ) : (
@@ -185,7 +185,7 @@ export function SearchableSelect({
                     <button
                       type="button"
                       onClick={() => handleSelect(option.id)}
-                      className={`w-full text-left px-4 py-2.5 text-[11px] transition-colors ${
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                         String(option.id) === String(value)
                           ? "bg-blue-50 text-blue-700 font-medium"
                           : "text-gray-700 hover:bg-gray-50"
