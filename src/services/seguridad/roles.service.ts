@@ -16,11 +16,6 @@ export const rolesService = {
     return res.data;
   },
 
-  getById: async (rolId: number) => {
-    const res = await api.get(`/seguridad/roles/${rolId}`);
-    return res.data;
-  },
-
   create: async (payload: {
     rolNombre: string;
     rolDescripcion?: string;
@@ -67,32 +62,7 @@ export const rolesService = {
     await api.delete(`/seguridad/roles/${rolId}`);
   },
 
-  getModulesByRole: async (rolId: number) => {
-    const res = await api.get(`/seguridad/roles/${rolId}/modules`);
-    return res.data;
-  },
-
-  assignModule: async (rolId: number, payload: {
-    modId: number;
-    ver?: boolean;
-    crear?: boolean;
-    editar?: boolean;
-    eliminar?: boolean;
-    aprobar?: boolean;
-  }) => {
-    const backendPayload = {
-      mod_id: payload.modId,
-      rm_ver: payload.ver,
-      rm_crear: payload.crear,
-      rm_editar: payload.editar,
-      rm_eliminar: payload.eliminar,
-      rm_aprobar: payload.aprobar,
-    };
-    const res = await api.post(`/seguridad/roles/${rolId}/modules`, backendPayload);
-    return res.data;
-  },
-
-  removeModule: async (rolId: number, modId: number): Promise<void> => {
-    await api.delete(`/seguridad/roles/${rolId}/modules/${modId}`);
-  },
+  // Los permisos por módulo se guardan dentro de `update` (campo `modulos`).
+  // getById/getModulesByRole/assignModule/removeModule se eliminaron: apuntaban
+  // a rutas que el backend no tiene (daban 404) y ninguna página las usaba.
 };
