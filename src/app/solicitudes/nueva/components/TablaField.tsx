@@ -366,7 +366,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
             {filasVisibles.map((fila, filaIndex) => (
-              <tr key={filaIndex} className="transition-colors hover:bg-blue-50/40">
+              <tr key={filaIndex} className="transition-colors hover:bg-brand-600/5">
                 {columnas.map((columna) => {
                   if (columna.tipo === "SI_NO") {
                     return (
@@ -443,7 +443,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                               actualizarCelda(filaIndex, columna.nombre, soloDigitos);
                             }}
                             placeholder="0"
-                            className="w-full rounded border border-blue-200 bg-white py-1.5 pl-6 pr-3 text-sm text-slate-800 placeholder:text-slate-300 transition-all hover:border-blue-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+                            className="w-full rounded border border-brand-600/20 bg-white py-1.5 pl-6 pr-3 text-sm text-slate-800 placeholder:text-slate-300 transition-all hover:border-brand-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
                           />
                         </div>
                       </td>
@@ -469,7 +469,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                           placeholder="Escribe aquí"
                           className={`w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 transition-all focus:outline-none focus:ring-2 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
                             enRango
-                              ? "border-blue-200 hover:border-blue-400 focus:border-blue-400 focus:ring-blue-500/30"
+                              ? "border-brand-600/20 hover:border-brand-500 focus:border-brand-500 focus:ring-brand-500/30"
                               : "border-red-300 focus:border-red-400 focus:ring-red-500/40"
                           }`}
                         />
@@ -504,7 +504,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                               className={`w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 transition-all focus:outline-none focus:ring-2 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
                                 correoInvalido
                                   ? "border-red-300 focus:border-red-400 focus:ring-red-500/40"
-                                  : "border-blue-200 hover:border-blue-400 focus:border-blue-400 focus:ring-blue-500/30"
+                                  : "border-brand-600/20 hover:border-brand-500 focus:border-brand-500 focus:ring-brand-500/30"
                               }`}
                             />
                             {correoInvalido && (
@@ -545,7 +545,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                   ? undefined
                   : "Completa todas las columnas de todas las filas antes de agregar otra"
             }
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-blue-600 hover:to-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm">
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-all hover:scale-[1.02] hover:shadow-md hover:from-brand-600 hover:to-brand-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-sm">
             <Plus className="h-3 w-3" />
             Agregar fila
           </button>

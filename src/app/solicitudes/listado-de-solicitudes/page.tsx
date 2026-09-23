@@ -18,6 +18,7 @@ import { ResultsToolbar } from "@/components/tables/ResultsToolbar";
 import { TableContainer } from "@/components/tables/TableContainer";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { Th, Td } from "@/components/tables/TableCell";
+import { FechaHora } from "@/components/tables/FechaHora";
 import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { FilterField } from "@/components/filters/FilterField";
@@ -391,9 +392,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
       "Cupo Aprobado",
       "Plazo Pago",
       "Forma Pago",
-      "F. Real Ejecutivo de Negocios",
-      "F. Real Auxiliar Servicio al Cliente",
-      "Fecha real oficial cumplimiento",
+      "Fecha gestión Ejecutivo Negocios",
+      "Fecha gestión Auxiliar Servicio Cliente",
+      "Fecha gestión Oficial Cumplimiento",
     ];
 
     const data = rows.map((row) => [
@@ -449,7 +450,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
           subtitle="Consulta y filtra las solicitudes según tus necesidades."
           // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
           onBack={() => router.push("/solicitudes")}>
-          <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-4 gap-y-3">
+          {/* 8 filtros → 4 por fila (2 filas completas). auto-fill con 200px
+              los metía todos en una sola línea en pantallas anchas. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
             <FilterField label="Ejecutivo" className="relative" ref={ejecutivoContainerRef}>
               <input
                 type="text"
@@ -650,24 +653,26 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                 <table className="min-w-full divide-y divide-blue-100">
                   <thead className="bg-gray-50 sticky top-0 z-20">
                     <tr>
-                      <Th>No. solicitud</Th>
-                      <Th>Tipo</Th>
-                      <Th>Ejecutivo</Th>
-                      <Th>Cliente</Th>
-                      <Th>Fecha de envío</Th>
-                      <Th>Fecha de aprobación</Th>
-                      <Th>Estado</Th>
-                      <Th>Etapa Actual</Th>
-                      <Th>Resultado Etapa</Th>
-                      <Th>F. Real Ejecutivo de Negocios</Th>
-                      <Th>F. Real Auxiliar Servicio al Cliente</Th>
-                      <Th>F. Real Cumplimiento</Th>
-                      <Th>F. Real Crédito 1</Th>
-                      <Th>F. Real Crédito 2</Th>
-                      <Th>Cupo Aprobado</Th>
-                      <Th>Plazo Pago</Th>
-                      <Th>Forma Pago</Th>
-                      <Th sticky align="right">
+                      <Th compacta>No. solicitud</Th>
+                      <Th compacta>Tipo</Th>
+                      <Th compacta>Ejecutivo</Th>
+                      <Th compacta>Cliente</Th>
+                      <Th compacta>Fecha de envío</Th>
+                      <Th compacta>Estado</Th>
+                      {/* Ancho mínimo: "Auxiliar Servicio al Cliente" se partía en 3 líneas. */}
+                      <Th compacta className="min-w-44">Etapa Actual</Th>
+                      <Th compacta>Resultado Etapa</Th>
+                      {/* sol_fecha_gest_*: fecha en que cada etapa gestionó la
+                          solicitud. Nombres de etapa = workflow_etapas.wet_nombre. */}
+                      <Th compacta>Fecha gestión Ejecutivo Negocios</Th>
+                      <Th compacta>Fecha gestión Auxiliar Servicio Cliente</Th>
+                      <Th compacta>Fecha gestión Oficial Cumplimiento</Th>
+                      <Th compacta>Fecha gestión Comité Crédito 1</Th>
+                      <Th compacta>Fecha gestión Comité Crédito 2</Th>
+                      <Th compacta>Cupo Aprobado</Th>
+                      <Th compacta>Plazo Pago</Th>
+                      <Th compacta>Forma Pago</Th>
+                      <Th compacta sticky align="right">
                         Acciones
                       </Th>
                     </tr>
@@ -675,23 +680,26 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                   <tbody className="divide-y divide-gray-100">
                     {paginatedRows.map((row) => (
                       <Tr key={row.sol_id}>
-                        <Td>{row.sol_numero || "-"}</Td>
-                        <Td>
-                          <TipoSolicitudBadge esAmpliacionCupo={row.es_ampliacion_cupo} />
+                        <Td compacta>{row.sol_numero || "-"}</Td>
+                        <Td compacta>
+                          <TipoSolicitudBadge esAmpliacionCupo={row.es_ampliacion_cupo} corto />
                         </Td>
-                        <Td>{row.ejecutivo_nombre || "-"}</Td>
-                        <Td>{row.cliente_nombre || "-"}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_envio)}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_aprobacion)}</Td>
-                        <Td>{ESTADOS[row.sol_ses_id] || "Desconocido"}</Td>
-                        <Td>{row.etapa_nombre || "-"}</Td>
-                        <Td>{row.resultado_nombre || "-"}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_gest_ejn)}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_gest_asc)}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_gest_oc)}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_gest_cc1)}</Td>
-                        <Td>{formatDateTime(row.sol_fecha_gest_cc2)}</Td>
-                        <Td>
+                        <Td compacta>{row.ejecutivo_nombre || "-"}</Td>
+                        <Td compacta>{row.cliente_nombre || "-"}</Td>
+                        <Td compacta><FechaHora value={row.sol_fecha_envio} /></Td>
+                        <Td compacta>{ESTADOS[row.sol_ses_id] || "Desconocido"}</Td>
+                        <Td compacta>{row.etapa_nombre || "-"}</Td>
+                        {/* max-w: "Pendiente de documentos generados" (PEND_FIRMA)
+                            ensanchaba la columna; así se parte en 2 líneas. */}
+                        <Td compacta>
+                          <span className="block max-w-44">{row.resultado_nombre || "-"}</span>
+                        </Td>
+                        <Td compacta><FechaHora value={row.sol_fecha_gest_ejn} /></Td>
+                        <Td compacta><FechaHora value={row.sol_fecha_gest_asc} /></Td>
+                        <Td compacta><FechaHora value={row.sol_fecha_gest_oc} /></Td>
+                        <Td compacta><FechaHora value={row.sol_fecha_gest_cc1} /></Td>
+                        <Td compacta><FechaHora value={row.sol_fecha_gest_cc2} /></Td>
+                        <Td compacta>
                           {row.sol_cupo_aprobado ? (
                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">
                               ${row.sol_cupo_aprobado.toLocaleString("es-CO")}
@@ -700,9 +708,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                             "-"
                           )}
                         </Td>
-                        <Td>{row.sol_plazo_pago || "-"}</Td>
-                        <Td>{row.sol_forma_pago || "-"}</Td>
-                        <Td sticky align="right" className="border-l border-gray-100">
+                        <Td compacta>{row.sol_plazo_pago || "-"}</Td>
+                        <Td compacta>{row.sol_forma_pago || "-"}</Td>
+                        <Td compacta sticky align="right" className="border-l border-gray-100">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => router.push(`/solicitudes/${row.sol_id}/detalle`)}

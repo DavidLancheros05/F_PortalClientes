@@ -382,7 +382,13 @@ export default function ConceptoEjecutivoPage() {
           // TODO: "/solicitudes" no tiene page.tsx propio -> 404. Pendiente decidir destino real.
           onBack={() => router.push("/solicitudes")}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <FilterField label="Ejecutivo de Negocios" className="relative" ref={ejecutivoRef}>
+            {/* Obligatorio solo para quien elige ejecutivo (no es EJN pero puede
+                editar): el backend siempre filtra por un ejecutivo — ver canSearch. */}
+            <FilterField
+              label="Ejecutivo de Negocios"
+              className="relative"
+              ref={ejecutivoRef}
+              required={!esEjecutivo && puedeEditar}>
               {esEjecutivo ? (
                 <input
                   type="text"

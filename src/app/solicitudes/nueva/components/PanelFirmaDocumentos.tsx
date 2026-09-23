@@ -268,7 +268,7 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
 
     if (loading) {
       return (
-        <div className="mb-3 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm animate-pulse">
+        <div className="mb-3 rounded-2xl border border-brand-600/20 bg-white p-6 shadow-sm animate-pulse">
           <div className="h-4 w-2/3 rounded bg-gray-200" />
           <div className="mt-3 h-3 w-1/2 rounded bg-gray-100" />
         </div>
@@ -338,7 +338,7 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
                   href={archivoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800">
+                  className="text-xs font-medium text-brand-600 hover:text-brand-700">
                   Ver archivo
                 </a>
               )}
@@ -347,7 +347,7 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
                   className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
                     listo
                       ? "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                      : "bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+                      : "bg-brand-600 text-white shadow-sm hover:bg-brand-700"
                   }`}>
                   <Upload className="h-3.5 w-3.5" />
                   {listo ? "Reemplazar" : "Subir firmado"}
@@ -370,10 +370,10 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
     };
 
     return (
-      <div className="mb-3 rounded-2xl border border-blue-200 bg-white p-6 shadow-sm">
+      <div className="mb-3 rounded-2xl border border-brand-600/20 bg-white p-6 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="shrink-0 rounded-full bg-blue-100 p-3">
-            <FileText className="h-5 w-5 text-blue-600" />
+          <div className="shrink-0 rounded-full bg-brand-600/10 p-3">
+            <FileText className="h-5 w-5 text-brand-600" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-base font-semibold text-gray-900">Documentos generados y firmas pendientes</p>
@@ -389,7 +389,7 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
             type="button"
             onClick={generarYGuardarDocumentos}
             disabled={generandoDocumentos}
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60">
             <Download className="h-4 w-4" />
             {generandoDocumentos ? "Generando documentos..." : "Generar documentos"}
           </button>

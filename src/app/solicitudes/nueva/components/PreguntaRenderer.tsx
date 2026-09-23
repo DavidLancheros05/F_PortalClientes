@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import { useCallback } from "react";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { ArchivoField } from "./ArchivoField";
@@ -173,15 +173,15 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       )}
 
       {pregunta.fp_tipo === "NOTA" && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/60 px-2 py-2">
+        <div className="rounded-lg border border-brand-600/20 bg-brand-600/5 px-2 py-2">
           {(() => {
             const nota = getNotaDisplay(pregunta);
             return (
               <>
-                {nota.titulo && <p className="text-[11px] font-semibold text-blue-950 leading-tight">{nota.titulo}</p>}
-                {nota.subtitulo && <p className="mt-0.5 text-[11px] font-medium text-blue-900">{nota.subtitulo}</p>}
+                {nota.titulo && <p className="text-[11px] font-semibold text-brand-600 leading-tight">{nota.titulo}</p>}
+                {nota.subtitulo && <p className="mt-0.5 text-[11px] font-medium text-brand-600">{nota.subtitulo}</p>}
                 {nota.cuerpo && (
-                  <p className="mt-1 text-[11px] text-blue-900 whitespace-pre-wrap break-words leading-relaxed text-justify">
+                  <p className="mt-1 text-[11px] text-brand-600 whitespace-pre-wrap break-words leading-relaxed text-justify">
                     {nota.cuerpo}
                   </p>
                 )}
@@ -208,7 +208,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           value={respuestas[pregunta.fp_id]?.valor_texto || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-3 py-1.5 text-sm resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-brand-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />
@@ -231,7 +231,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             if (e.key === "Enter") e.preventDefault();
           }}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-3 py-1.5 text-sm resize-none overflow-hidden leading-normal focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm resize-none overflow-hidden leading-normal focus:outline-none focus:ring-2 focus:ring-brand-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />
@@ -255,7 +255,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
               handleInputChange(pregunta.fp_id, soloDigitos ? Number(soloDigitos) : "", "NUMERO");
             }}
             onBlur={() => validateField(pregunta.fp_id, rules)}
-            className={`w-full border rounded pl-6 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full border rounded pl-6 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${
               hasError ? "border-red-500" : "border-gray-300"
             }`}
           />
@@ -267,7 +267,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           value={respuestas[pregunta.fp_id]?.valor_numero || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value ? Number(e.target.value) : "", "NUMERO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}>
           <option value="">Selecciona un día</option>
@@ -303,7 +303,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   value={anios}
                   onChange={(e) => actualizarTotal(e.target.value === "" ? "" : Number(e.target.value), meses)}
                   onBlur={() => validateField(pregunta.fp_id, rules)}
-                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                     hasError ? "border-red-500" : "border-gray-300"
                   }`}
                 />
@@ -314,7 +314,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   value={meses}
                   onChange={(e) => actualizarTotal(anios, e.target.value === "" ? "" : Number(e.target.value))}
                   onBlur={() => validateField(pregunta.fp_id, rules)}
-                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${
                     hasError ? "border-red-500" : "border-gray-300"
                   }`}>
                   <option value="">Meses</option>
@@ -339,7 +339,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             value={respuestas[pregunta.fp_id]?.valor_numero || ""}
             onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "NUMERO")}
             onBlur={() => validateField(pregunta.fp_id, rules)}
-            className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${
               hasError ? "border-red-500" : "border-gray-300"
             }`}
           />
@@ -351,7 +351,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           value={respuestas[pregunta.fp_id]?.valor_fecha || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "FECHA")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
-          className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${
             hasError ? "border-red-500" : "border-gray-300"
           }`}
         />
@@ -434,7 +434,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             disabled={readOnly}
           />
           {readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" && (
-            <p className="mt-1 text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+            <p className="mt-1 text-[11px] text-brand-600 bg-brand-600/5 border border-brand-600/20 rounded px-2 py-1">
               El tipo de solicitud se define automáticamente según tu historial de solicitudes.
             </p>
           )}
@@ -442,7 +442,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       )}
 
       {(pregunta.fp_tipo === "MULTISELECT" || (pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo === "CHECK")) && (
-        <div className="space-y-1 border border-gray-300 rounded p-2 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 rounded-lg border border-gray-200 bg-gray-50 p-1.5">
           {(() => {
             const esSeleccionUnica = pregunta.fp_tipo === "SELECT";
             return pregunta.opciones?.map((opcion: any) => {
@@ -455,11 +455,24 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   ? [Number(valorOpcionId)]
                   : [];
 
+              const marcada = opcionesSeleccionadas.includes(id);
+
               return (
-                <label key={id} className="flex items-center gap-1">
+                <label
+                  key={id}
+                  className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-colors ${
+                    marcada
+                      ? "border-brand-500 bg-brand-600/5 text-brand-600"
+                      : "border-gray-200 bg-white text-gray-700"
+                  } ${
+                    readOnly
+                      ? "cursor-not-allowed opacity-70"
+                      : `cursor-pointer ${marcada ? "hover:bg-brand-600/10" : "hover:border-brand-600/30 hover:bg-gray-50"}`
+                  }`}
+                >
                   <input
                     type="checkbox"
-                    checked={opcionesSeleccionadas.includes(id)}
+                    checked={marcada}
                     onChange={(e) => {
                       const nuevoValor = esSeleccionUnica
                         ? e.target.checked
@@ -478,9 +491,16 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                       }));
                     }}
                     disabled={readOnly}
-                    className={readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" ? "accent-blue-600" : ""}
+                    className="peer sr-only"
                   />
-                  <span className="text-sm">{label}</span>
+                  <span
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600/30 ${
+                      esSeleccionUnica ? "rounded-full" : "rounded"
+                    } ${marcada ? "border-brand-600 bg-brand-600" : "border-gray-300 bg-white"}`}
+                  >
+                    {marcada && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                  </span>
+                  <span className={marcada ? "font-medium" : ""}>{label}</span>
                 </label>
               );
             });
@@ -558,7 +578,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       )}
 
       {pregunta.fp_tipo === "SELECT_CONDICIONAL" && shouldShowConditionalField(pregunta) && (
-        <div className="mt-1 p-2 bg-blue-50 rounded border border-blue-200">
+        <div className="mt-1 p-2 bg-brand-600/5 rounded border border-brand-600/20">
           <label className="block text-[11px] font-medium mb-1">{pregunta.fp_descripcion_adicional}</label>
           <input
             type="text"
@@ -572,7 +592,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                 },
               }))
             }
-            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       )}

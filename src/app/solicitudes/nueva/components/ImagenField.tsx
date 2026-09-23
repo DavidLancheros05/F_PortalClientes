@@ -78,10 +78,10 @@ export function ImagenField({
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-2 shadow-sm">
+    <div className="space-y-2 rounded-lg border border-brand-600/10 bg-gradient-to-br from-white to-brand-600/5 p-2 shadow-sm">
       {imagenAMostrar ? (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-2 space-y-2">
-          <div className="flex items-center justify-center rounded-lg border border-blue-100 bg-white p-2">
+        <div className="rounded-lg border border-brand-600/20 bg-brand-600/5 p-2 space-y-2">
+          <div className="flex items-center justify-center rounded-lg border border-brand-600/10 bg-white p-2">
             <img
               src={imagenAMostrar}
               alt={pregunta.fp_descripcion}
@@ -89,7 +89,7 @@ export function ImagenField({
             />
           </div>
           {!readOnly && (
-            <div className="flex gap-1 pt-1 border-t border-blue-200">
+            <div className="flex gap-1 pt-1 border-t border-brand-600/20">
               {archivoExistente && (
                 <button
                   type="button"
@@ -120,10 +120,10 @@ export function ImagenField({
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-blue-200 bg-white p-3">
+        <div className="rounded-lg border border-dashed border-brand-600/20 bg-white p-3">
           <div className="flex flex-col items-center justify-center gap-1 text-center mb-2">
-            <ImageOff className="h-5 w-5 text-blue-300" />
-            <p className="text-xs font-semibold uppercase tracking-tight text-blue-700">Cargar imagen</p>
+            <ImageOff className="h-5 w-5 text-brand-600/30" />
+            <p className="text-xs font-semibold uppercase tracking-tight text-brand-600">Cargar imagen</p>
           </div>
           <input
             id={`imagen-input-${pregunta.fp_id}`}
@@ -135,8 +135,8 @@ export function ImagenField({
               }
             }}
             accept="image/*"
-            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-              hasError ? "border-red-500" : "border-blue-200"
+            className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-brand-600/5 file:text-brand-600 hover:file:bg-brand-600/10 ${
+              hasError ? "border-red-500" : "border-brand-600/20"
             }`}
           />
         </div>

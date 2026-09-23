@@ -196,7 +196,7 @@ export default function NuevaSolicitudPage() {
                   }}
                   disabled={esEjecutivo}
                   title={esEjecutivo ? "Solo puedes crear solicitudes para tus propios clientes" : undefined}
-                  className="w-full h-9 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
+                  className="w-full h-9 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-100 disabled:text-gray-600 disabled:cursor-not-allowed"
                 />
                 {!esEjecutivo && mostrarEjecutivoLista && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
@@ -241,7 +241,7 @@ export default function NuevaSolicitudPage() {
                     setBusqueda(event.target.value);
                     setMostrarLista(true);
                   }}
-                  className="w-full h-9 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-9 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 {mostrarLista && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">

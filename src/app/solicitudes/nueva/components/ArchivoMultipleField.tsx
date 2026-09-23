@@ -157,11 +157,11 @@ export function ArchivoMultipleField({
 
         <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
           {existentes.map((archivo) => (
-            <div key={archivo.sa_id} className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
+            <div key={archivo.sa_id} className="rounded-lg border border-brand-600/20 bg-brand-600/5 px-2 py-1.5">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex items-start gap-1 min-w-0">
-                  <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs font-medium text-blue-900 break-words">{archivo.sa_nombre_original}</p>
+                  <FileText className="h-3 w-3 text-brand-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs font-medium text-brand-600 break-words">{archivo.sa_nombre_original}</p>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   {(() => {
@@ -172,7 +172,7 @@ export function ArchivoMultipleField({
                         href={rutaArchivo}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200">
+                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-brand-600 rounded-md hover:bg-brand-600/10 transition-colors font-medium border border-brand-600/20">
                         Ver
                       </a>
                     );
@@ -218,7 +218,7 @@ export function ArchivoMultipleField({
               className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors ${
                 hasError
                   ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
-                  : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
+                  : "border-brand-600/20 bg-brand-600/5 text-brand-600 hover:bg-brand-600/5"
               }`}>
               <Upload className="h-3.5 w-3.5 flex-shrink-0" />
               {totalActual === 0 ? "Seleccionar archivo" : "Agregar otro archivo"}

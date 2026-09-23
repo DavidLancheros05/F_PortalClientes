@@ -89,7 +89,7 @@ export function CampoFechaVigencia({
         min="1900-01-01"
         max={hoy}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-36 flex-shrink-0 border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        className={`w-36 flex-shrink-0 border rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 ${
           hasError ? "border-red-500" : "border-gray-300"
         } ${readOnly ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
       />

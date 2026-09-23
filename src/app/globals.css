@@ -52,3 +52,30 @@ body {
 .bg-brand-gradient {
   background: linear-gradient(120deg, var(--brand-600) 0%, var(--brand-500) 100%);
 }
+
+/* Scroll delgado y translúcido para fondos oscuros (menú lateral).
+   El pulgar solo se nota al pasar el mouse por encima del contenedor. */
+.scrollbar-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+.scrollbar-sidebar:hover {
+  scrollbar-color: rgb(255 255 255 / 0.3) transparent;
+}
+.scrollbar-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-sidebar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+.scrollbar-sidebar:hover::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.3);
+}
+.scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.5);
+}

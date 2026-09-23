@@ -83,7 +83,7 @@ export function SeccionesSidebar({
                 else refsSecciones.current.delete(seccion.seccion_id);
               }}
               className={`group relative flex-shrink-0 snap-start rounded-xl border px-2.5 py-2 cursor-pointer transition-all min-w-[150px] lg:min-w-0 lg:flex-none ${
-                selected ? "bg-blue-50 border-blue-500 shadow-sm" : "bg-white border-slate-200 hover:bg-slate-50"
+                selected ? "bg-brand-600/5 border-brand-500 shadow-sm" : "bg-white border-slate-200 hover:bg-slate-50"
               }`}
               onClick={() => setSeccionSeleccionada(seccion.seccion_id)}
               aria-pressed={selected}>
@@ -94,7 +94,7 @@ export function SeccionesSidebar({
                       {seccion.seccion_nombre}
                     </p>
                     {todasCompletadas && seccionPreguntas.length > 0 && (
-                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-blue-600" />
+                      <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-600" />
                     )}
                   </div>
                   <p className="mt-0.5 text-[10px] text-slate-500">
@@ -122,7 +122,7 @@ export function SeccionesSidebar({
                   </div>
                   <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-blue-500 transition-all"
+                      className="h-full rounded-full bg-brand-500 transition-all"
                       style={{ width: `${progresoSeccion.displayPercent}%` }}
                     />
                   </div>

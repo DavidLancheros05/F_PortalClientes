@@ -3,6 +3,8 @@ import { forwardRef, type ReactNode } from "react";
 interface FilterFieldProps {
   label: string;
   className?: string;
+  // Muestra el asterisco rojo de campo obligatorio junto al label.
+  required?: boolean;
   children: ReactNode;
 }
 
@@ -16,11 +18,12 @@ interface FilterFieldProps {
 // necesitan una ref sobre el div contenedor para detectar clics afuera y
 // cerrar la lista de sugerencias.
 export const FilterField = forwardRef<HTMLDivElement, FilterFieldProps>(
-  function FilterField({ label, className, children }, ref) {
+  function FilterField({ label, className, required, children }, ref) {
     return (
       <div ref={ref} className={className}>
-        <label className="flex items-end min-h-5 mb-1.5 text-xs font-semibold text-gray-600">
+        <label className="flex items-end gap-1 min-h-5 mb-1.5 text-xs font-semibold text-gray-600">
           {label}
+          {required && <span className="text-[#dc2626]">*</span>}
         </label>
         {children}
       </div>

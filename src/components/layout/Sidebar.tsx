@@ -116,7 +116,7 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
   }
 
   return (
-    <aside className="hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0 bg-brand-600 overflow-y-auto">
+    <aside className="hidden md:flex md:flex-col w-64 shrink-0 h-screen sticky top-0 bg-brand-600 overflow-hidden">
       <div className="flex items-center gap-3 px-4 h-15 border-b border-white/10 shrink-0">
         <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0">
           <img
@@ -141,7 +141,7 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
         <MenuSearchPanel modulos={modulos} isAdmin={isAdmin} pathname={pathname} />
       </div>
 
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-sidebar p-3 space-y-1">
         {mostrarRolDirecto ? (
           <div className="px-3 py-2 rounded-lg bg-white/20 text-white font-semibold text-sm">
             {rol || "Usuario"}
@@ -156,7 +156,7 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                 {subs.length > 0 ? (
                   <button
                     onClick={() => toggleGroup(m.mod_id)}
-                    className={`flex w-full items-center justify-between px-3 py-2 rounded-lg text-white text-sm transition-colors ${
+                    className={`flex w-full items-center justify-between px-3 py-2 rounded-lg text-white text-sm font-semibold transition-colors ${
                       isExpanded
                         ? "bg-white/14 hover:bg-white/20"
                         : "hover:bg-white/14"
@@ -184,7 +184,7 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
 
                 {/* Panel de nivel 2 — HERMANO del botón, no hijo */}
                 {isExpanded && subs.length > 0 && (
-                  <div className="mt-1 ml-2.5 pl-2.5 border-l-2 border-white/20 space-y-0.5">
+                  <div className="mt-1 ml-3 space-y-0.5">
                     {sortModulosByOrden(subs)
                       .filter(
                         (s) =>
@@ -208,7 +208,11 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                               <>
                                 <button
                                   onClick={() => toggleNestedGroup(sub.mod_id)}
-                                  className="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm text-white/90 hover:bg-white/14 transition-colors"
+                                  className={`flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-white/90 transition-colors ${
+                                    openNestedGroup === sub.mod_id
+                                      ? "bg-white/10 hover:bg-white/14"
+                                      : "hover:bg-white/14"
+                                  }`}
                                 >
                                   <span>{sub.mod_nombre}</span>
                                   <ChevronDown
@@ -219,7 +223,7 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                                 </button>
                                 {/* Panel de nivel 3 — HERMANO del botón */}
                                 {openNestedGroup === sub.mod_id && (
-                                  <div className="ml-2.5 pl-2.5 border-l-2 border-white/20 space-y-0.5">
+                                  <div className="mt-1 mb-1.5 ml-3 p-1 rounded-lg bg-black/15 ring-1 ring-white/10 space-y-0.5">
                                     {sortModulosByOrden(subHijos)
                                       ?.filter(
                                         (n) =>
@@ -228,20 +232,35 @@ export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
                                       )
                                       .map((nested, nIdx) => {
                                         const ruta = resolveModuloRoute(nested);
+                                        const activo = ruta ? isModuloActivo(pathname, ruta) : false;
+                                        const contenido = (
+                                          <>
+                                            <span
+                                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                                activo ? "bg-brand-600" : "bg-white/40"
+                                              }`}
+                                            />
+                                            {nested.mod_nombre}
+                                          </>
+                                        );
                                         return ruta ? (
                                           <Link
                                             key={`${nested.mod_id}-${nIdx}`}
                                             href={ruta}
-                                            className={linkClass(isModuloActivo(pathname, ruta))}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
+                                              activo
+                                                ? "bg-white text-brand-600 font-semibold"
+                                                : "text-white/75 hover:bg-white/14 hover:text-white"
+                                            }`}
                                           >
-                                            {nested.mod_nombre}
+                                            {contenido}
                                           </Link>
                                         ) : (
                                           <span
                                             key={`${nested.mod_id}-${nIdx}`}
-                                            className="block px-3 py-2 rounded-lg text-sm text-white/80"
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] text-white/70"
                                           >
-                                            {nested.mod_nombre}
+                                            {contenido}
                                           </span>
                                         );
                                       })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Save, Loader } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Save, Loader } from "lucide-react";
 
 interface OverallProgress {
   totalAnswered: number;
@@ -52,23 +52,23 @@ export function BarraAccionesFormulario({
   return (
     <div className="mt-2 bg-white border border-gray-200 rounded-lg p-2 shadow-sm">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap md:pl-1">
           <button
             onClick={() => onNavegar("anterior")}
             disabled={isFirstSection}
-            className="flex items-center gap-1 px-2 py-1 text-[11px] border border-slate-200 rounded-lg bg-slate-100 text-slate-700 font-semibold shadow-sm hover:bg-slate-200 hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm border border-slate-300 rounded-lg bg-slate-100 text-slate-700 font-semibold shadow-sm hover:bg-slate-200 hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
           >
-            <ChevronLeft className="h-3 w-3" />
+            <ChevronLeft className="h-4 w-4" />
             Anterior
           </button>
 
           <button
             onClick={() => onNavegar("siguiente")}
             disabled={isLastSection}
-            className="flex items-center gap-1 px-2 py-1 text-[11px] bg-blue-600 text-white rounded-lg font-semibold shadow-md hover:bg-blue-700 hover:shadow-lg ring-1 ring-blue-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+            className="flex items-center gap-1.5 px-5 py-2 text-sm bg-brand-600 text-white rounded-lg font-semibold shadow-md hover:bg-brand-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
           >
             Siguiente
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 
@@ -87,8 +87,8 @@ export function BarraAccionesFormulario({
               <div
                 className={`h-full rounded-full transition-all ${
                   overallDisplayProgress.answered >= overallDisplayProgress.total
-                    ? "bg-blue-700"
-                    : "bg-blue-500"
+                    ? "bg-brand-600"
+                    : "bg-brand-500"
                 }`}
                 style={{ width: `${overallDisplayProgress.percent}%` }}
               />
@@ -98,14 +98,15 @@ export function BarraAccionesFormulario({
             </p>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             {!readOnly && estadoId !== 2 && !isCorrecionASC && (
               <button
                 onClick={onGuardarParcial}
                 disabled={isBlocked || !hasDraftData}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-800 shadow-sm hover:bg-slate-100 hover:border-slate-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-white px-4 py-2 text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-600/5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {isSavingBorrador ? "Guardando..." : "📋 Guardar Borrador"}
+                <FileText className="h-4 w-4" />
+                {isSavingBorrador ? "Guardando..." : "Guardar Borrador"}
               </button>
             )}
 
@@ -113,12 +114,12 @@ export function BarraAccionesFormulario({
               <button
                 onClick={onGuardar}
                 disabled={isBlocked || overallDisplayProgress.percent < 100}
-                className="inline-flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-[#0a4d85] to-[#0e5e9f] px-3 py-1 text-[11px] font-semibold text-white shadow-md ring-1 ring-[#0a4d85]/30 transition-all duration-200 hover:from-[#084370] hover:to-[#0b548f] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0e5e9f]/40 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-brand-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isSavingFinal ? (
-                  <Loader className="h-3 w-3 animate-spin" />
+                  <Loader className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Save className="h-3 w-3" />
+                  <Save className="h-4 w-4" />
                 )}
                 {isSavingFinal
                   ? "Guardando solicitud..."

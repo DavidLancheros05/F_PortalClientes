@@ -173,13 +173,13 @@ export function ArchivoField({
         {/* Columna derecha: cargar el archivo y su fecha */}
         <div className="min-w-0 space-y-2 sm:border-l sm:border-slate-100 sm:pl-3">
           {archivosExistentes[pregunta.fp_id] && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-2 py-1.5">
+            <div className="rounded-lg border border-brand-600/20 bg-brand-600/5 px-2 py-1.5">
               <div className="flex items-start justify-between gap-1">
                 <div className="flex items-start gap-1 min-w-0">
-                  <FileText className="h-3 w-3 text-blue-700 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs font-medium text-blue-900 break-words">
+                  <FileText className="h-3 w-3 text-brand-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs font-medium text-brand-600 break-words">
                     {archivosExistentes[pregunta.fp_id].sa_nombre_original}
-                    {esDocumentoReutilizado && <span className="ml-1 font-normal text-blue-600">(de tu archivo)</span>}
+                    {esDocumentoReutilizado && <span className="ml-1 font-normal text-brand-600">(de tu archivo)</span>}
                   </p>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
@@ -191,7 +191,7 @@ export function ArchivoField({
                         href={rutaArchivo}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-blue-700 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200">
+                        className="inline-flex items-center text-xs px-1.5 py-0.5 bg-white text-brand-600 rounded-md hover:bg-brand-600/10 transition-colors font-medium border border-brand-600/20">
                         Ver
                       </a>
                     );
@@ -294,8 +294,8 @@ export function ArchivoField({
             !readOnly &&
             documentoClienteDisponible &&
             !ofrecerReutilizarOmitido && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 space-y-1.5">
-                <p className="text-xs text-amber-900">
+              <div className="rounded-lg border border-brand-600/20 bg-brand-600/5 px-2.5 py-2 space-y-2">
+                <p className="text-xs text-gray-700">
                   Ya tienes{" "}
                   <span className="font-medium break-words">{documentoClienteDisponible.ca_nombre_original}</span> en tu
                   archivo
@@ -326,13 +326,13 @@ export function ArchivoField({
                         },
                       }));
                     }}
-                    className="inline-flex items-center text-xs px-2 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium">
+                    className="inline-flex items-center text-xs px-3 py-1.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors font-semibold shadow-sm">
                     Usar este documento
                   </button>
                   <button
                     type="button"
                     onClick={() => setOfrecerReutilizarOmitido(true)}
-                    className="inline-flex items-center text-xs px-2 py-1 bg-white text-amber-800 rounded-md hover:bg-amber-100 transition-colors font-medium border border-amber-200">
+                    className="inline-flex items-center text-xs px-3 py-1.5 bg-white text-brand-600 rounded-lg hover:bg-brand-600/5 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors font-semibold border border-brand-600">
                     Subir uno nuevo
                   </button>
                 </div>
@@ -361,7 +361,7 @@ export function ArchivoField({
                 className={`flex w-full items-center gap-2 rounded-lg border border-dashed px-2.5 py-2 text-xs font-medium transition-colors ${
                   hasError
                     ? "border-red-300 bg-red-50/50 text-red-700 hover:bg-red-50"
-                    : "border-blue-200 bg-blue-50/40 text-blue-700 hover:bg-blue-50"
+                    : "border-brand-600/20 bg-brand-600/5 text-brand-600 hover:bg-brand-600/5"
                 }`}>
                 <Upload className="h-3.5 w-3.5 flex-shrink-0" />
                 Seleccionar archivo

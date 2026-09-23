@@ -9,6 +9,7 @@ import { useUltimaSolicitudAprobada } from "@/hooks/useUltimaSolicitudAprobada";
 import { useSolicitudEdicion } from "@/hooks/useSolicitudEdicion";
 import { useRespuestasFormulario } from "@/hooks/useRespuestasFormulario";
 import { useCatalogoDependiente } from "./hooks/useCatalogoDependiente";
+import { useMenuPosition } from "@/hooks/useMenuPosition";
 
 //Componentes
 import { SeccionesSidebar } from "./components/SeccionesSidebar";
@@ -51,6 +52,13 @@ export default function SolicitudFormContent({
 }: SolicitudFormContentProps) {
   const router = useRouter();
   const { user, loading: authLoading } = useContext(AuthContext);
+
+  // Alto disponible bajo el Header (h-15 = 3.75rem). Con menú a la
+  // izquierda el Header se oculta desde md (Layout.tsx), así que ahí la
+  // página ocupa toda la pantalla; si no, quedaba una franja vacía abajo.
+  const [menuPosition] = useMenuPosition();
+  const altoPagina =
+    menuPosition === "left" ? "h-[calc(100dvh-3.75rem)] md:h-dvh" : "h-[calc(100dvh-3.75rem)]";
 
   // Cliente "dueño" de esta solicitud: el elegido por un usuario interno
   // (page.tsx) o, si no hay uno, el propio cliente logueado.
@@ -1709,7 +1717,7 @@ export default function SolicitudFormContent({
   if (!solicitudId && tieneActividad && !loadingInitial) {
     const estadoTexto = tieneBorrador ? "Borrador" : tienePendiente ? "Pendiente" : "Revisión";
     return (
-      <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
+      <div className={`w-full ${altoPagina} px-2 pt-1 pb-1 bg-gray-50 overflow-hidden`}>
         <div className="w-full h-full bg-white border border-gray-200 rounded-xl shadow p-4 flex flex-col items-center justify-center">
           <div className="max-w-md text-center">
             <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
@@ -1739,7 +1747,7 @@ export default function SolicitudFormContent({
   // el redirect; esto evita el flash del formulario mientras navega).
   if (solicitudId && bloqueadoPorRechazoAuxiliar) {
     return (
-      <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
+      <div className={`w-full ${altoPagina} px-2 pt-1 pb-1 bg-gray-50 overflow-hidden`}>
         <div className="w-full h-full bg-white border border-gray-200 rounded-xl shadow p-4 flex flex-col items-center justify-center">
           <div className="max-w-md text-center">
             <AlertCircle className="h-12 w-12 text-orange-600 mx-auto mb-4" />
@@ -1774,9 +1782,9 @@ export default function SolicitudFormContent({
       : "Cargando..."
     : formulario?.frs_descripcion || "Completa el formulario por secciones";
   return (
-    <div className="w-full h-[calc(100vh-5rem)] px-2 pt-1 pb-1 bg-gray-50 overflow-hidden">
+    <div className={`w-full ${altoPagina} px-2 pt-1 pb-1 bg-gray-50 overflow-hidden`}>
       <div className="w-full max-w-[1800px] mx-auto h-full bg-white border border-gray-200 rounded-xl shadow p-2 flex flex-col overflow-hidden">
-        <div className="mb-1 rounded-lg bg-brand-gradient px-2 py-1.5 shadow-sm">
+        <div className="mb-1.5 rounded-lg bg-brand-gradient px-3 py-3 shadow-sm">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1787,10 +1795,10 @@ export default function SolicitudFormContent({
             </button>
 
             <div className="min-w-0 flex-1 text-center">
-              <h2 className="text-xs font-bold tracking-tight text-white leading-tight truncate">
+              <h2 className="text-sm font-bold tracking-tight text-white leading-tight truncate">
                 {formulario?.frs_nombre?.trim() || "Cargando..."}
               </h2>
-              <p className="text-[11px] text-[#c3d5f5] mt-0.5 truncate">
+              <p className="text-xs text-white/75 mt-1 truncate">
                 {encabezadoNumeroDescripcion} · Versión{" "}
                 {versionFormularioMostrar != null ? Number(versionFormularioMostrar) : "Cargando..."}
               </p>
@@ -1846,7 +1854,7 @@ export default function SolicitudFormContent({
                   : "Obteniendo preguntas del servidor..."}
               </p>
               <div className="inline-block mt-2">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600"></div>
               </div>
             </div>
           </div>
@@ -1865,10 +1873,10 @@ export default function SolicitudFormContent({
               <div className="w-full flex h-full min-h-0 lg:w-[77%]">
                 {seccionActual && (
                   <div className="w-full h-full bg-white rounded-lg shadow p-2 flex flex-col">
-                    <div className="mb-1">
-                      <h2 className="text-xs font-bold">{seccionActual.seccion_nombre}</h2>
+                    <div className="mb-4 pb-2 border-b border-gray-100">
+                      <h2 className="text-sm font-bold">{seccionActual.seccion_nombre}</h2>
                       {seccionActual.seccion_descripcion && (
-                        <p className="text-[11px] text-gray-600 mt-0.5">{seccionActual.seccion_descripcion}</p>
+                        <p className="text-xs text-gray-600 mt-1">{seccionActual.seccion_descripcion}</p>
                       )}
                     </div>
 

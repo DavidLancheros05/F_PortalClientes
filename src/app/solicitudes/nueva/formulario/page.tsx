@@ -39,7 +39,7 @@ export default function NuevaSolicitudFormularioPage() {
     return (
       <div className="flex min-h-[calc(100vh-5.8rem)] items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-b-2 border-brand-600" />
           <p className="text-sm text-slate-600">Preparando formulario...</p>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default function NuevaSolicitudFormularioPage() {
           <button
             type="button"
             onClick={() => router.push("/solicitudes/nueva")}
-            className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+            className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
             Volver al inicio
           </button>
         </div>
@@ -78,7 +78,7 @@ export default function NuevaSolicitudFormularioPage() {
           <button
             type="button"
             onClick={() => router.push("/solicitudes/nueva")}
-            className="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+            className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
             Volver al inicio
           </button>
         </div>
