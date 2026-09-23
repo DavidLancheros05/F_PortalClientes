@@ -3,7 +3,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { usuarioRolesService, type UsuarioRol } from "@/services/usuario-roles/usuario-roles.service";
-import { rolesService, type Rol } from "@/services/roles/roles.service";
+import { rolesService, type Rol } from "@/services/seguridad/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { SuggestField } from "@/components/filters/SuggestField";

@@ -6,6 +6,7 @@ import { useUpload } from "@/context/UploadContext";
 import { FileText, Upload, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 
 interface ArchivoMultipleFieldProps {
   pregunta: any;
@@ -68,7 +69,7 @@ export function ArchivoMultipleField({
   // pasando.
   const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    startLoading("Cargando archivo...");
+    flushSync(() => startLoading("Cargando archivo..."));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         agregarArchivo(file);

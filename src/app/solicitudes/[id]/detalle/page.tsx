@@ -2,32 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import {
-  ArrowLeft,
-  FileText,
-  DollarSign,
-  Clock,
-  Briefcase,
-  Headphones,
-  ShieldCheck,
-  Users,
-  Award,
-  CheckCircle2,
-  Table,
-  X,
-} from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { variablesPlantillaService } from "@/services/admin/parametrizacion/variables-plantilla.service";
 import { generarPlantillaDocumentoPdf, construirMapaRespuestasPregunta } from "@/lib/carta-pdf.util";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
-import { SoportesAnalisis } from "@/components/SoportesAnalisis";
 import { TablasCumplimientoModal } from "@/components/TablasCumplimientoModal";
 import { useHistorialWorkflow } from "@/hooks/useHistorialWorkflow";
 import { SolicitudInfoBlock } from "@/components/solicitudes/SolicitudInfoBlock";
-import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
+import { EtapasPreviasBlock } from "@/components/solicitudes/EtapasPreviasBlock";
 import { ErrorModal } from "@/components/modals";
-import { DecisionDisplay, GestionAreaCard, SlaBadge } from "@/components/solicitudes/GestionAreaCard";
 
 interface SolicitudDetalle {
   sol_id: number;
@@ -222,27 +207,6 @@ export default function DetalleDetailPage() {
     };
   }, [solicitudId]);
 
-  // Comentario más reciente que dejó cada área en el historial de workflow.
-  // `historial` viene ordenado ascendente por fecha (obtenerHistorial en el
-  // backend: ORDER BY swh_fecha ASC) y un mismo etapaCodigo puede repetirse
-  // más de una vez (ej. Comité de Crédito 2 aprueba, se rechaza, se vuelve a
-  // decidir) — hay que quedarse con la ÚLTIMA entrada de esa etapa, no la
-  // primera, para mostrar la decisión vigente y no una vieja. Se usa también
-  // para decidir si esa área ya fue alcanzada (sin comentario, la tarjeta de
-  // esa área no se muestra).
-  const entradaPorEtapa = (codigo: string) => {
-    const entradas = historial.filter((h) => h?.etapaCodigo === codigo);
-    return entradas.length > 0 ? entradas[entradas.length - 1] : undefined;
-  };
-  const entradaASC = entradaPorEtapa("ASC");
-  const entradaOFC = entradaPorEtapa("OFC");
-  const entradaCC1 = entradaPorEtapa("CC1");
-  const entradaCC2 = entradaPorEtapa("CC2");
-  const comentarioASC = entradaASC?.comentario;
-  const comentarioOFC = entradaOFC?.comentario;
-  const comentarioCC1 = entradaCC1?.comentario;
-  const comentarioCC2 = entradaCC2?.comentario;
-
   const slaCalendarDate = (value: string | Date, dateOnly = false) => {
     const raw = value instanceof Date ? value.toISOString() : value;
     if (dateOnly && /^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
@@ -326,6 +290,14 @@ export default function DetalleDetailPage() {
     return { dias_meta: diasMeta, dias_reales: diasReales, procesada, vencida };
   })();
 
+  const slaMapaCompleto = {
+    EJN: slaArea("EJN"),
+    ASC: slaArea("ASC"),
+    OFC: slaArea("OFC"),
+    CC1: slaArea("CC1"),
+    CC2: slaArea("CC2"),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to font-sans text-[#0f172a] p-3 sm:p-4 lg:p-8">
       <div className="max-w-[1240px] mx-auto">
@@ -376,192 +348,23 @@ export default function DetalleDetailPage() {
                 pdfLoading={descargandoPdfFormulario}
               />
 
-              {/* Cuerpo: Gestión por Área */}
+              {/* Gestión por Área — se omite etapaActual para que
+                  EtapasPreviasBlock muestre TODAS las etapas alcanzadas,
+                  incluida la última (CC2), a diferencia de las páginas de
+                  gestión que solo muestran las etapas ANTERIORES a la que
+                  se está gestionando. */}
+              <EtapasPreviasBlock
+                solicitud={solicitud}
+                historial={historial}
+                slaMapa={slaMapaCompleto}
+                onOpenTablasCumplimiento={() => setMostrarTablasCumplimiento(true)}
+                onGenerarCartaPDF={abrirCartaPDF}
+                generandoPDF={generandoPDF}
+              />
+
+              {/* Documentos y respuestas por etapa */}
               <div className="px-4 sm:px-6 py-4 sm:py-5">
-                {/* Gestión por Área — el detalle real de lo que hizo cada
-                    área en su etapa, no solo el estado genérico actual. Cada
-                    tarjeta solo se muestra si esa área ya fue alcanzada
-                    (comentario existente en el historial, o sol_observacion_ejn
-                    para el Ejecutivo). Mismo mecanismo que ya usa
-                    gestion-comite-credito-2 para "Concepto de etapas previas". */}
-                {(solicitud.sol_observacion_ejn ||
-                  solicitud.sol_consumo_mensual_proyectado ||
-                  solicitud.sol_toneladas_proyectadas ||
-                  comentarioASC ||
-                  comentarioOFC ||
-                  comentarioCC1 ||
-                  comentarioCC2) && (
-                  <div className="mt-4">
-                    <h2 className="text-[14px] font-extrabold text-[#0f172a] mb-4 flex items-center gap-[9px] tracking-[-0.01em]">
-                      <div className="w-[32px] h-[32px] rounded-[10px] bg-[#e7edfb] flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <Clock size={16} strokeWidth={2.2} className="text-brand-600" />
-                      </div>
-                      Gestión por Área
-                    </h2>
-                    <div className="flex flex-col gap-3">
-                      {(solicitud.sol_observacion_ejn ||
-                        solicitud.sol_consumo_mensual_proyectado ||
-                        solicitud.sol_toneladas_proyectadas) && (
-                        <GestionAreaCard
-                          icon={Briefcase}
-                          titulo="Ejecutivo de Negocios"
-                          usuario={solicitud.ejecutivo_nombre}
-                          fecha={solicitud.sol_fecha_gest_ejn}
-                          sla={<SlaBadge area={slaArea("EJN")} />}>
-                          <div className="flex flex-wrap items-center justify-center gap-3">
-                            <div className="flex items-center gap-2 bg-emerald-50 rounded-xl px-3.5 py-2 border border-emerald-200">
-                              <DollarSign size={14} strokeWidth={2.5} className="text-emerald-600 flex-shrink-0" />
-                              <div>
-                                <p className="text-[9px] text-emerald-700 uppercase tracking-wider font-semibold m-0">
-                                  Consumo Mensual
-                                </p>
-                                <p className="text-[13px] font-extrabold text-emerald-800 m-0 leading-tight">
-                                  {formatCurrency(solicitud.sol_consumo_mensual_proyectado)}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 bg-[#f1f5f9] rounded-xl px-3.5 py-2 border border-[#e2e8f0]">
-                              <div>
-                                <p className="text-[9px] text-[#64748b] uppercase tracking-wider font-semibold m-0">
-                                  Toneladas
-                                </p>
-                                <p className="text-[13px] font-extrabold text-[#0f172a] m-0 leading-tight">
-                                  {solicitud.sol_toneladas_proyectadas
-                                    ? `${solicitud.sol_toneladas_proyectadas.toLocaleString("es-CO")} Ton`
-                                    : "-"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          {solicitud.sol_observacion_ejn && (
-                            <p className="text-[11.5px] text-[#475569] m-0 whitespace-pre-wrap text-center leading-relaxed">
-                              {solicitud.sol_observacion_ejn}
-                            </p>
-                          )}
-                        </GestionAreaCard>
-                      )}
-
-                      {comentarioASC && (
-                        <GestionAreaCard
-                          icon={Headphones}
-                          titulo="Auxiliar Servicio al Cliente"
-                          usuario={entradaASC?.usuarioNombre}
-                          fecha={entradaASC?.fecha}
-                          sla={<SlaBadge area={slaArea("ASC")} />}>
-                          <DecisionDisplay texto={comentarioASC} />
-                        </GestionAreaCard>
-                      )}
-
-                      {comentarioOFC && (
-                        <GestionAreaCard
-                          icon={ShieldCheck}
-                          titulo="Oficial de Cumplimiento"
-                          usuario={entradaOFC?.usuarioNombre}
-                          fecha={entradaOFC?.fecha}
-                          sla={<SlaBadge area={slaArea("OFC")} />}>
-                          <DecisionDisplay texto={comentarioOFC} />
-                          <SoportesAnalisis
-                            solicitudId={solicitud.sol_id}
-                            wetId={WORKFLOW_ETAPA.OFC.id}
-                            titulo="Soportes de Oficial de Cumplimiento"
-                            readOnly
-                          />
-                          <button
-                            onClick={() => setMostrarTablasCumplimiento(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-brand-700 bg-brand-50 border border-brand-200 rounded-md hover:bg-brand-100 transition-colors">
-                            <Table className="h-3 w-3" />
-                            Ver tablas de cumplimiento
-                          </button>
-                        </GestionAreaCard>
-                      )}
-
-                      {comentarioCC1 && (
-                        <GestionAreaCard
-                          icon={Users}
-                          titulo="Comité de Crédito 1"
-                          usuario={entradaCC1?.usuarioNombre}
-                          fecha={entradaCC1?.fecha}
-                          sla={<SlaBadge area={slaArea("CC1")} />}>
-                          <DecisionDisplay texto={comentarioCC1} />
-                          <SoportesAnalisis
-                            solicitudId={solicitud.sol_id}
-                            wetId={WORKFLOW_ETAPA.CC1.id}
-                            titulo="Soportes de Comité de Crédito 1"
-                            readOnly
-                          />
-                        </GestionAreaCard>
-                      )}
-
-                      {comentarioCC2 && (
-                        <GestionAreaCard
-                          icon={Award}
-                          titulo="Comité de Crédito 2"
-                          usuario={entradaCC2?.usuarioNombre}
-                          fecha={entradaCC2?.fecha}
-                          span2={!!solicitud.sol_cupo_aprobado}
-                          sla={<SlaBadge area={slaArea("CC2")} />}>
-                          <DecisionDisplay texto={comentarioCC2} />
-
-                          {/* Condiciones Financieras Aprobadas */}
-                          {solicitud.sol_cupo_aprobado && (
-                            <div className="rounded-lg p-3.5 border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 w-full">
-                              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                                <p className="text-[10.5px] font-bold uppercase tracking-[0.05em] text-emerald-800 m-0">
-                                  Condiciones Financieras Aprobadas
-                                </p>
-                                <button
-                                  onClick={abrirCartaPDF}
-                                  disabled={generandoPDF}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-all hover:shadow disabled:opacity-50 disabled:cursor-not-allowed">
-                                  <FileText className="h-3 w-3" />
-                                  {generandoPDF ? "Generando..." : "Carta PDF"}
-                                </button>
-                              </div>
-
-                              {/* Cupo aprobado - protagonista */}
-                              <div className="flex items-center justify-center gap-2.5 bg-white rounded-xl px-4 py-3 border border-emerald-200 mb-3">
-                                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                                  <DollarSign size={18} strokeWidth={2.5} className="text-emerald-600" />
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-[9px] text-emerald-700 uppercase tracking-wider font-semibold m-0">
-                                    Cupo Aprobado
-                                  </p>
-                                  <p className="text-[18px] font-extrabold text-emerald-700 m-0 leading-tight">
-                                    {formatCurrency(solicitud.sol_cupo_aprobado)}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Plazo y forma de pago */}
-                              <div className="flex flex-wrap items-center justify-center gap-2">
-                                <div className="flex items-center gap-1.5 bg-white/80 rounded-full px-3 py-1 border border-emerald-200">
-                                  <span className="text-[9.5px] text-[#94a3b8] uppercase tracking-wider font-semibold">
-                                    Plazo
-                                  </span>
-                                  <span className="text-[11px] font-extrabold text-emerald-700">
-                                    {solicitud.sol_plazo_pago ? `${solicitud.sol_plazo_pago} días` : "-"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1.5 bg-white/80 rounded-full px-3 py-1 border border-emerald-200">
-                                  <span className="text-[9.5px] text-[#94a3b8] uppercase tracking-wider font-semibold">
-                                    Forma de Pago
-                                  </span>
-                                  <span className="text-[11px] font-extrabold text-emerald-700">
-                                    {solicitud.sol_forma_pago || "-"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </GestionAreaCard>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Documentos y respuestas por etapa */}
-                <div className="rounded-2xl p-5 border border-[#e2e8f0] bg-white mt-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+                <div className="rounded-2xl p-5 border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
                   <DocumentosCargadosSolicitud solicitudId={solicitud.sol_id} />
                 </div>
               </div>

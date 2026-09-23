@@ -25,8 +25,7 @@ interface SeccionesSidebarProps {
   secciones: SeccionLite[];
   seccionSeleccionada: number | null;
   setSeccionSeleccionada: (id: number) => void;
-  isClienteUser: boolean;
-  shouldShowQuestionForCurrentUser: (pregunta: any) => boolean;
+  shouldShowQuestion: (pregunta: any) => boolean;
   seccionProgress: Map<number, ProgresoSeccion>;
 }
 
@@ -34,8 +33,7 @@ export function SeccionesSidebar({
   secciones,
   seccionSeleccionada,
   setSeccionSeleccionada,
-  isClienteUser,
-  shouldShowQuestionForCurrentUser,
+  shouldShowQuestion,
   seccionProgress,
 }: SeccionesSidebarProps) {
   // La lista de secciones tiene su propio scroll (puede haber más secciones
@@ -69,7 +67,7 @@ export function SeccionesSidebar({
           const seccionPreguntas = seccion.preguntas;
           const seccionRespondibles = seccionPreguntas.filter(
             (pregunta) =>
-              shouldShowQuestionForCurrentUser(pregunta) && !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
+              shouldShowQuestion(pregunta) && !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
           ).length;
           const progresoSeccion = seccionProgress.get(seccion.seccion_id);
           const todasCompletadas =

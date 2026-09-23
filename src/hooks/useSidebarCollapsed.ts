@@ -15,8 +15,11 @@ function readStored(): boolean {
 }
 
 // Si el Sidebar (layout "izquierda") está colapsado a una franja angosta —
-// mismo criterio de persistencia que useMenuPosition/useFavorites
-// (localStorage por dispositivo, no en el perfil del usuario en BD).
+// mismo criterio de persistencia que useFavorites (localStorage por
+// dispositivo, no en el perfil del usuario en BD). A diferencia de
+// useMenuPosition, esto sí es intencionalmente por dispositivo: qué tan
+// ancha quieres la pantalla no es algo que deba viajar de tu laptop a tu
+// monitor externo.
 export function useSidebarCollapsed(): [boolean, (value: boolean) => void] {
   const [collapsed, setCollapsedState] = useState(false);
 

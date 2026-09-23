@@ -6,6 +6,7 @@ import { ConfirmModal } from "@/components/modals";
 import { useUpload } from "@/context/UploadContext";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
@@ -134,7 +135,7 @@ export function DocumentoTablaField({
   // fuerza el commit del modal de una vez, sin depender de esa heurística.
   const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    startLoading("Cargando archivo...");
+    flushSync(() => startLoading("Cargando archivo..."));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");

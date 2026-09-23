@@ -19,10 +19,11 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useMenuPosition } from "@/hooks/useMenuPosition";
 
-// Preferencia de posición del menú (arriba/izquierda) — se guarda en
-// localStorage de este navegador (no en el perfil de la BD, ver
-// useMenuPosition), así que puede ser distinta en otro dispositivo donde
-// el mismo usuario inicie sesión.
+// Preferencia de posición del menú (arriba/izquierda) — se guarda en la
+// cuenta (cli_menu_posicion/usr_menu_posicion en BD, ver
+// AuthService.actualizarPosicionMenu), así que viaja entre dispositivos.
+// localStorage acá es solo un cache de pintado instantáneo, ver
+// useMenuPosition.
 function MenuPositionSelector() {
   const [position, setPosition] = useMenuPosition();
 

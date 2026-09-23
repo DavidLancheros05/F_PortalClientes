@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Quote } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 
 export function GestorInfo({
@@ -14,12 +14,12 @@ export function GestorInfo({
   const fechaObj = fecha ? new Date(fecha) : null;
   const fechaValida = fechaObj && !Number.isNaN(fechaObj.getTime());
   return (
-    <p className={`text-[11px] text-[#94a3b8] m-0 whitespace-nowrap leading-relaxed ${className}`}>
+    <p className={`text-[13px] text-[#94a3b8] m-0 whitespace-nowrap leading-relaxed ${className}`}>
       {usuario || "-"}
       {fechaValida && (
         <>
           {` · ${formatDate(fecha)}`}
-          <span className="text-[10px] text-[#cbd5e1]">
+          <span className="text-[12px] text-[#cbd5e1]">
             {` ${fechaObj!.toLocaleTimeString("es-CO", {
               hour: "2-digit",
               minute: "2-digit",
@@ -59,7 +59,7 @@ export function GestionAreaCard({
         </div>
       </div>
       <div className="sm:w-[360px] flex-shrink-0 border-b sm:border-b-0 sm:border-r border-[#eef1f6] px-3.5 py-3 flex flex-row sm:flex-col items-center justify-center sm:items-center gap-2 sm:gap-1">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#1e40af] m-0 text-center leading-tight">
+        <p className="text-[13px] font-extrabold uppercase tracking-[0.05em] text-[#1e40af] m-0 text-center leading-tight">
           {titulo}
         </p>
         <GestorInfo usuario={usuario} fecha={fecha} className="mb-0 text-center hidden sm:block" />
@@ -78,7 +78,7 @@ export function SlaBadge({
   if (!area || !area.dias_meta) return null;
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+      className={`inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
         area.vencida
           ? "text-red-700 bg-red-50 border border-red-200"
           : area.procesada
@@ -106,7 +106,14 @@ export function DecisionDisplay({ texto }: { texto: string }) {
   }
 
   if (campos.length === 0) {
-    return <p className="text-[12px] text-[#334155] m-0 whitespace-pre-wrap text-center leading-relaxed">{texto}</p>;
+    return (
+      <div className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 flex items-start gap-2">
+        <Quote size={14} className="text-[#94a3b8] flex-shrink-0 mt-0.5 rotate-180" />
+        <p className="text-[12px] text-[#334155] m-0 whitespace-pre-wrap text-center leading-relaxed italic flex-1">
+          {texto}
+        </p>
+      </div>
+    );
   }
 
   const decision = campos.find((campo) => campo.esDecision);

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { usuariosService } from "@/services/usuarios/usuarios.service";
-import type { Rol } from "@/services/roles/roles.service";
+import type { Rol } from "@/services/seguridad/roles.service";
 import {
   usuarioRolesService,
   type UsuarioRol,

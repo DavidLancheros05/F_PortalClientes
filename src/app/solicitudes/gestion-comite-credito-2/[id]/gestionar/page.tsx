@@ -9,6 +9,7 @@ import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSoli
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
 import { SolicitudInfoBlock } from "@/components/solicitudes/SolicitudInfoBlock";
 import { EtapasPreviasBlock } from "@/components/solicitudes/EtapasPreviasBlock";
+import { TablasCumplimientoModal } from "@/components/TablasCumplimientoModal";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
 import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
@@ -94,6 +95,7 @@ export default function GestionComiteCredito2Page() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mostrarTablasCumplimiento, setMostrarTablasCumplimiento] = useState(false);
   // Documentos que no se pudieron copiar hacia el archivo consolidado del
   // cliente (Cliente_archivo) al aprobar — la aprobación en sí sí se
   // completa igual; esto solo avisa que ese documento puntual no quedará
@@ -260,6 +262,7 @@ export default function GestionComiteCredito2Page() {
                 solicitud={solicitud}
                 historial={historialWorkflow}
                 etapaActual="CC2"
+                onOpenTablasCumplimiento={() => setMostrarTablasCumplimiento(true)}
               />
 
               {/* Cuerpo: decisión + historial abajo */}
@@ -455,6 +458,10 @@ export default function GestionComiteCredito2Page() {
       />
 
       <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
+
+      {mostrarTablasCumplimiento && solicitud && (
+        <TablasCumplimientoModal solicitudId={solicitud.sol_id} onClose={() => setMostrarTablasCumplimiento(false)} />
+      )}
     </div>
   );
 }

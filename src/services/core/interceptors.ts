@@ -1,5 +1,6 @@
 import { AxiosInstance } from "axios";
 import { transformSnakeToCamel } from "@/lib/case-transformers";
+import { clearSessionStorage } from "@/services/core/session-storage";
 
 export const setupInterceptors = (api: AxiosInstance) => {
   // Ya no arma el header Authorization a mano: la cookie httpOnly pc_token
@@ -61,7 +62,7 @@ export const setupInterceptors = (api: AxiosInstance) => {
         // router.push) para que la siguiente petición pase de nuevo por
         // proxy.ts en vez de arriesgarse a servir una página protegida ya
         // cacheada del lado del cliente.
-        localStorage.clear();
+        clearSessionStorage();
         window.location.href = "/login";
       }
       return Promise.reject(error);

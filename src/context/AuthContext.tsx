@@ -3,6 +3,7 @@
 import { createContext, useEffect, useRef, useState, ReactNode } from "react";
 import { usuariosService } from "@/services/usuarios/usuarios.service";
 import api from "@/services/core/api";
+import { clearSessionStorage } from "@/services/core/session-storage";
 
 interface Rol {
   rol_id: number | null;
@@ -33,6 +34,7 @@ interface User {
   cliente_id?: number | null;
   ejng_id?: number | null;
   datosCliente?: DatosCliente;
+  menu_position?: "top" | "left";
 }
 
 interface AuthContextProps {
@@ -40,6 +42,7 @@ interface AuthContextProps {
   loading: boolean;
   login: (userData: any) => void;
   logout: () => Promise<void>;
+  setMenuPositionLocal: (position: "top" | "left") => void;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -47,6 +50,7 @@ export const AuthContext = createContext<AuthContextProps>({
   loading: true,
   login: () => {},
   logout: async () => {},
+  setMenuPositionLocal: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -129,7 +133,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // así que es la señal correcta para avisarle a esta.
   useEffect(() => {
     function handleStorageChange(e: StorageEvent) {
-      // key === null ocurre con localStorage.clear() (ver logout más abajo).
+      // key === null ocurriría con un eventual localStorage.clear() futuro —
+      // el logout actual (ver más abajo) solo borra "user"/"modulos" vía
+      // clearSessionStorage(), pero se deja este chequeo como red de
+      // seguridad por si algo vuelve a limpiar todo el storage.
       if (e.key !== "user" && e.key !== null) return;
 
       const userActual = localStorage.getItem("user");
@@ -217,12 +224,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setUser(null);
-    localStorage.clear();
+    clearSessionStorage();
     userRef.current = null;
   };
 
+  // Actualiza el campo en memoria + localStorage tras un PATCH exitoso a
+  // /auth/menu-position (ver useMenuPosition.ts) — no vuelve a pedir el
+  // perfil completo al backend, solo refleja lo que el backend ya confirmó.
+  const setMenuPositionLocal = (position: "top" | "left") => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, menu_position: position };
+      const updatedJson = JSON.stringify(updated);
+      localStorage.setItem("user", updatedJson);
+      userRef.current = updatedJson;
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, setMenuPositionLocal }}
+    >
       {sesionCambiadaEnOtraPestana && (
         <div className="fixed top-0 inset-x-0 z-[200] flex flex-wrap items-center justify-center gap-3 bg-[#0f172a] px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg">
           <span>

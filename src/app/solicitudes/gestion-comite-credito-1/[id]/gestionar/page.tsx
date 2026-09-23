@@ -5,6 +5,7 @@ import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSoli
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
 import { SolicitudInfoBlock } from "@/components/solicitudes/SolicitudInfoBlock";
 import { EtapasPreviasBlock } from "@/components/solicitudes/EtapasPreviasBlock";
+import { TablasCumplimientoModal } from "@/components/TablasCumplimientoModal";
 import { ConfirmModal, SuccessModal, ErrorModal } from "@/components/modals";
 import { DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
 import { WORKFLOW_ETAPA } from "@/constants/workflow-etapas";
@@ -80,6 +81,7 @@ export default function GestionComiteCredito1Page() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mostrarTablasCumplimiento, setMostrarTablasCumplimiento] = useState(false);
   useEffect(() => {
     let cancelled = false;
 
@@ -229,6 +231,7 @@ export default function GestionComiteCredito1Page() {
                 solicitud={solicitud}
                 historial={historialWorkflow}
                 etapaActual="CC1"
+                onOpenTablasCumplimiento={() => setMostrarTablasCumplimiento(true)}
               />
 
               {/* Cuerpo: evaluación + historial abajo */}
@@ -242,69 +245,67 @@ export default function GestionComiteCredito1Page() {
                   </h2>
 
                   <div className="border border-[#eef1f6] bg-[#fafbfd] rounded-[18px] p-5 flex flex-col gap-[18px] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-                    <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={WORKFLOW_ETAPA.CC1.id} />
+                    {/* Evaluación de riesgo + condiciones recomendadas */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[13px] font-bold text-[#374151] mb-2">
+                          Evaluación de riesgo <span className="text-[#dc2626]">*</span>
+                        </label>
+                        <select
+                          value={registro.evaluacionRiesgo}
+                          onChange={(e) =>
+                            setRegistro((prev) => ({
+                              ...prev,
+                              evaluacionRiesgo: e.target.value,
+                            }))
+                          }
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]">
+                          <option value="">Selecciona una evaluación</option>
+                          <option value="bajo">Riesgo bajo</option>
+                          <option value="medio">Riesgo medio</option>
+                          <option value="alto">Riesgo alto</option>
+                          <option value="muy-alto">Riesgo muy alto</option>
+                        </select>
+                      </div>
 
-                    {/* Evaluación de riesgo */}
-                    <div>
-                      <label className="block text-[13px] font-bold text-[#374151] mb-2">
-                        Evaluación de riesgo <span className="text-[#dc2626]">*</span>
-                      </label>
-                      <select
-                        value={registro.evaluacionRiesgo}
-                        onChange={(e) =>
-                          setRegistro((prev) => ({
-                            ...prev,
-                            evaluacionRiesgo: e.target.value,
-                          }))
-                        }
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans bg-white focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]">
-                        <option value="">Selecciona una evaluación</option>
-                        <option value="bajo">Riesgo bajo</option>
-                        <option value="medio">Riesgo medio</option>
-                        <option value="alto">Riesgo alto</option>
-                        <option value="muy-alto">Riesgo muy alto</option>
-                      </select>
-                    </div>
+                      <div>
+                        <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
+                          <TrendingUp size={15} strokeWidth={2} className="text-brand-600" />
+                          Límite recomendado (COP)
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={registro.limiteCreditoRecomendado}
+                          onChange={(e) => {
+                            const valor = e.target.value.replace(/\D/g, "");
+                            setRegistro((prev) => ({
+                              ...prev,
+                              limiteCreditoRecomendado: valor,
+                            }));
+                          }}
+                          placeholder="Ej: 50000000"
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
+                        />
+                      </div>
 
-                    {/* Límite de crédito recomendado */}
-                    <div>
-                      <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#374151] mb-2">
-                        <TrendingUp size={15} strokeWidth={2} className="text-brand-600" />
-                        Límite de crédito recomendado (COP)
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={registro.limiteCreditoRecomendado}
-                        onChange={(e) => {
-                          const valor = e.target.value.replace(/\D/g, "");
-                          setRegistro((prev) => ({
-                            ...prev,
-                            limiteCreditoRecomendado: valor,
-                          }));
-                        }}
-                        placeholder="Ej: 50000000"
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
-                      />
-                    </div>
-
-                    {/* Plazo recomendado */}
-                    <div>
-                      <label className="block text-[13px] font-bold text-[#374151] mb-2">
-                        Plazo recomendado (días)
-                      </label>
-                      <input
-                        type="number"
-                        value={registro.plazoRecomendado}
-                        onChange={(e) =>
-                          setRegistro((prev) => ({
-                            ...prev,
-                            plazoRecomendado: e.target.value,
-                          }))
-                        }
-                        placeholder="Ej: 90"
-                        className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
-                      />
+                      <div>
+                        <label className="block text-[13px] font-bold text-[#374151] mb-2">
+                          Plazo recomendado (días)
+                        </label>
+                        <input
+                          type="number"
+                          value={registro.plazoRecomendado}
+                          onChange={(e) =>
+                            setRegistro((prev) => ({
+                              ...prev,
+                              plazoRecomendado: e.target.value,
+                            }))
+                          }
+                          placeholder="Ej: 90"
+                          className="w-full border border-[#cbd5e1] rounded-[10px] px-[13px] py-[11px] text-[13.5px] outline-none font-sans focus:border-brand-600 focus:ring-[3px] focus:ring-brand-600/[0.12]"
+                        />
+                      </div>
                     </div>
 
                     {/* Observaciones */}
@@ -327,12 +328,14 @@ export default function GestionComiteCredito1Page() {
                       />
                     </div>
 
+                    <SoportesAnalisis solicitudId={solicitud.sol_id} wetId={WORKFLOW_ETAPA.CC1.id} />
+
                     <div className="flex gap-2.5">
                       <button
                         onClick={handleGuardarRevision}
                         disabled={!puedeGuardar || registro.guardando}
                         className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] p-3 text-[13.5px] font-bold transition-all shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
-                        {registro.guardando ? "Enviando…" : "Enviar revisión a Comité Crédito 2"}
+                        {registro.guardando ? "Guardando…" : "Guardar evaluación"}
                       </button>
                       <button
                         onClick={() => router.back()}
@@ -375,6 +378,10 @@ export default function GestionComiteCredito1Page() {
       />
 
       <ErrorModal isOpen={!!errorMessage} message={errorMessage || ""} onAction={() => setErrorMessage(null)} />
+
+      {mostrarTablasCumplimiento && solicitud && (
+        <TablasCumplimientoModal solicitudId={solicitud.sol_id} onClose={() => setMostrarTablasCumplimiento(false)} />
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { ConfirmModal } from "@/components/modals";
 import { useUpload } from "@/context/UploadContext";
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 
 interface ImagenFieldProps {
   pregunta: any;
@@ -43,7 +44,7 @@ export function ImagenField({
   // pantalla queda "pegada" sin ninguna señal de que algo está pasando.
   const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    startLoading("Cargando imagen...");
+    flushSync(() => startLoading("Cargando imagen..."));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");

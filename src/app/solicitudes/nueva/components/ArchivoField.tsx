@@ -6,6 +6,7 @@ import { useUpload } from "@/context/UploadContext";
 import { AlertTriangle, CheckCircle, FileText, Upload, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { useDocumentoVigencia } from "../hooks/useDocumentoVigencia";
 import { CampoFechaVigencia } from "./CampoFechaVigencia";
 
@@ -118,7 +119,7 @@ export function ArchivoField({
 
   const { startLoading, showSuccess } = useUpload();
   const procesarArchivoSeleccionado = (file: File) => {
-    startLoading("Cargando archivo...");
+    flushSync(() => startLoading("Cargando archivo..."));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         handleInputChange(pregunta.fp_id, file, "ARCHIVO");

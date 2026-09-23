@@ -40,8 +40,12 @@ interface EtapasPreviasBlockProps {
   solicitud: SolicitudBasica;
   /** Historial de workflow (obtenido de useHistorialWorkflow). */
   historial: EntradaHistorial[];
-  /** Etapa actual — solo se muestran las etapas ANTERiores a esta. */
-  etapaActual: EtapaCodigo;
+  /**
+   * Etapa actual — solo se muestran las etapas ANTERIORES a esta.
+   * Si se omite, se muestran TODAS las etapas alcanzadas (incluida la
+   * última), para vistas de solo lectura como el detalle de solicitud.
+   */
+  etapaActual?: EtapaCodigo;
   /** Mapa de SLA por etapa (resultado de calcularSlaArea). */
   slaMapa?: Record<
     string,
@@ -86,8 +90,8 @@ export function EtapasPreviasBlock({
   onGenerarCartaPDF,
   generandoPDF,
 }: EtapasPreviasBlockProps) {
-  const idxActual = ETAPA_ORDEN.indexOf(etapaActual);
-  if (idxActual <= 0) return null; // EJN no tiene etapas previas
+  const idxActual = etapaActual !== undefined ? ETAPA_ORDEN.indexOf(etapaActual as EtapaCodigo) : ETAPA_ORDEN.length;
+  if (etapaActual && idxActual <= 0) return null; // EJN no tiene etapas previas
 
   const etapasPrevias = ETAPA_ORDEN.slice(0, idxActual);
 

@@ -128,7 +128,6 @@ export default function SolicitudFormContent({
 
   // IMPORTANTE: Memoizar clienteData para evitar loops infinitos
   const clienteData = useMemo(() => {
-    // console.log(`[📦 useMemo] clienteData actualizado:`, Object.keys(clienteDataRaw || {}).length);
     return clienteDataRaw || {};
   }, [clienteDataRaw]);
 
@@ -234,8 +233,6 @@ export default function SolicitudFormContent({
   useEffect(() => {
     setDocumentosCatalogoMap(documentosCatalogoMapFromHook || {});
   }, [documentosCatalogoMapFromHook]);
-  useEffect(() => {}, [seccionSeleccionada]);
-
   // Solo en solicitud nueva: ofrecer reutilizar documentos que el cliente
   // ya tiene en su archivo consolidado (Cliente_archivo) — ver
   // "Usar este documento" en DocumentoTablaField.
@@ -444,8 +441,6 @@ export default function SolicitudFormContent({
   const seccionActual = seccionSeleccionada
     ? secciones.find((s) => s.seccion_id === seccionSeleccionada)
     : secciones[0];
-  useEffect(() => {}, [seccionActual]);
-
   const normalizarTexto = (texto?: string | null) =>
     (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 
@@ -528,15 +523,6 @@ export default function SolicitudFormContent({
     const paisId = findByCodigo("AUTO_Q1154") ?? findByDescripcion([/\bpais\b/, /\bpais de residencia\b/]);
     const departamentoId = findByCodigo("AUTO_Q1155") ?? findByDescripcion([/\bdepartamento\b/, /\bestado\b/]);
     const ciudadId = findByCodigo("AUTO_Q1156") ?? findByDescripcion([/\bciudad\b/, /\bmunicipio\b/]);
-
-    if (preguntas.length > 0) {
-      const selectPreguntas = preguntas.filter(esPreguntaSeleccion);
-      if (selectPreguntas.length === 0) {
-        preguntas.slice(0, 10).forEach((p) => {});
-      } else {
-        selectPreguntas.forEach((p) => {});
-      }
-    }
 
     return {
       paisId,
@@ -734,7 +720,7 @@ export default function SolicitudFormContent({
     let isValid = true;
 
     seccionActual.preguntas.forEach((pregunta) => {
-      if (!shouldShowQuestionForCurrentUser(pregunta)) {
+      if (!shouldShowQuestion(pregunta)) {
         return;
       }
 
@@ -1289,14 +1275,6 @@ export default function SolicitudFormContent({
     return false;
   };
 
-  const shouldShowQuestionForCurrentUser = (pregunta: FormularioPregunta): boolean => {
-    if (!shouldShowQuestion(pregunta)) {
-      return false;
-    }
-
-    return true;
-  };
-
   const seccionProgress = useMemo(() => {
     const progressMap = new Map<
       number,
@@ -1314,7 +1292,7 @@ export default function SolicitudFormContent({
     >();
 
     secciones.forEach((seccion) => {
-      const visibles = seccion.preguntas.filter(shouldShowQuestionForCurrentUser);
+      const visibles = seccion.preguntas.filter(shouldShowQuestion);
       const respondibles = visibles.filter(
         (p) => ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(p.fp_tipo as any),
       );
@@ -1397,11 +1375,6 @@ export default function SolicitudFormContent({
     return opcionSeleccionada?.op_descripcion === pregunta.fp_opcion_disparadora;
   };
 
-  const hasDraftData = useMemo(
-    () => Object.values(respuestas).some((respuesta) => hasValorEnRespuesta(respuesta)),
-    [respuestas],
-  );
-
   // Inicializar lastSavedResponses cuando se carguen las respuestas ya
   // guardadas de una solicitud existente (solicitudId presente). Para una
   // solicitud nueva (sin solicitudId), `respuestas` ya trae valores por la
@@ -1467,22 +1440,10 @@ export default function SolicitudFormContent({
   const handleGuardar = async () => {
     // Evitar doble submit
     if (isGuardandoRef.current) {
-      // console.log('⚠️ [FRONTEND] Guardando ya en progreso, ignorando clic adicional');
       return;
     }
 
     isGuardandoRef.current = true;
-
-    // console.log('💾 [FRONTEND] handleGuardar iniciado', { solicitudId, respuestasCount: Object.keys(respuestas).length });
-
-    // Log detallado de respuestas con documentos y fechas
-    const respuestasConDocumentos = Object.entries(respuestas).filter(
-      ([_, resp]: [string, any]) => resp?.nombre_archivo || resp?.valor_fecha,
-    );
-    // console.log('📋 [FRONTEND] Respuestas con documentos/fechas:', respuestasConDocumentos);
-
-    // Log de estructura completa de respuestas para debug
-    // console.log('📦 [FRONTEND] Estructura completa de respuestas:', JSON.stringify(respuestas, null, 2));
 
     // Validar última sección antes de guardar
     if (!validateCurrentSection()) {
@@ -1559,14 +1520,6 @@ export default function SolicitudFormContent({
     const { usuarioId, isReturningToAsc } = params;
 
     setIsSavingFinal(true);
-    // console.log('📤 [FRONTEND] Llamando a guardarSolicitudCompleta...');
-
-    // console.log('📤 [FRONTEND] Datos:', {
-    //   clienteId: getClienteIdForSolicitud(),
-    //   usuarioId: usuarioId,
-    //   isClienteUser: isClienteUser,
-    //   user: user,
-    // });
     try {
       const result = await solicitudesService.guardarSolicitudCompleta(
         solicitudId || null,
@@ -1655,7 +1608,6 @@ export default function SolicitudFormContent({
   const handleGuardarParcial = async () => {
     // Evitar doble submit
     if (isGuardandoRef.current) {
-      // console.log('⚠️ [FRONTEND] Guardando ya en progreso, ignorando clic adicional');
       return;
     }
 
@@ -1749,7 +1701,6 @@ export default function SolicitudFormContent({
     const nuevoIndice = direccion === "siguiente" ? indiceActual + 1 : indiceActual - 1;
 
     if (nuevoIndice >= 0 && nuevoIndice < secciones.length) {
-      console.log(`Navegando a sección: ${secciones[nuevoIndice].seccion_nombre}`);
       setSeccionSeleccionada(secciones[nuevoIndice].seccion_id);
     }
   };
@@ -1894,16 +1845,6 @@ export default function SolicitudFormContent({
                   ? `Preparando ${secciones.length} sección(es) con ${preguntas.length} pregunta(s)...`
                   : "Obteniendo preguntas del servidor..."}
               </p>
-              {preguntas.length > 0 && secciones.length === 0 && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-left text-[11px] text-yellow-800 max-w-md mx-auto">
-                  <p className="font-semibold mb-1">Debug Info:</p>
-                  <p>Preguntas recibidas: {preguntas.length}</p>
-                  <p>Secciones encontradas: {secciones.length}</p>
-                  <p className="mt-1 text-yellow-700">
-                    Las preguntas no están asignadas a secciones. Revisa la consola del navegador para más detalles.
-                  </p>
-                </div>
-              )}
               <div className="inline-block mt-2">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
               </div>
@@ -1916,8 +1857,7 @@ export default function SolicitudFormContent({
                 secciones={secciones}
                 seccionSeleccionada={seccionSeleccionada}
                 setSeccionSeleccionada={setSeccionSeleccionada}
-                isClienteUser={isClienteUser}
-                shouldShowQuestionForCurrentUser={shouldShowQuestionForCurrentUser}
+                shouldShowQuestion={shouldShowQuestion}
                 seccionProgress={seccionProgress}
               />
 
@@ -1935,7 +1875,7 @@ export default function SolicitudFormContent({
                     {/* Preguntas */}
                     <div className="flex-1 overflow-y-auto pr-2 min-h-0">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        {seccionActual.preguntas.filter(shouldShowQuestionForCurrentUser).map((pregunta) => (
+                        {seccionActual.preguntas.filter(shouldShowQuestion).map((pregunta) => (
                           <PreguntaRenderer
                             key={pregunta.fp_id}
                             pregunta={pregunta}
@@ -1958,7 +1898,7 @@ export default function SolicitudFormContent({
                             setArchivosExistentes={setArchivosExistentes}
                             setSuccessMessage={setSuccessMessage}
                             setErrorMessage={setErrorMessage}
-                            shouldShowQuestionForCurrentUser={shouldShowQuestionForCurrentUser}
+                            shouldShowQuestion={shouldShowQuestion}
                             shouldShowConditionalField={shouldShowConditionalField}
                             getValidationRules={getValidationRules}
                             validateField={validateField}

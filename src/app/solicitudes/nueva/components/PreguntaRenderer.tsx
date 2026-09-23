@@ -19,9 +19,6 @@ interface PreguntaRendererProps {
   errors: Record<number, string>;
   readOnly: boolean;
   solicitudId?: number;
-  lockedPrefillFieldIds?: Record<number, true>;
-  prefilledFieldIds?: Record<number, true>;
-  prefillSourceByFieldId?: Record<number, "cliente" | "ultimoFormulario">;
   documentosCatalogoMap: Record<number, any>;
   // Opciones de catálogo para preguntas SELECT_TABLA cuyo catálogo depende
   // de la respuesta de otra pregunta (fp_catalogo_filtro_pregunta_id) — ver
@@ -47,7 +44,7 @@ interface PreguntaRendererProps {
   setArchivosExistentes: Dispatch<SetStateAction<Record<number, any>>>;
   setSuccessMessage: (value: string) => void;
   setErrorMessage: (value: string) => void;
-  shouldShowQuestionForCurrentUser: (pregunta: FormularioPregunta) => boolean;
+  shouldShowQuestion: (pregunta: FormularioPregunta) => boolean;
   shouldShowConditionalField: (pregunta: FormularioPregunta) => boolean;
   getValidationRules: (pregunta: FormularioPregunta) => any;
   validateField: (fp_id: number, rules: any) => void;
@@ -89,9 +86,6 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     errors,
     readOnly,
     solicitudId,
-    lockedPrefillFieldIds = {},
-    prefilledFieldIds = {},
-    prefillSourceByFieldId = {},
     archivosExistentes,
     documentosClienteMap = {},
     maestroPreguntaIds,
@@ -103,7 +97,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     setArchivosExistentes,
     setSuccessMessage,
     setErrorMessage,
-    shouldShowQuestionForCurrentUser,
+    shouldShowQuestion,
     shouldShowConditionalField,
     getValidationRules,
     validateField,
@@ -142,13 +136,11 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
   const documentoVinculado = pregunta.fp_tdo_id ? documentosCatalogoMap[pregunta.fp_tdo_id] : null;
   const requiereFechaAsociada = !documentoVinculado || documentoVinculado.tdo_vigencia_dias !== null;
   const shouldShowFechaAsociada = preguntaFechaAsociada
-    ? shouldShowQuestionForCurrentUser(preguntaFechaAsociada) && requiereFechaAsociada
+    ? shouldShowQuestion(preguntaFechaAsociada) && requiereFechaAsociada
     : false;
 
   const rules = getValidationRules(pregunta);
   const hasError = errors[pregunta.fp_id];
-  const isLockedPrefillField = lockedPrefillFieldIds[pregunta.fp_id] === true;
-  const isPrefilledField = prefilledFieldIds[pregunta.fp_id] === true;
 
   // El ancho lo decide `fp_ancho_columnas` (1/2/3, configurable por pregunta
   // desde Parametrización) — NOTA y FECHA_HORA_ACTUAL son los únicos tipos
@@ -212,13 +204,13 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
       {pregunta.fp_tipo === "TEXTO" && pregunta.fp_subtipo === "PARRAFO" && (
         <textarea
           rows={4}
-          disabled={readOnly || isLockedPrefillField}
+          disabled={readOnly}
           value={respuestas[pregunta.fp_id]?.valor_texto || ""}
           onChange={(e) => handleInputChange(pregunta.fp_id, e.target.value, "TEXTO")}
           onBlur={() => validateField(pregunta.fp_id, rules)}
           className={`w-full border rounded px-2 py-1 text-[11px] resize-y overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
-          } ${isLockedPrefillField ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
+          }`}
         />
       )}
 
@@ -226,7 +218,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         <textarea
           ref={ajustarAlturaTextoLibre}
           rows={1}
-          disabled={readOnly || isLockedPrefillField}
+          disabled={readOnly}
           value={respuestas[pregunta.fp_id]?.valor_texto || ""}
           onChange={(e) => {
             handleInputChange(pregunta.fp_id, e.target.value, "TEXTO");
@@ -241,7 +233,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           onBlur={() => validateField(pregunta.fp_id, rules)}
           className={`w-full border rounded px-2 py-1 text-[11px] resize-none overflow-hidden leading-normal focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             hasError ? "border-red-500" : "border-gray-300"
-          } ${isLockedPrefillField ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""}`}
+          }`}
         />
       )}
 
@@ -439,7 +431,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             )}
             onChange={(value) => handleInputChange(pregunta.fp_id, Number(value) || value, pregunta.fp_tipo)}
             placeholder="Selecciona una opción"
-            disabled={readOnly || isLockedPrefillField}
+            disabled={readOnly}
           />
           {readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" && (
             <p className="mt-1 text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
@@ -485,7 +477,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                         },
                       }));
                     }}
-                    disabled={readOnly || isLockedPrefillField}
+                    disabled={readOnly}
                     className={readOnly && pregunta.fp_codigo === "TIPO_SOLICITUD" ? "accent-blue-600" : ""}
                   />
                   <span className="text-[11px]">{label}</span>
@@ -501,7 +493,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           pregunta={pregunta}
           preguntas={preguntas}
           respuestas={respuestas}
-          readOnly={readOnly || isLockedPrefillField}
+          readOnly={readOnly}
           handleInputChange={handleInputChange}
         />
       )}
@@ -563,14 +555,6 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           setSuccessMessage={setSuccessMessage}
           setErrorMessage={setErrorMessage}
         />
-      )}
-
-      {isPrefilledField && ["TEXTO", "SELECT", "SELECT_CONDICIONAL", "SELECT_TABLA"].includes(pregunta.fp_tipo) && (
-        <p className="mt-1 text-[11px] text-sky-700 font-medium">
-          {prefillSourceByFieldId[pregunta.fp_id] === "ultimoFormulario"
-            ? "Precargado desde el ultimo formulario diligenciado"
-            : "Precargado desde datos del cliente"}
-        </p>
       )}
 
       {pregunta.fp_tipo === "SELECT_CONDICIONAL" && shouldShowConditionalField(pregunta) && (

@@ -27,7 +27,12 @@ interface DocumentoCargado {
   fecha_carga?: string;
   sd_fecha_emision?: string | null;
   sd_fecha_vencimiento?: string | null;
-  /** "cliente_archivo" cuando el documento no vive en esta solicitud sino que se heredó del archivo consolidado del cliente (Camino 2 de Ampliación de Cupo). */
+  /**
+   * "cliente_archivo": el documento no vive en esta solicitud sino que se
+   * heredó del archivo consolidado del cliente (Camino 2 de Ampliación de
+   * Cupo). "carta_vinculacion": la carta generada al aprobar; vive en
+   * Solicitud_archivo como cualquier otro documento, su sa_id es real.
+   */
   sa_origen?: string;
 }
 

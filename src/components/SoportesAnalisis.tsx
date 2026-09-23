@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Paperclip, Trash2, Upload } from "lucide-react";
+import { Eye, FileText, Paperclip, Trash2, Upload } from "lucide-react";
 import { solicitudesService } from "@/services/solicitudes.service";
 import {
   LoadingModal,
@@ -145,9 +145,17 @@ export function SoportesAnalisis({
               key={s.ssa_id}
               className="flex items-center justify-between gap-2 px-4 py-2.5 bg-white hover:bg-gray-50"
             >
-              <p className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
-                {s.ssa_nombre_original}
-              </p>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <FileText
+                  size={16}
+                  className={`flex-shrink-0 ${
+                    s.ssa_tipo_mime === "application/pdf" || s.ssa_nombre_original.toLowerCase().endsWith(".pdf")
+                      ? "text-red-500"
+                      : "text-gray-400"
+                  }`}
+                />
+                <p className="text-sm font-medium text-gray-900 truncate">{s.ssa_nombre_original}</p>
+              </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <a
                   href={s.ssa_ruta_almacenamiento}

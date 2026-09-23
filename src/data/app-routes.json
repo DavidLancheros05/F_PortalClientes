@@ -5,7 +5,6 @@
   "/consultas/existencias",
   "/consultas/facturas",
   "/consultas/remisiones",
-  "/dashboard",
   "/forgot-password",
   "/inicio",
   "/login",
@@ -92,7 +91,5 @@
   "/solicitudes/rechazadas-ejecutivo",
   "/solicitudes/rechazadas-ejecutivo/[id]",
   "/solicitudes/solicitud-ampliacion-cupo",
-  "/unauthorized",
-  "/usuarios",
-  "/usuarios/crear-usuario"
+  "/unauthorized"
 ]

@@ -2,14 +2,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Edit2, Plus, MapPin, Power, Search, X, Users } from "lucide-react";
+import { Trash2, Edit2, Plus, MapPin, Power, Search, X, Users, LockKeyholeOpen, ShieldOff } from "lucide-react";
 import UsuarioModal from "./usuarioModal";
 import UsuarioCentrosModal from "./UsuarioCentrosModal";
 import {
   usuariosService,
   type Usuario,
 } from "@/services/usuarios/usuarios.service";
-import { rolesService, type Rol } from "@/services/roles/roles.service";
+import { rolesService, type Rol } from "@/services/seguridad/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Th, Td } from "@/components/tables/TableCell";
@@ -20,7 +20,7 @@ import { TablePagination } from "@/components/tables/TablePagination";
 import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
 import { SuggestField } from "@/components/filters/SuggestField";
-import { ConfirmModal, ErrorModal } from "@/components/modals";
+import { ConfirmModal, ErrorModal, SuccessModal } from "@/components/modals";
 
 const UsuariosPage = () => {
   const searchParams = useSearchParams();
@@ -39,6 +39,10 @@ const UsuariosPage = () => {
   const [confirmDesactivarId, setConfirmDesactivarId] = useState<number | null>(null);
   const [confirmEliminarId, setConfirmEliminarId] = useState<number | null>(null);
   const [actionError, setActionError] = useState("");
+  const [usuarioDesbloquear, setUsuarioDesbloquear] = useState<Usuario | null>(null);
+  const [desbloquearOpen, setDesbloquearOpen] = useState(false);
+  const [desbloqueando, setDesbloqueando] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Filtros
   const [searchInput, setSearchInput] = useState("");
@@ -141,6 +145,31 @@ const UsuariosPage = () => {
     } catch (err) {
       console.error("Error:", err);
       setActionError("Error al activar usuario");
+    }
+  };
+
+  const confirmarDesbloqueo = async () => {
+    if (!usuarioDesbloquear) return;
+
+    try {
+      setDesbloqueando(true);
+      await usuariosService.desbloquear(usuarioDesbloquear.usr_id);
+      setUsuarios((prev) =>
+        prev.map((u) =>
+          u.usr_id === usuarioDesbloquear.usr_id
+            ? { ...u, usr_bloqueado: false, usr_intentos_login: 0 }
+            : u,
+        ),
+      );
+      setDesbloquearOpen(false);
+      setSuccessMessage(`Usuario desbloqueado: ${usuarioDesbloquear.nombre}.`);
+    } catch (err) {
+      console.error("Error:", err);
+      setDesbloquearOpen(false);
+      setActionError("No se pudo desbloquear el usuario");
+    } finally {
+      setDesbloqueando(false);
+      setUsuarioDesbloquear(null);
     }
   };
 
@@ -436,6 +465,7 @@ const UsuariosPage = () => {
                     <Th>Usuario</Th>
                     <Th>Email</Th>
                     <Th>Estado</Th>
+                    <Th>Bloqueo</Th>
                     <Th>Creado</Th>
                     <Th sticky align="right">
                       Acciones
@@ -462,6 +492,31 @@ const UsuariosPage = () => {
                         ) : (
                           <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
                             Inactivo
+                          </span>
+                        )}
+                      </Td>
+                      <Td className="whitespace-nowrap">
+                        {usuario.usr_bloqueado ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
+                              <ShieldOff className="w-3.5 h-3.5" />
+                              Bloqueado ({usuario.usr_intentos_login ?? 0})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUsuarioDesbloquear(usuario);
+                                setDesbloquearOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                            >
+                              <LockKeyholeOpen className="w-3.5 h-3.5" />
+                              Desbloquear
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-500">
+                            {usuario.usr_intentos_login ?? 0} intentos fallidos
                           </span>
                         )}
                       </Td>
@@ -586,6 +641,26 @@ const UsuariosPage = () => {
         isOpen={!!actionError}
         message={actionError}
         onAction={() => setActionError("")}
+      />
+
+      <ConfirmModal
+        isOpen={desbloquearOpen}
+        title="Desbloquear usuario"
+        message={`¿Deseas desbloquear a "${usuarioDesbloquear?.nombre}" y reiniciar sus intentos fallidos?`}
+        confirmText="Desbloquear"
+        isLoading={desbloqueando}
+        onConfirm={confirmarDesbloqueo}
+        onCancel={() => {
+          setDesbloquearOpen(false);
+          setUsuarioDesbloquear(null);
+        }}
+      />
+
+      <SuccessModal
+        isOpen={Boolean(successMessage)}
+        title="Usuario desbloqueado"
+        message={successMessage ?? ""}
+        onAction={() => setSuccessMessage(null)}
       />
 
       <ConfirmModal

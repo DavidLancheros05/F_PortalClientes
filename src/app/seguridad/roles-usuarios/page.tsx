@@ -7,7 +7,7 @@ import {
   usuarioRolesService,
   type Asignacion,
 } from "@/services/usuario-roles/usuario-roles.service";
-import { rolesService, type Rol } from "@/services/roles/roles.service";
+import { rolesService, type Rol } from "@/services/seguridad/roles.service";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { SuggestField } from "@/components/filters/SuggestField";
