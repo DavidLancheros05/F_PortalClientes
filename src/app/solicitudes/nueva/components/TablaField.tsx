@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { maestrosService } from "@/services/parametrizacion/maestros.service";
 import { resolverValorPreguntaDisparadora } from "../lib/resolverValorPregunta";
+import { calcularDescuadresSuma, formatearSuma } from "../lib/sumaColumnasTabla";
 import type { FormularioPregunta, RespuestasState } from "../types";
 
 interface TablaFieldProps {
@@ -47,6 +48,7 @@ type ColumnaTabla = {
   catalogo_valor_condicion?: string;
   minimo?: number;
   maximo?: number;
+  suma_total?: number;
 };
 
 function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
@@ -80,6 +82,7 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
             catalogo_valor_condicion: col.catalogo_valor_condicion,
             minimo: typeof col.minimo === "number" ? col.minimo : undefined,
             maximo: typeof col.maximo === "number" ? col.maximo : undefined,
+            suma_total: typeof col.suma_total === "number" ? col.suma_total : undefined,
           };
         }
         return null;
@@ -311,6 +314,9 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
 
   const limiteAlcanzado = limiteFilas !== null && filasVisibles.length >= limiteFilas;
 
+  const columnasConSuma = columnas.filter((c) => c.tipo === "NUMERO" && c.suma_total !== undefined);
+  const descuadresSuma = calcularDescuadresSuma(columnas, filasVisibles);
+
   const actualizarFilas = (nuevasFilas: FilaTabla[]) => {
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
   };
@@ -532,7 +538,25 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
           </tbody>
         </table>
       </div>
-      {!readOnly && (
+      {columnasConSuma.map((columna) => {
+        const descuadre = descuadresSuma.find((d) => d.columna === columna.nombre);
+        const suma = descuadre
+          ? descuadre.suma
+          : (columna.suma_total as number);
+        return (
+          <p
+            key={columna.nombre}
+            className={`border-t border-slate-100 px-2 py-1 text-[11px] font-medium ${
+              descuadre ? "text-amber-700" : "text-emerald-700"
+            }`}>
+            Suma de {columna.nombre}: {formatearSuma(suma)} de {formatearSuma(columna.suma_total as number)}
+            {descuadre && " — debe sumar exactamente este valor para completar la pregunta."}
+          </p>
+        );
+      })}
+      {/* Con límite de 1 fila nunca se puede agregar otra: no se muestra el
+          botón (ni deshabilitado) ni el aviso de límite. */}
+      {!readOnly && limiteFilas !== 1 && (
         <div className="border-t border-slate-100 bg-slate-50/60 p-1.5">
           <button
             type="button"

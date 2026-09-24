@@ -131,6 +131,10 @@ export type ColumnaTabla = {
   // Solo aplica cuando tipo === "NUMERO"
   minimo?: number;
   maximo?: number;
+  // Solo NUMERO: la suma de esta columna en todas las filas debe dar
+  // exactamente este valor para que la pregunta cuente como completa
+  // (ej. "% Participación" de accionistas = 100).
+  suma_total?: number;
 };
 
 export type ReglaLimiteTabla = {

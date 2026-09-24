@@ -375,6 +375,31 @@ export function PreguntaFormColumnasTabla({
                           className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </label>
+                      <label
+                        className="flex items-center gap-1 text-xs text-gray-700"
+                        title="La suma de esta columna en todas las filas debe dar este valor (ej. 100 para % de participación)">
+                        Suma total
+                        <input
+                          type="number"
+                          value={columna.suma_total ?? ""}
+                          onChange={(e) => {
+                            const nuevas = [...formPregunta.tabla_columnas];
+                            nuevas[index] = {
+                              ...nuevas[index],
+                              suma_total:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value),
+                            };
+                            setFormPregunta({
+                              ...formPregunta,
+                              tabla_columnas: nuevas,
+                            });
+                          }}
+                          placeholder="Sin suma"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </label>
                     </div>
                   )}
                 </div>

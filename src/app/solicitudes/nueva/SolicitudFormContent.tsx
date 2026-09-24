@@ -9,6 +9,7 @@ import { useUltimaSolicitudAprobada } from "@/hooks/useUltimaSolicitudAprobada";
 import { useSolicitudEdicion } from "@/hooks/useSolicitudEdicion";
 import { useRespuestasFormulario } from "@/hooks/useRespuestasFormulario";
 import { useCatalogoDependiente } from "./hooks/useCatalogoDependiente";
+import { calcularDescuadresSuma, formatearSuma } from "./lib/sumaColumnasTabla";
 import { useMenuPosition } from "@/hooks/useMenuPosition";
 
 //Componentes
@@ -613,6 +614,10 @@ export default function SolicitudFormContent({
               }
             }
           }
+          const [descuadre] = calcularDescuadresSuma(columnas, filas);
+          if (descuadre) {
+            return `La suma de "${descuadre.columna}" debe ser ${formatearSuma(descuadre.esperado)} (actual: ${formatearSuma(descuadre.suma)})`;
+          }
         } catch {
           return "Revisa los datos de la tabla";
         }
@@ -1146,6 +1151,7 @@ export default function SolicitudFormContent({
           tipo?: string;
           minimo?: number;
           maximo?: number;
+          suma_total?: number;
         };
         let columnasTabla: ColumnaTablaMin[] = [];
         try {
@@ -1169,7 +1175,9 @@ export default function SolicitudFormContent({
         // Se considera respondida solo si TODAS las filas están completas
         // (todas sus columnas tienen valor, y si la columna es NUMERO con
         // mínimo/máximo configurado, el valor está dentro del rango) — una
-        // fila a medias o fuera de rango invalida la pregunta.
+        // fila a medias o fuera de rango invalida la pregunta. Además, las
+        // columnas con suma_total (ej. % participación = 100) deben cuadrar.
+        if (calcularDescuadresSuma(columnasTabla, filas).length > 0) return false;
         return filas.every(
           (fila) =>
             fila &&
@@ -1882,7 +1890,7 @@ export default function SolicitudFormContent({
 
                     {/* Preguntas */}
                     <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6">
                         {seccionActual.preguntas.filter(shouldShowQuestion).map((pregunta) => (
                           <PreguntaRenderer
                             key={pregunta.fp_id}

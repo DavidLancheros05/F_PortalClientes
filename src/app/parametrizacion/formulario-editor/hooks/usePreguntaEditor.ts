@@ -556,7 +556,7 @@ export function usePreguntaEditor({
                           catalogo_valor_condicion: c.catalogo_valor_condicion || undefined,
                         }
                       : {}),
-                    ...(c.tipo === "NUMERO" ? { minimo: c.minimo, maximo: c.maximo } : {}),
+                    ...(c.tipo === "NUMERO" ? { minimo: c.minimo, maximo: c.maximo, suma_total: c.suma_total } : {}),
                   }))
                   .filter((c) => Boolean(c.nombre)),
               )
@@ -761,6 +761,7 @@ export function usePreguntaEditor({
               catalogo_valor_condicion: col.catalogo_valor_condicion,
               minimo: col.minimo,
               maximo: col.maximo,
+              suma_total: col.suma_total,
             };
           });
         } catch {
