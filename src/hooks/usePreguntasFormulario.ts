@@ -82,23 +82,6 @@ export function usePreguntasFormulario({
     }
   };
 
-  const cargarOpcionesDocumentosTabla = async (
-    fp_id: number,
-  ): Promise<Opcion[]> => {
-    try {
-      const response = await formularioPreguntasService.getOpciones(fp_id);
-      return Array.isArray(response)
-        ? response.map((opt: any) => ({
-            op_id: opt.fpo_id || opt.op_id,
-            op_descripcion: opt.fpo_valor || opt.op_descripcion,
-          }))
-        : [];
-    } catch (error) {
-      console.error(`Error cargando opciones para pregunta ${fp_id}:`, error);
-      return [];
-    }
-  };
-
   // =========================
   // Carga principal
   // =========================
@@ -193,20 +176,18 @@ export function usePreguntasFormulario({
           })
           .sort((a, b) => a.fp_orden - b.fp_orden);
 
-        // 🔥 cargar catálogos dinámicos
+        // Cargar catálogos dinámicos (SELECT_TABLA). DOCUMENTOS_TABLA no
+        // necesita petición aparte: GET /formulario-preguntas ya trae sus
+        // opciones activas con op_id/op_descripcion (antes se pedían otra vez,
+        // una petición por pregunta).
         const activasConCatalogo = await Promise.all(
           activas.map(async (pregunta) => {
-            if (
-              !["SELECT_TABLA", "DOCUMENTOS_TABLA"].includes(pregunta.fp_tipo)
-            ) {
+            if (pregunta.fp_tipo !== "SELECT_TABLA") {
               return pregunta;
             }
 
             try {
-              const opciones =
-                pregunta.fp_tipo === "DOCUMENTOS_TABLA"
-                  ? await cargarOpcionesDocumentosTabla(pregunta.fp_id)
-                  : await cargarOpcionesCatalogoTabla(pregunta);
+              const opciones = await cargarOpcionesCatalogoTabla(pregunta);
 
               return { ...pregunta, opciones };
             } catch {

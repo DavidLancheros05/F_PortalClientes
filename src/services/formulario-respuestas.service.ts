@@ -17,6 +17,10 @@ export const formularioRespuestasService = {
     hasValorEnRespuesta?: (r: any) => boolean;
     archivosExistentes?: Record<number, any>;
   }) {
+    // Las respuestas sin archivo se juntan y se guardan en una sola llamada
+    // al final (guardarRespuestasLote), no una petición por pregunta.
+    const lote: any[] = [];
+
     const tareas = Object.entries(respuestas)
       .filter(([, respuesta]) => {
         if (soloConValor && hasValorEnRespuesta) {
@@ -110,8 +114,7 @@ export const formularioRespuestasService = {
             respuestaFormateada.valor_opcion_id = null;
           }
 
-          await this.guardarRespuesta(solicitudId, fpId, respuestaFormateada);
-          guardadas++;
+          lote.push({ fp_id: fpId, ...respuestaFormateada });
         }
 
         return guardadas;
@@ -119,6 +122,11 @@ export const formularioRespuestasService = {
 
     const resultados = await Promise.all(tareas.map((tarea) => tarea()));
     let respuestasGuardadas = resultados.reduce((sum, n) => sum + n, 0);
+
+    if (lote.length > 0) {
+      const { guardadas } = await this.guardarRespuestasLote(solicitudId, lote);
+      respuestasGuardadas += guardadas;
+    }
 
     const documentosAReutilizar = Object.entries(archivosExistentes).filter(
       ([, archivo]) =>
@@ -194,6 +202,22 @@ export const formularioRespuestasService = {
       ...respuestaData,
     });
     return response.data;
+  },
+
+  // Guardar varias respuestas en una transacción (todo o nada). Si falla,
+  // el backend responde con error HTTP y axios lanza la excepción.
+  async guardarRespuestasLote(
+    solicitudId: number,
+    respuestas: any[],
+  ): Promise<{ guardadas: number; omitidas: number }> {
+    if (!solicitudId || isNaN(solicitudId)) {
+      throw new Error("sa_sol_id inválido o no proporcionado");
+    }
+    const response = await api.post("/solicitudes/respuestas/lote", {
+      sa_sol_id: solicitudId,
+      respuestas,
+    });
+    return response.data.data;
   },
 
   // Guardar archivo de respuesta
