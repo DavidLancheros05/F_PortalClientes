@@ -177,7 +177,7 @@ export function ArchivoField({
               <div className="flex items-start justify-between gap-1">
                 <div className="flex items-start gap-1 min-w-0">
                   <FileText className="h-3 w-3 text-brand-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs font-medium text-brand-600 break-words">
+                  <p className="min-w-0 break-all text-xs font-medium text-brand-600">
                     {archivosExistentes[pregunta.fp_id].sa_nombre_original}
                     {esDocumentoReutilizado && <span className="ml-1 font-normal text-brand-600">(de tu archivo)</span>}
                   </p>
@@ -248,7 +248,7 @@ export function ArchivoField({
             <div className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
               <div className="flex items-center gap-1 min-w-0">
                 <CheckCircle className="h-3 w-3 flex-shrink-0" />
-                <span className="break-words font-medium">{respuestas[pregunta.fp_id]?.nombre_archivo}</span>
+                <span className="min-w-0 break-all font-medium">{respuestas[pregunta.fp_id]?.nombre_archivo}</span>
               </div>
               <div className="flex gap-1 flex-shrink-0">
                 {respuestas[pregunta.fp_id]?.vista_previa_url && (
@@ -297,7 +297,7 @@ export function ArchivoField({
               <div className="rounded-lg border border-brand-600/20 bg-brand-600/5 px-2.5 py-2 space-y-2">
                 <p className="text-xs text-gray-700">
                   Ya tienes{" "}
-                  <span className="font-medium break-words">{documentoClienteDisponible.ca_nombre_original}</span> en tu
+                  <span className="font-medium break-all">{documentoClienteDisponible.ca_nombre_original}</span> en tu
                   archivo
                   {documentoClienteDisponible.ca_fecha_emision && (
                     <>

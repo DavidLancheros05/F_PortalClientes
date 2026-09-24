@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
-import { Download, FileText, Upload } from "lucide-react";
+import { Download, Eye, FileText, Upload } from "lucide-react";
 import { misDocumentosService, type DocumentoDiferido } from "@/services/mis-documentos.service";
 import { formularioRespuestasService } from "@/services/formulario-respuestas.service";
 import { solicitudesService } from "@/services/solicitudes.service";
@@ -301,15 +301,15 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
           className={`rounded-xl border p-4 transition-colors ${
             listo ? "border-emerald-200 bg-emerald-50/40" : "border-gray-200 bg-gray-50/70"
           }`}>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
               <div className={`mt-0.5 shrink-0 rounded-full p-2 ${listo ? "bg-emerald-100" : "bg-red-100"}`}>
                 <FileText className={`h-4 w-4 ${listo ? "text-emerald-600" : "text-red-600"}`} />
               </div>
               <div className="min-w-0">
                 <p className="wrap-break-word text-sm font-semibold text-gray-900">{doc.tdo_nombre}</p>
                 <p
-                  className={`mt-1 wrap-break-word text-xs font-medium ${listo ? "text-emerald-700" : "text-red-600"}`}>
+                  className={`mt-1 break-all text-xs font-medium ${listo ? "text-emerald-700" : "text-red-600"}`}>
                   {esGenerado
                     ? listo
                       ? "Documento generado y guardado"
@@ -320,7 +320,7 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2 sm:justify-end">
               {archivoUrl && esGenerado && (
                 <a
                   href={archivoUrl}
@@ -338,8 +338,10 @@ export const PanelFirmaDocumentos = forwardRef<PanelFirmaDocumentosHandle, Panel
                   href={archivoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-medium text-brand-600 hover:text-brand-700">
-                  Ver archivo
+                  aria-label={`Ver archivo: ${doc.tdo_nombre}`}
+                  title="Ver archivo"
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-brand-600 transition-colors hover:bg-gray-50 hover:text-brand-700">
+                  <Eye className="h-4 w-4" />
                 </a>
               )}
               {!esGenerado && (

@@ -161,7 +161,7 @@ export function ArchivoMultipleField({
               <div className="flex items-start justify-between gap-1">
                 <div className="flex items-start gap-1 min-w-0">
                   <FileText className="h-3 w-3 text-brand-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs font-medium text-brand-600 break-words">{archivo.sa_nombre_original}</p>
+                  <p className="min-w-0 break-all text-xs font-medium text-brand-600">{archivo.sa_nombre_original}</p>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   {(() => {
@@ -196,7 +196,7 @@ export function ArchivoMultipleField({
               className="flex items-center justify-between gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-emerald-800 text-xs">
               <div className="flex items-center gap-1 min-w-0">
                 <FileText className="h-3 w-3 flex-shrink-0" />
-                <span className="break-words font-medium">{archivo.name}</span>
+                <span className="min-w-0 break-all font-medium">{archivo.name}</span>
               </div>
               {!readOnly && (
                 <button
