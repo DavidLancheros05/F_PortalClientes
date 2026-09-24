@@ -64,11 +64,21 @@ export default function NuevaSolicitudPage() {
 
   useEffect(() => {
     if (authLoading || esCliente) return;
-    Promise.all([
+    // allSettled: si falla la carga de ejecutivos, la de clientes igual debe
+    // llegar — sin ella no se puede preseleccionar el cliente de la URL.
+    Promise.allSettled([
       cachedRequest("listado-solicitudes-clientes", () => clientesService.getAll()),
       clientesService.getEjecutivosNegocio(),
     ])
-      .then(([clientesData, ejecutivosData]: [any, any]) => {
+      .then(([clientesResult, ejecutivosResult]) => {
+        const clientesData: any = clientesResult.status === "fulfilled" ? clientesResult.value : [];
+        const ejecutivosData: any = ejecutivosResult.status === "fulfilled" ? ejecutivosResult.value : [];
+        if (clientesResult.status === "rejected") {
+          console.error("[NuevaSolicitudPage] Error cargando clientes", clientesResult.reason);
+        }
+        if (ejecutivosResult.status === "rejected") {
+          console.error("[NuevaSolicitudPage] Error cargando ejecutivos", ejecutivosResult.reason);
+        }
         const mapeados = Array.isArray(clientesData)
           ? clientesData.map((item: any) => ({
               cli_id: Number(item.cli_id ?? 0),
@@ -86,9 +96,6 @@ export default function NuevaSolicitudPage() {
             }))
           : [];
         setEjecutivos(mapeadosEjecutivos.filter((e: EjecutivoOpcion) => e.ejecutivo_id > 0));
-      })
-      .catch((error) => {
-        console.error("[NuevaSolicitudPage] Error cargando clientes", error);
       });
   }, [authLoading, esCliente]);
 
@@ -151,7 +158,16 @@ export default function NuevaSolicitudPage() {
     );
   }, [clientes, busqueda, ejecutivoId]);
 
-  const clienteId = esCliente ? user?.cliente_id : clienteSeleccionado?.cli_id;
+  // La URL (?clienteId=) es la fuente de verdad para el usuario interno: al
+  // volver del formulario o recargar, el flujo sigue con ese cliente sin
+  // esperar a que cargue la lista (que solo aporta el nombre para mostrar).
+  const clienteIdUrl = Number.isFinite(clienteIdQuery) && clienteIdQuery > 0 ? clienteIdQuery : undefined;
+  const clienteId = esCliente ? user?.cliente_id : (clienteSeleccionado?.cli_id ?? clienteIdUrl);
+
+  const seleccionarCliente = (cliente: ClienteOpcion | null) => {
+    setClienteSeleccionado(cliente);
+    router.replace(cliente ? `/solicitudes/nueva?clienteId=${cliente.cli_id}` : "/solicitudes/nueva");
+  };
 
   // null = todavía no se sabe (PanelFirmaDocumentos no ha cargado, o no
   // aplica porque no hay solicitudActiva) — evita mostrar "completo" antes
@@ -174,7 +190,7 @@ export default function NuevaSolicitudPage() {
 
   // Usuario interno: mientras no elija un cliente, no hay solicitud que
   // diligenciar todavía.
-  if (!esCliente && !clienteSeleccionado) {
+  if (!esCliente && !clienteId) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
         <div className="max-w-3xl mx-auto">
@@ -253,7 +269,7 @@ export default function NuevaSolicitudPage() {
                           type="button"
                           key={cliente.cli_id}
                           onClick={() => {
-                            setClienteSeleccionado(cliente);
+                            seleccionarCliente(cliente);
                             setBusqueda(cliente.cli_razon_social);
                             setMostrarLista(false);
                           }}
@@ -337,7 +353,7 @@ export default function NuevaSolicitudPage() {
           eyebrow="Solicitud"
           title="Completa tu solicitud paso a paso"
           subtitle="Diligencia la información, revisa la documentación y envía la solicitud."
-          onBack={!esCliente ? () => setClienteSeleccionado(null) : undefined}
+          onBack={!esCliente ? () => seleccionarCliente(null) : undefined}
           actions={
             !esCliente && clienteSeleccionado ? (
               <span className="whitespace-nowrap rounded-full bg-white/14 px-3 py-1.5 text-xs font-semibold text-white">
