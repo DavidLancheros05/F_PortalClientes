@@ -20,17 +20,6 @@ export const usuariosService = {
     return res.data;
   },
 
-  getMe: async (): Promise<Usuario> => {
-    const res = await api.get("/usuarios/me");
-    return {
-      ...res.data,
-      rol:
-        typeof res.data.rol === "object"
-          ? res.data.rol
-          : { nombre: res.data.rol },
-    };
-  },
-
   create: async (payload: {
     nombre: string;
     usuario_login: string;

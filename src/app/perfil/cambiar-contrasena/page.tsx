@@ -1,6 +1,6 @@
 "use client";
 
-import { changePassword } from "@/services/auth.service";
+import { authService } from "@/services/auth/auth.service";
 import { clientesService } from "@/services/clientes/clientes.service";
 import { useContext, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
@@ -34,7 +34,7 @@ export default function ChangePasswordPage() {
             currentPassword,
             newPassword,
           })
-        : await changePassword({ currentPassword, newPassword });
+        : await authService.changePassword({ currentPassword, newPassword });
       setIsError(false);
       setMessage(data.message);
       setCurrentPassword("");
