@@ -20,6 +20,8 @@ export interface MiDocumento {
   tdo_regla_vigencia: "DIAS" | "ANIO" | null;
   tdo_anios_atras_permitidos: number | null;
   tdo_tiene_plantilla: boolean | null;
+  /** Se entrega después de enviar el formulario (documento para firmar). */
+  tdo_es_diferido?: boolean | null;
   tdo_plantilla_contenido: string | null;
   tdo_tipo_plantilla: "TEXTO" | "PDF_SOLICITUD" | null;
   tdo_formato_codigo?: string | null;

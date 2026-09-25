@@ -88,23 +88,9 @@ export default function DetalleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generandoPDF, setGenerandoPDF] = useState(false);
-  const [descargandoPdfFormulario, setDescargandoPdfFormulario] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
   const [mostrarTablasCumplimiento, setMostrarTablasCumplimiento] = useState(false);
   const { historial } = useHistorialWorkflow(Number.isFinite(solicitudId) ? solicitudId : null);
-  const abrirPdfFormulario = async () => {
-    try {
-      setDescargandoPdfFormulario(true);
-      const blob = await solicitudesService.downloadPdf(solicitudId);
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-    } catch (err) {
-      console.error("Error abriendo PDF del formulario:", err);
-      setActionErrorMessage("No se pudo generar el PDF del formulario. Intenta de nuevo.");
-    } finally {
-      setDescargandoPdfFormulario(false);
-    }
-  };
 
   const abrirCartaPDF = async () => {
     if (!solicitud) return;
@@ -343,8 +329,6 @@ export default function DetalleDetailPage() {
                 solicitud={solicitud}
                 slaGlobal={slaGlobal}
                 containerClassName="px-4 sm:px-6 py-4 sm:py-5 border-b border-[#eef1f6]"
-                onOpenPdf={abrirPdfFormulario}
-                pdfLoading={descargandoPdfFormulario}
               />
 
               {/* Gestión por Área — se omite etapaActual para que

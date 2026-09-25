@@ -2,10 +2,17 @@
 
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { MessageSquarePlus, Send } from "lucide-react";
 import { AuthContext } from "@/context/AuthContext";
 import { pqrsService } from "@/services/pqrs.service";
-import { ConfirmModal } from "@/components/modals";
+import { ConfirmModal, ErrorModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+
+// Mismo estilo de campos que perfil/cambiar-contrasena (formulario simple
+// dentro de tarjeta de 22px bajo un PageHeaderCard).
+const LABEL_CLASS = "block text-[10.5px] font-bold uppercase tracking-wide text-[#94a3b8] mb-2";
+const INPUT_CLASS =
+  "w-full px-4 py-3 border border-[#eef1f6] rounded-[11px] bg-[#fafbfd] text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent focus:outline-none transition-all disabled:opacity-50";
 
 interface TipoPQRS {
   pt_id: number;
@@ -81,30 +88,20 @@ export default function NuevaPQRSPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6 md:p-8">
-          <button
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver
-          </button>
+        <PageHeaderCard
+          icon={MessageSquarePlus}
+          eyebrow="PQRS"
+          title="Nueva PQRS"
+          subtitle="Registra una petición, queja, reclamo o sugerencia"
+          onBack={() => router.back()}
+        />
 
-          <h1 className="text-3xl font-bold text-blue-800 mb-8">Nueva PQRS</h1>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-[22px] border border-[#e9ecf2] shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)] overflow-hidden">
+          <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tipo de PQRS *
-              </label>
+              <label className={LABEL_CLASS}>Tipo de PQRS *</label>
               <select
                 value={formData.pqrs_pt_id}
                 onChange={(e) =>
@@ -112,7 +109,7 @@ export default function NuevaPQRSPage() {
                 }
                 disabled={loadingTipos}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className={INPUT_CLASS}
               >
                 <option value="">
                   {loadingTipos ? "Cargando..." : "Selecciona un tipo"}
@@ -126,9 +123,7 @@ export default function NuevaPQRSPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Título *
-              </label>
+              <label className={LABEL_CLASS}>Título *</label>
               <input
                 type="text"
                 value={formData.pqrs_titulo}
@@ -138,17 +133,15 @@ export default function NuevaPQRSPage() {
                 required
                 placeholder="Ingresa un título descriptivo"
                 maxLength={255}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={INPUT_CLASS}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-[11px] text-[#94a3b8] mt-1 text-right">
                 {formData.pqrs_titulo.length}/255
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Descripción *
-              </label>
+              <label className={LABEL_CLASS}>Descripción *</label>
               <textarea
                 value={formData.pqrs_descripcion}
                 onChange={(e) =>
@@ -160,20 +153,18 @@ export default function NuevaPQRSPage() {
                 required
                 placeholder="Describe detalladamente tu PQRS"
                 rows={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`${INPUT_CLASS} resize-y`}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Prioridad (Opcional)
-              </label>
+              <label className={LABEL_CLASS}>Prioridad (opcional)</label>
               <select
                 value={formData.pqrs_pri_id}
                 onChange={(e) =>
                   setFormData({ ...formData, pqrs_pri_id: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={INPUT_CLASS}
               >
                 <option value="">Sin prioridad</option>
                 <option value="1">Baja</option>
@@ -182,25 +173,28 @@ export default function NuevaPQRSPage() {
               </select>
             </div>
 
-            <div className="flex gap-4 pt-6">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {loading ? "Creando..." : "Crear PQRS"}
-              </button>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-6 py-3 border border-[#e9ecf2] text-slate-700 bg-white rounded-[11px] font-bold text-sm hover:bg-[#fafbfd] transition-colors"
               >
                 Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 hover:-translate-y-px text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] hover:shadow-[0_8px_20px_rgba(0,61,153,0.28)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0"
+              >
+                <Send className="w-4 h-4" />
+                {loading ? "Creando..." : "Crear PQRS"}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      <ErrorModal isOpen={!!error} message={error || ""} onAction={() => setError(null)} />
 
       <ConfirmModal
         isOpen={showConfirmModal}

@@ -30,8 +30,6 @@ interface SolicitudInfoBlockProps {
   fechaEstimada?: string | null;
   slaGlobal?: import("./SolicitudInfoCard").SolicitudInfoCardSla | null;
   onShowSla?: () => void;
-  onOpenPdf?: () => void;
-  pdfLoading?: boolean;
   containerClassName?: string;
 }
 
@@ -45,8 +43,6 @@ export function SolicitudInfoBlock({
   fechaEstimada,
   slaGlobal: slaGlobalProp,
   onShowSla,
-  onOpenPdf,
-  pdfLoading,
   containerClassName = "px-7 py-4 border-b border-[#eef1f6]",
 }: SolicitudInfoBlockProps) {
   const router = useRouter();
@@ -88,8 +84,6 @@ export function SolicitudInfoBlock({
         onOpenFormulario={() =>
           router.push(`/solicitudes/${solicitud.sol_id}`)
         }
-        onOpenPdf={onOpenPdf}
-        pdfLoading={pdfLoading}
         clienteNombre={solicitud.cliente_nombre}
         clienteNit={solicitud.cliente_nit}
         solicitaCredito={solicitaCredito}

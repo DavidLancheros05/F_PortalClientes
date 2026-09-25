@@ -262,24 +262,24 @@ export default function RolFormBody({ rol, onCancel, onSave }: Props) {
   };
 
   // Construye la estructura anidada de módulos a partir del mapa de asignados
+  // Los submódulos se recorren SIEMPRE, aunque el padre no esté asignado:
+  // el backend deja pc_rol_modulo exactamente como la lista recibida, así
+  // que saltarse los hijos de una carpeta sin permisos los desactivaba.
+  // Ver buildModulosPayload en page.tsx.
   const buildTree = (mods: Modulo[]): ModuloAsignado[] => {
-    return mods
-      .map((m) => {
-        const assigned = modulosAsignados[m.mod_id];
-        if (!assigned || !assigned.asignado) return null;
-        const node: ModuloAsignado = {
-          mod_id: m.mod_id,
-          mod_nombre: m.mod_nombre,
-          asignado: true,
-          permisos: assigned.permisos,
-        };
-        if (m.subModulos) {
-          const children = buildTree(m.subModulos);
-          if (children.length) node.subModulos = children;
-        }
-        return node;
-      })
-      .filter((x): x is ModuloAsignado => x !== null);
+    return mods.flatMap((m) => {
+      const assigned = modulosAsignados[m.mod_id];
+      const children = m.subModulos ? buildTree(m.subModulos) : [];
+      if (!assigned || !assigned.asignado) return children;
+      const node: ModuloAsignado = {
+        mod_id: m.mod_id,
+        mod_nombre: m.mod_nombre,
+        asignado: true,
+        permisos: assigned.permisos,
+      };
+      if (children.length) node.subModulos = children;
+      return [node];
+    });
   };
 
   // Filtrar módulos por búsqueda

@@ -542,8 +542,10 @@ export default function MisDocumentosPage() {
                     <tbody className="divide-y divide-gray-100">
                       {documentosFiltrados.map((doc) => {
                         const estado = getEstadoVigencia(doc);
+                        // Generados (con plantilla) y documentos para firmar (tdo_es_diferido) se
+                        // gestionan en el panel de firma, no se reemplazan desde esta tabla.
                         const esDocumentoGeneradoOFirmado =
-                          Boolean(doc.tdo_tiene_plantilla) || /firmad/i.test(doc.tdo_nombre || "");
+                          Boolean(doc.tdo_tiene_plantilla) || Boolean(doc.tdo_es_diferido);
                         const editable =
                           !esDocumentoGeneradoOFirmado &&
                           esDocumentoEditable(doc, puedeCorregir, rechazadoPorAuxiliar, estado.vencido);

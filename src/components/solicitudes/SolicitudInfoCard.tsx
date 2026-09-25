@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Building2, DollarSign, FileText, Info } from "lucide-react";
-import { PdfIcon } from "@/components/icons/FileIcons";
 import { formatDate } from "@/lib/date-utils";
 import { DiasRestantesBadge } from "@/components/badges/DiasRestantesBadge";
 import { VerSlaModal } from "@/components/solicitudes/VerSlaModal";
@@ -63,8 +62,6 @@ interface SolicitudInfoCardProps {
   slaGlobal?: SolicitudInfoCardSla | null;
   onShowSla?: () => void;
   onOpenFormulario?: () => void;
-  onOpenPdf?: () => void;
-  pdfLoading?: boolean;
   clienteNombre: string;
   clienteNit?: string | null;
   solicitaCredito: boolean | null;
@@ -85,8 +82,6 @@ export function SolicitudInfoCard({
   slaGlobal,
   onShowSla,
   onOpenFormulario,
-  onOpenPdf,
-  pdfLoading = false,
   clienteNombre,
   clienteNit,
   solicitaCredito,
@@ -154,19 +149,7 @@ export function SolicitudInfoCard({
           </div>
         </div>
 
-        <div className="flex-1 p-4 flex flex-col items-center gap-3">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {onOpenPdf && (
-              <button
-                onClick={onOpenPdf}
-                disabled={pdfLoading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                <PdfIcon />
-                {pdfLoading ? "..." : "PDF"}
-              </button>
-            )}
-          </div>
-
+        <div className="flex-1 p-4 flex flex-col items-center justify-center gap-3">
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
             <div className="flex items-center gap-2">
               <Building2 size={13} strokeWidth={2.2} className="text-brand-500 flex-shrink-0" />

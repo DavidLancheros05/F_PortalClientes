@@ -18,7 +18,23 @@ import { Th, Td } from "@/components/tables/TableCell";
 import { Tr } from "@/components/tables/TableRow";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { SuggestField } from "@/components/filters/SuggestField";
+import { FilterField } from "@/components/filters/FilterField";
 import { FilterActions } from "@/components/filters/FilterActions";
+
+const FILTRO_INPUT_CLASS =
+  "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500";
+
+// Fecha (yyyy-mm-dd) en la zona del navegador, la misma con la que la tabla
+// muestra la columna Fecha (toLocaleDateString): así "desde/hasta" filtran
+// por el mismo día que el usuario ve en pantalla.
+const fechaLocalISO = (valor?: string) => {
+  if (!valor) return "";
+  const d = new Date(valor);
+  if (Number.isNaN(d.getTime())) return "";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+};
 
 interface PQRS {
   pqrs_id: number;
@@ -38,6 +54,11 @@ interface EstadoOption {
   pe_color?: string;
 }
 
+interface TipoOption {
+  pt_id: number;
+  pt_nombre: string;
+}
+
 const ITEMS_PER_PAGE = 10;
 
 export default function MisPQRSPage() {
@@ -48,6 +69,7 @@ export default function MisPQRSPage() {
 
   const [pqrsList, setPqrsList] = useState<PQRS[]>([]);
   const [estados, setEstados] = useState<EstadoOption[]>([]);
+  const [tipos, setTipos] = useState<TipoOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Filtros, página y "hasSearched" inicializados desde la URL
@@ -74,6 +96,13 @@ export default function MisPQRSPage() {
       .map((id) => Number(id))
       .filter((id) => !Number.isNaN(id));
   });
+  // Tipo y rango de fechas: mismo esquema borrador (Input) / aplicado.
+  const [tipoInput, setTipoInput] = useState(() => searchParams.get("tipo") || "");
+  const [tipo, setTipo] = useState(() => searchParams.get("tipo") || "");
+  const [desdeInput, setDesdeInput] = useState(() => searchParams.get("desde") || "");
+  const [desde, setDesde] = useState(() => searchParams.get("desde") || "");
+  const [hastaInput, setHastaInput] = useState(() => searchParams.get("hasta") || "");
+  const [hasta, setHasta] = useState(() => searchParams.get("hasta") || "");
   const [currentPage, setCurrentPage] = useState(() => {
     const v = searchParams.get("pagina");
     return v ? Number(v) : 1;
@@ -82,7 +111,17 @@ export default function MisPQRSPage() {
   useEffect(() => {
     loadPQRS();
     loadEstados();
+    loadTipos();
   }, [user]);
+
+  const loadTipos = async () => {
+    try {
+      const data = await pqrsService.getTipos();
+      setTipos(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error cargando tipos:", err);
+    }
+  };
 
   const loadPQRS = async () => {
     if (!user) return;
@@ -120,9 +159,15 @@ export default function MisPQRSPage() {
         selectedEstados.length === 0 ||
         selectedEstados.includes(pqrs.pqrs_pe_id);
 
-      return matchesSearch && matchesEstado;
+      const matchesTipo = !tipo || String(pqrs.pqrs_pt_id) === tipo;
+
+      const fecha = fechaLocalISO(pqrs.pqrs_fecha_creacion);
+      const matchesDesde = !desde || (fecha !== "" && fecha >= desde);
+      const matchesHasta = !hasta || (fecha !== "" && fecha <= hasta);
+
+      return matchesSearch && matchesEstado && matchesTipo && matchesDesde && matchesHasta;
     });
-  }, [pqrsList, searchTerm, selectedEstados]);
+  }, [pqrsList, searchTerm, selectedEstados, tipo, desde, hasta]);
 
   // Pool crudo de sugerencias — combina número y asunto, ya que el campo
   // único de búsqueda filtra por ambas columnas a la vez.
@@ -157,6 +202,9 @@ export default function MisPQRSPage() {
   const sincronizarUrl = (overrides: {
     buscar?: string;
     estados?: number[];
+    tipo?: string;
+    desde?: string;
+    hasta?: string;
     pagina?: number;
     buscado?: boolean;
   }) => {
@@ -167,6 +215,12 @@ export default function MisPQRSPage() {
     if (buscar.trim()) params.set("buscar", buscar.trim());
     const estadosIds = overrides.estados ?? selectedEstados;
     if (estadosIds.length > 0) params.set("estados", estadosIds.join(","));
+    const tipoId = overrides.tipo ?? tipo;
+    if (tipoId) params.set("tipo", tipoId);
+    const fechaDesde = overrides.desde ?? desde;
+    if (fechaDesde) params.set("desde", fechaDesde);
+    const fechaHasta = overrides.hasta ?? hasta;
+    if (fechaHasta) params.set("hasta", fechaHasta);
     const pagina = overrides.pagina ?? currentPage;
     params.set("pagina", String(pagina));
     router.replace(`${pathname}?${params.toString()}`);
@@ -184,14 +238,30 @@ export default function MisPQRSPage() {
 
   const handleBuscar = () => {
     setSearchTerm(searchTermInput);
+    setTipo(tipoInput);
+    setDesde(desdeInput);
+    setHasta(hastaInput);
     setHasSearched(true);
     setCurrentPage(1);
-    sincronizarUrl({ buscar: searchTermInput, pagina: 1, buscado: true });
+    sincronizarUrl({
+      buscar: searchTermInput,
+      tipo: tipoInput,
+      desde: desdeInput,
+      hasta: hastaInput,
+      pagina: 1,
+      buscado: true,
+    });
   };
 
   const clearFilters = () => {
     setSearchTermInput("");
     setSearchTerm("");
+    setTipoInput("");
+    setTipo("");
+    setDesdeInput("");
+    setDesde("");
+    setHastaInput("");
+    setHasta("");
     setHasSearched(false);
     setSelectedEstados([]);
     setCurrentPage(1);
@@ -244,14 +314,52 @@ export default function MisPQRSPage() {
         >
           {!(loading || pqrsList.length === 0) && (
             <div className="space-y-4">
-              <SuggestField
-                label="Buscar por número o asunto"
-                placeholder="Buscar por número o asunto..."
-                value={searchTermInput}
-                onChange={setSearchTermInput}
-                suggestions={searchSugerencias}
-                onEnter={handleBuscar}
-              />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <SuggestField
+                  label="Buscar por número o asunto"
+                  placeholder="Buscar por número o asunto..."
+                  value={searchTermInput}
+                  onChange={setSearchTermInput}
+                  suggestions={searchSugerencias}
+                  onEnter={handleBuscar}
+                  className="md:col-span-2"
+                />
+
+                <FilterField label="Tipo">
+                  <select
+                    value={tipoInput}
+                    onChange={(e) => setTipoInput(e.target.value)}
+                    className={FILTRO_INPUT_CLASS}
+                  >
+                    <option value="">Todos</option>
+                    {tipos.map((t) => (
+                      <option key={t.pt_id} value={String(t.pt_id)}>
+                        {t.pt_nombre}
+                      </option>
+                    ))}
+                  </select>
+                </FilterField>
+
+                <FilterField label="Fecha desde">
+                  <input
+                    type="date"
+                    value={desdeInput}
+                    onChange={(e) => setDesdeInput(e.target.value)}
+                    max={hastaInput || undefined}
+                    className={FILTRO_INPUT_CLASS}
+                  />
+                </FilterField>
+
+                <FilterField label="Fecha hasta">
+                  <input
+                    type="date"
+                    value={hastaInput}
+                    onChange={(e) => setHastaInput(e.target.value)}
+                    min={desdeInput || undefined}
+                    className={FILTRO_INPUT_CLASS}
+                  />
+                </FilterField>
+              </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">

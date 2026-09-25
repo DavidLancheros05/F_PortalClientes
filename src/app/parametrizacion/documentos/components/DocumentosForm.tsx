@@ -67,9 +67,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
       vigenciaDias: undefined,
       reglaVigencia: "",
       aniosAtrasPermitidos: undefined,
-      aplicaZonaFranca: false,
       estado: true,
       tienePlantilla: false,
+      esDiferido: false,
+      soloDistribuidor: false,
       tipoPlantilla: "TEXTO",
       plantillaContenido: "",
       formatoCodigo: "",
@@ -395,9 +396,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         vigenciaDias: editItem.vigenciaDias ?? undefined,
         reglaVigencia: editItem.reglaVigencia || "",
         aniosAtrasPermitidos: editItem.aniosAtrasPermitidos ?? undefined,
-        aplicaZonaFranca: false,
         estado: editItem.estado,
         tienePlantilla: editItem.tienePlantilla ?? false,
+        esDiferido: editItem.esDiferido ?? false,
+        soloDistribuidor: editItem.soloDistribuidor ?? false,
         tipoPlantilla: editItem.tipoPlantilla ?? "TEXTO",
         plantillaContenido: editItem.plantillaContenido || "",
         formatoCodigo: editItem.formatoCodigo || "",
@@ -420,9 +422,10 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
         vigenciaDias: undefined,
         reglaVigencia: "",
         aniosAtrasPermitidos: undefined,
-        aplicaZonaFranca: false,
         estado: true,
         tienePlantilla: false,
+        esDiferido: false,
+        soloDistribuidor: false,
         tipoPlantilla: "TEXTO",
         plantillaContenido: "",
         formatoCodigo: "",
@@ -442,12 +445,15 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   const onSubmit = (data: TipoDocumentoPayload) => {
     const payload: TipoDocumentoPayload = {
       ...data,
-      aplicaZonaFranca: false,
       reglaVigencia: data.aplicaFechaEmision ? data.reglaVigencia || undefined : undefined,
       vigenciaDias: data.aplicaFechaEmision && data.reglaVigencia === "DIAS" ? data.vigenciaDias : undefined,
       aniosAtrasPermitidos:
         data.aplicaFechaEmision && data.reglaVigencia === "ANIO" ? data.aniosAtrasPermitidos : undefined,
       tienePlantilla: data.tienePlantilla || false,
+      // La Carta de Aprobación no pasa por el formulario del cliente: nunca es
+      // documento para firmar ni depende de si el cliente es distribuidor.
+      esDiferido: data.origen !== "CARTA_APROBACION" && !!data.esDiferido,
+      soloDistribuidor: data.origen !== "CARTA_APROBACION" && !!data.soloDistribuidor,
       tipoPlantilla: data.tienePlantilla ? data.tipoPlantilla || "TEXTO" : undefined,
       plantillaContenido:
         data.tienePlantilla && data.tipoPlantilla !== "PDF_SOLICITUD"
@@ -681,6 +687,39 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {!esCartaAprobacion && (
+          <div className="md:col-span-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+            <label className="flex cursor-pointer items-start gap-2 text-xs font-medium text-slate-700">
+              <input
+                type="checkbox"
+                {...register("esDiferido")}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>
+                Se entrega después de enviar el formulario (documento para firmar)
+                <span className="mt-1 block text-xs font-normal text-slate-500">
+                  El cliente no lo ve mientras llena el formulario: lo genera o lo sube después, en el panel de firma o en
+                  Mis Documentos. Mientras falte, la solicitud queda pendiente de firma y no pasa al Ejecutivo de
+                  Negocios.
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 text-xs font-medium text-slate-700">
+              <input
+                type="checkbox"
+                {...register("soloDistribuidor")}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>
+                Solo para clientes distribuidores
+                <span className="mt-1 block text-xs font-normal text-slate-500">
+                  Solo se le pide a clientes marcados como distribuidores. A los demás no se les muestra ni se les exige.
+                </span>
+              </span>
+            </label>
           </div>
         )}
 

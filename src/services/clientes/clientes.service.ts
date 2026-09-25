@@ -137,11 +137,6 @@ export const clientesService = {
     return res.data;
   },
 
-  desbloquear: async (clienteId: number): Promise<{ message: string }> => {
-    const res = await api.post(`/clientes/${clienteId}/desbloquear`);
-    return res.data;
-  },
-
   getCentrosOperacion: async (clienteId: number): Promise<ClienteCentroResponse[]> => {
     const res = await api.get(`/clientes/${clienteId}/centros-operacion`);
     return res.data;

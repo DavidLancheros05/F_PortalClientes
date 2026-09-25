@@ -257,27 +257,26 @@ const RolesPage = () => {
   };
 
   // Reconstruye el árbol a enviar al backend a partir de la copia de
-  // trabajo: un módulo solo se incluye (y se recorren sus submódulos) si
-  // quedó con al menos un permiso en true — mismo criterio que ya usa
-  // RolFormBody.buildTree, así ambos flujos de guardado son consistentes.
+  // trabajo: un módulo se incluye si quedó con al menos un permiso en true.
+  // Sus submódulos se recorren SIEMPRE, aunque el padre no tenga permisos:
+  // el backend deja pc_rol_modulo exactamente como la lista recibida, así
+  // que saltarse los hijos de una carpeta sin permisos propios los
+  // desactivaba (pasó el 2026-09-23: el ADMIN perdió 6 páginas de
+  // Parametrización > Solicitudes). Mismo criterio que RolFormBody.buildTree.
   const buildModulosPayload = (mods: Modulo[]): any[] => {
-    return mods
-      .map((m) => {
-        const permisos = editPermisos[m.mod_id] || m.permisos;
-        const asignado = !!permisos && Object.values(permisos).some(Boolean);
-        if (!asignado) return null;
-        const node: any = {
-          mod_id: m.mod_id,
-          mod_nombre: m.mod_nombre,
-          permisos,
-        };
-        if (m.subModulos?.length) {
-          const children = buildModulosPayload(m.subModulos);
-          if (children.length) node.subModulos = children;
-        }
-        return node;
-      })
-      .filter((x): x is any => x !== null);
+    return mods.flatMap((m) => {
+      const permisos = editPermisos[m.mod_id] || m.permisos;
+      const asignado = !!permisos && Object.values(permisos).some(Boolean);
+      const children = m.subModulos?.length ? buildModulosPayload(m.subModulos) : [];
+      if (!asignado) return children;
+      const node: any = {
+        mod_id: m.mod_id,
+        mod_nombre: m.mod_nombre,
+        permisos,
+      };
+      if (children.length) node.subModulos = children;
+      return [node];
+    });
   };
 
   const handleGuardarPermisos = (rol: Rol) => {
@@ -286,7 +285,6 @@ const RolesPage = () => {
       rolNombre: rol.rolNombre,
       rolDescripcion: rol.rolDescripcion,
       rolCodigo: rol.rolCodigo,
-      rolActivo: rol.rolActivo,
       modulos: buildModulosPayload(rol.modulos || []),
     });
     setShowConfirmModal(true);
@@ -305,7 +303,7 @@ const RolesPage = () => {
 
   // ✅ Cargar roles con useFetch
   const { data: roles = [], loading, error, execute: loadRoles } = useFetch(
-    () => rolesService.getAll(),
+    () => rolesService.getAll(true),
     {
       onError: (err) => setErrorMessage(err.message),
     },
@@ -354,6 +352,28 @@ const RolesPage = () => {
         setErrorMessage(err.message);
         setShowConfirmModal(false);
         setPendingRolData(null);
+      },
+    },
+  );
+
+  // Activar / inactivar un rol (con confirmación)
+  const [rolCambioEstado, setRolCambioEstado] = useState<Rol | null>(null);
+  const { mutate: cambiarEstadoRol, isLoading: isCambiandoEstado } = useMutation(
+    async (rol: Rol) =>
+      rol.rolActivo
+        ? rolesService.delete(rol.rolId)
+        : rolesService.update(rol.rolId, { rolActivo: true }),
+    {
+      onSuccess: () => {
+        setSuccessMessage(
+          rolCambioEstado?.rolActivo ? "Rol inactivado" : "Rol activado",
+        );
+        setRolCambioEstado(null);
+        loadRoles();
+      },
+      onError: (err) => {
+        setErrorMessage(err.message);
+        setRolCambioEstado(null);
       },
     },
   );
@@ -833,16 +853,36 @@ const RolesPage = () => {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditSession(rol);
-                          }}
-                          className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                          title="Editar rol"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditSession(rol);
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                            title="Editar rol"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRolCambioEstado(rol);
+                            }}
+                            className={`p-1.5 rounded-lg transition-all ${
+                              rol.rolActivo
+                                ? "text-slate-500 hover:text-red-600 hover:bg-red-50"
+                                : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            }`}
+                            title={rol.rolActivo ? "Inactivar rol" : "Activar rol"}
+                          >
+                            {rol.rolActivo ? (
+                              <XCircle className="w-4 h-4" />
+                            ) : (
+                              <CheckCircle className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -989,6 +1029,24 @@ const RolesPage = () => {
           setShowConfirmModal(false);
           setPendingRolData(null);
         }}
+      />
+
+      {/* Confirmación antes de activar/inactivar */}
+      <ConfirmModal
+        isOpen={!!rolCambioEstado}
+        title={rolCambioEstado?.rolActivo ? "Inactivar rol" : "Activar rol"}
+        message={
+          rolCambioEstado?.rolActivo
+            ? `Se inactivará el rol "${rolCambioEstado?.rolNombre}". Ya no se podrá asignar a usuarios. ¿Deseas continuar?`
+            : `¿Seguro que deseas activar el rol "${rolCambioEstado?.rolNombre}"?`
+        }
+        confirmText={rolCambioEstado?.rolActivo ? "Sí, inactivar" : "Sí, activar"}
+        cancelText="Cancelar"
+        isLoading={isCambiandoEstado}
+        onConfirm={() => {
+          if (rolCambioEstado) cambiarEstadoRol(rolCambioEstado).catch(() => {});
+        }}
+        onCancel={() => setRolCambioEstado(null)}
       />
 
       {/* Success Modal */}

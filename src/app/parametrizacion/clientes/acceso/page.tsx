@@ -15,8 +15,8 @@ import {
   Search,
   ShieldCheck,
   ShieldOff,
-  LockKeyholeOpen,
 } from "lucide-react";
+import { formatMinutosRestantes } from "@/lib/bloqueo-login.util";
 import { ConfirmModal, ErrorModal, SuccessModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { Th, Td } from "@/components/tables/TableCell";
@@ -50,8 +50,6 @@ export default function AccesoClientesPage() {
   const [guardando, setGuardando] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [clienteDesbloquear, setClienteDesbloquear] = useState<ClienteListResponse | null>(null);
-  const [desbloquearOpen, setDesbloquearOpen] = useState(false);
 
   const fetchClientes = async () => {
     try {
@@ -139,30 +137,6 @@ export default function AccesoClientesPage() {
     } finally {
       setGuardando(false);
       setClienteSeleccionado(null);
-    }
-  };
-
-  const confirmarDesbloqueo = async () => {
-    if (!clienteDesbloquear) return;
-
-    try {
-      setGuardando(true);
-      await clientesService.desbloquear(clienteDesbloquear.cli_id);
-      setClientes((prev) =>
-        prev.map((cliente) =>
-          cliente.cli_id === clienteDesbloquear.cli_id
-            ? { ...cliente, cli_bloqueado: false, cli_intentos_login: 0 }
-            : cliente,
-        ),
-      );
-      setDesbloquearOpen(false);
-      setSuccessMessage(`Cliente desbloqueado: ${clienteDesbloquear.cli_razon_social}.`);
-    } catch (err) {
-      setDesbloquearOpen(false);
-      setErrorMessage(err instanceof Error ? err.message : "No se pudo desbloquear el cliente");
-    } finally {
-      setGuardando(false);
-      setClienteDesbloquear(null);
     }
   };
 
@@ -328,23 +302,16 @@ export default function AccesoClientesPage() {
                             </div>
                           </Td>
                           <Td>
+                            {/* Solo informativo: el bloqueo es temporal y se
+                                levanta solo (o con "¿Olvidaste tu contraseña?"),
+                                ver Login permisos/bloqueo-temporal-login.md. */}
                             {cliente.cli_bloqueado ? (
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
-                                  <ShieldOff className="w-3.5 h-3.5" />
-                                  Bloqueado ({cliente.cli_intentos_login})
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setClienteDesbloquear(cliente);
-                                    setDesbloquearOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-blue-200 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">
-                                  <LockKeyholeOpen className="w-3.5 h-3.5" />
-                                  Desbloquear
-                                </button>
-                              </div>
+                              <span
+                                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700"
+                                title="Bloqueo temporal por intentos fallidos">
+                                <ShieldOff className="w-3.5 h-3.5" />
+                                Bloqueado · {formatMinutosRestantes(cliente.cli_bloqueo_min_restantes)}
+                              </span>
                             ) : (
                               <span className="text-xs text-gray-500">
                                 {cliente.cli_intentos_login || 0} intentos fallidos
@@ -411,19 +378,6 @@ export default function AccesoClientesPage() {
         onCancel={() => {
           setConfirmOpen(false);
           setClienteSeleccionado(null);
-        }}
-      />
-
-      <ConfirmModal
-        isOpen={desbloquearOpen}
-        title="Desbloquear cliente"
-        message={`¿Deseas desbloquear a "${clienteDesbloquear?.cli_razon_social}" y reiniciar sus intentos fallidos?`}
-        confirmText="Desbloquear"
-        isLoading={guardando}
-        onConfirm={confirmarDesbloqueo}
-        onCancel={() => {
-          setDesbloquearOpen(false);
-          setClienteDesbloquear(null);
         }}
       />
 

@@ -9,7 +9,9 @@ export interface Usuario {
   usuario_created_at: string;
   usuario_updated_at?: string;
   usr_intentos_login?: number;
+  // Bloqueo temporal por intentos fallidos (solo informativo).
   usr_bloqueado?: boolean;
+  usr_bloqueo_min_restantes?: number | null;
 }
 
 export const usuariosService = {
@@ -58,10 +60,5 @@ export const usuariosService = {
 
   delete: async (usuarioId: number): Promise<void> => {
     await api.delete(`/usuarios/${usuarioId}`);
-  },
-
-  desbloquear: async (usuarioId: number): Promise<{ message: string }> => {
-    const res = await api.post(`/usuarios/${usuarioId}/desbloquear`);
-    return res.data;
   },
 };

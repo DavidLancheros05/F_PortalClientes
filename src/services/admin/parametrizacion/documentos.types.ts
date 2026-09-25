@@ -9,9 +9,13 @@ export interface TipoDocumento {
   vigenciaDias: number | null;
   reglaVigencia: "DIAS" | "ANIO" | null;
   aniosAtrasPermitidos: number | null;
-  aplicaZonaFranca: boolean;
   estado: boolean;
   tienePlantilla: boolean;
+  /** Se entrega después de enviar el formulario (documento para firmar):
+   * mientras falte, la solicitud queda en PEND_FIRMA. */
+  esDiferido: boolean;
+  /** Solo se exige a clientes distribuidores. */
+  soloDistribuidor: boolean;
   tipoPlantilla: "TEXTO" | "PDF_SOLICITUD";
   plantillaContenido: string | null;
   formatoCodigo: string | null;
@@ -65,9 +69,10 @@ export interface TipoDocumentoPayload {
   vigenciaDias?: number;
   reglaVigencia?: "DIAS" | "ANIO" | "";
   aniosAtrasPermitidos?: number;
-  aplicaZonaFranca: boolean;
   estado: boolean;
   tienePlantilla?: boolean;
+  esDiferido?: boolean;
+  soloDistribuidor?: boolean;
   tipoPlantilla?: "TEXTO" | "PDF_SOLICITUD";
   plantillaContenido?: string;
   formatoCodigo?: string;

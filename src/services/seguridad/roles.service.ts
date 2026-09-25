@@ -11,8 +11,12 @@ export type {
 } from "./roles.types";
 
 export const rolesService = {
-  getAll: async () => {
-    const res = await api.get("/seguridad/roles");
+  // Por defecto solo roles activos (pantallas que asignan roles). La
+  // pantalla de Roles pide también los inactivos para poder reactivarlos.
+  getAll: async (incluirInactivos = false) => {
+    const res = await api.get("/seguridad/roles", {
+      params: incluirInactivos ? { incluirInactivos: true } : undefined,
+    });
     return res.data;
   },
 

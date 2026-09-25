@@ -9,7 +9,6 @@
   "/inicio",
   "/login",
   "/parametrizacion",
-  "/parametrizacion/carta-pdf-vinculacion",
   "/parametrizacion/clientes",
   "/parametrizacion/clientes/[id]/editar",
   "/parametrizacion/clientes/acceso",
