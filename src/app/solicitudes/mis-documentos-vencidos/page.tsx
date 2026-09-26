@@ -33,9 +33,7 @@ export default function MisDocumentosVencidosPage() {
   const [rows, setRows] = useState<DocumentoVencidoRow[]>([]);
 
   const abrirArchivo = (saId: number) => {
-    const token = localStorage.getItem("token");
-    const url = `/api/solicitudes/archivo/${saId}?token=${encodeURIComponent(token || "")}`;
-    window.open(url, "_blank");
+    window.open(`/api/solicitudes/archivo/${saId}`, "_blank");
   };
 
   const cargar = async () => {

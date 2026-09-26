@@ -39,10 +39,5 @@ export function useAuth(requiredRoles?: number | number[]) {
     setUser(parsedUser);
   }, [router, requiredRoles]);
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  return { user, logout };
+  return { user };
 }

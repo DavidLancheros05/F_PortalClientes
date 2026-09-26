@@ -52,7 +52,7 @@ export default function SolicitudFormContent({
   ultimaSolicitud: ultimaSolicitudPrefetched,
 }: SolicitudFormContentProps) {
   const router = useRouter();
-  const { user, loading: authLoading } = useContext(AuthContext);
+  const { user, loading: authLoading, logout } = useContext(AuthContext);
 
   // Alto disponible bajo el Header (h-15 = 3.75rem). Con menú a la
   // izquierda el Header se oculta desde md (Layout.tsx), así que ahí la
@@ -1593,10 +1593,14 @@ export default function SolicitudFormContent({
       const apiMessage = (err as any)?.response?.data?.message;
 
       if (typeof apiMessage === "string" && apiMessage.includes("cliente_id inválido") && !isAdminUser) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
         setErrorMessage("Tu sesión quedó desactualizada. Por favor inicia sesión nuevamente.");
-        setTimeout(() => router.push("/login"), 1000);
+        // Recarga completa, no router.push: la navegación suave puede servir
+        // una página protegida cacheada sin pasar por proxy.ts (ver
+        // documentacion/Portal Clientes/Login permisos/login.md).
+        setTimeout(async () => {
+          await logout();
+          window.location.href = "/login";
+        }, 1000);
         return;
       }
 
