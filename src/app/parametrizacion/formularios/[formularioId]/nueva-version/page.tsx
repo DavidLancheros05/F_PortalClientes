@@ -66,7 +66,6 @@ export default function NuevaVersionPage() {
         {
           descripcion,
           copiarDeVersion: copiarDe,
-          usuarioId: 1,
         },
       );
       setShowConfirmModal(false);

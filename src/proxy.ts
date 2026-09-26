@@ -8,11 +8,13 @@ import { jwtVerify } from "jose";
 const SECRET_STRING = process.env.JWT_SECRET;
 const SECRET_KEY = SECRET_STRING ? new TextEncoder().encode(SECRET_STRING) : null;
 
-// Misma whitelist que BACKEND/src/auth/jwt-auth.guard.ts (ROLES_PERMITIDOS)
-// — se duplica a propósito porque frontend y backend son repos git
-// separados sin código compartido. Si se agrega un rol nuevo, actualizar
-// ambos lados.
-const ROLES_PERMITIDOS = ["CLIENTE", "EJECUTIVO", "COMERCIAL", "ADMINISTRACION", "ADMIN", "ASC", "OC", "CC1", "CC2"];
+// Qué roles son válidos lo decide el backend contra pc_roles (JwtAuthGuard):
+// el proxy corre en el edge sin acceso a la BD, así que acá solo se rechaza
+// un token sin rol o con "USUARIO" (interno sin rol del portal, ver
+// AuthService.loginUsuarioInterno). Un rol inactivo pasa el proxy pero cada
+// llamada al API da 401 y services/core/interceptors.ts manda al login. Antes
+// había una lista escrita a mano: un rol nuevo no entraba sin desplegar.
+const ROL_SIN_ACCESO = "USUARIO";
 
 // Preserva a dónde iba el usuario (ej. un link de correo a una solicitud
 // puntual) en un ?next= para que login/page.tsx pueda regresarlo ahí tras
@@ -72,9 +74,10 @@ export async function proxy(req: NextRequest) {
       algorithms: ["HS256"],
     });
 
-    // 4️⃣ Rechazar roles fuera de la whitelist, aunque la firma sea válida
-    if (!ROLES_PERMITIDOS.includes(String(payload.rol))) {
-      console.warn(`[proxy] Rol "${payload.rol}" fuera de la whitelist → redirigiendo a /login. path=${pathname}`);
+    // 4️⃣ Rechazar tokens sin rol del portal, aunque la firma sea válida
+    const rol = String(payload.rol ?? "").trim().toUpperCase();
+    if (!rol || rol === ROL_SIN_ACCESO) {
+      console.warn(`[proxy] Token sin rol del portal ("${payload.rol}") → redirigiendo a /login. path=${pathname}`);
       const response = redirectToLogin(req, `rol-rechazado-${payload.rol}`);
       response.cookies.delete("pc_token");
       return response;
@@ -91,15 +94,19 @@ export async function proxy(req: NextRequest) {
   }
 }
 
+// Una entrada por carpeta de primer nivel de src/app que exige sesión.
+// Fuera a propósito: login, forgot-password, reset-password (públicas),
+// unauthorized y la raíz "/" (solo redirige a /login). Una carpeta nueva
+// en src/app que no esté acá carga sin login.
 export const config = {
   matcher: [
-    "/dashboard/:path*",
+    "/inicio/:path*",
     "/solicitudes/:path*",
     "/pedidos/:path*",
     "/consultas/:path*",
-    "/aprobaciones/:path*",
-    "/condiciones-financieras/:path*",
-    "/admin/:path*",
+    "/pqrs/:path*",
+    "/parametrizacion/:path*",
+    "/seguridad/:path*",
     "/perfil/:path*",
   ],
 };

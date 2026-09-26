@@ -90,6 +90,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       ? user.rol
       : (user.rol?.nombre ?? "")
     : "Usuario";
+  // Por código, no por nombre: el nombre del rol es editable y un rol
+  // llamado "Administración" no debe heredar el menú de admin.
+  const isAdmin =
+    typeof user?.rol === "object" &&
+    (user.rol?.codigo ?? user.rol?.nombre) === "ADMIN";
 
   if (menuPosition === "left") {
     return (
@@ -97,12 +102,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <Sidebar
           modulos={modulos}
           rol={rol}
+          isAdmin={isAdmin}
           nombreUsuario={user?.nombre || user?.email || "Usuario"}
         />
         <div className="flex-1 min-w-0 flex flex-col">
           <Header
             modulos={modulos}
             rol={rol}
+            isAdmin={isAdmin}
             nombreUsuario={user?.nombre || user?.email || "Usuario"}
             layout="left"
           />
@@ -117,6 +124,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <Header
         modulos={modulos}
         rol={rol}
+        isAdmin={isAdmin}
         nombreUsuario={user?.nombre || user?.email || "Usuario"}
         layout="top"
       />

@@ -8,6 +8,9 @@ import { clearSessionStorage } from "@/services/core/session-storage";
 interface Rol {
   rol_id: number | null;
   nombre: string;
+  // Código de pc_roles (ADMIN, CLIENTE, ...). Es lo que hay que comparar
+  // para decidir permisos: `nombre` se edita libremente desde seguridad/roles.
+  codigo?: string;
   descripcion: string;
 }
 

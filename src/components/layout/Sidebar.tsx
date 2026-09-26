@@ -12,7 +12,10 @@ import { LoadingModal } from "@/components/modals";
 
 interface Props {
   modulos: Modulo[];
+  /** Nombre del rol, solo para mostrar. */
   rol: string;
+  /** Calculado en Layout a partir del código del rol, no del nombre. */
+  isAdmin: boolean;
   nombreUsuario: string;
 }
 
@@ -22,14 +25,9 @@ interface Props {
 // Header) para que ambos layouts muestren exactamente el mismo menú, solo
 // que en shape distinto. Solo visible md+ — en mobile siempre se usa el
 // menú hamburguesa de Header, con o sin esta preferencia (ver Header.tsx).
-export default function Sidebar({ modulos, rol, nombreUsuario }: Props) {
+export default function Sidebar({ modulos, rol, isAdmin, nombreUsuario }: Props) {
   const pathname = usePathname();
   const { logout: logoutSesion } = useContext(AuthContext);
-  const isAdmin = ["ADMIN", "ADMINISTRACION", "ADMINISTRACIÓN"].includes(
-    String(rol || "")
-      .trim()
-      .toUpperCase(),
-  );
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);

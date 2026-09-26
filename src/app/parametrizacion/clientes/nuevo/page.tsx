@@ -120,7 +120,6 @@ export default function NuevoClientePage() {
   const [direccion, setDireccion] = useState("");
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
-  const [habilita_acceso, setHabilitaAcceso] = useState(false);
   const [esDistribuidor, setEsDistribuidor] = useState(false);
   const [nitDigVf, setNitDigVf] = useState("");
   const [esExtranjero, setEsExtranjero] = useState(false);
@@ -232,7 +231,6 @@ export default function NuevoClientePage() {
         nitDocumento: nit,
         direccion,
         correo,
-        habilitaAcceso: habilita_acceso,
         esDistribuidor,
         nitDigVf: nitDigVf || undefined,
         esExtranjero,
@@ -426,24 +424,16 @@ export default function NuevoClientePage() {
                   </select>
                 </div>
 
-                {/* Habilitar Acceso */}
+                {/* Sin acceso al crear: el cliente nace pendiente de aprobación y
+                    el Sistema Comercial le crea la contraseña al aprobarlo. */}
                 <div className="p-4 bg-gray-50 rounded-lg border border-slate-200">
                   <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="habilita_acceso"
-                      checked={habilita_acceso}
-                      onChange={(e) => setHabilitaAcceso(e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      disabled={loading || success}
-                    />
-                    <label htmlFor="habilita_acceso" className="ml-3 flex items-center">
-                      <Shield className="w-4 h-4 text-gray-600 mr-2" />
-                      <span className="text-sm font-medium text-gray-700">Habilitar acceso al portal cliente</span>
-                    </label>
+                    <Shield className="w-4 h-4 text-gray-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">Acceso al portal cliente</span>
                   </div>
-                  <p className="mt-2 ml-7 text-sm text-gray-500">
-                    Al habilitar esta opción, el cliente podrá acceder al sistema con credenciales específicas
+                  <p className="mt-2 ml-6 text-sm text-gray-500">
+                    El cliente queda pendiente de aprobación. Cuando se apruebe en el sistema comercial recibirá su
+                    contraseña por correo.
                   </p>
                 </div>
               </div>
@@ -625,7 +615,7 @@ export default function NuevoClientePage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-brand-600 mr-2">•</span>
-                  Puede habilitar el acceso al portal después de crear el cliente
+                  El acceso al portal se crea al aprobar el cliente en el sistema comercial
                 </li>
                 <li className="flex items-start">
                   <span className="text-brand-600 mr-2">•</span>

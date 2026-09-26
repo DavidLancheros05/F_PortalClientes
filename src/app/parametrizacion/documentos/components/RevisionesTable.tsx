@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Trash2, Plus, Loader2 } from "lucide-react";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { TipoDocumentoRevision } from "@/services/admin/parametrizacion/documentos.types";
+import { ConfirmModal } from "@/components/modals";
 
 interface Props {
   tipoDocumentoId?: number;
@@ -17,6 +18,8 @@ export default function RevisionesTable({ tipoDocumentoId }: Props) {
   const [error, setError] = useState("");
   const [nueva, setNueva] = useState(vacia);
   const [guardando, setGuardando] = useState(false);
+  const [confirmEliminarId, setConfirmEliminarId] = useState<number | null>(null);
+  const [eliminando, setEliminando] = useState(false);
 
   useEffect(() => {
     if (!tipoDocumentoId) return;
@@ -44,13 +47,18 @@ export default function RevisionesTable({ tipoDocumentoId }: Props) {
     }
   };
 
-  const eliminar = async (tdrId: number) => {
-    if (!tipoDocumentoId) return;
+  const eliminar = async () => {
+    if (!tipoDocumentoId || confirmEliminarId === null) return;
+    const tdrId = confirmEliminarId;
+    setEliminando(true);
     try {
       await documentosService.deleteRevision(tipoDocumentoId, tdrId);
       setRevisiones((prev) => prev.filter((r) => r.tdrId !== tdrId));
     } catch {
       setError("No se pudo eliminar la revisión.");
+    } finally {
+      setEliminando(false);
+      setConfirmEliminarId(null);
     }
   };
 
@@ -111,7 +119,7 @@ export default function RevisionesTable({ tipoDocumentoId }: Props) {
                       <td className="border border-slate-200 px-2 py-1 text-center">
                         <button
                           type="button"
-                          onClick={() => eliminar(rev.tdrId)}
+                          onClick={() => setConfirmEliminarId(rev.tdrId)}
                           className="text-red-600 hover:bg-red-50 rounded p-0.5"
                           title="Eliminar"
                         >
@@ -177,6 +185,17 @@ export default function RevisionesTable({ tipoDocumentoId }: Props) {
           </div>
         </>
       )}
+
+      <ConfirmModal
+        isOpen={confirmEliminarId !== null}
+        title="Eliminar revisión"
+        message="¿Seguro que desea eliminar esta revisión del historial?"
+        confirmText="Eliminar"
+        isDangerous
+        isLoading={eliminando}
+        onConfirm={eliminar}
+        onCancel={() => setConfirmEliminarId(null)}
+      />
     </div>
   );
 }

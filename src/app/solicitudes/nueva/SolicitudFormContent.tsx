@@ -1234,16 +1234,9 @@ export default function SolicitudFormContent({
     return false;
   };
 
+  // Por código, no por nombre (el nombre del rol es editable).
   const isAdminUser =
-    String(user?.rol?.nombre || "")
-      .toUpperCase()
-      .trim() === "ADMIN" ||
-    String(user?.rol?.nombre || "")
-      .toUpperCase()
-      .trim() === "ADMINISTRACION" ||
-    String(user?.rol?.nombre || "")
-      .toUpperCase()
-      .trim() === "ADMINISTRACIÓN";
+    (user?.rol?.codigo ?? user?.rol?.nombre) === "ADMIN";
 
   const isClienteUser =
     String(user?.rol?.nombre || "")

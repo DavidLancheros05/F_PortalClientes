@@ -131,9 +131,13 @@ export default function AccesoClientesPage() {
           ? `Acceso habilitado para ${clienteSeleccionado.cli_razon_social}.`
           : `Acceso deshabilitado para ${clienteSeleccionado.cli_razon_social}.`,
       );
-    } catch (err) {
+    } catch (err: any) {
       setConfirmOpen(false);
-      setErrorMessage(err instanceof Error ? err.message : "No se pudo actualizar el acceso del cliente");
+      // El backend explica el motivo (ej. cliente no aprobado en el sistema
+      // comercial); err.message de axios solo diría "status code 400".
+      setErrorMessage(
+        err?.response?.data?.message || err?.message || "No se pudo actualizar el acceso del cliente",
+      );
     } finally {
       setGuardando(false);
       setClienteSeleccionado(null);

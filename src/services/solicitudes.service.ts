@@ -138,16 +138,6 @@ export const solicitudesService = {
     return response.data;
   },
 
-  async getSolicitudesPendientes() {
-    try {
-      const response = await api.get(`/solicitudes/pendientes`);
-      return response.data;
-    } catch (error) {
-      console.error("[solicitudesService] Error obteniendo pendientes:", error);
-      throw error;
-    }
-  },
-
   // Actualizar campos editables de una solicitud (solo si está pendiente)
   async update(id: number, data: any) {
     try {
@@ -625,32 +615,6 @@ export const solicitudesService = {
   // Obtener lista de resultados (delegado a workflow service)
   async getResultados() {
     return workflowSolicitudesService.getResultados();
-  },
-
-  // Actualizar estado del flujo (delegado a workflow service)
-  async actualizarEstadoFlujo(
-    id: number,
-    data: {
-      estado_id: number;
-      etapa_actual_id: number;
-      resultado_etapa_id: number;
-      usuario_modifica: number;
-    },
-  ) {
-    return workflowSolicitudesService.actualizarEstadoFlujo(id, data);
-  },
-
-  // Actualizar estado del flujo automático (delegado a workflow service)
-  async actualizarEstadoFlujoAutomatico(
-    id: number,
-    data: {
-      estadoCodigo: string;
-      etapaCodigo: string;
-      resultadoCodigo: string;
-      usuario_modifica: number;
-    },
-  ) {
-    return workflowSolicitudesService.actualizarEstadoFlujoAutomatico(id, data);
   },
 
   // Obtener solicitudes con filtros específicos

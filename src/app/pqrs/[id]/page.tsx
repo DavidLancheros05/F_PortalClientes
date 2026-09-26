@@ -111,7 +111,7 @@ export default function PQRSDetallePage() {
         ? comentariosData.map((c: any) => ({
             ...c,
             pc_usuario:
-              c.usuario?.nombre ||
+              c.usuario?.usr_nombre ||
               c.cliente?.cli_razon_social ||
               c.pc_usuario ||
               "Usuario",

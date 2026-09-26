@@ -14,7 +14,10 @@ export type { Modulo };
 // Props del header
 interface Props {
   modulos: Modulo[];
+  /** Nombre del rol, solo para mostrar. */
   rol: string;
+  /** Calculado en Layout a partir del código del rol, no del nombre. */
+  isAdmin: boolean;
   nombreUsuario: string;
   /** "top" (default): nav completo de escritorio en la barra superior.
    * "left": la barra superior queda solo con logo/usuario — el árbol de
@@ -24,7 +27,7 @@ interface Props {
   layout?: "top" | "left";
 }
 
-export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: Props) {
+export default function Header({ modulos, rol, isAdmin, nombreUsuario, layout = "top" }: Props) {
   const { logout: logoutSesion } = useContext(AuthContext);
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,11 +42,6 @@ export default function Header({ modulos, rol, nombreUsuario, layout = "top" }: 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const pathname = usePathname();
-  const isAdmin = ["ADMIN", "ADMINISTRACION", "ADMINISTRACIÓN"].includes(
-    String(rol || "")
-      .trim()
-      .toUpperCase(),
-  );
   const logout = async () => {
     // Se muestra antes de tocar nada más: bloquea la UI de inmediato para
     // que no se pueda navegar a otra parte mientras el logout está en
