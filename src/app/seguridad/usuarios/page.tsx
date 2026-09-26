@@ -2,9 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Edit2, Plus, MapPin, Power, Search, X, Users, ShieldOff } from "lucide-react";
+import { Trash2, Edit2, Plus, Power, Search, X, Users, ShieldOff } from "lucide-react";
 import UsuarioModal from "./usuarioModal";
-import UsuarioCentrosModal from "./UsuarioCentrosModal";
 import {
   usuariosService,
   type Usuario,
@@ -32,7 +31,6 @@ const UsuariosPage = () => {
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [centrosModalOpen, setCentrosModalOpen] = useState(false);
   const [currentUsuario, setCurrentUsuario] = useState<Usuario | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -108,11 +106,6 @@ const UsuariosPage = () => {
     setCurrentUsuario(usuario);
     setIsNew(false);
     setModalOpen(true);
-  };
-
-  const handleGestionarCentros = (usuario: Usuario) => {
-    setCurrentUsuario(usuario);
-    setCentrosModalOpen(true);
   };
 
   const performDesactivar = async (usuarioId: number) => {
@@ -491,13 +484,6 @@ const UsuariosPage = () => {
                       <Td sticky align="right" className="whitespace-nowrap">
                         <div className="flex gap-3 justify-end">
                           <button
-                            onClick={() => handleGestionarCentros(usuario)}
-                            title="Gestionar Centros"
-                            className="text-green-600 hover:text-green-800 transition-colors"
-                          >
-                            <MapPin size={18} />
-                          </button>
-                          <button
                             onClick={() => handleEditarUsuario(usuario)}
                             title="Editar"
                             className="text-brand-600 hover:text-brand-700 transition-colors"
@@ -564,15 +550,6 @@ const UsuariosPage = () => {
           isNew={isNew}
           roles={roles}
           onClose={handleModalClose}
-        />
-      )}
-
-      {/* Modal de Centros */}
-      {centrosModalOpen && currentUsuario && (
-        <UsuarioCentrosModal
-          usuarioId={currentUsuario.usr_id}
-          usuarioNombre={currentUsuario.nombre}
-          onClose={() => setCentrosModalOpen(false)}
         />
       )}
 
