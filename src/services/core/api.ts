@@ -11,7 +11,7 @@ import { setupInterceptors } from "./interceptors";
 // SameSite=None;Secure bien puesto, y Safari (ITP) o cualquiera con
 // "bloquear cookies de terceros" en Chrome/Edge nunca la guardaba: el login
 // se veía exitoso en los logs del backend pero la sesión nunca quedaba
-// activa (confirmado en vivo, ver documentacion/migracion-auth-httponly.md).
+// activa (confirmado en vivo, ver documentacion/Portal Clientes/Login permisos/login.md).
 // Con URL relativa, el navegador ve todo como mismo origen — la cookie pasa
 // a ser de primera parte, sin depender de configuraciones de privacidad del
 // visitante.

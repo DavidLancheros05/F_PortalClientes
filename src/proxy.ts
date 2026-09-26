@@ -22,7 +22,7 @@ const ROLES_PERMITIDOS = ["CLIENTE", "EJECUTIVO", "COMERCIAL", "ADMINISTRACION",
 // Network/barra de direcciones) — temporal, para diagnosticar el bloqueo de
 // cookies de terceros sin depender de los Runtime Logs de Vercel (no
 // accesibles desde acá). Eliminar junto con el resto de logs de diagnóstico
-// una vez resuelto (ver documentacion/migracion-auth-httponly.md).
+// una vez resuelto (ver documentacion/Portal Clientes/Login permisos/login.md).
 function redirectToLogin(req: NextRequest, debug: string) {
   const loginUrl = new URL("/login", req.url);
   const destino = `${req.nextUrl.pathname}${req.nextUrl.search}`;
@@ -51,7 +51,7 @@ export async function proxy(req: NextRequest) {
 
   if (!token) {
     // Log temporal para diagnosticar el bloqueo de cookies de terceros
-    // (ver documentacion/migracion-auth-httponly.md en B_PortalClientes):
+    // (ver documentacion/Portal Clientes/Login permisos/login.md):
     // si el navegador nunca guardó/mandó pc_token, este es el caso que
     // dispara — distingue "no llegó ninguna cookie" de "llegó pero es
     // inválida" (más abajo) o "rol rechazado".

@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login: guardar el perfil del usuario. El JWT ya no se guarda acá — el
   // backend lo manda como cookie httpOnly en la misma respuesta de
-  // /auth/login (Fase 1 de documentacion/migracion-auth-httponly.md en
+  // /auth/login (Fase 1 de documentacion/Portal Clientes/Login permisos/login.md en
   // B_PortalClientes). Desde Fase 4, el backend tampoco lo manda en el
   // body, así que ya no hace falta ni recibirlo acá.
   const login = (userData: any) => {

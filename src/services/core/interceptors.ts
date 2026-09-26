@@ -40,7 +40,7 @@ export const setupInterceptors = (api: AxiosInstance) => {
 
       if (error.response?.status === 401 && !esIntentoDeLogin) {
         // Log temporal para diagnosticar el bloqueo de cookies de terceros
-        // (ver documentacion/migracion-auth-httponly.md en B_PortalClientes):
+        // (ver documentacion/Portal Clientes/Login permisos/login.md):
         // si esto se dispara justo después de un login exitoso, es señal de
         // que el navegador nunca guardó/mandó la cookie httpOnly cross-site
         // pc_token (ej. Safari ITP, o "bloquear cookies de terceros" en
