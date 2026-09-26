@@ -9,7 +9,7 @@ interface LoginPayload {
 
 interface LoginResponse {
   // Fase 4 de la migración de auth (ver
-  // B_PortalClientes/documentacion/.../migracion-auth-httponly.md): el JWT
+  // documentacion/Portal Clientes/Login permisos/login.md): el JWT
   // ya no viaja en el body de /auth/login, solo en la cookie httpOnly.
   user: any;
   modulos?: any[];
@@ -23,7 +23,7 @@ export const loginService = {
   forgotPassword: async (payload: {
     identifier: string;
     accessType: "cliente" | "usuario";
-  }): Promise<{ ok: boolean; mensaje: string; correoEnmascarado?: string }> => {
+  }): Promise<{ ok: boolean; mensaje: string }> => {
     const res = await api.post("/auth/forgot-password", payload);
     return res.data;
   },

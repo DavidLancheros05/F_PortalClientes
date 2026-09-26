@@ -12,7 +12,6 @@ export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
-  const [correoEnmascarado, setCorreoEnmascarado] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,13 +22,9 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      const respuesta = await loginService.forgotPassword({
-        identifier,
-        accessType,
-      });
-      // El mensaje sigue siendo genérico si la cuenta no existe — el
-      // backend solo agrega correoEnmascarado cuando sí existe.
-      setCorreoEnmascarado(respuesta.correoEnmascarado || "");
+      // Respuesta idéntica exista o no la cuenta: el backend ya no devuelve
+      // el correo enmascarado (delataba qué cuentas existen).
+      await loginService.forgotPassword({ identifier, accessType });
       setEnviado(true);
     } catch (err: any) {
       setError(
@@ -56,20 +51,8 @@ export default function ForgotPasswordPage() {
           <div className="flex items-start gap-3 p-4 rounded-lg bg-green-50 border border-green-200">
             <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-green-800">
-              {correoEnmascarado ? (
-                <>
-                  Enviamos un correo con instrucciones para restablecer la
-                  contraseña a{" "}
-                  <span className="font-semibold">{correoEnmascarado}</span>.
-                  Revisa tu bandeja de entrada (y spam).
-                </>
-              ) : (
-                <>
-                  Si la cuenta existe, enviamos un correo con instrucciones
-                  para restablecer la contraseña. Revisa tu bandeja de
-                  entrada (y spam).
-                </>
-              )}
+              Si la cuenta existe, enviamos un correo con instrucciones para
+              restablecer la contraseña. Revisa tu bandeja de entrada (y spam).
             </p>
           </div>
         ) : (
