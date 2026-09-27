@@ -10,11 +10,13 @@ export interface FormularioPregunta {
   fp_tipo: string;
   fp_subtipo?: string;
   fp_patron?: string | null;
-  seccion_id?: number | null;
+  fp_fs_id?: number | null;
   fp_estado?: boolean;
   fp_requerida?: boolean;
   fp_orden?: number;
-  fp_version?: number;
+  fp_fv_id?: number;
+  // Al crear: número visible de la versión; el backend lo resuelve a fp_fv_id.
+  fv_numero?: number;
   frs_id?: number;
   fp_pregunta_padre_id?: number | null;
   fp_valor_padre_disparador?: string | null;
@@ -52,13 +54,15 @@ export interface PreguntaReservada {
 }
 
 export const formularioPreguntasService = {
-  async getAll(): Promise<FormularioPregunta[]> {
-    const res = await api.get("/parametrizacion/formulario-preguntas");
+  // Sin filtro: las preguntas de todas las versiones. Con formulario +
+  // versión: solo las de esa versión (lo que necesita un formulario).
+  async getAll(filtro?: { formularioId: number; version: number }): Promise<FormularioPregunta[]> {
+    const res = await api.get("/parametrizacion/formulario-preguntas", { params: filtro });
     return res.data;
   },
 
-  // Preguntas del formulario activo (última versión), para el selector de
-  // variables al editar la plantilla de un tipo de documento.
+  // Preguntas de la versión activa del formulario activo: "nueva solicitud"
+  // y el selector de variables al editar la plantilla de un tipo de documento.
   async getFormularioActivo(): Promise<FormularioPregunta[]> {
     const res = await api.get("/parametrizacion/formulario-preguntas/formulario-activo");
     return res.data;

@@ -38,11 +38,12 @@ export function useFormulario(formularioId: string | null, version: string | nul
       //   `📥 [EDITOR] Cargando preguntas (formulario: ${formularioIdNumber}, versión: ${version})...`,
       // );
 
+      // El backend ya devuelve solo las preguntas de la versión pedida
+      // (formulario + número -> fv_id); no se filtra por versión acá.
       let preguntasFiltradas: Pregunta[] = [];
       if (formularioIdNumber) {
         preguntasFiltradas = data.preguntas.filter(
-          (p: Pregunta & { frs_id?: number; fp_version?: number }) =>
-            p.frs_id === formularioIdNumber && (version ? p.fp_version === parseInt(version) : true),
+          (p: Pregunta & { frs_id?: number }) => p.frs_id === formularioIdNumber,
         );
       }
 
@@ -54,7 +55,7 @@ export function useFormulario(formularioId: string | null, version: string | nul
       const preguntasConOpciones = preguntasFiltradas;
 
       const porSeccion = preguntasConOpciones.reduce((acc: any, p: Pregunta) => {
-        const sid = p.seccion_id || "sin_seccion";
+        const sid = p.fp_fs_id || "sin_seccion";
         acc[sid] = (acc[sid] || 0) + 1;
         return acc;
       }, {});
@@ -63,7 +64,7 @@ export function useFormulario(formularioId: string | null, version: string | nul
       setPreguntas(preguntasConOpciones);
 
       if (seccionesOrdenadas.length > 0 && !seccionSeleccionada) {
-        const seccionId = seccionesOrdenadas[0].fs_id || seccionesOrdenadas[0].seccion_id;
+        const seccionId = seccionesOrdenadas[0].fs_id || seccionesOrdenadas[0].fp_fs_id;
         setSeccionSeleccionada(seccionId || null);
         // console.log("✅ [EDITOR] Sección seleccionada:", seccionId);
       }
@@ -79,7 +80,7 @@ export function useFormulario(formularioId: string | null, version: string | nul
   }, [formularioId, version]);
 
   const preguntasDeSeccion = preguntas
-    .filter((p) => p.seccion_id === seccionSeleccionada)
+    .filter((p) => p.fp_fs_id === seccionSeleccionada)
     .sort((a, b) => a.fp_orden - b.fp_orden);
 
   useEffect(() => {
@@ -91,11 +92,11 @@ export function useFormulario(formularioId: string | null, version: string | nul
   }, [seccionSeleccionada, preguntasDeSeccion]);
 
   const navegarSeccion = (direccion: "adelante" | "atras") => {
-    const indiceActual = secciones.findIndex((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
+    const indiceActual = secciones.findIndex((s) => (s.fs_id || s.fp_fs_id) === seccionSeleccionada);
     if (direccion === "adelante" && indiceActual < secciones.length - 1) {
-      setSeccionSeleccionada(secciones[indiceActual + 1].fs_id || secciones[indiceActual + 1].seccion_id || null);
+      setSeccionSeleccionada(secciones[indiceActual + 1].fs_id || secciones[indiceActual + 1].fp_fs_id || null);
     } else if (direccion === "atras" && indiceActual > 0) {
-      setSeccionSeleccionada(secciones[indiceActual - 1].fs_id || secciones[indiceActual - 1].seccion_id || null);
+      setSeccionSeleccionada(secciones[indiceActual - 1].fs_id || secciones[indiceActual - 1].fp_fs_id || null);
     }
   };
 

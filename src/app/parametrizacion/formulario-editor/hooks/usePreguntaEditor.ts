@@ -37,7 +37,7 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   tipo: TIPOS_PREGUNTA.TEXTO,
   subtipo: "",
   patron: "",
-  seccion_id: null,
+  fp_fs_id: null,
   requerida: false,
   tipo_documento_id: null,
   catalogo_base_datos: "",
@@ -47,7 +47,7 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   catalogo_columna_condicion: "",
   catalogo_valor_condicion: "",
   dependiente: false,
-  dependencia_seccion_id: null,
+  dependencia_fp_fs_id: null,
   dependencia_pregunta_id: null,
   dependencia_valor: "",
   precarga_fuente: "",
@@ -59,11 +59,11 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   ancho_columnas: 1,
   tabla_limite_modo: "SIN_LIMITE",
   tabla_limite_fijo: "",
-  tabla_limite_seccion_id: null,
+  tabla_limite_fp_fs_id: null,
   tabla_limite_pregunta_id: null,
   tabla_limite_reglas: [],
   catalogo_filtro_dependiente: false,
-  catalogo_filtro_seccion_id: null,
+  catalogo_filtro_fp_fs_id: null,
   catalogo_filtro_pregunta_id: null,
   catalogo_filtro_columna: "",
   catalogo_filtro_reglas: [],
@@ -371,7 +371,7 @@ export function usePreguntaEditor({
   // (no llama a setError), para poder deshabilitar el botón "Guardar" mientras
   // el formulario no esté en un estado guardable.
   const puedeGuardarPregunta = useMemo(() => {
-    const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
+    const targetSeccionId = formPregunta.fp_fs_id ?? seccionSeleccionada;
     const requiereDescripcion = formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
@@ -414,7 +414,7 @@ export function usePreguntaEditor({
   }, [formPregunta, seccionSeleccionada, formularioIdNumber, editandoPregunta, opciones, opcionesNuevas]);
 
   const guardarPregunta = () => {
-    const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
+    const targetSeccionId = formPregunta.fp_fs_id ?? seccionSeleccionada;
     const requiereDescripcion = formPregunta.tipo !== TIPOS_PREGUNTA.FECHA_HORA_ACTUAL;
     const descripcionNormalizada = formPregunta.descripcion.trim();
 
@@ -468,7 +468,7 @@ export function usePreguntaEditor({
   };
 
   const confirmarGuardarPregunta = async () => {
-    const targetSeccionId = formPregunta.seccion_id ?? seccionSeleccionada;
+    const targetSeccionId = formPregunta.fp_fs_id ?? seccionSeleccionada;
     const descripcionPersistida = formPregunta.descripcion.trim() || "Fecha y hora actual";
 
     setGuardandoPregunta(true);
@@ -476,10 +476,10 @@ export function usePreguntaEditor({
       const preguntaEnEdicion = editandoPregunta ? preguntas.find((p) => p.fp_id === editandoPregunta) : null;
       const ordenActualEnSeccion = preguntas
         .filter((p) => p.fp_id !== editandoPregunta)
-        .filter((p) => p.seccion_id === targetSeccionId)
+        .filter((p) => p.fp_fs_id === targetSeccionId)
         .map((p) => p.fp_orden);
       const nuevoOrden = ordenActualEnSeccion.length > 0 ? Math.max(...ordenActualEnSeccion) + 1 : 1;
-      const conservarOrdenActual = !!preguntaEnEdicion && preguntaEnEdicion.seccion_id === targetSeccionId;
+      const conservarOrdenActual = !!preguntaEnEdicion && preguntaEnEdicion.fp_fs_id === targetSeccionId;
       const ordenFinal = conservarOrdenActual ? preguntaEnEdicion.fp_orden : nuevoOrden;
 
       const payload: any = {
@@ -488,9 +488,9 @@ export function usePreguntaEditor({
         fp_estado: true,
         fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
         fp_orden: ordenFinal,
-        seccion_id: targetSeccionId,
+        fp_fs_id: targetSeccionId,
         frs_id: formularioIdNumber,
-        fp_version: version ? parseInt(version) : 1,
+        fv_numero: version ? parseInt(version) : 1,
         fp_catalogo_base_datos:
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
             ? String(formPregunta.catalogo_base_datos || "").trim() || null
@@ -659,9 +659,9 @@ export function usePreguntaEditor({
             fp_estado: true,
             fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
             fp_orden: nuevoOrden + 1,
-            seccion_id: targetSeccionId,
+            fp_fs_id: targetSeccionId,
             frs_id: formularioIdNumber,
-            fp_version: version ? parseInt(version) : 1,
+            fv_numero: version ? parseInt(version) : 1,
             fp_pregunta_padre_id: creada.fp_id,
             fp_valor_padre_disparador: null,
           };
@@ -720,7 +720,7 @@ export function usePreguntaEditor({
             ? (pregunta.fp_subtipo ?? "")
             : "",
       patron: pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO ? (pregunta.fp_patron ?? "") : "",
-      seccion_id: pregunta.seccion_id ?? null,
+      fp_fs_id: pregunta.fp_fs_id ?? null,
       requerida: Boolean(pregunta.fp_requerida),
       tipo_documento_id: pregunta.fp_tdo_id ?? null,
       catalogo_base_datos: pregunta.fp_catalogo_base_datos ?? "",
@@ -730,7 +730,7 @@ export function usePreguntaEditor({
       catalogo_columna_condicion: pregunta.fp_catalogo_columna_condicion ?? "",
       catalogo_valor_condicion: pregunta.fp_catalogo_valor_condicion ?? "",
       dependiente: Boolean(pregunta.fp_pregunta_padre_id),
-      dependencia_seccion_id: preguntaPadre?.seccion_id ?? null,
+      dependencia_fp_fs_id: preguntaPadre?.fp_fs_id ?? null,
       dependencia_pregunta_id: pregunta.fp_pregunta_padre_id ?? null,
       dependencia_valor: pregunta.fp_valor_padre_disparador ?? "",
       precarga_fuente: pregunta.fp_precarga_fuente ?? "",
@@ -781,8 +781,7 @@ export function usePreguntaEditor({
           : "",
       archivo_maximo:
         pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO && pregunta.fp_maximo != null ? String(pregunta.fp_maximo) : "",
-      tabla_limite_seccion_id:
-        preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id)?.seccion_id ?? null,
+      tabla_limite_fp_fs_id: preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id)?.fp_fs_id ?? null,
       tabla_limite_pregunta_id: pregunta.fp_tabla_limite_pregunta_id ?? null,
       tabla_limite_reglas: (() => {
         if (!pregunta.fp_tabla_limite_reglas) return [];
@@ -800,8 +799,8 @@ export function usePreguntaEditor({
         }
       })(),
       catalogo_filtro_dependiente: Boolean(pregunta.fp_catalogo_filtro_pregunta_id),
-      catalogo_filtro_seccion_id:
-        preguntas.find((p) => p.fp_id === pregunta.fp_catalogo_filtro_pregunta_id)?.seccion_id ?? null,
+      catalogo_filtro_fp_fs_id:
+        preguntas.find((p) => p.fp_id === pregunta.fp_catalogo_filtro_pregunta_id)?.fp_fs_id ?? null,
       catalogo_filtro_pregunta_id: pregunta.fp_catalogo_filtro_pregunta_id ?? null,
       catalogo_filtro_columna: pregunta.fp_catalogo_filtro_columna ?? "",
       catalogo_filtro_reglas: (() => {
@@ -1027,7 +1026,7 @@ export function usePreguntaEditor({
             fp_descripcion: pregunta.fp_descripcion,
             fp_tipo: pregunta.fp_tipo,
             fp_orden: pregunta.fp_orden,
-            seccion_id: pregunta.seccion_id,
+            fp_fs_id: pregunta.fp_fs_id,
             fp_estado: pregunta.fp_estado,
           }),
         ),
@@ -1072,14 +1071,14 @@ export function usePreguntaEditor({
           fp_descripcion: preguntaActual.fp_descripcion,
           fp_tipo: preguntaActual.fp_tipo,
           fp_orden: preguntaSwap.fp_orden,
-          seccion_id: preguntaActual.seccion_id,
+          fp_fs_id: preguntaActual.fp_fs_id,
           fp_estado: preguntaActual.fp_estado,
         }),
         formularioPreguntasService.update(preguntaSwap.fp_id, {
           fp_descripcion: preguntaSwap.fp_descripcion,
           fp_tipo: preguntaSwap.fp_tipo,
           fp_orden: preguntaActual.fp_orden,
-          seccion_id: preguntaSwap.seccion_id,
+          fp_fs_id: preguntaSwap.fp_fs_id,
           fp_estado: preguntaSwap.fp_estado,
         }),
       ]);

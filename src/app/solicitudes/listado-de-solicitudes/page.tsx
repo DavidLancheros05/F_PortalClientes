@@ -58,7 +58,7 @@ interface SolicitudListado {
   sol_wee_id?: number;
   etapa_nombre?: string;
   resultado_nombre?: string;
-  sol_formulario_version: number | null;
+  fv_numero: number | null;
   sol_fecha_est_gest_oc: string | null;
   sol_fecha_gest_oc: string | null;
   sol_fecha_est_gest_cc1: string | null;
@@ -660,7 +660,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                       <Th compacta>Fecha de envío</Th>
                       <Th compacta>Estado</Th>
                       {/* Ancho mínimo: "Auxiliar Servicio al Cliente" se partía en 3 líneas. */}
-                      <Th compacta className="min-w-44">Etapa Actual</Th>
+                      <Th compacta className="min-w-44">
+                        Etapa Actual
+                      </Th>
                       <Th compacta>Resultado Etapa</Th>
                       {/* sol_fecha_gest_*: fecha en que cada etapa gestionó la
                           solicitud. Nombres de etapa = workflow_etapas.wet_nombre. */}
@@ -686,7 +688,9 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         </Td>
                         <Td compacta>{row.ejecutivo_nombre || "-"}</Td>
                         <Td compacta>{row.cliente_nombre || "-"}</Td>
-                        <Td compacta><FechaHora value={row.sol_fecha_envio} /></Td>
+                        <Td compacta>
+                          <FechaHora value={row.sol_fecha_envio} />
+                        </Td>
                         <Td compacta>{ESTADOS[row.sol_ses_id] || "Desconocido"}</Td>
                         <Td compacta>{row.etapa_nombre || "-"}</Td>
                         {/* max-w: "Pendiente de documentos generados" (PEND_FIRMA)
@@ -694,11 +698,21 @@ export default function SolicitudesListadoDeSolicitudesPage() {
                         <Td compacta>
                           <span className="block max-w-44">{row.resultado_nombre || "-"}</span>
                         </Td>
-                        <Td compacta><FechaHora value={row.sol_fecha_gest_ejn} /></Td>
-                        <Td compacta><FechaHora value={row.sol_fecha_gest_asc} /></Td>
-                        <Td compacta><FechaHora value={row.sol_fecha_gest_oc} /></Td>
-                        <Td compacta><FechaHora value={row.sol_fecha_gest_cc1} /></Td>
-                        <Td compacta><FechaHora value={row.sol_fecha_gest_cc2} /></Td>
+                        <Td compacta>
+                          <FechaHora value={row.sol_fecha_gest_ejn} />
+                        </Td>
+                        <Td compacta>
+                          <FechaHora value={row.sol_fecha_gest_asc} />
+                        </Td>
+                        <Td compacta>
+                          <FechaHora value={row.sol_fecha_gest_oc} />
+                        </Td>
+                        <Td compacta>
+                          <FechaHora value={row.sol_fecha_gest_cc1} />
+                        </Td>
+                        <Td compacta>
+                          <FechaHora value={row.sol_fecha_gest_cc2} />
+                        </Td>
                         <Td compacta>
                           {row.sol_cupo_aprobado ? (
                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-800">

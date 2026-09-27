@@ -281,8 +281,8 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
   const seccionPorId = useMemo(() => {
     const mapa = new Map<string, string>();
     for (const p of preguntasFormulario) {
-      if (p.seccion_id != null && p.seccion_nombre) {
-        mapa.set(String(p.seccion_id), p.seccion_nombre);
+      if (p.fp_fs_id != null && p.seccion_nombre) {
+        mapa.set(String(p.fp_fs_id), p.seccion_nombre);
       }
     }
     return mapa;
@@ -701,8 +701,8 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               <span>
                 Se entrega después de enviar el formulario (documento para firmar)
                 <span className="mt-1 block text-xs font-normal text-slate-500">
-                  El cliente no lo ve mientras llena el formulario: lo genera o lo sube después, en el panel de firma o en
-                  Mis Documentos. Mientras falte, la solicitud queda pendiente de firma y no pasa al Ejecutivo de
+                  El cliente no lo ve mientras llena el formulario: lo genera o lo sube después, en el panel de firma o
+                  en Mis Documentos. Mientras falte, la solicitud queda pendiente de firma y no pasa al Ejecutivo de
                   Negocios.
                 </span>
               </span>
@@ -716,7 +716,8 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
               <span>
                 Solo para clientes distribuidores
                 <span className="mt-1 block text-xs font-normal text-slate-500">
-                  Solo se le pide a clientes marcados como distribuidores. A los demás no se les muestra ni se les exige.
+                  Solo se le pide a clientes marcados como distribuidores. A los demás no se les muestra ni se les
+                  exige.
                 </span>
               </span>
             </label>
@@ -1118,7 +1119,7 @@ export default function DocumentosForm({ editItem, onSaved, onCancel }: Props) {
                         // código: sección+texto, el formato legado.
                         const base = preguntaSeleccionadaObj.fp_codigo
                           ? `cod:${preguntaSeleccionadaObj.fp_codigo}`
-                          : `${preguntaSeleccionadaObj.seccion_id ?? 0}|${preguntaSeleccionadaObj.fp_descripcion}`;
+                          : `${preguntaSeleccionadaObj.fp_fs_id ?? 0}|${preguntaSeleccionadaObj.fp_descripcion}`;
                         insertarVariable(
                           esPreguntaTabla ? `{{pregunta|${base}|col:${columnaSeleccionada}}}` : `{{pregunta|${base}}}`,
                         );

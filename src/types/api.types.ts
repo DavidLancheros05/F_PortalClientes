@@ -137,7 +137,7 @@ export interface FormularioPreguntaResponse {
     | "ESPACIO_FIRMA";
   fp_estado: boolean;
   fp_orden: number;
-  fp_version: number;
+  fp_fv_id: number;
   fp_created_at?: Date;
   fp_requerida: boolean;
   fp_minimo: number | null;
@@ -147,7 +147,7 @@ export interface FormularioPreguntaResponse {
   fp_precarga_fuente: string | null;
   fp_precarga_campo_cliente: string | null;
   frs_id: number | null;
-  seccion_id: number | null;
+  fp_fs_id: number | null;
   fp_catalogo_base_datos: string | null;
   fp_catalogo_tabla: string | null;
   fp_catalogo_columna: string | null;
@@ -155,6 +155,8 @@ export interface FormularioPreguntaResponse {
   fp_tdo_id: number | null;
   fp_pregunta_padre_id: number | null;
   fp_valor_padre_disparador: string | null;
+  // fpo_codigo de la opción del padre que muestra esta pregunta (manda sobre el texto).
+  fp_fpo_codigo_disparador?: string | null;
   fp_tabla_columnas?: string | null;
   fp_ancho_columnas?: number;
   fp_tabla_limite_modo?: string | null;

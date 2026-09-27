@@ -15,9 +15,7 @@ interface PanelPreguntasOwnProps {
   version: string | null;
 }
 
-type PanelPreguntasProps = PanelPreguntasOwnProps &
-  PreguntaFormProps &
-  ListaPreguntasProps;
+type PanelPreguntasProps = PanelPreguntasOwnProps & PreguntaFormProps & ListaPreguntasProps;
 
 export function PanelPreguntas(props: PanelPreguntasProps) {
   const {
@@ -49,20 +47,12 @@ export function PanelPreguntas(props: PanelPreguntasProps) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => navegarSeccion("atras")}
-              disabled={
-                indiceSeccion === 0 ||
-                formularioEdicionAbierto ||
-                editandoPregunta !== null ||
-                nuevaPregunta
-              }
-              className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
+              disabled={indiceSeccion === 0 || formularioEdicionAbierto || editandoPregunta !== null || nuevaPregunta}
+              className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
               <ChevronLeft className="h-4 w-4 text-gray-600" />
             </button>
             <h2 className="text-[11px] font-medium text-gray-700">
-              {seccionActual?.fs_nombre ||
-                seccionActual?.seccion_nombre ||
-                "Selecciona una sección"}
+              {seccionActual?.fs_nombre || seccionActual?.seccion_nombre || "Selecciona una sección"}
             </h2>
             <button
               onClick={() => navegarSeccion("adelante")}
@@ -72,8 +62,7 @@ export function PanelPreguntas(props: PanelPreguntasProps) {
                 editandoPregunta !== null ||
                 nuevaPregunta
               }
-              className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
+              className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
               <ChevronRight className="h-4 w-4 text-gray-600" />
             </button>
           </div>
@@ -83,32 +72,26 @@ export function PanelPreguntas(props: PanelPreguntasProps) {
               setEditandoPregunta(null);
               setFormPregunta({
                 ...FORM_PREGUNTA_DEFAULT,
-                seccion_id: seccionSeleccionada,
+                fp_fs_id: seccionSeleccionada,
               });
               setOpcionesNuevas([]);
               setErrorPregunta(null);
             }}
-            disabled={
-              readonly || !seccionSeleccionada || formularioEdicionAbierto
-            }
-            className="flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-blue-500 via-blue-550 to-blue-600 text-white font-semibold text-xs rounded-lg hover:shadow-xl hover:from-blue-600 hover:via-blue-600 hover:to-blue-700 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200"
-          >
+            disabled={readonly || !seccionSeleccionada || formularioEdicionAbierto}
+            className="flex items-center gap-2 px-3 py-1 bg-gradient-to-br from-blue-500 via-blue-550 to-blue-600 text-white font-semibold text-xs rounded-lg hover:shadow-xl hover:from-blue-600 hover:via-blue-600 hover:to-blue-700 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200">
             <Plus className="h-3 w-3" />
             Nueva Pregunta
           </button>
         </div>
 
         {seccionActual?.seccion_descripcion && (
-          <p className="text-[11px] text-gray-600 mb-1">
-            {seccionActual.seccion_descripcion}
-          </p>
+          <p className="text-[11px] text-gray-600 mb-1">{seccionActual.seccion_descripcion}</p>
         )}
 
         {!loading && preguntas.length === 0 && (
           <div className="mb-2 rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-[11px] text-amber-900 font-medium">
-            ⚠️ Esta versión (v{version || "1"}) no tiene preguntas
-            registradas. Las secciones son globales, pero las preguntas se
-            guardan por versión.
+            ⚠️ Esta versión (v{version || "1"}) no tiene preguntas registradas. Las secciones son globales, pero las
+            preguntas se guardan por versión.
           </div>
         )}
 

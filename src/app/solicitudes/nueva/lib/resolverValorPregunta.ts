@@ -31,3 +31,38 @@ export function resolverValorPreguntaDisparadora(
   }
   return respuesta.valor_texto || "";
 }
+
+// fpo_codigo de TODAS las opciones elegidas en la pregunta disparadora (una
+// MULTISELECT puede tener varias). Vacío si no es de opciones o no tiene
+// respuesta. Las condiciones entre preguntas van por este código, no por el
+// texto de la opción (Fase 5 de plan-correccion-modelo-datos-formulario.md):
+// corregir el texto de una opción ya no las rompe.
+export function codigosOpcionElegidos(
+  preguntaDisparadora: FormularioPregunta | undefined,
+  respuestas: RespuestasState,
+): string[] {
+  if (!preguntaDisparadora) return [];
+  const valorOpcionId = respuestas[preguntaDisparadora.fp_id]?.valor_opcion_id;
+  if (valorOpcionId == null) return [];
+  const ids = Array.isArray(valorOpcionId) ? valorOpcionId : [valorOpcionId];
+  return ids
+    .map((id) => {
+      const opcion = preguntaDisparadora.opciones?.find(
+        (o: any) => Number(o.op_id ?? o.fpo_id) === Number(id),
+      ) as any;
+      return (opcion?.op_codigo ?? opcion?.fpo_codigo ?? null) as string | null;
+    })
+    .filter((c): c is string => Boolean(c));
+}
+
+// Regla de límite de filas / filtro de catálogo ({ valor, opcion_codigo? }):
+// por código de opción si la regla lo trae; si no (padre de texto, número o
+// catálogo), por texto como antes.
+export function reglaCoincide(
+  regla: { valor?: string; opcion_codigo?: string | null },
+  codigosElegidos: string[],
+  valorActualNormalizado: string,
+): boolean {
+  if (regla.opcion_codigo) return codigosElegidos.includes(regla.opcion_codigo);
+  return (regla.valor || "").trim().toLowerCase() === valorActualNormalizado;
+}

@@ -76,7 +76,11 @@ export default function FormularioEditorPage() {
     seccionSeleccionada,
     setSeccionSeleccionada,
     cargarDatos,
-    readonly,
+    // Las secciones son de cada versión (igual que las preguntas): con
+    // solicitudes asociadas el backend también las bloquea.
+    readonly: noEditable,
+    formularioIdNumber,
+    version,
   });
 
   const {
@@ -173,8 +177,8 @@ export default function FormularioEditorPage() {
 
   const [columnaCatalogoAbierta, setColumnaCatalogoAbierta] = useState<number | null>(null);
 
-  const seccionActual = secciones.find((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
-  const indiceSeccion = secciones.findIndex((s) => (s.fs_id || s.seccion_id) === seccionSeleccionada);
+  const seccionActual = secciones.find((s) => (s.fs_id || s.fp_fs_id) === seccionSeleccionada);
+  const indiceSeccion = secciones.findIndex((s) => (s.fs_id || s.fp_fs_id) === seccionSeleccionada);
   const editorUrlParams = new URLSearchParams();
   if (formularioId) editorUrlParams.set("frs_id", formularioId);
   if (version) editorUrlParams.set("version", version);
@@ -206,7 +210,7 @@ export default function FormularioEditorPage() {
             seccionSeleccionada={seccionSeleccionada}
             setSeccionSeleccionada={setSeccionSeleccionada}
             preguntas={preguntas}
-            readonly={readonly}
+            readonly={noEditable}
             formularioEdicionAbierto={formularioEdicionAbierto}
             editandoPregunta={editandoPregunta}
             nuevaPregunta={nuevaPregunta}

@@ -24,6 +24,7 @@ interface UseSolicitudEdicionParams {
   solicitudId?: number;
   preguntas: Array<{ fp_id: number; fp_tipo: string; fp_maximo?: number | null }>;
   setNumeroSolicitud: (value: string | null) => void;
+  setFormularioIdObjetivo: (value: number | null) => void;
   setFormularioVersionObjetivo: (value: number) => void;
   setRespuestas: Dispatch<SetStateAction<RespuestasState>>;
   setArchivosExistentes: Dispatch<SetStateAction<Record<number, any>>>;
@@ -35,6 +36,7 @@ export function useSolicitudEdicion({
   solicitudId,
   preguntas,
   setNumeroSolicitud,
+  setFormularioIdObjetivo,
   setFormularioVersionObjetivo,
   setRespuestas,
   setArchivosExistentes,
@@ -114,7 +116,14 @@ export function useSolicitudEdicion({
         }
 
         setNumeroSolicitud(data?.sol_numero || null);
-        const versionSolicitud = Number(data?.sol_formulario_version ?? 1);
+        // Número visible de la versión (fv_numero), no sol_fv_id: las
+        // preguntas se filtran por número y desde la v9 no coinciden.
+        const versionSolicitud = Number(data?.fv_numero ?? 1);
+        // Formulario de la propia solicitud, no el activo: con más de un
+        // formulario, "versión N" del activo sería otra. Se fija antes que la
+        // versión (mismo batch de React) porque la versión es la que dispara
+        // la carga de preguntas.
+        setFormularioIdObjetivo(data?.fv_frs_id != null ? Number(data.fv_frs_id) : null);
         setFormularioVersionObjetivo(versionSolicitud);
         if (setEstadoId) {
           setEstadoId(data?.sol_ses_id || null);
@@ -134,6 +143,7 @@ export function useSolicitudEdicion({
     solicitudId,
     setArchivosExistentes,
     setErrorMessage,
+    setFormularioIdObjetivo,
     setFormularioVersionObjetivo,
     setNumeroSolicitud,
     setEstadoId,

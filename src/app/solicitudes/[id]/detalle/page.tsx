@@ -45,7 +45,7 @@ interface SolicitudDetalle {
   sol_plazo_pago?: number;
   sol_forma_pago?: string;
   sol_observacion_ejn?: string | null;
-  sol_formulario_version?: number;
+  fv_numero?: number;
   fecha_aprobacion?: string;
   sol_cupo_solicitado?: number;
   sol_justificacion_ampliacion?: string | null;
@@ -374,7 +374,6 @@ export default function DetalleDetailPage() {
       {mostrarTablasCumplimiento && solicitud && (
         <TablasCumplimientoModal solicitudId={solicitud.sol_id} onClose={() => setMostrarTablasCumplimiento(false)} />
       )}
-
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   formularioSeccionesService,
   type FormularioSeccion,
 } from "@/services/parametrizacion/formulario-secciones.service";
+import { formulariosService } from "@/services/parametrizacion/formularios.service";
 import { ConfirmModal, SuccessModal } from "@/components/modals";
 import { PageHeaderCard } from "@/components/PageHeaderCard";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
@@ -73,7 +74,16 @@ export default function FormularioSeccionesPage() {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const data = await formularioSeccionesService.getAll();
+      // Las secciones son de cada versión del formulario: esta pantalla
+      // trabaja sobre la versión activa (lo que mostraba siempre). Las de
+      // otras versiones se editan desde el editor de esa versión.
+      const activo = await formulariosService.getFormularioActivo();
+      const data = activo
+        ? await formularioSeccionesService.getAll({
+            formularioId: activo.frs_id,
+            version: activo.formulario_version,
+          })
+        : [];
       setSecciones(data);
       // Si ya se había hecho una búsqueda, reaplicarla contra los datos
       // frescos — si no, cada recarga (crear/editar/activar-inactivar)
@@ -201,7 +211,7 @@ export default function FormularioSeccionesPage() {
             isOpen: true,
             type: "error",
             title: "Error",
-            message: error?.message || "Error al crear la sección",
+            message: error?.response?.data?.message || error?.message || "Error al crear la sección",
           });
         } finally {
           setSubmitting(false);
@@ -256,7 +266,7 @@ export default function FormularioSeccionesPage() {
             isOpen: true,
             type: "error",
             title: "Error",
-            message: error?.message || "Error al actualizar",
+            message: error?.response?.data?.message || error?.message || "Error al actualizar",
           });
         } finally {
           setSubmitting(false);
@@ -292,7 +302,7 @@ export default function FormularioSeccionesPage() {
             isOpen: true,
             type: "error",
             title: "Error",
-            message: error?.message || "Error al actualizar estado",
+            message: error?.response?.data?.message || error?.message || "Error al actualizar estado",
           });
         }
       },

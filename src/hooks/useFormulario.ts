@@ -22,12 +22,12 @@ export interface Pregunta {
   fp_catalogo_tabla: string | null;
   fp_catalogo_columna: string | null;
   fp_tdo_id: number | null;
-  seccion_id: number;
+  fp_fs_id: number;
   frs_id: number;
 }
 
 export interface Seccion {
-  seccion_id: number;
+  fp_fs_id: number;
   seccion_nombre: string;
   seccion_descripcion: string | null;
   seccion_orden: number;

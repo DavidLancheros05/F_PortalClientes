@@ -4,9 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { SearchableSelect } from "@/components/FormularioUI/SearchableSelect";
 import { maestrosService } from "@/services/parametrizacion/maestros.service";
-import { resolverValorPreguntaDisparadora } from "../lib/resolverValorPregunta";
+import {
+  codigosOpcionElegidos,
+  reglaCoincide,
+  resolverValorPreguntaDisparadora,
+} from "../lib/resolverValorPregunta";
 import { calcularDescuadresSuma, formatearSuma } from "../lib/sumaColumnasTabla";
 import type { FormularioPregunta, RespuestasState } from "../types";
+import { claveColumna, normalizarFilas } from "@/lib/tabla-respuesta";
 
 interface TablaFieldProps {
   pregunta: FormularioPregunta;
@@ -18,6 +23,7 @@ interface TablaFieldProps {
 
 type ReglaLimiteTabla = {
   valor: string;
+  opcion_codigo?: string | null;
   limite: number | null;
 };
 
@@ -37,6 +43,8 @@ type OpcionCatalogo = { op_id: number; op_descripcion: string };
 
 type ColumnaTabla = {
   nombre: string;
+  // Clave de la celda en la respuesta (ver lib/tabla-respuesta.ts).
+  codigo?: string;
   tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA" | "EMAIL";
   catalogo_base_datos?: string;
   catalogo_tabla?: string;
@@ -64,6 +72,7 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
           const col = c as ColumnaTabla;
           return {
             nombre: col.nombre,
+            codigo: typeof col.codigo === "string" && col.codigo ? col.codigo : undefined,
             tipo:
               col.tipo === "SI_NO" ||
               col.tipo === "CATALOGO" ||
@@ -93,10 +102,15 @@ function parseColumnas(fp_tabla_columnas?: string | null): ColumnaTabla[] {
   }
 }
 
-// Nombres de todas las columnas que dependen (directa o transitivamente) de `nombreColumna`
-function obtenerDescendientes(nombreColumna: string, columnas: ColumnaTabla[]): string[] {
-  const directos = columnas.filter((c) => c.catalogo_columna_padre === nombreColumna).map((c) => c.nombre);
-  return directos.reduce<string[]>((acc, nombre) => [...acc, ...obtenerDescendientes(nombre, columnas)], directos);
+// Claves de celda de todas las columnas que dependen (directa o
+// transitivamente) de `padre`. En la configuración, catalogo_columna_padre
+// apunta al nombre de la columna padre.
+function obtenerDescendientes(padre: ColumnaTabla, columnas: ColumnaTabla[]): string[] {
+  const directos = columnas.filter((c) => c.catalogo_columna_padre === padre.nombre);
+  return directos.reduce<string[]>(
+    (acc, hijo) => [...acc, claveColumna(hijo), ...obtenerDescendientes(hijo, columnas)],
+    [],
+  );
 }
 
 // Para columnas NUMERO con minimo/maximo configurado: valida que el valor
@@ -280,12 +294,14 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pregunta.fp_tabla_columnas]);
 
-  const filas = parseFilas(respuestas[pregunta.fp_id]?.valor_texto);
+  // Respuestas viejas pueden venir por nombre de columna: se pasan a codigo
+  // al leerlas, así el próximo guardado ya queda con claves estables.
+  const filas = normalizarFilas(parseFilas(respuestas[pregunta.fp_id]?.valor_texto), columnas);
   const filasVisibles = filas.length > 0 ? filas : [{}];
 
   const todasLasFilasCompletas = filasVisibles.every((fila) =>
     columnas.every((columna) => {
-      const valor = (fila[columna.nombre] || "").trim();
+      const valor = (fila[claveColumna(columna)] || "").trim();
       return valor !== "" && celdaEnRango(columna, valor);
     }),
   );
@@ -298,8 +314,9 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
     if (modo === "CONDICIONAL" && pregunta.fp_tabla_limite_pregunta_id) {
       const preguntaDisparadora = preguntas.find((p) => p.fp_id === pregunta.fp_tabla_limite_pregunta_id);
       const valorActual = resolverValorPreguntaDisparadora(preguntaDisparadora, respuestas).trim().toLowerCase();
+      const codigos = codigosOpcionElegidos(preguntaDisparadora, respuestas);
       const reglas = parseReglasLimite(pregunta.fp_tabla_limite_reglas);
-      const regla = reglas.find((r) => r.valor.trim().toLowerCase() === valorActual);
+      const regla = reglas.find((r) => reglaCoincide(r, codigos, valorActual));
       return regla ? regla.limite : null;
     }
     return null;
@@ -321,16 +338,16 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
     handleInputChange(pregunta.fp_id, JSON.stringify(nuevasFilas), "TABLA");
   };
 
-  const actualizarCelda = (filaIndex: number, columnaNombre: string, valor: string) => {
-    const descendientes = obtenerDescendientes(columnaNombre, columnas);
+  const actualizarCelda = (filaIndex: number, columna: ColumnaTabla, valor: string) => {
+    const descendientes = obtenerDescendientes(columna, columnas);
     const nuevasFilas = filasVisibles.map((fila, idx) => {
       if (idx !== filaIndex) return fila;
-      const nuevaFila = { ...fila, [columnaNombre]: valor };
+      const nuevaFila = { ...fila, [claveColumna(columna)]: valor };
       // Si cambia el valor de una columna de la que dependen otras (ej: Pais),
       // se limpian sus columnas hijas (ej: Departamento, Ciudad) para que el
       // usuario vuelva a elegirlas dentro de las opciones ya filtradas.
-      descendientes.forEach((nombreHijo) => {
-        nuevaFila[nombreHijo] = "";
+      descendientes.forEach((claveHijo) => {
+        nuevaFila[claveHijo] = "";
       });
       return nuevaFila;
     });
@@ -382,8 +399,8 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                             { id: "Sí", label: "Sí" },
                             { id: "No", label: "No" },
                           ]}
-                          value={fila[columna.nombre] || ""}
-                          onChange={(value) => actualizarCelda(filaIndex, columna.nombre, String(value))}
+                          value={fila[claveColumna(columna)] || ""}
+                          onChange={(value) => actualizarCelda(filaIndex, columna, String(value))}
                           disabled={readOnly}
                           placeholder="Selecciona..."
                         />
@@ -405,10 +422,10 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                         <CeldaCatalogoDependiente
                           columna={columna}
                           columnaPadre={columnaPadre}
-                          valorPadreTexto={fila[columnaPadre.nombre] || ""}
-                          valor={fila[columna.nombre] || ""}
+                          valorPadreTexto={fila[claveColumna(columnaPadre)] || ""}
+                          valor={fila[claveColumna(columna)] || ""}
                           disabled={readOnly}
-                          onChange={(valor) => actualizarCelda(filaIndex, columna.nombre, valor)}
+                          onChange={(valor) => actualizarCelda(filaIndex, columna, valor)}
                         />
                       </td>
                     );
@@ -423,8 +440,8 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                             id: op.op_descripcion,
                             label: op.op_descripcion,
                           }))}
-                          value={fila[columna.nombre] || ""}
-                          onChange={(value) => actualizarCelda(filaIndex, columna.nombre, String(value))}
+                          value={fila[claveColumna(columna)] || ""}
+                          onChange={(value) => actualizarCelda(filaIndex, columna, String(value))}
                           disabled={readOnly || opciones.length === 0}
                           placeholder={opciones.length === 0 ? "Sin opciones" : "Selecciona..."}
                         />
@@ -443,10 +460,10 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                             type="text"
                             inputMode="numeric"
                             disabled={readOnly}
-                            value={fila[columna.nombre] ? Number(fila[columna.nombre]).toLocaleString("es-CO") : ""}
+                            value={fila[claveColumna(columna)] ? Number(fila[claveColumna(columna)]).toLocaleString("es-CO") : ""}
                             onChange={(e) => {
                               const soloDigitos = e.target.value.replace(/\D/g, "");
-                              actualizarCelda(filaIndex, columna.nombre, soloDigitos);
+                              actualizarCelda(filaIndex, columna, soloDigitos);
                             }}
                             placeholder="0"
                             className="w-full rounded border border-brand-600/20 bg-white py-1.5 pl-6 pr-3 text-sm text-slate-800 placeholder:text-slate-300 transition-all hover:border-brand-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
@@ -457,7 +474,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                   }
 
                   if (columna.tipo === "NUMERO" || esColumnaIdentificacion(columna)) {
-                    const valorCelda = fila[columna.nombre] || "";
+                    const valorCelda = fila[claveColumna(columna)] || "";
                     const enRango = celdaEnRango(columna, valorCelda);
                     const tieneRango = columna.minimo !== undefined || columna.maximo !== undefined;
                     return (
@@ -470,7 +487,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                           value={valorCelda}
                           onChange={(e) => {
                             const soloDigitos = e.target.value.replace(/\D/g, "");
-                            actualizarCelda(filaIndex, columna.nombre, soloDigitos);
+                            actualizarCelda(filaIndex, columna, soloDigitos);
                           }}
                           placeholder="Escribe aquí"
                           className={`w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 transition-all focus:outline-none focus:ring-2 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
@@ -496,7 +513,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                   return (
                     <td key={columna.nombre} className="p-1">
                       {(() => {
-                        const valorCelda = fila[columna.nombre] || "";
+                        const valorCelda = fila[claveColumna(columna)] || "";
                         const esCorreo = esColumnaCorreo(columna);
                         const correoInvalido = esCorreo && valorCelda.trim() !== "" && !correoValido(valorCelda);
                         return (
@@ -505,7 +522,7 @@ export function TablaField({ pregunta, preguntas, respuestas, readOnly, handleIn
                               type={esCorreo ? "email" : "text"}
                               disabled={readOnly}
                               value={valorCelda}
-                              onChange={(e) => actualizarCelda(filaIndex, columna.nombre, e.target.value)}
+                              onChange={(e) => actualizarCelda(filaIndex, columna, e.target.value)}
                               placeholder="Escribe aquí"
                               className={`w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-300 transition-all focus:outline-none focus:ring-2 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 ${
                                 correoInvalido

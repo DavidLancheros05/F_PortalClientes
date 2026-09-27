@@ -7,11 +7,26 @@ export interface FormularioSeccion {
   fs_orden: number;
   fs_activo: boolean;
   fs_oculta_en_formulario: boolean;
+  fs_fv_id?: number | null;
 }
 
 export const formularioSeccionesService = {
-  getAll: async (): Promise<FormularioSeccion[]> => {
-    const res = await api.get("/parametrizacion/formulario-secciones");
+  // Sin filtro: las secciones de todas las versiones (sirve para buscar
+  // por fs_id). Con formulario + versión: solo las de esa versión.
+  getAll: async (filtro?: {
+    formularioId: number;
+    version: number;
+  }): Promise<FormularioSeccion[]> => {
+    const res = await api.get("/parametrizacion/formulario-secciones", {
+      params: filtro,
+    });
+    return res.data;
+  },
+
+  // Secciones de la versión activa del formulario activo (nueva solicitud),
+  // sin tener que resolver antes la versión.
+  getFormularioActivo: async (): Promise<FormularioSeccion[]> => {
+    const res = await api.get("/parametrizacion/formulario-secciones/formulario-activo");
     return res.data;
   },
 

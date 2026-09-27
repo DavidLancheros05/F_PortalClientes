@@ -35,6 +35,8 @@ import { clienteArchivoService } from "@/services/cliente-archivo.service";
 import { maestrosService, type Pais, type Departamento, type Ciudad } from "@/services/maestros/maestros.service";
 import { TIPOS_PREGUNTA, type TipoPregunta } from "@/constants/tipos-pregunta";
 import { ESTADO_SOLICITUD } from "@/constants/estado-solicitud";
+import { valorCelda } from "@/lib/tabla-respuesta";
+import { codigosOpcionElegidos } from "./lib/resolverValorPregunta";
 import {
   calcularVigenciaDocumento,
   calcularEstadoAnioDocumento,
@@ -58,8 +60,7 @@ export default function SolicitudFormContent({
   // izquierda el Header se oculta desde md (Layout.tsx), así que ahí la
   // página ocupa toda la pantalla; si no, quedaba una franja vacía abajo.
   const [menuPosition] = useMenuPosition();
-  const altoPagina =
-    menuPosition === "left" ? "h-[calc(100dvh-3.75rem)] md:h-dvh" : "h-[calc(100dvh-3.75rem)]";
+  const altoPagina = menuPosition === "left" ? "h-[calc(100dvh-3.75rem)] md:h-dvh" : "h-[calc(100dvh-3.75rem)]";
 
   // Cliente "dueño" de esta solicitud: el elegido por un usuario interno
   // (page.tsx) o, si no hay uno, el propio cliente logueado.
@@ -103,6 +104,7 @@ export default function SolicitudFormContent({
   const [paises, setPaises] = useState<Pais[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
+  const [formularioIdObjetivo, setFormularioIdObjetivo] = useState<number | null>(null);
   const [formularioVersionObjetivo, setFormularioVersionObjetivo] = useState<number | null>(null);
   const {
     preguntas,
@@ -112,6 +114,7 @@ export default function SolicitudFormContent({
     loading: loadingInitial,
   } = usePreguntasFormulario({
     solicitudId,
+    formularioIdObjetivo,
     formularioVersionObjetivo,
     setFormularioVersionObjetivo: (version) => setFormularioVersionObjetivo(version),
   });
@@ -172,8 +175,11 @@ export default function SolicitudFormContent({
       const filas = JSON.parse(valorTexto);
       if (!Array.isArray(filas) || filas.length === 0) return null;
       const principal = filas[0] as Record<string, string>;
-      const nombre = principal["Apellidos y Nombre"] || principal["Nombre"] || "";
-      const identificacion = principal["Identificacion"] || principal["Identificación"] || "";
+      // Por codigo de columna (crl_*, ver MAPEOS en el backend) y, en
+      // respuestas viejas, por su etiqueta.
+      const nombre = principal["crl_nombre"] || principal["Apellidos y Nombre"] || principal["Nombre"] || "";
+      const identificacion =
+        principal["crl_identificacion"] || principal["Identificacion"] || principal["Identificación"] || "";
       if (!nombre && !identificacion) return null;
       return { nombre, identificacion };
     } catch {
@@ -278,6 +284,7 @@ export default function SolicitudFormContent({
     solicitudId,
     preguntas,
     setNumeroSolicitud,
+    setFormularioIdObjetivo,
     setFormularioVersionObjetivo,
     setRespuestas,
     setArchivosExistentes,
@@ -428,17 +435,17 @@ export default function SolicitudFormContent({
     const preguntasSinSeccion: FormularioPregunta[] = [];
 
     preguntas.forEach((pregunta) => {
-      if (pregunta.seccion_id) {
-        if (!seccionesMap.has(pregunta.seccion_id)) {
-          seccionesMap.set(pregunta.seccion_id, {
-            seccion_id: pregunta.seccion_id,
-            seccion_nombre: pregunta.seccion_nombre || `Sección ${pregunta.seccion_id}`,
+      if (pregunta.fp_fs_id) {
+        if (!seccionesMap.has(pregunta.fp_fs_id)) {
+          seccionesMap.set(pregunta.fp_fs_id, {
+            fp_fs_id: pregunta.fp_fs_id,
+            seccion_nombre: pregunta.seccion_nombre || `Sección ${pregunta.fp_fs_id}`,
             seccion_descripcion: pregunta.seccion_descripcion,
             seccion_orden: pregunta.seccion_orden || 999,
             preguntas: [],
           });
         }
-        seccionesMap.get(pregunta.seccion_id)!.preguntas.push(pregunta);
+        seccionesMap.get(pregunta.fp_fs_id)!.preguntas.push(pregunta);
       } else {
         preguntasSinSeccion.push(pregunta);
       }
@@ -447,9 +454,7 @@ export default function SolicitudFormContent({
     return Array.from(seccionesMap.values()).sort((a, b) => a.seccion_orden - b.seccion_orden);
   }, [preguntas]);
 
-  const seccionActual = seccionSeleccionada
-    ? secciones.find((s) => s.seccion_id === seccionSeleccionada)
-    : secciones[0];
+  const seccionActual = seccionSeleccionada ? secciones.find((s) => s.fp_fs_id === seccionSeleccionada) : secciones[0];
   const normalizarTexto = (texto?: string | null) =>
     (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 
@@ -540,7 +545,7 @@ export default function SolicitudFormContent({
     };
   }, [preguntas]);
 
-  const indiceSeccionActual = secciones.findIndex((s) => s.seccion_id === seccionSeleccionada);
+  const indiceSeccionActual = secciones.findIndex((s) => s.fp_fs_id === seccionSeleccionada);
   const isFirstSection = indiceSeccionActual === 0;
   const isLastSection = indiceSeccionActual === secciones.length - 1;
 
@@ -608,7 +613,7 @@ export default function SolicitudFormContent({
           );
           for (const fila of filas) {
             for (const columna of columnasCorreo) {
-              const correo = String(fila?.[columna.nombre] || "").trim();
+              const correo = String(valorCelda(fila, columna) || "").trim();
               if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
                 return `Ingrese un correo válido en "${columna.nombre}"`;
               }
@@ -903,7 +908,7 @@ export default function SolicitudFormContent({
   // Inicializar seccion seleccionada cuando carguen secciones
   useEffect(() => {
     if (secciones.length > 0 && seccionSeleccionada === null) {
-      setSeccionSeleccionada(secciones[0].seccion_id);
+      setSeccionSeleccionada(secciones[0].fp_fs_id);
     }
   }, [secciones]);
 
@@ -1010,7 +1015,11 @@ export default function SolicitudFormContent({
           } else {
             const valorDisparador = normalize(actual.fp_valor_padre_disparador);
 
-            if (!valorDisparador) {
+            if (actual.fp_fpo_codigo_disparador && respuestaPadre.valor_opcion_id !== undefined) {
+              // Por código de la opción (estable ante cambios de texto), mirando
+              // todas las opciones elegidas si el padre es MULTISELECT.
+              visible = codigosOpcionElegidos(preguntaPadre, respuestas).includes(actual.fp_fpo_codigo_disparador);
+            } else if (!valorDisparador) {
               visible = true;
             } else if (respuestaPadre.valor_texto) {
               visible = normalize(respuestaPadre.valor_texto) === valorDisparador;
@@ -1183,7 +1192,7 @@ export default function SolicitudFormContent({
             fila &&
             typeof fila === "object" &&
             columnasTabla.every((columna) => {
-              const valor = fila[columna.nombre];
+              const valor = valorCelda(fila, columna);
               if (typeof valor !== "string" || valor.trim() === "") {
                 return false;
               }
@@ -1235,8 +1244,7 @@ export default function SolicitudFormContent({
   };
 
   // Por código, no por nombre (el nombre del rol es editable).
-  const isAdminUser =
-    (user?.rol?.codigo ?? user?.rol?.nombre) === "ADMIN";
+  const isAdminUser = (user?.rol?.codigo ?? user?.rol?.nombre) === "ADMIN";
 
   const isClienteUser =
     String(user?.rol?.nombre || "")
@@ -1317,7 +1325,7 @@ export default function SolicitudFormContent({
       const displayAnswered = usesRequired ? answered : visibleAnswered;
       const displayPercent = displayTotal === 0 ? 100 : Math.round((displayAnswered / displayTotal) * 100);
 
-      progressMap.set(seccion.seccion_id, {
+      progressMap.set(seccion.fp_fs_id, {
         required,
         answered,
         percent,
@@ -1710,11 +1718,11 @@ export default function SolicitudFormContent({
     }
 
     setErrorMessage("");
-    const indiceActual = secciones.findIndex((s) => s.seccion_id === seccionSeleccionada);
+    const indiceActual = secciones.findIndex((s) => s.fp_fs_id === seccionSeleccionada);
     const nuevoIndice = direccion === "siguiente" ? indiceActual + 1 : indiceActual - 1;
 
     if (nuevoIndice >= 0 && nuevoIndice < secciones.length) {
-      setSeccionSeleccionada(secciones[nuevoIndice].seccion_id);
+      setSeccionSeleccionada(secciones[nuevoIndice].fp_fs_id);
     }
   };
 
@@ -1780,7 +1788,7 @@ export default function SolicitudFormContent({
   // un instante antes de que llegaran los reales (useSolicitudEdicion los
   // resuelve juntos, ver hooks/useSolicitudEdicion.ts:100-102).
   const versionFormularioMostrar =
-    formularioVersionObjetivo ?? formulario?.sol_formulario_version ?? formulario?.formulario_version ?? null;
+    formularioVersionObjetivo ?? formulario?.formulario_version ?? null;
   const encabezadoNumeroDescripcion = solicitudId
     ? numeroSolicitud
       ? `${numeroSolicitud} • ${formulario?.frs_descripcion || "Completa el formulario por secciones"}`

@@ -4,10 +4,7 @@ import { maestrosService } from "@/services/maestros/maestros.service";
 import { formularioSeccionesService } from "@/services/parametrizacion/formulario-secciones.service";
 import { documentosService } from "@/services/admin/parametrizacion/documentos.service";
 import { formulariosService } from "@/services/parametrizacion/formularios.service";
-import type {
-  FormularioPreguntaResponse,
-  FormularioPreguntaOpcion,
-} from "@/types/api.types";
+import type { FormularioPreguntaResponse, FormularioPreguntaOpcion } from "@/types/api.types";
 
 // Aliases para compatibilidad
 export type FormularioPregunta = FormularioPreguntaResponse;
@@ -37,20 +34,21 @@ export interface DocumentoCatalogo {
 
 interface UsePreguntasFormularioProps {
   solicitudId?: number;
+  // Formulario de la solicitud que se edita (fv_frs_id); null en una nueva.
+  formularioIdObjetivo: number | null;
   formularioVersionObjetivo: number | null;
   setFormularioVersionObjetivo: (v: number) => void;
 }
 
 export function usePreguntasFormulario({
   solicitudId,
+  formularioIdObjetivo,
   formularioVersionObjetivo,
   setFormularioVersionObjetivo,
 }: UsePreguntasFormularioProps) {
   const [preguntas, setPreguntas] = useState<FormularioPregunta[]>([]);
   const [paises, setPaises] = useState<any[]>([]);
-  const [documentosCatalogoMap, setDocumentosCatalogoMap] = useState<
-    Record<number, DocumentoCatalogo>
-  >({});
+  const [documentosCatalogoMap, setDocumentosCatalogoMap] = useState<Record<number, DocumentoCatalogo>>({});
   const [formulario, setFormulario] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const cargaInicialListaHecha = useRef(false);
@@ -60,9 +58,7 @@ export function usePreguntasFormulario({
   // Helpers (internos del hook)
   // =========================
 
-  const cargarOpcionesCatalogoTabla = async (
-    pregunta: FormularioPregunta,
-  ): Promise<Opcion[]> => {
+  const cargarOpcionesCatalogoTabla = async (pregunta: FormularioPregunta): Promise<Opcion[]> => {
     if (!pregunta.fp_catalogo_tabla) {
       return Array.isArray(pregunta.opciones) ? pregunta.opciones : [];
     }
@@ -74,10 +70,7 @@ export function usePreguntasFormulario({
         pregunta.fp_catalogo_pk_column,
       );
     } catch (error) {
-      console.error(
-        `Error cargando catálogo externo para pregunta ${pregunta.fp_id}:`,
-        error,
-      );
+      console.error(`Error cargando catálogo externo para pregunta ${pregunta.fp_id}:`, error);
       return [];
     }
   };
@@ -114,15 +107,30 @@ export function usePreguntasFormulario({
 
     setLoading(true);
 
+    // Preguntas y secciones se piden solo de la versión que corresponde, nunca
+    // sin filtro (eso traería todas las versiones mezcladas). Solicitud
+    // existente: formulario y versión de la propia solicitud. Nueva: los
+    // endpoints /formulario-activo resuelven la versión activa en el backend,
+    // así todo sale en paralelo sin esperar antes al formulario activo.
+    const filtro =
+      solicitudId && formularioIdObjetivo && formularioVersionObjetivo
+        ? { formularioId: formularioIdObjetivo, version: formularioVersionObjetivo }
+        : null;
     Promise.all([
-      formularioPreguntasService.getAll(),
+      filtro ? formularioPreguntasService.getAll(filtro) : formularioPreguntasService.getFormularioActivo(),
       maestrosService.getPaises(),
       formulariosService.getFormularioActivo(),
       documentosService.getAll().catch(() => []),
-      formularioSeccionesService.getAll().catch(() => []),
+      (filtro
+        ? formularioSeccionesService.getAll(filtro)
+        : formularioSeccionesService.getFormularioActivo()
+      ).catch(() => []),
     ])
       .then(async ([data, paisesData, formularioData, documentosData, seccionesData]) => {
-        const seccionesMap: Record<number, { seccion_nombre: string; seccion_descripcion: string | null; seccion_orden: number }> = {};
+        const seccionesMap: Record<
+          number,
+          { seccion_nombre: string; seccion_descripcion: string | null; seccion_orden: number }
+        > = {};
         (seccionesData as any[]).forEach((s) => {
           if (s.fs_id != null) {
             seccionesMap[s.fs_id] = {
@@ -133,25 +141,11 @@ export function usePreguntasFormulario({
           }
         });
 
-
-        const versionsAvailable = (data as FormularioPregunta[])
-          .map((p) => Number(p.fp_version ?? 1))
-          .filter((v, i, arr) => arr.indexOf(v) === i); // valores únicos
-        const latestVersion = Math.max(...versionsAvailable, 1);
-
-
-        const versionActivaOficial = Number(
-          (formularioData as any)?.formulario_version ?? NaN,
-        );
-
-        const versionObjetivo = solicitudId
-          ? formularioVersionObjetivo
-          : Number.isFinite(versionActivaOficial)
-            ? versionActivaOficial
-            : latestVersion;
-
-        if (!solicitudId && versionObjetivo) {
-          setFormularioVersionObjetivo(versionObjetivo);
+        // Número visible de la versión activa (para el encabezado de una
+        // solicitud nueva). Las preguntas ya llegan filtradas por versión.
+        const versionActiva = Number((formularioData as any)?.formulario_version ?? NaN);
+        if (!solicitudId && Number.isFinite(versionActiva)) {
+          setFormularioVersionObjetivo(versionActiva);
         }
 
         const activas = (data as FormularioPregunta[])
@@ -159,13 +153,10 @@ export function usePreguntasFormulario({
             (p) =>
               p.fp_estado &&
               !p.fp_oculto_en_formulario &&
-              !p.seccion_oculta_en_formulario &&
-              (versionObjetivo
-                ? Number(p.fp_version ?? 1) === Number(versionObjetivo)
-                : true),
+              !p.seccion_oculta_en_formulario,
           )
           .map((p) => {
-            const sec = p.seccion_id != null ? seccionesMap[p.seccion_id] : null;
+            const sec = p.fp_fs_id != null ? seccionesMap[p.fp_fs_id] : null;
             if (!sec) return p;
             return {
               ...p,
@@ -209,37 +200,20 @@ export function usePreguntasFormulario({
               tdo_vigencia_dias: item?.tdo_vigencia_dias ?? item?.vigenciaDias,
               tdo_permite_vencimiento: item?.tdo_permite_vencimiento ?? item?.aplicaFechaEmision,
               tdo_regla_vigencia: item?.tdo_regla_vigencia ?? item?.reglaVigencia ?? null,
-              tdo_anios_atras_permitidos:
-                item?.tdo_anios_atras_permitidos ?? item?.aniosAtrasPermitidos ?? null,
-              tdo_tiene_plantilla:
-                item?.tdo_tiene_plantilla ?? item?.tienePlantilla ?? false,
-              tdo_plantilla_contenido:
-                item?.tdo_plantilla_contenido ?? item?.plantillaContenido ?? null,
-              tdo_tipo_plantilla:
-                item?.tdo_tipo_plantilla ?? item?.tipoPlantilla ?? "TEXTO",
-              tdo_formato_codigo:
-                item?.tdo_formato_codigo ?? item?.formatoCodigo ?? null,
+              tdo_anios_atras_permitidos: item?.tdo_anios_atras_permitidos ?? item?.aniosAtrasPermitidos ?? null,
+              tdo_tiene_plantilla: item?.tdo_tiene_plantilla ?? item?.tienePlantilla ?? false,
+              tdo_plantilla_contenido: item?.tdo_plantilla_contenido ?? item?.plantillaContenido ?? null,
+              tdo_tipo_plantilla: item?.tdo_tipo_plantilla ?? item?.tipoPlantilla ?? "TEXTO",
+              tdo_formato_codigo: item?.tdo_formato_codigo ?? item?.formatoCodigo ?? null,
               tdo_formato_codigo_secundario:
-                item?.tdo_formato_codigo_secundario ??
-                item?.formatoCodigoSecundario ??
-                null,
+                item?.tdo_formato_codigo_secundario ?? item?.formatoCodigoSecundario ?? null,
               tdo_revision: item?.tdo_revision ?? item?.revision ?? null,
-              tdo_paginas_total:
-                item?.tdo_paginas_total ?? item?.paginasTotal ?? null,
-              tdo_encabezado_tipo:
-                item?.tdo_encabezado_tipo ?? item?.encabezadoTipo ?? "NINGUNO",
-              tdo_encabezado_imagen_url:
-                item?.tdo_encabezado_imagen_url ??
-                item?.encabezadoImagenUrl ??
-                null,
-              tdo_pie_pagina_tipo:
-                item?.tdo_pie_pagina_tipo ?? item?.piePaginaTipo ?? "NINGUNO",
-              tdo_pie_pagina_texto:
-                item?.tdo_pie_pagina_texto ?? item?.piePaginaTexto ?? null,
-              tdo_pie_pagina_imagen_url:
-                item?.tdo_pie_pagina_imagen_url ??
-                item?.piePaginaImagenUrl ??
-                null,
+              tdo_paginas_total: item?.tdo_paginas_total ?? item?.paginasTotal ?? null,
+              tdo_encabezado_tipo: item?.tdo_encabezado_tipo ?? item?.encabezadoTipo ?? "NINGUNO",
+              tdo_encabezado_imagen_url: item?.tdo_encabezado_imagen_url ?? item?.encabezadoImagenUrl ?? null,
+              tdo_pie_pagina_tipo: item?.tdo_pie_pagina_tipo ?? item?.piePaginaTipo ?? "NINGUNO",
+              tdo_pie_pagina_texto: item?.tdo_pie_pagina_texto ?? item?.piePaginaTexto ?? null,
+              tdo_pie_pagina_imagen_url: item?.tdo_pie_pagina_imagen_url ?? item?.piePaginaImagenUrl ?? null,
             };
           }
         });
@@ -263,7 +237,7 @@ export function usePreguntasFormulario({
           setLoading(false);
         }
       });
-  }, [solicitudId, formularioVersionObjetivo]);
+  }, [solicitudId, formularioIdObjetivo, formularioVersionObjetivo]);
 
   return {
     preguntas,

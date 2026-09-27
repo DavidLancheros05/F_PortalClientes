@@ -1607,14 +1607,14 @@ export interface GenerarPlantillaDocumentoOpciones {
   paginasTotal?: number | null;
   /** Respuestas resueltas por pregunta, para reemplazar los placeholders
    * agregados desde el selector de variables del formulario de tipos de
-   * documento. Clave = "<seccion_id>|<fp_descripcion>" para preguntas
-   * simples, o "<seccion_id>|<fp_descripcion>|col:<columna>" para una
+   * documento. Clave = "<fp_fs_id>|<fp_descripcion>" para preguntas
+   * simples, o "<fp_fs_id>|<fp_descripcion>|col:<columna>" para una
    * columna de la primera fila de una pregunta tipo TABLA — ver
    * construirMapaRespuestasPregunta.
    *
    * Se identifica por sección+texto y no por fp_id porque "crear nueva
    * versión" del formulario clona cada pregunta como una fila NUEVA (fp_id
-   * distinto) pero conserva seccion_id y fp_descripcion tal cual — un
+   * distinto) pero conserva fp_fs_id y fp_descripcion tal cual — un
    * placeholder anclado a fp_id se rompería en silencio (queda vacío) en
    * cuanto la solicitud se responde contra una versión más nueva. */
   respuestasPregunta?: Record<string, string>;
@@ -1656,7 +1656,7 @@ export interface PreguntaRenderizadaParaPlantilla {
   /** Código lógico estable de la pregunta (sobrevive renames y versiones
    * nuevas) — ancla preferida de los placeholders {{pregunta|cod:...}}. */
   fp_codigo?: string | null;
-  seccion_id: number;
+  fp_fs_id: number;
   valor_resuelto: string;
   tabla_columnas?: string[];
   tabla_filas?: Record<string, string>[];
@@ -1679,7 +1679,7 @@ export function construirMapaRespuestasPregunta(preguntas: PreguntaRenderizadaPa
     // Ancla preferida: fp_codigo (estable ante renames y versiones nuevas).
     // Ancla legada: sección+texto — sigue registrándose para plantillas
     // viejas que aún usan ese formato.
-    const claves = [clavePregunta(p.seccion_id, p.fp_descripcion)];
+    const claves = [clavePregunta(p.fp_fs_id, p.fp_descripcion)];
     if (p.fp_codigo) claves.unshift(`cod:${p.fp_codigo}`);
     for (const clave of claves) {
       // Si dos preguntas comparten ancla (dato duplicado, no debería

@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { maestrosService } from "@/services/maestros/maestros.service";
-import { resolverValorPreguntaDisparadora } from "../lib/resolverValorPregunta";
+import {
+  codigosOpcionElegidos,
+  reglaCoincide,
+  resolverValorPreguntaDisparadora,
+} from "../lib/resolverValorPregunta";
 import type { FormularioPregunta, Opcion, RespuestasState } from "../types";
 
-type ReglaFiltroCatalogo = { valor?: string; valor_filtro?: string };
+type ReglaFiltroCatalogo = { valor?: string; opcion_codigo?: string | null; valor_filtro?: string };
 
 function parseReglasFiltro(json?: string | null): ReglaFiltroCatalogo[] {
   if (!json) return [];
@@ -109,10 +113,9 @@ export function useCatalogoDependiente(
           const valorActual = resolverValorDisparador(padre, respuestas)
             .trim()
             .toLowerCase();
+          const codigos = codigosOpcionElegidos(padre, respuestas);
           const reglas = parseReglasFiltro(pregunta.fp_catalogo_filtro_reglas);
-          const regla = reglas.find(
-            (r) => (r.valor || "").trim().toLowerCase() === valorActual,
-          );
+          const regla = reglas.find((r) => reglaCoincide(r, codigos, valorActual));
           valorFiltro = valorActual ? regla?.valor_filtro : undefined;
         }
 

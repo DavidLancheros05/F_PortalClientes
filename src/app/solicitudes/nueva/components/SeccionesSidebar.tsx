@@ -8,7 +8,7 @@ interface PreguntaLite {
 }
 
 interface SeccionLite {
-  seccion_id: number;
+  fp_fs_id: number;
   seccion_nombre: string;
   seccion_descripcion?: string | null;
   preguntas: PreguntaLite[];
@@ -66,26 +66,25 @@ export function SeccionesSidebar({
         {secciones.map((seccion) => {
           const seccionPreguntas = seccion.preguntas;
           const seccionRespondibles = seccionPreguntas.filter(
-            (pregunta) =>
-              shouldShowQuestion(pregunta) && !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
+            (pregunta) => shouldShowQuestion(pregunta) && !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
           ).length;
-          const progresoSeccion = seccionProgress.get(seccion.seccion_id);
+          const progresoSeccion = seccionProgress.get(seccion.fp_fs_id);
           const todasCompletadas =
             (progresoSeccion?.displayTotal ?? 0) > 0 &&
             progresoSeccion?.displayAnswered === progresoSeccion?.displayTotal;
-          const selected = seccion.seccion_id === seccionSeleccionada;
+          const selected = seccion.fp_fs_id === seccionSeleccionada;
 
           return (
             <div
-              key={seccion.seccion_id}
+              key={seccion.fp_fs_id}
               ref={(el) => {
-                if (el) refsSecciones.current.set(seccion.seccion_id, el);
-                else refsSecciones.current.delete(seccion.seccion_id);
+                if (el) refsSecciones.current.set(seccion.fp_fs_id, el);
+                else refsSecciones.current.delete(seccion.fp_fs_id);
               }}
               className={`group relative flex-shrink-0 snap-start rounded-xl border px-2.5 py-2 cursor-pointer transition-all min-w-[150px] lg:min-w-0 lg:flex-none ${
                 selected ? "bg-brand-600/5 border-brand-500 shadow-sm" : "bg-white border-slate-200 hover:bg-slate-50"
               }`}
-              onClick={() => setSeccionSeleccionada(seccion.seccion_id)}
+              onClick={() => setSeccionSeleccionada(seccion.fp_fs_id)}
               aria-pressed={selected}>
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">

@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  DndContext,
-  closestCenter,
-  type useSensors,
-} from "@dnd-kit/core";
+import { DndContext, closestCenter, type useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ChevronDown, ChevronUp, Edit2, Plus, Save, Trash2, X } from "lucide-react";
 import { ConfirmModal, ErrorModal } from "@/components/modals";
@@ -97,248 +93,191 @@ export function PanelSecciones({
 
   return (
     <>
-  {/* PANEL IZQUIERDO - SECCIONES */}
-  <div className="w-1/3 min-h-0 bg-white rounded-lg shadow-sm p-2 flex flex-col overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200">
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-xs font-bold text-gray-900">Secciones</h2>
-      <button
-        onClick={() => {
-          setNuevaSeccion(true);
-          setEditandoSeccion(null);
-          setFormSeccion({ nombre: "", descripcion: "", ocultaEnFormulario: false });
-        }}
-        disabled={readonly || formularioEdicionAbierto}
-        className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white font-medium text-xs rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-      >
-        <Plus className="h-3 w-3" />
-        Nueva
-      </button>
-    </div>
-
-    {/* Formulario nueva/editar sección */}
-    {(nuevaSeccion || editandoSeccion) && (
-      <div className="mb-2 p-2 bg-emerald-50/60 border border-emerald-200 rounded-lg">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-bold text-xs text-emerald-900">
-            {editandoSeccion ? "Editar Sección" : "Nueva Sección"}
-          </h3>
+      {/* PANEL IZQUIERDO - SECCIONES */}
+      <div className="w-1/3 min-h-0 bg-white rounded-lg shadow-sm p-2 flex flex-col overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-bold text-gray-900">Secciones</h2>
           <button
             onClick={() => {
-              setNuevaSeccion(false);
+              setNuevaSeccion(true);
               setEditandoSeccion(null);
+              setFormSeccion({ nombre: "", descripcion: "", ocultaEnFormulario: false });
             }}
-            className="text-emerald-600 hover:bg-emerald-100 p-0.5 rounded-lg transition-colors"
-          >
-            <X className="h-3 w-3" />
+            disabled={readonly || formularioEdicionAbierto}
+            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white font-medium text-xs rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150">
+            <Plus className="h-3 w-3" />
+            Nueva
           </button>
         </div>
 
-        <div className="space-y-1.5">
-          <div>
-            <label
-              htmlFor="seccion-nombre"
-              className="block text-xs font-semibold text-emerald-900 mb-1"
-            >
-              Nombre de la sección <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="seccion-nombre"
-              type="text"
-              placeholder="Ej: Datos de contacto"
-              value={formSeccion.nombre}
-              onChange={(e) =>
-                setFormSeccion({ ...formSeccion, nombre: e.target.value })
-              }
-              className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-colors"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="seccion-descripcion"
-              className="block text-xs font-semibold text-emerald-900 mb-1"
-            >
-              Descripción{" "}
-              <span className="text-emerald-600 text-xs font-normal">
-                (opcional)
-              </span>
-            </label>
-            <textarea
-              id="seccion-descripcion"
-              placeholder="Ej: Información para contactar al cliente..."
-              value={formSeccion.descripcion}
-              onChange={(e) =>
-                setFormSeccion({
-                  ...formSeccion,
-                  descripcion: e.target.value,
-                })
-              }
-              className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-colors resize-none"
-              rows={2}
-            />
-          </div>
-          <label className="flex items-center gap-1.5 p-1.5 bg-white rounded-lg border border-emerald-200 cursor-pointer hover:bg-emerald-50 transition-colors">
-            <input
-              type="checkbox"
-              checked={formSeccion.ocultaEnFormulario}
-              onChange={(e) =>
-                setFormSeccion({
-                  ...formSeccion,
-                  ocultaEnFormulario: e.target.checked,
-                })
-              }
-              className="w-3.5 h-3.5 rounded accent-emerald-600"
-            />
-            <span className="text-xs font-medium text-gray-800">
-              Ocultar esta sección durante el diligenciamiento (sigue
-              apareciendo en el PDF final)
-            </span>
-          </label>
-          <button
-            onClick={guardarSeccion}
-            className="w-full px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-1 text-xs font-semibold transition-colors duration-150"
-          >
-            <Save className="h-3 w-3" />
-            Guardar
-          </button>
-        </div>
-      </div>
-    )}
-
-    {/* Lista de secciones */}
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleSeccionDragEnd}
-    >
-      <SortableContext
-        items={secciones.map((s) => `seccion-${s.fs_id || s.seccion_id}`)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="flex-1 overflow-y-auto space-y-1">
-          {loading ? (
-            <p className="text-gray-500 text-center py-4 text-xs animate-pulse">
-              Cargando secciones...
-            </p>
-          ) : (
-          secciones.map((seccion, index) => (
-            <SortableItem
-              key={seccion.fs_id || seccion.seccion_id}
-              id={`seccion-${seccion.fs_id || seccion.seccion_id}`}
-              disabled={readonly}
-            >
-              <div
-                className={`group relative p-1.5 border rounded-md transition-all duration-200 ${
-                  editandoPregunta ||
-                  nuevaPregunta ||
-                  formularioEdicionAbierto
-                    ? "cursor-not-allowed opacity-50"
-                    : "cursor-pointer"
-                } ${
-                  (seccion.fs_id || seccion.seccion_id) ===
-                  seccionSeleccionada
-                    ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-500 shadow-sm"
-                    : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/30 bg-white"
-                } ${
-                  !(seccion.fs_activo !== false)
-                    ? "opacity-60 grayscale"
-                    : ""
-                }`}
+        {/* Formulario nueva/editar sección */}
+        {(nuevaSeccion || editandoSeccion) && (
+          <div className="mb-2 p-2 bg-emerald-50/60 border border-emerald-200 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-bold text-xs text-emerald-900">
+                {editandoSeccion ? "Editar Sección" : "Nueva Sección"}
+              </h3>
+              <button
                 onClick={() => {
-                  if (
-                    !editandoPregunta &&
-                    !nuevaPregunta &&
-                    !formularioEdicionAbierto
-                  ) {
-                    setSeccionSeleccionada(
-                      (seccion.fs_id ?? seccion.seccion_id) || null,
-                    );
-                  }
+                  setNuevaSeccion(false);
+                  setEditandoSeccion(null);
                 }}
-              >
-                <div className="pr-14">
-                  <p className="font-semibold text-[11px] text-gray-900">
-                    {seccion.fs_orden || seccion.seccion_orden}.{" "}
-                    {seccion.fs_nombre || seccion.seccion_nombre}
-                  </p>
-                  {seccion.fs_descripcion ||
-                    (seccion.seccion_descripcion && (
-                      <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">
-                        {seccion.fs_descripcion ||
-                          seccion.seccion_descripcion}
-                      </p>
-                    ))}
-                  <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
-                    <span className="inline-block bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px]">
-                      {
-                        preguntas.filter(
-                          (p) =>
-                            p.seccion_id ===
-                            (seccion.fs_id ?? seccion.seccion_id),
-                        ).length
-                      }{" "}
-                      pregunta(s)
-                    </span>
-                  </p>
-                </div>
+                className="text-emerald-600 hover:bg-emerald-100 p-0.5 rounded-lg transition-colors">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
 
-                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      iniciarEdicionSeccion(seccion);
-                    }}
-                    disabled={readonly || formularioEdicionAbierto}
-                    className="p-0.5 text-gray-400 hover:text-blue-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      eliminarSeccion(seccion.fs_id ?? seccion.seccion_id);
-                    }}
-                    disabled={readonly || formularioEdicionAbierto}
-                    className="p-0.5 text-gray-400 hover:text-red-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "arriba");
-                    }}
-                    disabled={
-                      readonly ||
-                      index === 0 ||
-                      formularioEdicionAbierto
-                    }
-                    className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronUp className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      cambiarOrdenSeccion(seccion.fs_id ?? seccion.seccion_id, "abajo");
-                    }}
-                    disabled={
-                      readonly ||
-                      index === secciones.length - 1 ||
-                      formularioEdicionAbierto
-                    }
-                    className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </div>
+            <div className="space-y-1.5">
+              <div>
+                <label htmlFor="seccion-nombre" className="block text-xs font-semibold text-emerald-900 mb-1">
+                  Nombre de la sección <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="seccion-nombre"
+                  type="text"
+                  placeholder="Ej: Datos de contacto"
+                  value={formSeccion.nombre}
+                  onChange={(e) => setFormSeccion({ ...formSeccion, nombre: e.target.value })}
+                  className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-colors"
+                />
               </div>
-            </SortableItem>
-          ))
-          )}
-        </div>
-      </SortableContext>
-    </DndContext>
-  </div>
+              <div>
+                <label htmlFor="seccion-descripcion" className="block text-xs font-semibold text-emerald-900 mb-1">
+                  Descripción <span className="text-emerald-600 text-xs font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  id="seccion-descripcion"
+                  placeholder="Ej: Información para contactar al cliente..."
+                  value={formSeccion.descripcion}
+                  onChange={(e) =>
+                    setFormSeccion({
+                      ...formSeccion,
+                      descripcion: e.target.value,
+                    })
+                  }
+                  className="w-full border border-emerald-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-colors resize-none"
+                  rows={2}
+                />
+              </div>
+              <label className="flex items-center gap-1.5 p-1.5 bg-white rounded-lg border border-emerald-200 cursor-pointer hover:bg-emerald-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={formSeccion.ocultaEnFormulario}
+                  onChange={(e) =>
+                    setFormSeccion({
+                      ...formSeccion,
+                      ocultaEnFormulario: e.target.checked,
+                    })
+                  }
+                  className="w-3.5 h-3.5 rounded accent-emerald-600"
+                />
+                <span className="text-xs font-medium text-gray-800">
+                  Ocultar esta sección durante el diligenciamiento (sigue apareciendo en el PDF final)
+                </span>
+              </label>
+              <button
+                onClick={guardarSeccion}
+                className="w-full px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-1 text-xs font-semibold transition-colors duration-150">
+                <Save className="h-3 w-3" />
+                Guardar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Lista de secciones */}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSeccionDragEnd}>
+          <SortableContext
+            items={secciones.map((s) => `seccion-${s.fs_id || s.fp_fs_id}`)}
+            strategy={verticalListSortingStrategy}>
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {loading ? (
+                <p className="text-gray-500 text-center py-4 text-xs animate-pulse">Cargando secciones...</p>
+              ) : (
+                secciones.map((seccion, index) => (
+                  <SortableItem
+                    key={seccion.fs_id || seccion.fp_fs_id}
+                    id={`seccion-${seccion.fs_id || seccion.fp_fs_id}`}
+                    disabled={readonly}>
+                    <div
+                      className={`group relative p-1.5 border rounded-md transition-all duration-200 ${
+                        editandoPregunta || nuevaPregunta || formularioEdicionAbierto
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer"
+                      } ${
+                        (seccion.fs_id || seccion.fp_fs_id) === seccionSeleccionada
+                          ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-500 shadow-sm"
+                          : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:bg-blue-50/30 bg-white"
+                      } ${!(seccion.fs_activo !== false) ? "opacity-60 grayscale" : ""}`}
+                      onClick={() => {
+                        if (!editandoPregunta && !nuevaPregunta && !formularioEdicionAbierto) {
+                          setSeccionSeleccionada((seccion.fs_id ?? seccion.fp_fs_id) || null);
+                        }
+                      }}>
+                      <div className="pr-14">
+                        <p className="font-semibold text-[11px] text-gray-900">
+                          {seccion.fs_orden || seccion.seccion_orden}. {seccion.fs_nombre || seccion.seccion_nombre}
+                        </p>
+                        {seccion.fs_descripcion ||
+                          (seccion.seccion_descripcion && (
+                            <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">
+                              {seccion.fs_descripcion || seccion.seccion_descripcion}
+                            </p>
+                          ))}
+                        <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
+                          <span className="inline-block bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px]">
+                            {preguntas.filter((p) => p.fp_fs_id === (seccion.fs_id ?? seccion.fp_fs_id)).length}{" "}
+                            pregunta(s)
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            iniciarEdicionSeccion(seccion);
+                          }}
+                          disabled={readonly || formularioEdicionAbierto}
+                          className="p-0.5 text-gray-400 hover:text-blue-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                          <Edit2 className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            eliminarSeccion(seccion.fs_id ?? seccion.fp_fs_id);
+                          }}
+                          disabled={readonly || formularioEdicionAbierto}
+                          className="p-0.5 text-gray-400 hover:text-red-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cambiarOrdenSeccion(seccion.fs_id ?? seccion.fp_fs_id, "arriba");
+                          }}
+                          disabled={readonly || index === 0 || formularioEdicionAbierto}
+                          className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                          <ChevronUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cambiarOrdenSeccion(seccion.fs_id ?? seccion.fp_fs_id, "abajo");
+                          }}
+                          disabled={readonly || index === secciones.length - 1 || formularioEdicionAbierto}
+                          className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                          <ChevronDown className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </SortableItem>
+                ))
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
 
       <ConfirmModal
         isOpen={seccionAEliminar !== null}
@@ -353,11 +292,7 @@ export function PanelSecciones({
       <ConfirmModal
         isOpen={mostrarConfirmarGuardarSeccion}
         title={editandoSeccion ? "Confirmar edición" : "Confirmar nueva sección"}
-        message={
-          editandoSeccion
-            ? "¿Deseas guardar los cambios de esta sección?"
-            : "¿Deseas crear esta sección?"
-        }
+        message={editandoSeccion ? "¿Deseas guardar los cambios de esta sección?" : "¿Deseas crear esta sección?"}
         confirmText="Sí, guardar"
         cancelText="Cancelar"
         isLoading={guardandoSeccion}

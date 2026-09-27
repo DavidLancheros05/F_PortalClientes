@@ -4,7 +4,9 @@
 // "pregunta respondida" (progreso), la validación de sección y el aviso
 // que muestra TablaField.
 
-type ColumnaConSuma = { nombre: string; tipo?: string; suma_total?: unknown };
+import { valorCelda } from "@/lib/tabla-respuesta";
+
+type ColumnaConSuma = { nombre: string; codigo?: string; tipo?: string; suma_total?: unknown };
 
 export type DescuadreSumaColumna = { columna: string; suma: number; esperado: number };
 
@@ -16,7 +18,7 @@ export function calcularDescuadresSuma(
     .filter((c) => c.tipo === "NUMERO" && typeof c.suma_total === "number")
     .map((c) => {
       const suma = filas.reduce((acc, fila) => {
-        const numero = Number(String(fila?.[c.nombre] ?? "").trim());
+        const numero = Number(String(valorCelda(fila, c) ?? "").trim());
         return Number.isFinite(numero) ? acc + numero : acc;
       }, 0);
       return { columna: c.nombre, suma, esperado: c.suma_total as number };

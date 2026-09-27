@@ -6,7 +6,7 @@ export type Seccion = {
   fs_activo: boolean;
   fs_oculta_en_formulario?: boolean;
   // Aliases para compatibilidad con código existente
-  seccion_id?: number;
+  fp_fs_id?: number;
   seccion_nombre?: string;
   seccion_descripcion?: string;
   seccion_orden?: number;
@@ -37,7 +37,7 @@ export type Pregunta = {
   fp_requerida?: boolean;
   fp_subtipo?: string | null;
   fp_patron?: string | null;
-  seccion_id?: number;
+  fp_fs_id?: number;
   seccion_nombre?: string;
   fp_pregunta_padre_id?: number | null;
   fp_valor_padre_disparador?: string | null;
@@ -153,7 +153,7 @@ export type FormPreguntaState = {
   tipo: Pregunta["fp_tipo"];
   subtipo: string;
   patron: string;
-  seccion_id: number | null;
+  fp_fs_id: number | null;
   requerida: boolean;
   tipo_documento_id: number | null;
   catalogo_base_datos: string;
@@ -163,7 +163,7 @@ export type FormPreguntaState = {
   catalogo_columna_condicion: string;
   catalogo_valor_condicion: string;
   dependiente: boolean;
-  dependencia_seccion_id: number | null;
+  dependencia_fp_fs_id: number | null;
   dependencia_pregunta_id: number | null;
   dependencia_valor: string;
   precarga_fuente: string;
@@ -175,11 +175,11 @@ export type FormPreguntaState = {
   ancho_columnas: 1 | 2 | 3;
   tabla_limite_modo: "SIN_LIMITE" | "FIJO" | "CONDICIONAL";
   tabla_limite_fijo: string;
-  tabla_limite_seccion_id: number | null;
+  tabla_limite_fp_fs_id: number | null;
   tabla_limite_pregunta_id: number | null;
   tabla_limite_reglas: ReglaLimiteTabla[];
   catalogo_filtro_dependiente: boolean;
-  catalogo_filtro_seccion_id: number | null;
+  catalogo_filtro_fp_fs_id: number | null;
   catalogo_filtro_pregunta_id: number | null;
   catalogo_filtro_columna: string;
   catalogo_filtro_reglas: ReglaFiltroCatalogo[];

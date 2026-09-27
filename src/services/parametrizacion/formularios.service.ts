@@ -29,11 +29,11 @@ export interface TipoPregunta {
 export interface Pregunta {
   fp_id: number;
   frs_id: number;
-  seccion_id?: number;
+  fp_fs_id?: number;
   fp_orden: number;
   fp_descripcion: string;
   fp_tipo: string;
-  fp_version: number;
+  fp_fv_id: number;
   seccion_nombre?: string;
   seccion_descripcion?: string;
   seccion_orden?: number;

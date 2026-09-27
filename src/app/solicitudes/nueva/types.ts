@@ -1,7 +1,4 @@
-import type {
-  FormularioPreguntaResponse,
-  FormularioPreguntaOpcion,
-} from "@/types/api.types";
+import type { FormularioPreguntaResponse, FormularioPreguntaOpcion } from "@/types/api.types";
 import type { UltimaSolicitud } from "@/hooks/useUltimaSolicitud";
 
 export type ValidationRule = {
@@ -29,7 +26,7 @@ export interface DocumentoCatalogo {
 }
 
 export interface Seccion {
-  seccion_id: number;
+  fp_fs_id: number;
   seccion_nombre: string;
   seccion_descripcion?: string | null;
   seccion_orden: number;

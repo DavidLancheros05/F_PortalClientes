@@ -11,6 +11,9 @@ type SeccionEditorDeps = {
   setSeccionSeleccionada: React.Dispatch<React.SetStateAction<number | null>>;
   cargarDatos: () => Promise<void>;
   readonly: boolean;
+  // Versión que se está editando: cada sección pertenece a una versión.
+  formularioIdNumber: number | null;
+  version: string | null;
 };
 
 export function useSeccionEditor({
@@ -20,6 +23,8 @@ export function useSeccionEditor({
   setSeccionSeleccionada,
   cargarDatos,
   readonly,
+  formularioIdNumber,
+  version,
 }: SeccionEditorDeps) {
   const [editandoSeccion, setEditandoSeccion] = useState<number | null>(null);
   const [nuevaSeccion, setNuevaSeccion] = useState(false);
@@ -30,14 +35,9 @@ export function useSeccionEditor({
   });
   const [seccionAEliminar, setSeccionAEliminar] = useState<number | null>(null);
   const [guardandoSeccion, setGuardandoSeccion] = useState(false);
-  const [mostrarConfirmarGuardarSeccion, setMostrarConfirmarGuardarSeccion] =
-    useState(false);
-  const [successMessageSeccion, setSuccessMessageSeccion] = useState<
-    "creada" | "editada" | null
-  >(null);
-  const [errorMessageSeccion, setErrorMessageSeccion] = useState<
-    string | null
-  >(null);
+  const [mostrarConfirmarGuardarSeccion, setMostrarConfirmarGuardarSeccion] = useState(false);
+  const [successMessageSeccion, setSuccessMessageSeccion] = useState<"creada" | "editada" | null>(null);
+  const [errorMessageSeccion, setErrorMessageSeccion] = useState<string | null>(null);
 
   const guardarSeccion = () => {
     if (!formSeccion.nombre.trim()) {
@@ -59,12 +59,16 @@ export function useSeccionEditor({
         setSuccessMessageSeccion("editada");
       } else {
         const nuevoOrden =
-          secciones.length > 0 ? Math.max(...secciones.map((s) => (s.fs_orden || s.seccion_orden || 0))) + 1 : 1;
+          secciones.length > 0 ? Math.max(...secciones.map((s) => s.fs_orden || s.seccion_orden || 0)) + 1 : 1;
         await api.post("/parametrizacion/formulario-secciones", {
           seccion_nombre: formSeccion.nombre,
           seccion_descripcion: formSeccion.descripcion,
           seccion_orden: nuevoOrden,
           seccion_oculta_en_formulario: formSeccion.ocultaEnFormulario,
+          // Sin versión en la URL el editor muestra la versión activa, y el
+          // backend usa esa misma si no llegan estos dos campos.
+          formulario_id: formularioIdNumber ?? undefined,
+          formulario_version: version ? parseInt(version) : undefined,
         });
         setSuccessMessageSeccion("creada");
       }
@@ -73,9 +77,10 @@ export function useSeccionEditor({
       setNuevaSeccion(false);
       setMostrarConfirmarGuardarSeccion(false);
       await cargarDatos();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error guardando sección:", error);
-      setErrorMessageSeccion("Error al guardar la sección");
+      const data = error?.response?.data;
+      setErrorMessageSeccion(data?.message || data?.error || "Error al guardar la sección");
       setMostrarConfirmarGuardarSeccion(false);
     } finally {
       setGuardandoSeccion(false);
@@ -88,7 +93,7 @@ export function useSeccionEditor({
       descripcion: seccion.fs_descripcion || seccion.seccion_descripcion || "",
       ocultaEnFormulario: seccion.fs_oculta_en_formulario ?? false,
     });
-    setEditandoSeccion(seccion.fs_id || seccion.seccion_id || null);
+    setEditandoSeccion(seccion.fs_id || seccion.fp_fs_id || null);
     setNuevaSeccion(false);
   };
 
@@ -111,9 +116,7 @@ export function useSeccionEditor({
     } catch (error: any) {
       console.error("Error eliminando sección:", error);
       const data = error?.response?.data;
-      setErrorMessageSeccion(
-        data?.message || data?.error || "Error al eliminar sección",
-      );
+      setErrorMessageSeccion(data?.message || data?.error || "Error al eliminar sección");
       if (error?.response?.status === 404) {
         // La sección ya no existe en la BD: refrescar para que desaparezca
         // de la lista y no se repita el intento sobre una fila fantasma.
@@ -123,30 +126,30 @@ export function useSeccionEditor({
   };
 
   const cambiarOrdenSeccion = async (seccionId: number, direccion: "arriba" | "abajo") => {
-    const indice = secciones.findIndex((s) => (s.fs_id || s.seccion_id) === seccionId);
-    if (
-      (direccion === "arriba" && indice === 0) ||
-      (direccion === "abajo" && indice === secciones.length - 1)
-    ) {
+    const indice = secciones.findIndex((s) => (s.fs_id || s.fp_fs_id) === seccionId);
+    if ((direccion === "arriba" && indice === 0) || (direccion === "abajo" && indice === secciones.length - 1)) {
       return;
     }
     const nuevasSecciones = [...secciones];
     const intercambioIndice = direccion === "arriba" ? indice - 1 : indice + 1;
     const ordenTemp = nuevasSecciones[indice].fs_orden || nuevasSecciones[indice].seccion_orden || 0;
-    nuevasSecciones[indice].fs_orden = nuevasSecciones[intercambioIndice].fs_orden || nuevasSecciones[intercambioIndice].seccion_orden || 0;
+    nuevasSecciones[indice].fs_orden =
+      nuevasSecciones[intercambioIndice].fs_orden || nuevasSecciones[intercambioIndice].seccion_orden || 0;
     nuevasSecciones[indice].seccion_orden = nuevasSecciones[indice].fs_orden;
     nuevasSecciones[intercambioIndice].fs_orden = ordenTemp;
     nuevasSecciones[intercambioIndice].seccion_orden = ordenTemp;
     try {
-      const idA = nuevasSecciones[indice].fs_id || nuevasSecciones[indice].seccion_id;
-      const idB = nuevasSecciones[intercambioIndice].fs_id || nuevasSecciones[intercambioIndice].seccion_id;
+      const idA = nuevasSecciones[indice].fs_id || nuevasSecciones[indice].fp_fs_id;
+      const idB = nuevasSecciones[intercambioIndice].fs_id || nuevasSecciones[intercambioIndice].fp_fs_id;
       await api.put(`/parametrizacion/formulario-secciones/${idA}`, {
         seccion_orden: nuevasSecciones[indice].fs_orden || nuevasSecciones[indice].seccion_orden,
       });
       await api.put(`/parametrizacion/formulario-secciones/${idB}`, {
         seccion_orden: nuevasSecciones[intercambioIndice].fs_orden || nuevasSecciones[intercambioIndice].seccion_orden,
       });
-      setSecciones(nuevasSecciones.sort((a, b) => (a.fs_orden || a.seccion_orden || 0) - (b.fs_orden || b.seccion_orden || 0)));
+      setSecciones(
+        nuevasSecciones.sort((a, b) => (a.fs_orden || a.seccion_orden || 0) - (b.fs_orden || b.seccion_orden || 0)),
+      );
     } catch (error) {
       console.error("Error cambiando orden:", error);
     }
@@ -156,7 +159,7 @@ export function useSeccionEditor({
     try {
       await Promise.all(
         ordenadas.map((seccion, index) => {
-          const id = seccion.fs_id || seccion.seccion_id;
+          const id = seccion.fs_id || seccion.fp_fs_id;
           return api.put(`/parametrizacion/formulario-secciones/${id}`, {
             seccion_orden: index + 1,
           });
@@ -171,8 +174,8 @@ export function useSeccionEditor({
     if (readonly) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = secciones.findIndex((s) => `seccion-${s.fs_id || s.seccion_id}` === active.id);
-    const newIndex = secciones.findIndex((s) => `seccion-${s.fs_id || s.seccion_id}` === over.id);
+    const oldIndex = secciones.findIndex((s) => `seccion-${s.fs_id || s.fp_fs_id}` === active.id);
+    const newIndex = secciones.findIndex((s) => `seccion-${s.fs_id || s.fp_fs_id}` === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordenadas = arrayMove(secciones, oldIndex, newIndex).map((seccion, index) => ({
       ...seccion,
