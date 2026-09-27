@@ -97,8 +97,6 @@ export default function FormularioEditorPage() {
     loading_opciones,
     opcionesNuevas,
     setOpcionesNuevas,
-    catalogoBases,
-    loadingCatalogoBases,
     catalogoTablas,
     loadingCatalogoTablas,
     catalogoColumnas,
@@ -107,27 +105,15 @@ export default function FormularioEditorPage() {
     opcionesPreguntaPadre,
     loadingOpcionesPreguntaPadre,
     loadingDocumentosCatalogo,
-    filtroBaseDatos,
-    setFiltroBaseDatos,
     filtroTabla,
     setFiltroTabla,
     filtroColumna,
     setFiltroColumna,
     filtroLlave,
     setFiltroLlave,
-    basesFiltradas,
     tablasFiltradas,
     columnasFiltradas,
     llaveFiltrada,
-    filtroPrecargaTabla,
-    setFiltroPrecargaTabla,
-    filtroPrecargaColumna,
-    setFiltroPrecargaColumna,
-    catalogoPrecargaTablas,
-    catalogoPrecargaColumnas,
-    loadingCatalogoPrecargaTablas,
-    loadingCatalogoPrecargaColumnas,
-    cargarBasesCatalogo,
     cargarTablasCatalogo,
     cargarColumnasCatalogo,
     guardarPregunta,
@@ -189,9 +175,12 @@ export default function FormularioEditorPage() {
   const preguntaFormAbierto = nuevaPregunta || editandoPregunta !== null;
   const formularioEdicionAbierto = seccionFormAbierto || preguntaFormAbierto;
 
+  // Alto: 3.75rem = alto real del header de la app (60px); con 7rem quedaba
+  // una franja vacía abajo y el editor no llegaba al final de la ventana.
   return (
-    <div className="w-full h-[calc(100vh-7rem)] p-2 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
-      <div className="mx-auto max-w-400 h-full flex flex-col gap-2">
+    <div className="w-full h-[calc(100dvh-3.75rem)] p-3 bg-gradient-to-b from-page-from to-page-to overflow-hidden">
+      {/* Sin gap: PageHeaderCard ya trae su propio margen inferior. */}
+      <div className="mx-auto max-w-400 h-full flex flex-col">
         <FormularioHeader
           formulario={formulario}
           formularioId={formularioId}
@@ -203,7 +192,7 @@ export default function FormularioEditorPage() {
           editorModeUrl={editorModeUrl}
         />
 
-        <div className="flex-1 min-h-0 flex gap-2 overflow-hidden">
+        <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
           <PanelSecciones
             secciones={secciones}
             loading={loading}
@@ -265,8 +254,6 @@ export default function FormularioEditorPage() {
             loading_opciones={loading_opciones}
             opcionesNuevas={opcionesNuevas}
             setOpcionesNuevas={setOpcionesNuevas}
-            catalogoBases={catalogoBases}
-            loadingCatalogoBases={loadingCatalogoBases}
             catalogoTablas={catalogoTablas}
             loadingCatalogoTablas={loadingCatalogoTablas}
             catalogoColumnas={catalogoColumnas}
@@ -275,27 +262,15 @@ export default function FormularioEditorPage() {
             opcionesPreguntaPadre={opcionesPreguntaPadre}
             loadingOpcionesPreguntaPadre={loadingOpcionesPreguntaPadre}
             loadingDocumentosCatalogo={loadingDocumentosCatalogo}
-            filtroBaseDatos={filtroBaseDatos}
-            setFiltroBaseDatos={setFiltroBaseDatos}
             filtroTabla={filtroTabla}
             setFiltroTabla={setFiltroTabla}
             filtroColumna={filtroColumna}
             setFiltroColumna={setFiltroColumna}
             filtroLlave={filtroLlave}
             setFiltroLlave={setFiltroLlave}
-            basesFiltradas={basesFiltradas}
             tablasFiltradas={tablasFiltradas}
             columnasFiltradas={columnasFiltradas}
             llaveFiltrada={llaveFiltrada}
-            filtroPrecargaTabla={filtroPrecargaTabla}
-            setFiltroPrecargaTabla={setFiltroPrecargaTabla}
-            filtroPrecargaColumna={filtroPrecargaColumna}
-            setFiltroPrecargaColumna={setFiltroPrecargaColumna}
-            catalogoPrecargaTablas={catalogoPrecargaTablas}
-            catalogoPrecargaColumnas={catalogoPrecargaColumnas}
-            loadingCatalogoPrecargaTablas={loadingCatalogoPrecargaTablas}
-            loadingCatalogoPrecargaColumnas={loadingCatalogoPrecargaColumnas}
-            cargarBasesCatalogo={cargarBasesCatalogo}
             cargarTablasCatalogo={cargarTablasCatalogo}
             cargarColumnasCatalogo={cargarColumnasCatalogo}
             guardarPregunta={guardarPregunta}

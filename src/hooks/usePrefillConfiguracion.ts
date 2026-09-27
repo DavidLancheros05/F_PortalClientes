@@ -211,7 +211,6 @@ function normalizarValorCliente(
       break;
 
     case "SELECT":
-    case "SELECT_CONDICIONAL":
     case "DOCUMENTOS_TABLA": {
       // El id de la opción es específico de ESTA pregunta (Formulario_pregunta_opcion),
       // no coincide con ids de otros catálogos (p.ej. tipos_identificacion). Por eso

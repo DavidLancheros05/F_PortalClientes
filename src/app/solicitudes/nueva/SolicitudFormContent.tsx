@@ -175,8 +175,8 @@ export default function SolicitudFormContent({
       const filas = JSON.parse(valorTexto);
       if (!Array.isArray(filas) || filas.length === 0) return null;
       const principal = filas[0] as Record<string, string>;
-      // Por codigo de columna (crl_*, ver MAPEOS en el backend) y, en
-      // respuestas viejas, por su etiqueta.
+      // Por codigo de columna (crl_*, asignado por el backfill de códigos
+      // de columna) y, en respuestas viejas, por su etiqueta.
       const nombre = principal["crl_nombre"] || principal["Apellidos y Nombre"] || principal["Nombre"] || "";
       const identificacion =
         principal["crl_identificacion"] || principal["Identificacion"] || principal["Identificación"] || "";
@@ -517,7 +517,6 @@ export default function SolicitudFormContent({
     const esPreguntaSeleccion = (pregunta: FormularioPregunta) =>
       [
         TIPOS_PREGUNTA.SELECT,
-        TIPOS_PREGUNTA.SELECT_CONDICIONAL,
         TIPOS_PREGUNTA.SELECT_TABLA,
         TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
       ].includes(pregunta.fp_tipo as any);
@@ -1373,25 +1372,6 @@ export default function SolicitudFormContent({
     return { total, answered, percent, usesRequired };
   }, [seccionProgress]);
 
-  // Determinar si mostrar el campo adicional condicional
-  const shouldShowConditionalField = (pregunta: FormularioPregunta): boolean => {
-    if (!pregunta.fp_opcion_disparadora || !pregunta.fp_descripcion_adicional) {
-      return false;
-    }
-
-    const respuestaActual = respuestas[pregunta.fp_id];
-    if (!respuestaActual?.valor_opcion_id) {
-      return false;
-    }
-
-    // Obtener el opción seleccionada
-    const opcionSeleccionada = pregunta.opciones?.find(
-      (o) => String(o.op_id) === String(respuestaActual.valor_opcion_id),
-    );
-
-    return opcionSeleccionada?.op_descripcion === pregunta.fp_opcion_disparadora;
-  };
-
   // Inicializar lastSavedResponses cuando se carguen las respuestas ya
   // guardadas de una solicitud existente (solicitudId presente). Para una
   // solicitud nueva (sin solicitudId), `respuestas` ya trae valores por la
@@ -1920,7 +1900,6 @@ export default function SolicitudFormContent({
                             setSuccessMessage={setSuccessMessage}
                             setErrorMessage={setErrorMessage}
                             shouldShowQuestion={shouldShowQuestion}
-                            shouldShowConditionalField={shouldShowConditionalField}
                             getValidationRules={getValidationRules}
                             validateField={validateField}
                             handleInputChange={handleInputChange}

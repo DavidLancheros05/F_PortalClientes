@@ -12,22 +12,17 @@ interface PreguntaFormCatalogoExternoProps {
   nuevaPregunta: boolean;
   secciones: Seccion[];
   preguntas: Pregunta[];
-  filtroBaseDatos: string;
-  setFiltroBaseDatos: (value: string) => void;
   filtroTabla: string;
   setFiltroTabla: (value: string) => void;
   filtroColumna: string;
   setFiltroColumna: (value: string) => void;
   filtroLlave: string;
   setFiltroLlave: (value: string) => void;
-  basesFiltradas: string[];
   tablasFiltradas: string[];
   columnasFiltradas: string[];
   llaveFiltrada: string[];
-  catalogoBases: string[];
   catalogoTablas: string[];
   catalogoColumnas: string[];
-  loadingCatalogoBases: boolean;
   loadingCatalogoTablas: boolean;
   loadingCatalogoColumnas: boolean;
 }
@@ -45,22 +40,17 @@ export function PreguntaFormCatalogoExterno({
   nuevaPregunta,
   secciones,
   preguntas,
-  filtroBaseDatos,
-  setFiltroBaseDatos,
   filtroTabla,
   setFiltroTabla,
   filtroColumna,
   setFiltroColumna,
   filtroLlave,
   setFiltroLlave,
-  basesFiltradas,
   tablasFiltradas,
   columnasFiltradas,
   llaveFiltrada,
-  catalogoBases,
   catalogoTablas,
   catalogoColumnas,
-  loadingCatalogoBases,
   loadingCatalogoTablas,
   loadingCatalogoColumnas,
 }: PreguntaFormCatalogoExternoProps) {
@@ -75,7 +65,6 @@ export function PreguntaFormCatalogoExterno({
     return [seleccionado, ...lista.filter((item) => item !== seleccionado)];
   };
 
-  const basesParaMostrar = conSeleccionPrimero(basesFiltradas, formPregunta.catalogo_base_datos || "");
   const tablasParaMostrar = conSeleccionPrimero(tablasFiltradas, formPregunta.catalogo_tabla || "");
   const columnasParaMostrar = conSeleccionPrimero(columnasFiltradas, formPregunta.catalogo_columna || "");
   const llaveParaMostrar = conSeleccionPrimero(llaveFiltrada, formPregunta.catalogo_pk_column || "");
@@ -83,61 +72,7 @@ export function PreguntaFormCatalogoExterno({
   return (
     <div className="space-y-1.5 p-3 bg-slate-50 border border-gray-200 rounded-xl">
       <h4 className="text-[12.5px] font-bold text-gray-800">Configuración de catálogo externo</h4>
-      <div className="space-y-1">
-        <label className="block text-[13px] font-semibold text-gray-800 leading-tight">Base de datos</label>
-        <input
-          type="text"
-          placeholder="Escribe para filtrar (ej: cli)..."
-          value={filtroBaseDatos}
-          onChange={(e) => setFiltroBaseDatos(e.target.value)}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors"
-        />
-        {(!formPregunta.catalogo_base_datos || filtroBaseDatos !== formPregunta.catalogo_base_datos) && (
-          <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
-            {loadingCatalogoBases && <p className="px-2 py-1 text-xs text-gray-500">Cargando bases...</p>}
-            {!loadingCatalogoBases && basesFiltradas.length === 0 && (
-              <p className="px-2 py-1 text-xs text-gray-500">
-                {catalogoBases.length === 0 ? "No hay bases disponibles" : "Sin coincidencias para el filtro"}
-              </p>
-            )}
-            {!loadingCatalogoBases &&
-              basesParaMostrar.map((base) => (
-                <button
-                  type="button"
-                  key={base}
-                  onClick={() => {
-                    setFormPregunta({
-                      ...formPregunta,
-                      catalogo_base_datos: base,
-                      catalogo_tabla: "",
-                      catalogo_columna: "",
-                    });
-                    setFiltroBaseDatos(base);
-                    setFiltroTabla("");
-                    setFiltroColumna("");
-                  }}
-                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">
-                  {base}
-                </button>
-              ))}
-          </div>
-        )}
-        <p className="text-xs text-gray-500">
-          {formPregunta.catalogo_base_datos ? (
-            <>
-              Seleccionada: <strong>{formPregunta.catalogo_base_datos}</strong>{" "}
-              <button
-                type="button"
-                onClick={() => setFiltroBaseDatos("")}
-                className="text-gray-700 underline hover:text-gray-900">
-                cambiar
-              </button>
-            </>
-          ) : (
-            "Si lo dejas vacío, se usa la base de datos principal."
-          )}
-        </p>
-      </div>
+      <p className="text-xs text-gray-500">Las tablas se leen siempre de la base de datos del portal.</p>
 
       <div className="space-y-1">
         <label className="block text-[13px] font-semibold text-gray-800 leading-tight">

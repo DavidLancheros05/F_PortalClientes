@@ -6,17 +6,12 @@ interface ColumnaCatalogoPickerProps {
   columna: ColumnaTabla;
   onChange: (cambios: Partial<ColumnaTabla>) => void;
   onCerrar: () => void;
-  catalogoBases: string[];
   catalogoTablas: string[];
   catalogoColumnas: string[];
-  basesFiltradas: string[];
   tablasFiltradas: string[];
   columnasFiltradas: string[];
-  loadingCatalogoBases: boolean;
   loadingCatalogoTablas: boolean;
   loadingCatalogoColumnas: boolean;
-  filtroBaseDatos: string;
-  setFiltroBaseDatos: (value: string) => void;
   filtroTabla: string;
   setFiltroTabla: (value: string) => void;
   filtroColumna: string;
@@ -24,8 +19,7 @@ interface ColumnaCatalogoPickerProps {
   llaveFiltrada: string[];
   filtroLlave: string;
   setFiltroLlave: (value: string) => void;
-  cargarTablasCatalogo: (baseDatos: string) => void;
-  cargarColumnasCatalogo: (baseDatos: string, tabla: string) => void;
+  cargarColumnasCatalogo: (tabla: string) => void;
   columnasCatalogoDisponibles: string[];
 }
 
@@ -33,17 +27,12 @@ export function ColumnaCatalogoPicker({
   columna,
   onChange,
   onCerrar,
-  catalogoBases,
   catalogoTablas,
   catalogoColumnas,
-  basesFiltradas,
   tablasFiltradas,
   columnasFiltradas,
-  loadingCatalogoBases,
   loadingCatalogoTablas,
   loadingCatalogoColumnas,
-  filtroBaseDatos,
-  setFiltroBaseDatos,
   filtroTabla,
   setFiltroTabla,
   filtroColumna,
@@ -51,7 +40,6 @@ export function ColumnaCatalogoPicker({
   llaveFiltrada,
   filtroLlave,
   setFiltroLlave,
-  cargarTablasCatalogo,
   cargarColumnasCatalogo,
   columnasCatalogoDisponibles,
 }: ColumnaCatalogoPickerProps) {
@@ -68,60 +56,6 @@ export function ColumnaCatalogoPicker({
         >
           listo
         </button>
-      </div>
-
-      <div className="space-y-0.5">
-        <label className="block text-xs font-semibold text-gray-800 leading-tight">
-          Base de datos
-        </label>
-        <input
-          type="text"
-          placeholder="Escribe para filtrar (ej: cli)..."
-          value={filtroBaseDatos}
-          onChange={(e) => setFiltroBaseDatos(e.target.value)}
-          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        />
-        {(!columna.catalogo_base_datos ||
-          filtroBaseDatos !== columna.catalogo_base_datos) && (
-          <div className="max-h-28 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
-            {loadingCatalogoBases && (
-              <p className="px-2 py-1 text-xs text-gray-500">Cargando bases...</p>
-            )}
-            {!loadingCatalogoBases && basesFiltradas.length === 0 && (
-              <p className="px-2 py-1 text-xs text-gray-500">
-                {catalogoBases.length === 0
-                  ? "No hay bases disponibles"
-                  : "Sin coincidencias para el filtro"}
-              </p>
-            )}
-            {!loadingCatalogoBases &&
-              basesFiltradas.map((base) => (
-                <button
-                  type="button"
-                  key={base}
-                  onClick={() => {
-                    onChange({
-                      catalogo_base_datos: base,
-                      catalogo_tabla: "",
-                      catalogo_columna: "",
-                    });
-                    setFiltroBaseDatos(base);
-                    setFiltroTabla("");
-                    setFiltroColumna("");
-                    cargarTablasCatalogo(base);
-                  }}
-                  className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                >
-                  {base}
-                </button>
-              ))}
-          </div>
-        )}
-        {columna.catalogo_base_datos && (
-          <p className="text-xs text-gray-500">
-            Seleccionada: {columna.catalogo_base_datos}
-          </p>
-        )}
       </div>
 
       <div className="space-y-0.5">
@@ -156,7 +90,7 @@ export function ColumnaCatalogoPicker({
                     onChange({ catalogo_tabla: tabla, catalogo_columna: "" });
                     setFiltroTabla(tabla);
                     setFiltroColumna("");
-                    cargarColumnasCatalogo(columna.catalogo_base_datos || "", tabla);
+                    cargarColumnasCatalogo(tabla);
                   }}
                   className="block w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
                 >

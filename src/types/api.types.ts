@@ -130,7 +130,6 @@ export interface FormularioPreguntaResponse {
     | "SELECT_TABLA"
     | "DOCUMENTOS_TABLA"
     | "MULTISELECT"
-    | "SELECT_CONDICIONAL"
     | "ARCHIVO"
     | "TABLA"
     | "IMAGEN"

@@ -10,7 +10,6 @@ export const fallbackTipoLabels: Record<Pregunta["fp_tipo"], string> = {
   SELECT_TABLA: "Selección desde tabla",
   DOCUMENTOS_TABLA: "Documentos desde tabla",
   MULTISELECT: "Selección múltiple (checkbox, varias opciones)",
-  SELECT_CONDICIONAL: "Selección condicional",
   ARCHIVO: "Archivo / Documento",
   TABLA: "Tabla",
   IMAGEN: "Imagen (firma, logo, etc.)",

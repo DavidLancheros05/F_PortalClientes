@@ -27,7 +27,6 @@ export type Pregunta = {
     | "SELECT_TABLA"
     | "DOCUMENTOS_TABLA"
     | "MULTISELECT"
-    | "SELECT_CONDICIONAL"
     | "ARCHIVO"
     | "TABLA"
     | "IMAGEN"
@@ -115,7 +114,6 @@ export type ColumnaTabla = {
   // Cartonera/documentacion/Funcionalidades/codigo-estable-columnas-tabla.md".
   codigo?: string;
   tipo: "TEXTO" | "NUMERO" | "SI_NO" | "CATALOGO" | "MONEDA";
-  catalogo_base_datos?: string;
   catalogo_tabla?: string;
   catalogo_columna?: string;
   catalogo_pk_column?: string;
@@ -156,7 +154,6 @@ export type FormPreguntaState = {
   fp_fs_id: number | null;
   requerida: boolean;
   tipo_documento_id: number | null;
-  catalogo_base_datos: string;
   catalogo_tabla: string;
   catalogo_columna: string;
   catalogo_pk_column: string;
@@ -168,9 +165,6 @@ export type FormPreguntaState = {
   dependencia_valor: string;
   precarga_fuente: string;
   precarga_campo_cliente: string;
-  precarga_base_datos: string;
-  precarga_tabla: string;
-  precarga_columna: string;
   tabla_columnas: ColumnaTabla[];
   ancho_columnas: 1 | 2 | 3;
   tabla_limite_modo: "SIN_LIMITE" | "FIJO" | "CONDICIONAL";

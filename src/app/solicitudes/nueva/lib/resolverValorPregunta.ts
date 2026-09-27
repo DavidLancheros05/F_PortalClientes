@@ -35,8 +35,7 @@ export function resolverValorPreguntaDisparadora(
 // fpo_codigo de TODAS las opciones elegidas en la pregunta disparadora (una
 // MULTISELECT puede tener varias). Vacío si no es de opciones o no tiene
 // respuesta. Las condiciones entre preguntas van por este código, no por el
-// texto de la opción (Fase 5 de plan-correccion-modelo-datos-formulario.md):
-// corregir el texto de una opción ya no las rompe.
+// texto de la opción: corregir el texto de una opción ya no las rompe.
 export function codigosOpcionElegidos(
   preguntaDisparadora: FormularioPregunta | undefined,
   respuestas: RespuestasState,

@@ -1,11 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { DndContext, closestCenter, type useSensors } from "@dnd-kit/core";
 import {
-  DndContext,
-  closestCenter,
-  type useSensors,
-} from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { ChevronDown, ChevronUp, Edit2, Lock, Trash2 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
@@ -22,10 +22,37 @@ export interface ListaPreguntasProps {
   setErrorPregunta: (error: string | null) => void;
   iniciarEdicionPregunta: (pregunta: Pregunta) => void;
   eliminarPregunta: (preguntaId: number) => void;
-  cambiarOrdenPregunta: (preguntaId: number, direccion: "arriba" | "abajo") => void;
+  cambiarOrdenPregunta: (
+    preguntaId: number,
+    direccion: "arriba" | "abajo",
+  ) => void;
   preguntaAEliminar: number | null;
   setPreguntaAEliminar: (id: number | null) => void;
   confirmarEliminarPregunta: () => void;
+}
+
+// Etiqueta de atributo de la pregunta: en color si aplica, en gris si no.
+function Etiqueta({
+  activa,
+  color,
+  title,
+  children,
+}: {
+  activa: boolean;
+  color: string;
+  title?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium ${
+        activa ? color : "bg-white text-slate-300 border-[#eef1f6]"
+      }`}
+    >
+      {children}
+    </span>
+  );
 }
 
 export function ListaPreguntas({
@@ -45,217 +72,261 @@ export function ListaPreguntas({
 }: ListaPreguntasProps) {
   return (
     <>
-  {/* Lista de preguntas */}
-  <DndContext
-    sensors={sensors}
-    collisionDetection={closestCenter}
-    onDragEnd={handlePreguntaDragEnd}
-  >
-    <SortableContext
-      items={preguntasDeSeccion.map((p) => `pregunta-${p.fp_id}`)}
-      strategy={verticalListSortingStrategy}
-    >
-      <div className="flex-1 overflow-y-auto space-y-1">
-        {loading ? (
-          <p className="text-gray-500 text-center py-4 text-xs animate-pulse">
-            Cargando preguntas...
-          </p>
-        ) : preguntasDeSeccion.length === 0 ? (
-          <p className="text-gray-500 text-center py-4 text-xs">
-            No hay preguntas en esta sección
-          </p>
-        ) : (
-          preguntasDeSeccion.map((pregunta, index) => (
-            <SortableItem
-              key={pregunta.fp_id}
-              id={`pregunta-${pregunta.fp_id}`}
-              disabled={noEditable}
-            >
-              <div
-                className={`group relative p-1.5 border border-gray-200 rounded-md hover:border-gray-300 hover:bg-gray-50 transition-colors duration-150 flex items-start gap-2 ${
-                  !pregunta.fp_estado ? "opacity-60 grayscale" : ""
-                }`}
-              >
-                <div className="flex-1 min-w-0 pr-16">
-                  <p className="font-medium text-[11px] whitespace-pre-wrap break-words">
-                    {pregunta.fp_descripcion}
-                  </p>
-                  <div className="flex flex-wrap gap-1 mt-0.5 text-[10px] text-gray-600">
-                    <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                      {pregunta.fp_tipo}
-                    </span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${pregunta.fp_estado ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-gray-100 text-gray-500 border-gray-200"}`}
-                    >
-                      {pregunta.fp_estado ? "Activa" : "Inactiva"}
-                    </span>
-                    {pregunta.fp_requerida && (
-                      <span className="bg-rose-50 text-rose-700 border border-rose-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                        Obligatorio
-                      </span>
-                    )}
-                    {pregunta.fp_pregunta_padre_id && (
-                      <span className="bg-violet-50 text-violet-700 border border-violet-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                        Dependiente
-                      </span>
-                    )}
-                    {pregunta.fp_precarga_fuente &&
-                      pregunta.fp_precarga_fuente !== "" && (
-                        <span className="bg-amber-50 text-amber-700 border border-amber-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                          Precarga
-                        </span>
-                      )}
-                    {pregunta.fp_protegida && (
-                      <span
-                        className="inline-flex items-center gap-0.5 bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                        title={
-                          pregunta.fp_protegida_motivo === "siesa"
-                            ? "Sus datos se envían a SIESA: no se puede cambiar el tipo de input ni eliminarla"
-                            : pregunta.fp_protegida_motivo === "flujo_siesa"
-                              ? "Está ligada al flujo del portal y sus datos se envían a SIESA: no se puede cambiar el tipo de input ni eliminarla"
-                              : "Está ligada al flujo interno del portal: no se puede cambiar el tipo de input ni eliminarla"
-                        }
-                      >
-                        <Lock className="h-2.5 w-2.5" />
-                        Protegida
-                      </span>
-                    )}
-                  </div>
-
-                  {pregunta.fp_tipo === TIPOS_PREGUNTA.TABLA && (
-                    <div className="mt-1 space-y-0.5">
-                      <p className="text-[10px] font-semibold text-gray-500">
-                        Columnas:
+      {/* Lista de preguntas */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handlePreguntaDragEnd}
+      >
+        <SortableContext
+          items={preguntasDeSeccion.map((p) => `pregunta-${p.fp_id}`)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {loading ? (
+              <p className="text-[#94a3b8] text-center py-4 text-xs animate-pulse">
+                Cargando preguntas...
+              </p>
+            ) : preguntasDeSeccion.length === 0 ? (
+              <p className="text-[#94a3b8] text-center py-8 text-sm">
+                No hay preguntas en esta sección
+              </p>
+            ) : (
+              preguntasDeSeccion.map((pregunta, index) => (
+                <SortableItem
+                  key={pregunta.fp_id}
+                  id={`pregunta-${pregunta.fp_id}`}
+                  disabled={noEditable}
+                >
+                  <div
+                    className={`group relative px-4 py-3 bg-white border border-[#eef1f6] rounded-[14px] hover:border-brand-500/25 hover:bg-[#fafbfd] transition-colors duration-150 flex items-start gap-4 ${
+                      !pregunta.fp_estado ? "opacity-60 grayscale" : ""
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[13px] leading-snug text-slate-800 whitespace-pre-wrap break-words">
+                        {pregunta.fp_descripcion}
                       </p>
-                      <div className="flex flex-wrap gap-1">
-                        {(() => {
-                          let columnas: { nombre: string; tipo: string }[] = [];
-                          try {
-                            const parsed = pregunta.fp_tabla_columnas
-                              ? JSON.parse(pregunta.fp_tabla_columnas)
-                              : [];
-                            columnas = Array.isArray(parsed)
-                              ? parsed.map((c: unknown) =>
-                                  typeof c === "string"
-                                    ? { nombre: c, tipo: "TEXTO" }
-                                    : (c as { nombre: string; tipo: string }),
-                                )
-                              : [];
-                          } catch {
-                            columnas = [];
-                          }
-                          return columnas.length > 0 ? (
-                            columnas.map((columna, idx) => (
+                      {pregunta.fp_tipo === TIPOS_PREGUNTA.TABLA && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] font-semibold text-[#94a3b8] mr-0.5">
+                            Columnas:
+                          </span>
+                          {(() => {
+                            let columnas: { nombre: string; tipo: string }[] =
+                              [];
+                            try {
+                              const parsed = pregunta.fp_tabla_columnas
+                                ? JSON.parse(pregunta.fp_tabla_columnas)
+                                : [];
+                              columnas = Array.isArray(parsed)
+                                ? parsed.map((c: unknown) =>
+                                    typeof c === "string"
+                                      ? { nombre: c, tipo: "TEXTO" }
+                                      : (c as { nombre: string; tipo: string }),
+                                  )
+                                : [];
+                            } catch {
+                              columnas = [];
+                            }
+                            return columnas.length > 0 ? (
+                              columnas.map((columna, idx) => (
+                                <span
+                                  key={idx}
+                                  className="bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-violet-100"
+                                >
+                                  {columna.nombre}
+                                  {columna.tipo === "SI_NO" && " (Sí/No)"}
+                                  {columna.tipo === "MONEDA" && " (Dinero)"}
+                                  {columna.tipo === "NUMERO" &&
+                                    " (Solo números)"}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[10px] text-gray-500 italic">
+                                Sin columnas configuradas
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {[
+                        TIPOS_PREGUNTA.SELECT,
+                        TIPOS_PREGUNTA.MULTISELECT,
+                      ].includes(pregunta.fp_tipo as any) && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] font-semibold text-[#94a3b8] mr-0.5">
+                            Opciones:
+                          </span>
+                          {pregunta.opciones && pregunta.opciones.length > 0 ? (
+                            pregunta.opciones.map((opcion, idx) => (
                               <span
                                 key={idx}
-                                className="bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-violet-100"
+                                className="bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-sky-100"
                               >
-                                {columna.nombre}
-                                {columna.tipo === "SI_NO" && " (Sí/No)"}
-                                {columna.tipo === "MONEDA" && " (Dinero)"}
-                                {columna.tipo === "NUMERO" && " (Solo números)"}
+                                {opcion.fpo_valor || opcion.op_descripcion}
                               </span>
                             ))
                           ) : (
                             <span className="text-[10px] text-gray-500 italic">
-                              Sin columnas configuradas
+                              Sin opciones configuradas
                             </span>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
+                          )}
+                        </div>
+                      )}
 
-                  {[
-                    TIPOS_PREGUNTA.SELECT,
-                    TIPOS_PREGUNTA.MULTISELECT,
-                  ].includes(pregunta.fp_tipo as any) && (
-                    <div className="mt-1 space-y-0.5">
-                      <p className="text-[10px] font-semibold text-gray-500">
-                        Opciones:
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {pregunta.opciones &&
-                        pregunta.opciones.length > 0 ? (
-                          pregunta.opciones.map((opcion, idx) => (
-                            <span
-                              key={idx}
-                              className="bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded text-[10px] font-medium border border-sky-100"
-                            >
-                              {opcion.fpo_valor ||
-                                opcion.op_descripcion}
+                      {pregunta.fp_tipo === TIPOS_PREGUNTA.SELECT_TABLA && (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px] text-[#94a3b8]">
+                          <span className="font-semibold mr-0.5">Tabla:</span>
+                          {pregunta.fp_catalogo_tabla ? (
+                            <>
+                              <span className="bg-teal-50 text-teal-700 border border-teal-100 px-1.5 py-0.5 rounded font-mono font-medium">
+                                {pregunta.fp_catalogo_tabla}
+                              </span>
+                              {pregunta.fp_catalogo_columna && (
+                                <>
+                                  <span>muestra</span>
+                                  <span className="bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-mono">
+                                    {pregunta.fp_catalogo_columna}
+                                  </span>
+                                </>
+                              )}
+                              {pregunta.fp_catalogo_filtro_pregunta_id && (
+                                <>
+                                  <span>filtrada por</span>
+                                  <span className="bg-violet-50 text-violet-700 border border-violet-100 px-1.5 py-0.5 rounded font-medium">
+                                    {preguntasDeSeccion.find(
+                                      (p) =>
+                                        p.fp_id ===
+                                        pregunta.fp_catalogo_filtro_pregunta_id,
+                                    )?.fp_descripcion ?? "otra pregunta"}
+                                    {pregunta.fp_catalogo_filtro_columna &&
+                                      ` (${pregunta.fp_catalogo_filtro_columna})`}
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <span className="italic text-gray-500">
+                              Sin tabla configurada
                             </span>
-                          ))
-                        ) : (
-                          <span className="text-[10px] text-gray-500 italic">
-                            Sin opciones configuradas
-                          </span>
-                        )}
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Columna derecha: siempre las mismas etiquetas en el
+                        mismo orden (en gris las que no aplican), así forman
+                        columnas alineadas entre preguntas; luego las acciones. */}
+                    <div className="flex items-start gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-1 whitespace-nowrap">
+                        <span className="w-[108px] text-center bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide truncate">
+                          {pregunta.fp_tipo}
+                        </span>
+                        <Etiqueta
+                          activa={!!pregunta.fp_estado}
+                          color="bg-emerald-50 text-emerald-700 border-emerald-100"
+                        >
+                          Activa
+                        </Etiqueta>
+                        <Etiqueta
+                          activa={!!pregunta.fp_requerida}
+                          color="bg-rose-50 text-rose-700 border-rose-100"
+                        >
+                          Obligatorio
+                        </Etiqueta>
+                        <Etiqueta
+                          activa={!!pregunta.fp_pregunta_padre_id}
+                          color="bg-violet-50 text-violet-700 border-violet-100"
+                        >
+                          Dependiente
+                        </Etiqueta>
+                        <Etiqueta
+                          activa={!!pregunta.fp_precarga_fuente}
+                          color="bg-amber-50 text-amber-700 border-amber-100"
+                        >
+                          Precarga
+                        </Etiqueta>
+                        <Etiqueta
+                          activa={!!pregunta.fp_protegida}
+                          color="bg-slate-200 text-slate-700 border-slate-300"
+                          title={
+                            !pregunta.fp_protegida
+                              ? undefined
+                              : pregunta.fp_protegida_motivo === "siesa"
+                                ? "Sus datos se envían a SIESA: no se puede cambiar el tipo de input ni eliminarla"
+                                : pregunta.fp_protegida_motivo === "flujo_siesa"
+                                  ? "Está ligada al flujo del portal y sus datos se envían a SIESA: no se puede cambiar el tipo de input ni eliminarla"
+                                  : "Está ligada al flujo interno del portal: no se puede cambiar el tipo de input ni eliminarla"
+                          }
+                        >
+                          <Lock className="h-2.5 w-2.5" />
+                          Protegida
+                        </Etiqueta>
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => {
+                            setErrorPregunta(null);
+                            iniciarEdicionPregunta(pregunta);
+                          }}
+                          disabled={noEditable || formularioEdicionAbierto}
+                          className="p-1 text-slate-400 hover:text-brand-600 hover:bg-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => eliminarPregunta(pregunta.fp_id)}
+                          disabled={
+                            noEditable ||
+                            formularioEdicionAbierto ||
+                            pregunta.fp_protegida
+                          }
+                          title={
+                            pregunta.fp_protegida
+                              ? "No se puede eliminar: es una pregunta protegida"
+                              : undefined
+                          }
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-white rounded-md disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            cambiarOrdenPregunta(pregunta.fp_id, "arriba")
+                          }
+                          disabled={
+                            noEditable ||
+                            index === 0 ||
+                            formularioEdicionAbierto
+                          }
+                          className="p-1 text-slate-400 hover:text-slate-700 hover:bg-white rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            cambiarOrdenPregunta(pregunta.fp_id, "abajo")
+                          }
+                          disabled={
+                            noEditable ||
+                            index === preguntasDeSeccion.length - 1 ||
+                            formularioEdicionAbierto
+                          }
+                          className="p-1 text-slate-400 hover:text-slate-700 hover:bg-white rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
-                  <button
-                    onClick={() => {
-                      setErrorPregunta(null);
-                      iniciarEdicionPregunta(pregunta);
-                    }}
-                    disabled={noEditable || formularioEdicionAbierto}
-                    className="p-0.5 text-gray-400 hover:text-blue-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => eliminarPregunta(pregunta.fp_id)}
-                    disabled={
-                      noEditable ||
-                      formularioEdicionAbierto ||
-                      pregunta.fp_protegida
-                    }
-                    title={
-                      pregunta.fp_protegida
-                        ? "No se puede eliminar: es una pregunta protegida"
-                        : undefined
-                    }
-                    className="p-0.5 text-gray-400 hover:text-red-600 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      cambiarOrdenPregunta(pregunta.fp_id, "arriba")
-                    }
-                    disabled={
-                      noEditable ||
-                      index === 0 ||
-                      formularioEdicionAbierto
-                    }
-                    className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronUp className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() =>
-                      cambiarOrdenPregunta(pregunta.fp_id, "abajo")
-                    }
-                    disabled={
-                      noEditable ||
-                      index === preguntasDeSeccion.length - 1 ||
-                      formularioEdicionAbierto
-                    }
-                    className="p-0.5 text-gray-400 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            </SortableItem>
-          ))
-        )}
-      </div>
-    </SortableContext>
-  </DndContext>
+                  </div>
+                </SortableItem>
+              ))
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       <ConfirmModal
         isOpen={preguntaAEliminar !== null}

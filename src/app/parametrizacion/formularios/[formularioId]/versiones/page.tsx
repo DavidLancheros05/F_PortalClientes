@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  ArrowLeft,
+  AlertTriangle,
   CheckCircle,
   Eye,
   RotateCcw,
@@ -14,23 +14,33 @@ import {
   FileText,
   GitBranch,
   Layers,
-  Clock,
   Lock,
 } from "lucide-react";
 import { versionesService } from "@/services/versiones.service";
-import { ConfirmModal, SuccessModal } from "@/components/modals";
+import { ConfirmModal, ErrorModal, SuccessModal } from "@/components/modals";
+import { PageHeaderCard } from "@/components/PageHeaderCard";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
+
+const CARD_CLASS =
+  "bg-white rounded-[22px] border shadow-[0_1px_3px_rgba(15,23,42,0.04),0_20px_50px_rgba(15,23,42,0.06)]";
+const BTN_SECUNDARIO =
+  "flex items-center gap-2 px-4 py-2 border border-[#e9ecf2] text-slate-700 bg-white rounded-[11px] font-bold text-sm hover:bg-[#fafbfd] transition-colors";
+const BTN_PRINCIPAL =
+  "flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-[11px] font-bold text-sm shadow-[0_6px_16px_rgba(0,61,153,0.22)] transition-all";
 
 export default function VersionesPage() {
   const router = useRouter();
   const params = useParams();
   const formularioId = params.formularioId as string;
+  const rutaNuevaVersion = `/parametrizacion/formularios/${formularioId}/nueva-version`;
 
   const [formulario, setFormulario] = useState<any>(null);
   const [versiones, setVersiones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activandoVersion, setActivandoVersion] = useState<number | null>(null);
   const [versionAConfirmar, setVersionAConfirmar] = useState<number | null>(null);
-  const [notificacion, setNotificacion] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const activarVersion = async (versionNumero: number) => {
     setActivandoVersion(versionNumero);
@@ -39,30 +49,35 @@ export default function VersionesPage() {
       const result = await versionesService.obtenerVersiones(formularioId as any as number);
       setFormulario(result.formulario);
       setVersiones(result.versiones);
-      showNotification("success", data.message);
-    } catch (error) {
-      console.error("Error activando versión:", error);
-      showNotification("error", error instanceof Error ? error.message : "Error al activar la versión");
+      setMensajeExito(data.message);
+    } catch (err) {
+      console.error("Error activando versión:", err);
+      setError(err instanceof Error ? err.message : "Error al activar la versión");
     } finally {
       setActivandoVersion(null);
     }
   };
 
-  const showNotification = (type: "success" | "error", message: string) => {
-    setNotificacion({ type, message });
-  };
+  // Distingue "no se pudo cargar" (red/servidor caído) de "no existe": sin
+  // esto, cualquier fallo se mostraba como "Formulario no encontrado".
+  const [cargaFallida, setCargaFallida] = useState(false);
+  const [intentoCarga, setIntentoCarga] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     const cargar = async () => {
+      setLoading(true);
+      setCargaFallida(false);
       try {
         const data = await versionesService.obtenerVersiones(formularioId as any as number);
         if (cancelled) return;
         setFormulario(data.formulario);
         setVersiones(data.versiones);
-      } catch (err) {
-        if (!cancelled) console.error("Error cargando versiones:", err);
+      } catch (err: any) {
+        if (cancelled) return;
+        console.error("Error cargando versiones:", err);
+        if (err?.response?.status !== 404) setCargaFallida(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -72,248 +87,240 @@ export default function VersionesPage() {
     return () => {
       cancelled = true;
     };
-  }, [formularioId]);
+  }, [formularioId, intentoCarga]);
+
+  const volverAlEditor = () => router.push("/parametrizacion/formulario-editor");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50/30 to-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="bg-white/70 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl p-6 md:p-8">
-          {/* Header */}
-          <div className="mb-8">
-            <button
-              onClick={() => router.push("/parametrizacion/formulario-editor")}
-              aria-label="Volver al editor"
-              title="Volver al editor"
-              className="group inline-flex items-center justify-center rounded-full border border-gray-200 bg-white p-2.5 text-gray-700 shadow-sm hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-all duration-300 mb-4">
-              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-            </button>
+    <div className="min-h-screen bg-gradient-to-b from-page-from to-page-to p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeaderCard
+          icon={GitBranch}
+          eyebrow="Parametrización · Formularios"
+          title="Gestión de versiones del formulario"
+          subtitle={
+            loading
+              ? "Cargando..."
+              : formulario?.frs_nombre || formulario?.formulario_nombre || undefined
+          }
+          onBack={volverAlEditor}
+          actions={
+            formulario && (
+              <button
+                onClick={() => router.push(rutaNuevaVersion)}
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-600 transition-colors hover:bg-[#eef3ff] flex-shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+                Nueva versión
+              </button>
+            )
+          }
+        >
+          {formulario && (
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full text-emerald-700 font-semibold">
+                <CheckCircle className="h-4 w-4" />
+                Versión activa: v{formulario?.frs_version || formulario?.formulario_version}
+              </span>
+              <span className="flex items-center gap-2 text-slate-500">
+                <GitBranch className="h-4 w-4" />
+                {versiones.length} {versiones.length === 1 ? "versión" : "versiones"} en total
+              </span>
+            </div>
+          )}
+        </PageHeaderCard>
 
-            {loading ? (
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-64 mb-4" />
-                <div className="h-6 bg-gray-200 rounded w-80 mb-3" />
-                <div className="h-4 bg-gray-100 rounded w-48" />
-              </div>
-            ) : !formulario ? (
-              <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-200">
-                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h2 className="text-2xl font-semibold text-gray-700 mb-2">Formulario no encontrado</h2>
-                <button
-                  onClick={() => router.push("/parametrizacion/formulario-editor")}
-                  className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  Volver al listado
-                </button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div className="flex-1">
-                    <p className="text-2xl md:text-3xl font-bold text-blue-800 mb-3 leading-tight">
-                      Gestión de versiones del formulario
-                    </p>
-                    <div className="h-px w-full bg-gradient-to-r from-blue-200 via-blue-300 to-transparent mb-4" />
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-blue-600 rounded-xl">
-                        <FileText className="h-6 w-6 text-white" />
-                      </div>
-                      <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
-                        {formulario?.frs_nombre || formulario?.formulario_nombre}
-                      </h1>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-green-700 font-medium">
-                          Versión activa: v{formulario?.frs_version || formulario?.formulario_version}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <GitBranch className="h-4 w-4" />
-                        <span>{versiones.length} versiones totales</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => router.push(`/parametrizacion/formularios/${formularioId}/nueva-version`)}
-                    className="group bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 hover:shadow-lg transition-all duration-300 flex items-center gap-2">
-                    <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
-                    <span className="font-semibold">Nueva Versión</span>
-                  </button>
-                </div>
-              </div>
-            )}
+        {loading ? (
+          <div className={`${CARD_CLASS} border-[#e9ecf2] p-6 animate-pulse`}>
+            <div className="h-5 bg-gray-200 rounded w-48 mb-3" />
+            <div className="h-4 bg-gray-100 rounded w-80 mb-3" />
+            <div className="h-3 bg-gray-100 rounded w-64" />
           </div>
+        ) : cargaFallida ? (
+          <EmptyStateCard
+            icon={AlertTriangle}
+            title="No se pudieron cargar las versiones"
+            subtitle="El servidor no respondió. Intenta de nuevo en unos segundos."
+            action={
+              <button onClick={() => setIntentoCarga((n) => n + 1)} className={`${BTN_PRINCIPAL} mx-auto`}>
+                <RotateCcw className="h-4 w-4" />
+                Reintentar
+              </button>
+            }
+          />
+        ) : !formulario ? (
+          <EmptyStateCard
+            icon={FileText}
+            title="Formulario no encontrado"
+            action={
+              <button onClick={volverAlEditor} className={`${BTN_PRINCIPAL} mx-auto`}>
+                Volver al listado
+              </button>
+            }
+          />
+        ) : versiones.length === 0 ? (
+          <EmptyStateCard
+            icon={GitBranch}
+            title="No hay versiones disponibles"
+            subtitle="Comienza creando la primera versión de este formulario"
+            action={
+              <button onClick={() => router.push(rutaNuevaVersion)} className={`${BTN_PRINCIPAL} mx-auto`}>
+                <Plus className="h-4 w-4" />
+                Crear primera versión
+              </button>
+            }
+          />
+        ) : (
+          <div className="relative">
+            <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-brand-500/20 hidden md:block" />
 
-          {/* Timeline de versiones */}
-          {!loading && formulario && (
-            <div className="relative">
-              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-300 via-blue-400 to-blue-300 hidden md:block"></div>
+            <div className="space-y-3">
+              {versiones.map((version, index) => {
+                const numero = version.fv_numero ?? version.version_numero;
+                const esVersionActiva = numero === formulario.formulario_version;
+                const isLatest = index === 0;
 
-              <div className="space-y-4">
-                {versiones.map((version, index) => {
-                  const esVersionActiva =
-                    (version.fv_numero ?? version.version_numero) === formulario.formulario_version;
-                  const isLatest = index === 0;
-
-                  return (
-                    <div key={version.fv_id || version.version_id} className="relative group">
-                      <div className="hidden md:block absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2">
-                        <div
-                          className={`w-4 h-4 rounded-full ${
-                            esVersionActiva ? "bg-green-500 ring-4 ring-green-100" : "bg-blue-500 ring-4 ring-blue-100"
-                          }`}></div>
-                      </div>
-
+                return (
+                  <div key={version.fv_id || version.version_id} className="relative">
+                    <div className="hidden md:block absolute left-8 top-1/2 -translate-y-1/2 -translate-x-1/2">
                       <div
-                        className={`ml-0 md:ml-16 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border ${
-                          esVersionActiva
-                            ? "border-green-200 ring-2 ring-green-50"
-                            : "border-gray-200 hover:border-blue-200"
-                        }`}>
-                        <div className="p-6">
-                          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex flex-wrap items-center gap-3 mb-3">
-                                <div className="flex items-center gap-2">
-                                  <div className={`p-2 rounded-xl ${esVersionActiva ? "bg-green-600" : "bg-blue-600"}`}>
-                                    <Layers className="h-5 w-5 text-white" />
-                                  </div>
-                                  <h3 className="text-xl font-bold text-gray-800">
-                                    Versión {version.fv_numero || version.version_numero}
-                                  </h3>
-                                </div>
+                        className={`w-4 h-4 rounded-full ${
+                          esVersionActiva ? "bg-emerald-500 ring-4 ring-emerald-100" : "bg-brand-600 ring-4 ring-brand-500/15"
+                        }`}
+                      />
+                    </div>
 
-                                {esVersionActiva && (
-                                  <span className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm">
-                                    <CheckCircle className="h-4 w-4" />
-                                    Versión Activa
-                                  </span>
-                                )}
-
-                                {isLatest && !esVersionActiva && (
-                                  <span className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-semibold">
-                                    <GitBranch className="h-4 w-4" />
-                                    Última versión
-                                  </span>
-                                )}
+                    <div
+                      className={`md:ml-16 ${CARD_CLASS} ${
+                        esVersionActiva ? "border-emerald-200" : "border-[#e9ecf2]"
+                      }`}
+                    >
+                      <div className="p-5 sm:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-3 mb-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                                  esVersionActiva ? "bg-emerald-600" : "bg-brand-600"
+                                }`}
+                              >
+                                <Layers className="h-4.5 w-4.5 text-white" />
                               </div>
-
-                              <p className="text-gray-600 mb-3">
-                                {version.version_descripcion || "Sin descripción proporcionada para esta versión"}
-                              </p>
-
-                              <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                                <div className="flex items-center gap-1.5">
-                                  <FileText className="h-3.5 w-3.5" />
-                                  <span>{version.total_preguntas} preguntas</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="h-3.5 w-3.5" />
-                                  <span>
-                                    {new Date(version.created_at).toLocaleDateString("es-ES", {
-                                      year: "numeric",
-                                      month: "long",
-                                      day: "numeric",
-                                    })}
-                                  </span>
-                                </div>
-                                {version.creador_nombre && (
-                                  <div className="flex items-center gap-1.5">
-                                    <User className="h-3.5 w-3.5" />
-                                    <span>{version.creador_nombre}</span>
-                                  </div>
-                                )}
-                                {version.total_solicitudes > 0 && (
-                                  <div className="flex items-center gap-1.5 text-amber-700">
-                                    <Lock className="h-3.5 w-3.5" />
-                                    <span>
-                                      {version.total_solicitudes} solicitud
-                                      {version.total_solicitudes === 1 ? "" : "es"} asociada
-                                      {version.total_solicitudes === 1 ? "" : "s"} — no editable
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                              <h3 className="text-lg font-extrabold text-slate-800">Versión {numero}</h3>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() =>
-                                  router.push(
-                                    `/parametrizacion/formulario-editor?frs_id=${formularioId}&version=${version.fv_numero || version.version_numero}&readonly=true`,
-                                  )
-                                }
-                                className="group flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200">
-                                <Eye className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                                <span className="font-medium">Ver</span>
-                              </button>
+                            {esVersionActiva && (
+                              <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Versión activa
+                              </span>
+                            )}
 
-                              {version.total_solicitudes > 0 ? (
-                                <button
-                                  type="button"
-                                  disabled
-                                  title="Esta versión ya tiene solicitudes asociadas — editar sus preguntas cambiaría en silencio lo que muestran los PDF ya generados. Creá una nueva versión para hacer cambios."
-                                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed">
-                                  <Edit className="h-4 w-4" />
-                                  <span className="font-medium">Editar</span>
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() =>
-                                    router.push(
-                                      `/parametrizacion/formulario-editor?frs_id=${formularioId}&version=${version.fv_numero || version.version_numero}`,
-                                    )
-                                  }
-                                  className="group flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200">
-                                  <Edit className="h-4 w-4 group-hover:rotate-12 transition-transform" />
-                                  <span className="font-medium">Editar</span>
-                                </button>
-                              )}
-
-                              {!esVersionActiva && (
-                                <button
-                                  onClick={() => setVersionAConfirmar(version.fv_numero || version.version_numero)}
-                                  disabled={activandoVersion === (version.fv_numero ?? version.version_numero)}
-                                  className="group flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-all duration-200 border border-green-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                                  {activandoVersion === (version.fv_numero ?? version.version_numero) ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-700"></div>
-                                      <span>Activando...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <RotateCcw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-300" />
-                                      <span className="font-medium">Activar</span>
-                                    </>
-                                  )}
-                                </button>
-                              )}
-                            </div>
+                            {isLatest && !esVersionActiva && (
+                              <span className="flex items-center gap-1.5 bg-brand-500/10 text-brand-600 px-3 py-1 rounded-full text-xs font-bold">
+                                <GitBranch className="h-3.5 w-3.5" />
+                                Última versión
+                              </span>
+                            )}
                           </div>
+
+                          <p className="text-sm text-slate-600 mb-2">
+                            {version.version_descripcion || "Sin descripción proporcionada para esta versión"}
+                          </p>
+
+                          <div className="flex flex-wrap items-center gap-4 text-xs text-[#94a3b8]">
+                            <span className="flex items-center gap-1.5">
+                              <FileText className="h-3.5 w-3.5" />
+                              {version.total_preguntas} preguntas
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Calendar className="h-3.5 w-3.5" />
+                              {new Date(version.created_at).toLocaleDateString("es-ES", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </span>
+                            {version.creador_nombre && (
+                              <span className="flex items-center gap-1.5">
+                                <User className="h-3.5 w-3.5" />
+                                {version.creador_nombre}
+                              </span>
+                            )}
+                            {version.total_solicitudes > 0 && (
+                              <span className="flex items-center gap-1.5 text-amber-700">
+                                <Lock className="h-3.5 w-3.5" />
+                                {version.total_solicitudes} solicitud
+                                {version.total_solicitudes === 1 ? "" : "es"} asociada
+                                {version.total_solicitudes === 1 ? "" : "s"} — no editable
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() =>
+                              router.push(
+                                `/parametrizacion/formulario-editor?frs_id=${formularioId}&version=${numero}&readonly=true`,
+                              )
+                            }
+                            className={BTN_SECUNDARIO}
+                          >
+                            <Eye className="h-4 w-4" />
+                            Ver
+                          </button>
+
+                          {version.total_solicitudes > 0 ? (
+                            <button
+                              type="button"
+                              disabled
+                              title="Esta versión ya tiene solicitudes asociadas — editar sus preguntas cambiaría en silencio lo que muestran los PDF ya generados. Creá una nueva versión para hacer cambios."
+                              className="flex items-center gap-2 px-4 py-2 bg-[#fafbfd] text-[#94a3b8] rounded-[11px] border border-[#eef1f6] font-bold text-sm cursor-not-allowed"
+                            >
+                              <Edit className="h-4 w-4" />
+                              Editar
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                router.push(`/parametrizacion/formulario-editor?frs_id=${formularioId}&version=${numero}`)
+                              }
+                              className={BTN_PRINCIPAL}
+                            >
+                              <Edit className="h-4 w-4" />
+                              Editar
+                            </button>
+                          )}
+
+                          {!esVersionActiva && (
+                            <button
+                              onClick={() => setVersionAConfirmar(numero)}
+                              disabled={activandoVersion === numero}
+                              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-[11px] border border-emerald-200 font-bold text-sm hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {activandoVersion === numero ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-700" />
+                                  Activando...
+                                </>
+                              ) : (
+                                <>
+                                  <RotateCcw className="h-4 w-4" />
+                                  Activar
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-
-              {versiones.length === 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                  <GitBranch className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay versiones disponibles</h3>
-                  <p className="text-gray-500 mb-6">Comienza creando la primera versión de este formulario</p>
-                  <button
-                    onClick={() => router.push(`/parametrizacion/formularios/${formularioId}/nueva-version`)}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all">
-                    <Plus className="h-5 w-5" />
-                    <span>Crear primera versión</span>
-                  </button>
-                </div>
-              )}
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <ConfirmModal
@@ -331,21 +338,13 @@ export default function VersionesPage() {
       />
 
       <SuccessModal
-        isOpen={notificacion?.type === "success"}
+        isOpen={!!mensajeExito}
         title="Listo"
-        message={notificacion?.message ?? ""}
-        onAction={() => setNotificacion(null)}
+        message={mensajeExito ?? ""}
+        onAction={() => setMensajeExito(null)}
       />
 
-      <ConfirmModal
-        isOpen={notificacion?.type === "error"}
-        title="Error"
-        message={notificacion?.message ?? ""}
-        confirmText="Aceptar"
-        isDangerous
-        onConfirm={() => setNotificacion(null)}
-        onCancel={() => setNotificacion(null)}
-      />
+      <ErrorModal isOpen={!!error} message={error || ""} onAction={() => setError(null)} />
     </div>
   );
 }

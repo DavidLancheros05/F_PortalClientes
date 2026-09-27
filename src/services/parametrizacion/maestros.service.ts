@@ -7,22 +7,16 @@ export interface DocumentoCatalogo {
 }
 
 export const maestrosService = {
-  async getCatalogoBases(): Promise<string[]> {
-    const res = await api.get("/maestros/catalogo-esquema", { params: { mode: "databases" } });
+  // Tablas/columnas siempre de la base actual: el backend ya no lista otras
+  // bases ni acepta navegar sus tablas.
+  async getCatalogoTablas(): Promise<string[]> {
+    const res = await api.get("/maestros/catalogo-esquema", { params: { mode: "tables" } });
     return Array.isArray(res.data) ? res.data : [];
   },
 
-  async getCatalogoTablas(baseDatos?: string): Promise<string[]> {
-    const params: Record<string, string> = { mode: "tables" };
-    if (baseDatos?.trim()) params.base_datos = baseDatos.trim();
-    const res = await api.get("/maestros/catalogo-esquema", { params });
-    return Array.isArray(res.data) ? res.data : [];
-  },
-
-  async getCatalogoColumnas(tabla: string, baseDatos?: string): Promise<string[]> {
+  async getCatalogoColumnas(tabla: string): Promise<string[]> {
     if (!tabla?.trim()) return [];
     const params: Record<string, string> = { mode: "columns", tabla: tabla.trim() };
-    if (baseDatos?.trim()) params.base_datos = baseDatos.trim();
     const res = await api.get("/maestros/catalogo-esquema", { params });
     return Array.isArray(res.data) ? res.data : [];
   },

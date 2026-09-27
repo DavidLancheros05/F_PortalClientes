@@ -45,7 +45,6 @@ interface PreguntaRendererProps {
   setSuccessMessage: (value: string) => void;
   setErrorMessage: (value: string) => void;
   shouldShowQuestion: (pregunta: FormularioPregunta) => boolean;
-  shouldShowConditionalField: (pregunta: FormularioPregunta) => boolean;
   getValidationRules: (pregunta: FormularioPregunta) => any;
   validateField: (fp_id: number, rules: any) => void;
   handleInputChange: (fp_id: number, value: any, tipo: string) => void;
@@ -98,7 +97,6 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
     setSuccessMessage,
     setErrorMessage,
     shouldShowQuestion,
-    shouldShowConditionalField,
     getValidationRules,
     validateField,
     handleInputChange,
@@ -159,7 +157,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
             {pregunta.fp_descripcion}
             {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
           </label>
-          {pregunta.fp_descripcion_adicional?.trim() && pregunta.fp_tipo !== "SELECT_CONDICIONAL" && (
+          {pregunta.fp_descripcion_adicional?.trim() && (
             <p className="mb-1 text-[11px] text-slate-600 leading-relaxed">
               {pregunta.fp_descripcion_adicional.trim()}
             </p>
@@ -391,7 +389,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         })()}
 
       {((pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo !== "CHECK") ||
-        ["SELECT_CONDICIONAL", "SELECT_TABLA"].includes(pregunta.fp_tipo)) && (
+        pregunta.fp_tipo === "SELECT_TABLA") && (
         <>
           <SearchableSelect
             options={
@@ -575,26 +573,6 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           setSuccessMessage={setSuccessMessage}
           setErrorMessage={setErrorMessage}
         />
-      )}
-
-      {pregunta.fp_tipo === "SELECT_CONDICIONAL" && shouldShowConditionalField(pregunta) && (
-        <div className="mt-1 p-2 bg-brand-600/5 rounded border border-brand-600/20">
-          <label className="block text-[11px] font-medium mb-1">{pregunta.fp_descripcion_adicional}</label>
-          <input
-            type="text"
-            value={respuestas[pregunta.fp_id]?.valor_texto || ""}
-            onChange={(e) =>
-              setRespuestas((prev: any) => ({
-                ...prev,
-                [pregunta.fp_id]: {
-                  ...prev[pregunta.fp_id],
-                  valor_texto: e.target.value,
-                },
-              }))
-            }
-            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-        </div>
       )}
 
       {!readOnly && hasError && (

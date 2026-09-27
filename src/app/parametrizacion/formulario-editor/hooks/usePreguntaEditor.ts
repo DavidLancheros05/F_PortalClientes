@@ -20,7 +20,6 @@ import type {
 const TIPOS_CON_OPCIONES_FIJAS: Pregunta["fp_tipo"][] = [
   TIPOS_PREGUNTA.SELECT,
   TIPOS_PREGUNTA.MULTISELECT,
-  TIPOS_PREGUNTA.SELECT_CONDICIONAL,
 ];
 const TIPOS_CATALOGO_DOCUMENTOS: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA];
 const TIPOS_SIN_REQUERIDA: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL];
@@ -40,7 +39,6 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   fp_fs_id: null,
   requerida: false,
   tipo_documento_id: null,
-  catalogo_base_datos: "",
   catalogo_tabla: "",
   catalogo_columna: "",
   catalogo_pk_column: "",
@@ -52,9 +50,6 @@ const FORM_PREGUNTA_DEFAULT: FormPreguntaState = {
   dependencia_valor: "",
   precarga_fuente: "",
   precarga_campo_cliente: "",
-  precarga_base_datos: "",
-  precarga_tabla: "",
-  precarga_columna: "",
   tabla_columnas: [],
   ancho_columnas: 1,
   tabla_limite_modo: "SIN_LIMITE",
@@ -113,35 +108,18 @@ export function usePreguntaEditor({
   const [opcionesPreguntaPadre, setOpcionesPreguntaPadre] = useState<Opcion[]>([]);
   const [loadingOpcionesPreguntaPadre, setLoadingOpcionesPreguntaPadre] = useState(false);
 
-  // Catalogo state
-  const [catalogoBases, setCatalogoBases] = useState<string[]>([]);
+  // Catalogo state. Los catálogos siempre se leen de la base actual: el
+  // editor no ofrece elegir base de datos (un nombre quemado rompió
+  // /maestros/catalogo al cambiar de servidor; el backend guarda NULL).
   const [catalogoTablas, setCatalogoTablas] = useState<string[]>([]);
   const [catalogoColumnas, setCatalogoColumnas] = useState<string[]>([]);
-  const [loadingCatalogoBases, setLoadingCatalogoBases] = useState(false);
   const [loadingCatalogoTablas, setLoadingCatalogoTablas] = useState(false);
   const [loadingCatalogoColumnas, setLoadingCatalogoColumnas] = useState(false);
   const [documentosCatalogo, setDocumentosCatalogo] = useState<DocumentoCatalogo[]>([]);
   const [loadingDocumentosCatalogo, setLoadingDocumentosCatalogo] = useState(false);
-  const [filtroBaseDatos, setFiltroBaseDatos] = useState("");
   const [filtroTabla, setFiltroTabla] = useState("");
   const [filtroColumna, setFiltroColumna] = useState("");
   const [filtroLlave, setFiltroLlave] = useState("");
-
-  // Estado de catálogo/filtro independiente para "Precarga de datos"
-  // (formPregunta.precarga_*). No puede compartir filtroTabla/filtroColumna/
-  // catalogoTablas/catalogoColumnas con "Selección desde tabla"
-  // (formPregunta.catalogo_*): ambas secciones se renderizan a la vez para
-  // la misma pregunta (Precarga se muestra para casi todos los tipos, no
-  // solo SELECT_TABLA), y los efectos de más abajo que resetean este
-  // catálogo cuando "Sin precarga" está seleccionado pisaban en silencio lo
-  // que "Selección desde tabla" acababa de cargar — el filtro quedaba vacío
-  // aunque la tabla/columna ya estuviera guardada.
-  const [catalogoPrecargaTablas, setCatalogoPrecargaTablas] = useState<string[]>([]);
-  const [catalogoPrecargaColumnas, setCatalogoPrecargaColumnas] = useState<string[]>([]);
-  const [loadingCatalogoPrecargaTablas, setLoadingCatalogoPrecargaTablas] = useState(false);
-  const [loadingCatalogoPrecargaColumnas, setLoadingCatalogoPrecargaColumnas] = useState(false);
-  const [filtroPrecargaTabla, setFiltroPrecargaTabla] = useState("");
-  const [filtroPrecargaColumna, setFiltroPrecargaColumna] = useState("");
 
   const normalizarFiltro = (value: string) =>
     String(value || "")
@@ -149,11 +127,6 @@ export function usePreguntaEditor({
       .replace(/[̀-ͯ]/g, "")
       .toLowerCase()
       .trim();
-
-  const basesFiltradas = useMemo(() => {
-    const filtro = normalizarFiltro(filtroBaseDatos);
-    return catalogoBases.filter((base) => !filtro || normalizarFiltro(String(base)).includes(filtro));
-  }, [catalogoBases, filtroBaseDatos]);
 
   const tablasFiltradas = useMemo(() => {
     const filtro = normalizarFiltro(filtroTabla);
@@ -170,27 +143,10 @@ export function usePreguntaEditor({
     return catalogoColumnas.filter((columna) => !filtro || normalizarFiltro(String(columna)).includes(filtro));
   }, [catalogoColumnas, filtroLlave]);
 
-  const cargarBasesCatalogo = async () => {
-    try {
-      setLoadingCatalogoBases(true);
-      console.log("⏳ Cargando bases de datos...");
-      const data = await maestrosService.getCatalogoBases();
-      console.log("✅ Bases cargadas:", data);
-      setCatalogoBases(data);
-    } catch (error) {
-      console.error("❌ Error cargando bases de datos:", error);
-      setCatalogoBases([]);
-    } finally {
-      setLoadingCatalogoBases(false);
-    }
-  };
-
-  const cargarTablasCatalogo = async (baseDatos: string) => {
+  const cargarTablasCatalogo = async () => {
     try {
       setLoadingCatalogoTablas(true);
-      console.log("⏳ Cargando tablas para base:", baseDatos || "(principal)");
-      const data = await maestrosService.getCatalogoTablas(baseDatos);
-      console.log("✅ Tablas cargadas:", data);
+      const data = await maestrosService.getCatalogoTablas();
       setCatalogoTablas(data);
     } catch (error) {
       console.error("❌ Error cargando tablas:", error);
@@ -200,50 +156,20 @@ export function usePreguntaEditor({
     }
   };
 
-  const cargarColumnasCatalogo = async (baseDatos: string, tabla: string) => {
+  const cargarColumnasCatalogo = async (tabla: string) => {
     if (!tabla.trim()) {
       setCatalogoColumnas([]);
       return;
     }
     try {
       setLoadingCatalogoColumnas(true);
-      const data = await maestrosService.getCatalogoColumnas(tabla, baseDatos);
+      const data = await maestrosService.getCatalogoColumnas(tabla);
       setCatalogoColumnas(data);
     } catch (error) {
       console.error("❌ [EDITOR] Error cargando columnas:", error);
       setCatalogoColumnas([]);
     } finally {
       setLoadingCatalogoColumnas(false);
-    }
-  };
-
-  const cargarTablasPrecargaCatalogo = async (baseDatos: string) => {
-    try {
-      setLoadingCatalogoPrecargaTablas(true);
-      const data = await maestrosService.getCatalogoTablas(baseDatos);
-      setCatalogoPrecargaTablas(data);
-    } catch (error) {
-      console.error("❌ Error cargando tablas (precarga):", error);
-      setCatalogoPrecargaTablas([]);
-    } finally {
-      setLoadingCatalogoPrecargaTablas(false);
-    }
-  };
-
-  const cargarColumnasPrecargaCatalogo = async (baseDatos: string, tabla: string) => {
-    if (!tabla.trim()) {
-      setCatalogoPrecargaColumnas([]);
-      return;
-    }
-    try {
-      setLoadingCatalogoPrecargaColumnas(true);
-      const data = await maestrosService.getCatalogoColumnas(tabla, baseDatos);
-      setCatalogoPrecargaColumnas(data);
-    } catch (error) {
-      console.error("❌ Error cargando columnas (precarga):", error);
-      setCatalogoPrecargaColumnas([]);
-    } finally {
-      setLoadingCatalogoPrecargaColumnas(false);
     }
   };
 
@@ -261,7 +187,7 @@ export function usePreguntaEditor({
   };
 
   // Si la "pregunta padre" de una dependencia es de opciones fijas
-  // (SELECT/MULTISELECT/SELECT_CONDICIONAL), cargamos sus opciones reales
+  // (SELECT/MULTISELECT), cargamos sus opciones reales
   // para que "Respuesta que dispara" sea un selector, no texto libre.
   useEffect(() => {
     if (!formPregunta.dependiente || !formPregunta.dependencia_pregunta_id || (!nuevaPregunta && !editandoPregunta)) {
@@ -287,13 +213,8 @@ export function usePreguntaEditor({
 
   useEffect(() => {
     if (formPregunta.tipo !== TIPOS_PREGUNTA.SELECT_TABLA || (!nuevaPregunta && !editandoPregunta)) return;
-    cargarBasesCatalogo();
+    cargarTablasCatalogo();
   }, [formPregunta.tipo, nuevaPregunta, editandoPregunta]);
-
-  useEffect(() => {
-    if (formPregunta.tipo !== TIPOS_PREGUNTA.SELECT_TABLA || (!nuevaPregunta && !editandoPregunta)) return;
-    cargarTablasCatalogo(formPregunta.catalogo_base_datos || "");
-  }, [formPregunta.tipo, formPregunta.catalogo_base_datos, nuevaPregunta, editandoPregunta]);
 
   useEffect(() => {
     if (!TIPOS_CATALOGO_DOCUMENTOS.includes(formPregunta.tipo) || (!nuevaPregunta && !editandoPregunta)) {
@@ -303,54 +224,6 @@ export function usePreguntaEditor({
   }, [formPregunta.tipo, nuevaPregunta, editandoPregunta]);
 
   useEffect(() => {
-    if (!nuevaPregunta && !editandoPregunta) return;
-    if (!["cliente", "cliente_primero", "ultima_primero"].includes(formPregunta.precarga_fuente)) {
-      return;
-    }
-    cargarBasesCatalogo();
-  }, [formPregunta.precarga_fuente, nuevaPregunta, editandoPregunta]);
-
-  useEffect(() => {
-    if (!nuevaPregunta && !editandoPregunta) return;
-    if (!["cliente", "cliente_primero", "ultima_primero"].includes(formPregunta.precarga_fuente)) {
-      setCatalogoPrecargaTablas([]);
-      setCatalogoPrecargaColumnas([]);
-      setFiltroPrecargaTabla("");
-      setFiltroPrecargaColumna("");
-      return;
-    }
-    if (!formPregunta.precarga_base_datos) {
-      setCatalogoPrecargaTablas([]);
-      setCatalogoPrecargaColumnas([]);
-      setFiltroPrecargaTabla("");
-      setFiltroPrecargaColumna("");
-      return;
-    }
-    cargarTablasPrecargaCatalogo(formPregunta.precarga_base_datos);
-  }, [formPregunta.precarga_fuente, formPregunta.precarga_base_datos, nuevaPregunta, editandoPregunta]);
-
-  useEffect(() => {
-    if (!nuevaPregunta && !editandoPregunta) return;
-    if (!["cliente", "cliente_primero", "ultima_primero"].includes(formPregunta.precarga_fuente)) {
-      setCatalogoPrecargaColumnas([]);
-      setFiltroPrecargaColumna("");
-      return;
-    }
-    if (!String(formPregunta.precarga_tabla || "").trim()) {
-      setCatalogoPrecargaColumnas([]);
-      setFiltroPrecargaColumna("");
-      return;
-    }
-    cargarColumnasPrecargaCatalogo(formPregunta.precarga_base_datos || "", formPregunta.precarga_tabla || "");
-  }, [
-    formPregunta.precarga_fuente,
-    formPregunta.precarga_base_datos,
-    formPregunta.precarga_tabla,
-    nuevaPregunta,
-    editandoPregunta,
-  ]);
-
-  useEffect(() => {
     if (formPregunta.tipo !== "SELECT_TABLA" || (!nuevaPregunta && !editandoPregunta)) return;
     if (!String(formPregunta.catalogo_tabla || "").trim()) {
       setCatalogoColumnas([]);
@@ -358,10 +231,9 @@ export function usePreguntaEditor({
       setFormPregunta((prev) => (prev.catalogo_columna ? { ...prev, catalogo_columna: "" } : prev));
       return;
     }
-    cargarColumnasCatalogo(formPregunta.catalogo_base_datos || "", formPregunta.catalogo_tabla || "");
+    cargarColumnasCatalogo(formPregunta.catalogo_tabla || "");
   }, [
     formPregunta.tipo,
-    formPregunta.catalogo_base_datos,
     formPregunta.catalogo_tabla,
     nuevaPregunta,
     editandoPregunta,
@@ -491,12 +363,6 @@ export function usePreguntaEditor({
         fp_fs_id: targetSeccionId,
         frs_id: formularioIdNumber,
         fv_numero: version ? parseInt(version) : 1,
-        fp_catalogo_base_datos:
-          formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
-            ? String(formPregunta.catalogo_base_datos || "").trim() || null
-            : formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA
-              ? null
-              : null,
         fp_catalogo_tabla:
           formPregunta.tipo === TIPOS_PREGUNTA.SELECT_TABLA
             ? String(formPregunta.catalogo_tabla || "").trim() || null
@@ -544,7 +410,6 @@ export function usePreguntaEditor({
                     tipo: c.tipo,
                     ...(c.tipo === "CATALOGO"
                       ? {
-                          catalogo_base_datos: c.catalogo_base_datos || undefined,
                           catalogo_tabla: c.catalogo_tabla || undefined,
                           catalogo_columna: c.catalogo_columna || undefined,
                           catalogo_pk_column: c.catalogo_pk_column || undefined,
@@ -690,7 +555,6 @@ export function usePreguntaEditor({
       setEditandoPregunta(null);
       setNuevaPregunta(false);
       setOpcionesNuevas([]);
-      setFiltroBaseDatos("");
       setFiltroTabla("");
       setFiltroColumna("");
       setCatalogoColumnas([]);
@@ -705,8 +569,6 @@ export function usePreguntaEditor({
   };
 
   const iniciarEdicionPregunta = async (pregunta: Pregunta) => {
-    console.log("🧪 PREGUNTA DESDE BACKEND:", pregunta);
-
     const preguntaPadre = preguntas.find((p) => p.fp_id === pregunta.fp_pregunta_padre_id);
     setFormPregunta({
       descripcion: pregunta.fp_descripcion,
@@ -723,7 +585,6 @@ export function usePreguntaEditor({
       fp_fs_id: pregunta.fp_fs_id ?? null,
       requerida: Boolean(pregunta.fp_requerida),
       tipo_documento_id: pregunta.fp_tdo_id ?? null,
-      catalogo_base_datos: pregunta.fp_catalogo_base_datos ?? "",
       catalogo_tabla: pregunta.fp_catalogo_tabla ?? "",
       catalogo_columna: pregunta.fp_catalogo_columna ?? "",
       catalogo_pk_column: pregunta.fp_catalogo_pk_column ?? "",
@@ -735,9 +596,6 @@ export function usePreguntaEditor({
       dependencia_valor: pregunta.fp_valor_padre_disparador ?? "",
       precarga_fuente: pregunta.fp_precarga_fuente ?? "",
       precarga_campo_cliente: pregunta.fp_precarga_campo_cliente ?? "",
-      precarga_base_datos: "",
-      precarga_tabla: "",
-      precarga_columna: "",
       tabla_columnas: (() => {
         if (!pregunta.fp_tabla_columnas) return [];
         try {
@@ -751,7 +609,6 @@ export function usePreguntaEditor({
               nombre: col.nombre,
               codigo: col.codigo,
               tipo: col.tipo || "TEXTO",
-              catalogo_base_datos: col.catalogo_base_datos,
               catalogo_tabla: col.catalogo_tabla,
               catalogo_columna: col.catalogo_columna,
               catalogo_pk_column: col.catalogo_pk_column,
@@ -823,7 +680,6 @@ export function usePreguntaEditor({
     setNuevaPregunta(false);
     setNuevaOpcion("");
     setOpcionesNuevas([]);
-    setFiltroBaseDatos(pregunta.fp_catalogo_base_datos ?? "");
     setFiltroTabla(pregunta.fp_catalogo_tabla ?? "");
     setFiltroColumna(pregunta.fp_catalogo_columna ?? "");
     setFiltroLlave(pregunta.fp_catalogo_pk_column ?? "");
@@ -1117,37 +973,22 @@ export function usePreguntaEditor({
     opcionesNuevas,
     setOpcionesNuevas,
     // Catálogo
-    catalogoBases,
     catalogoTablas,
     catalogoColumnas,
-    loadingCatalogoBases,
     loadingCatalogoTablas,
     loadingCatalogoColumnas,
-    cargarBasesCatalogo,
     cargarTablasCatalogo,
     cargarColumnasCatalogo,
-    // Catálogo de precarga (aislado del catálogo de "Selección desde tabla")
-    catalogoPrecargaTablas,
-    catalogoPrecargaColumnas,
-    loadingCatalogoPrecargaTablas,
-    loadingCatalogoPrecargaColumnas,
-    filtroPrecargaTabla,
-    setFiltroPrecargaTabla,
-    filtroPrecargaColumna,
-    setFiltroPrecargaColumna,
     documentosCatalogo,
     loadingDocumentosCatalogo,
     opcionesPreguntaPadre,
     loadingOpcionesPreguntaPadre,
-    filtroBaseDatos,
-    setFiltroBaseDatos,
     filtroTabla,
     setFiltroTabla,
     filtroColumna,
     setFiltroColumna,
     filtroLlave,
     setFiltroLlave,
-    basesFiltradas,
     tablasFiltradas,
     columnasFiltradas,
     llaveFiltrada,
