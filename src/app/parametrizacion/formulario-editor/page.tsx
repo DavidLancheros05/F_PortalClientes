@@ -96,6 +96,8 @@ export default function FormularioEditorPage() {
     setNuevaOpcion,
     loading_opciones,
     opcionesNuevas,
+    hayCambiosOpcionesPendientes,
+    estadoPendienteOpcion,
     setOpcionesNuevas,
     catalogoTablas,
     loadingCatalogoTablas,
@@ -253,6 +255,8 @@ export default function FormularioEditorPage() {
             setNuevaOpcion={setNuevaOpcion}
             loading_opciones={loading_opciones}
             opcionesNuevas={opcionesNuevas}
+            hayCambiosOpcionesPendientes={hayCambiosOpcionesPendientes}
+            estadoPendienteOpcion={estadoPendienteOpcion}
             setOpcionesNuevas={setOpcionesNuevas}
             catalogoTablas={catalogoTablas}
             loadingCatalogoTablas={loadingCatalogoTablas}

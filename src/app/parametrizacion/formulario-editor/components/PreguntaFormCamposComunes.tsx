@@ -115,8 +115,12 @@ export function PreguntaFormTipo({
         disabled={protegida}
         onChange={(e) => {
           const tipo = e.target.value as Pregunta["fp_tipo"];
-          setOpciones([]);
-          setOpcionesNuevas([]);
+          // Al editar no se vacía la lista: es la copia de trabajo de las
+          // opciones de la BD y vaciarla haría que "Guardar" las eliminara.
+          if (!editandoPregunta) {
+            setOpciones([]);
+            setOpcionesNuevas([]);
+          }
           setFormPregunta((prev) => {
             if (tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA) {
               return {

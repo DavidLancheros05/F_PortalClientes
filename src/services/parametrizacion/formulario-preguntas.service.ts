@@ -126,6 +126,20 @@ export const formularioPreguntasService = {
     }
   },
 
+  // Guarda de una vez (en una transacción del backend) los cambios de
+  // opciones hechos al editar una pregunta. Devuelve las opciones activas.
+  async aplicarCambiosOpciones(
+    fpId: number,
+    cambios: { crear: string[]; renombrar: { fpo_id: number; fpo_valor: string }[]; eliminar: number[] },
+  ): Promise<Opcion[]> {
+    try {
+      const res = await api.put(`/parametrizacion/formulario-preguntas/${fpId}/opciones`, cambios);
+      return res.data;
+    } catch (error) {
+      throw new Error(extraerMensajeError(error, "Error al guardar las opciones"));
+    }
+  },
+
   async syncOpciones(fpId: number, opcionesTarget: string[]): Promise<void> {
     const normalizarOpciones = (values: string[]) => Array.from(new Set(values.map((v) => v.trim()).filter((v) => v)));
 

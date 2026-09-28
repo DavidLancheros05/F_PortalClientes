@@ -71,6 +71,8 @@ export interface PreguntaFormProps {
   loading_opciones: boolean;
   opciones: Opcion[];
   opcionesNuevas: string[];
+  hayCambiosOpcionesPendientes: boolean;
+  estadoPendienteOpcion: (opcion: Opcion) => "nueva" | "modificada" | null;
   opcionEditandoId: number | null;
   opcionEditandoValor: string;
   setOpcionEditandoValor: (value: string) => void;
@@ -134,6 +136,8 @@ export function PreguntaForm({
   loading_opciones,
   opciones,
   opcionesNuevas,
+  hayCambiosOpcionesPendientes,
+  estadoPendienteOpcion,
   opcionEditandoId,
   opcionEditandoValor,
   setOpcionEditandoValor,
@@ -156,6 +160,7 @@ export function PreguntaForm({
   setSuccessMessage,
 }: PreguntaFormProps) {
   const [avanzadasAbiertas, setAvanzadasAbiertas] = useState(false);
+  const [mostrarConfirmarDescartar, setMostrarConfirmarDescartar] = useState(false);
 
   // El toast reemplaza el ConfirmModal de "Pregunta creada/editada" — el
   // formulario ya se cierra solo (usePreguntaEditor limpia
@@ -181,11 +186,23 @@ export function PreguntaForm({
   const tipoActualLabel = tipoActualCatalogo ? getTipoLabel(tipoActualCatalogo) : fallbackTipoLabels[formPregunta.tipo];
 
   const cerrarFormulario = () => {
+    setMostrarConfirmarDescartar(false);
     setNuevaPregunta(false);
     setEditandoPregunta(null);
     setOpciones([]);
+    setOpcionesNuevas([]);
     setNuevaOpcion("");
     setErrorPregunta(null);
+  };
+
+  // Los cambios de opciones viven en memoria hasta "Guardar": antes de
+  // cerrar con la X o "Cancelar" se avisa que se van a descartar.
+  const intentarCerrarFormulario = () => {
+    if (hayCambiosOpcionesPendientes) {
+      setMostrarConfirmarDescartar(true);
+      return;
+    }
+    cerrarFormulario();
   };
 
   return (
@@ -213,7 +230,7 @@ export function PreguntaForm({
                     <p className="text-xs text-[#c7d7fe] mt-0.5 truncate">{tipoActualLabel}</p>
                   </div>
                   <button
-                    onClick={cerrarFormulario}
+                    onClick={intentarCerrarFormulario}
                     className="flex-shrink-0 p-2 rounded-[10px] bg-white/20 hover:bg-white/30 transition-colors">
                     <X className="h-4 w-4" />
                   </button>
@@ -342,6 +359,7 @@ export function PreguntaForm({
                         loading_opciones={loading_opciones}
                         opciones={opciones}
                         opcionesNuevas={opcionesNuevas}
+                        estadoPendienteOpcion={estadoPendienteOpcion}
                         opcionEditandoId={opcionEditandoId}
                         opcionEditandoValor={opcionEditandoValor}
                         setOpcionEditandoValor={setOpcionEditandoValor}
@@ -462,14 +480,7 @@ export function PreguntaForm({
                   Guardar
                 </button>
                 <button
-                  onClick={() => {
-                    setNuevaPregunta(false);
-                    setEditandoPregunta(null);
-                    setOpciones([]);
-                    setOpcionesNuevas([]);
-                    setNuevaOpcion("");
-                    setErrorPregunta(null);
-                  }}
+                  onClick={intentarCerrarFormulario}
                   className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors duration-150 text-xs">
                   Cancelar
                 </button>
@@ -482,11 +493,22 @@ export function PreguntaForm({
       <ConfirmModal
         isOpen={opcionAEliminar !== null}
         title="Eliminar opción"
-        message="¿Estás seguro de que deseas eliminar esta opción? Las respuestas asociadas quedarán sin opción."
+        message="La opción se quitará de la lista y se desactivará al dar Guardar. Si das Cancelar, no se elimina."
         confirmText="Eliminar"
         isDangerous
         onConfirm={confirmarEliminarOpcion}
         onCancel={() => setOpcionAEliminar(null)}
+      />
+
+      <ConfirmModal
+        isOpen={mostrarConfirmarDescartar}
+        title="Descartar cambios"
+        message="Hiciste cambios en las opciones que aún no se han guardado. Si cierras, se descartan."
+        confirmText="Descartar"
+        cancelText="Seguir editando"
+        isDangerous
+        onConfirm={cerrarFormulario}
+        onCancel={() => setMostrarConfirmarDescartar(false)}
       />
 
       <ConfirmModal

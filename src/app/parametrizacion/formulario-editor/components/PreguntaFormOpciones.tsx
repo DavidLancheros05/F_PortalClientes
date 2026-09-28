@@ -11,6 +11,7 @@ interface PreguntaFormOpcionesProps {
   loading_opciones: boolean;
   opciones: Opcion[];
   opcionesNuevas: string[];
+  estadoPendienteOpcion: (opcion: Opcion) => "nueva" | "modificada" | null;
   opcionEditandoId: number | null;
   opcionEditandoValor: string;
   setOpcionEditandoValor: (value: string) => void;
@@ -32,6 +33,7 @@ export function PreguntaFormOpciones({
   loading_opciones,
   opciones,
   opcionesNuevas,
+  estadoPendienteOpcion,
   opcionEditandoId,
   opcionEditandoValor,
   setOpcionEditandoValor,
@@ -85,6 +87,7 @@ export function PreguntaFormOpciones({
                     );
                   const enEdicion =
                     opcionEditandoId === opcion.fpo_id;
+                  const pendiente = estadoPendienteOpcion(opcion);
                   return (
                     <div
                       key={opcion.fpo_id}
@@ -115,13 +118,22 @@ export function PreguntaFormOpciones({
                               opcion.op_descripcion}
                           </span>
                         )}
-                        <span
-                          className={`text-xs px-1.5 py-0.5 rounded font-medium ${opcion.fpo_estado ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}
-                        >
-                          {opcion.fpo_estado
-                            ? "Activa"
-                            : "Inactiva"}
-                        </span>
+                        {pendiente ? (
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded font-medium bg-amber-50 text-amber-700 border border-amber-200"
+                            title="Se guarda al dar Guardar"
+                          >
+                            {pendiente === "nueva" ? "Nueva" : "Modificada"}
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-xs px-1.5 py-0.5 rounded font-medium ${opcion.fpo_estado ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}
+                          >
+                            {opcion.fpo_estado
+                              ? "Activa"
+                              : "Inactiva"}
+                          </span>
+                        )}
                         {enEdicion ? (
                           <>
                             <button
