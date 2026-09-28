@@ -54,7 +54,6 @@ export function PreguntaFormFuenteExterna({
               tipo_documento_id,
               descripcion:
                 documento?.tdo_nombre || "Nombre del documento",
-              catalogo_base_datos: "",
               catalogo_tabla: "Tipos_documentos",
               catalogo_columna: "tdo_nombre",
             }));

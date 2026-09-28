@@ -53,13 +53,10 @@ export interface PreguntaFormProps {
   preguntas: Pregunta[];
   opcionesPreguntaPadre: Opcion[];
   loadingOpcionesPreguntaPadre: boolean;
-  filtroBaseDatos: string;
-  setFiltroBaseDatos: (value: string) => void;
   filtroTabla: string;
   setFiltroTabla: (value: string) => void;
   filtroColumna: string;
   setFiltroColumna: (value: string) => void;
-  basesFiltradas: string[];
   tablasFiltradas: string[];
   columnasFiltradas: string[];
   catalogoTablas: string[];
@@ -69,16 +66,6 @@ export interface PreguntaFormProps {
   filtroLlave: string;
   setFiltroLlave: (value: string) => void;
   llaveFiltrada: string[];
-  filtroPrecargaTabla: string;
-  setFiltroPrecargaTabla: (value: string) => void;
-  filtroPrecargaColumna: string;
-  setFiltroPrecargaColumna: (value: string) => void;
-  catalogoPrecargaTablas: string[];
-  catalogoPrecargaColumnas: string[];
-  loadingCatalogoPrecargaTablas: boolean;
-  loadingCatalogoPrecargaColumnas: boolean;
-  catalogoBases: string[];
-  loadingCatalogoBases: boolean;
   documentosCatalogo: DocumentoCatalogo[];
   loadingDocumentosCatalogo: boolean;
   loading_opciones: boolean;
@@ -97,9 +84,8 @@ export interface PreguntaFormProps {
   agregarOpcion: () => void;
   columnaCatalogoAbierta: number | null;
   setColumnaCatalogoAbierta: (index: number | null) => void;
-  cargarBasesCatalogo: () => void;
-  cargarTablasCatalogo: (baseDatos: string) => void;
-  cargarColumnasCatalogo: (baseDatos: string, tabla: string) => void;
+  cargarTablasCatalogo: () => void;
+  cargarColumnasCatalogo: (tabla: string) => void;
   opcionAEliminar: number | null;
   setOpcionAEliminar: (id: number | null) => void;
   confirmarEliminarOpcion: () => void;
@@ -130,13 +116,10 @@ export function PreguntaForm({
   preguntas,
   opcionesPreguntaPadre,
   loadingOpcionesPreguntaPadre,
-  filtroBaseDatos,
-  setFiltroBaseDatos,
   filtroTabla,
   setFiltroTabla,
   filtroColumna,
   setFiltroColumna,
-  basesFiltradas,
   tablasFiltradas,
   columnasFiltradas,
   catalogoTablas,
@@ -146,16 +129,6 @@ export function PreguntaForm({
   filtroLlave,
   setFiltroLlave,
   llaveFiltrada,
-  filtroPrecargaTabla,
-  setFiltroPrecargaTabla,
-  filtroPrecargaColumna,
-  setFiltroPrecargaColumna,
-  catalogoPrecargaTablas,
-  catalogoPrecargaColumnas,
-  loadingCatalogoPrecargaTablas,
-  loadingCatalogoPrecargaColumnas,
-  catalogoBases,
-  loadingCatalogoBases,
   documentosCatalogo,
   loadingDocumentosCatalogo,
   loading_opciones,
@@ -174,7 +147,6 @@ export function PreguntaForm({
   agregarOpcion,
   columnaCatalogoAbierta,
   setColumnaCatalogoAbierta,
-  cargarBasesCatalogo,
   cargarTablasCatalogo,
   cargarColumnasCatalogo,
   opcionAEliminar,
@@ -311,22 +283,17 @@ export function PreguntaForm({
                     nuevaPregunta={nuevaPregunta}
                     secciones={secciones}
                     preguntas={preguntas}
-                    filtroBaseDatos={filtroBaseDatos}
-                    setFiltroBaseDatos={setFiltroBaseDatos}
                     filtroTabla={filtroTabla}
                     setFiltroTabla={setFiltroTabla}
                     filtroColumna={filtroColumna}
                     setFiltroColumna={setFiltroColumna}
                     filtroLlave={filtroLlave}
                     setFiltroLlave={setFiltroLlave}
-                    basesFiltradas={basesFiltradas}
                     tablasFiltradas={tablasFiltradas}
                     columnasFiltradas={columnasFiltradas}
                     llaveFiltrada={llaveFiltrada}
-                    catalogoBases={catalogoBases}
                     catalogoTablas={catalogoTablas}
                     catalogoColumnas={catalogoColumnas}
-                    loadingCatalogoBases={loadingCatalogoBases}
                     loadingCatalogoTablas={loadingCatalogoTablas}
                     loadingCatalogoColumnas={loadingCatalogoColumnas}
                   />
@@ -351,17 +318,6 @@ export function PreguntaForm({
                           <PreguntaFormPrecarga
                             formPregunta={formPregunta}
                             setFormPregunta={setFormPregunta}
-                            filtroBaseDatos={filtroBaseDatos}
-                            setFiltroBaseDatos={setFiltroBaseDatos}
-                            filtroPrecargaTabla={filtroPrecargaTabla}
-                            setFiltroPrecargaTabla={setFiltroPrecargaTabla}
-                            filtroPrecargaColumna={filtroPrecargaColumna}
-                            setFiltroPrecargaColumna={setFiltroPrecargaColumna}
-                            basesFiltradas={basesFiltradas}
-                            catalogoPrecargaTablas={catalogoPrecargaTablas}
-                            catalogoPrecargaColumnas={catalogoPrecargaColumnas}
-                            loadingCatalogoPrecargaTablas={loadingCatalogoPrecargaTablas}
-                            loadingCatalogoPrecargaColumnas={loadingCatalogoPrecargaColumnas}
                           />
 
                           <PreguntaFormFuenteExterna
@@ -410,25 +366,19 @@ export function PreguntaForm({
                         nuevaPregunta={nuevaPregunta}
                         columnaCatalogoAbierta={columnaCatalogoAbierta}
                         setColumnaCatalogoAbierta={setColumnaCatalogoAbierta}
-                        filtroBaseDatos={filtroBaseDatos}
-                        setFiltroBaseDatos={setFiltroBaseDatos}
                         filtroTabla={filtroTabla}
                         setFiltroTabla={setFiltroTabla}
                         filtroColumna={filtroColumna}
                         setFiltroColumna={setFiltroColumna}
                         filtroLlave={filtroLlave}
                         setFiltroLlave={setFiltroLlave}
-                        basesFiltradas={basesFiltradas}
                         tablasFiltradas={tablasFiltradas}
                         columnasFiltradas={columnasFiltradas}
                         llaveFiltrada={llaveFiltrada}
-                        catalogoBases={catalogoBases}
                         catalogoTablas={catalogoTablas}
                         catalogoColumnas={catalogoColumnas}
-                        loadingCatalogoBases={loadingCatalogoBases}
                         loadingCatalogoTablas={loadingCatalogoTablas}
                         loadingCatalogoColumnas={loadingCatalogoColumnas}
-                        cargarBasesCatalogo={cargarBasesCatalogo}
                         cargarTablasCatalogo={cargarTablasCatalogo}
                         cargarColumnasCatalogo={cargarColumnasCatalogo}
                       />
