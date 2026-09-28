@@ -53,13 +53,10 @@ export interface PreguntaFormProps {
   preguntas: Pregunta[];
   opcionesPreguntaPadre: Opcion[];
   loadingOpcionesPreguntaPadre: boolean;
-  filtroBaseDatos: string;
-  setFiltroBaseDatos: (value: string) => void;
   filtroTabla: string;
   setFiltroTabla: (value: string) => void;
   filtroColumna: string;
   setFiltroColumna: (value: string) => void;
-  basesFiltradas: string[];
   tablasFiltradas: string[];
   columnasFiltradas: string[];
   catalogoTablas: string[];
@@ -69,21 +66,13 @@ export interface PreguntaFormProps {
   filtroLlave: string;
   setFiltroLlave: (value: string) => void;
   llaveFiltrada: string[];
-  filtroPrecargaTabla: string;
-  setFiltroPrecargaTabla: (value: string) => void;
-  filtroPrecargaColumna: string;
-  setFiltroPrecargaColumna: (value: string) => void;
-  catalogoPrecargaTablas: string[];
-  catalogoPrecargaColumnas: string[];
-  loadingCatalogoPrecargaTablas: boolean;
-  loadingCatalogoPrecargaColumnas: boolean;
-  catalogoBases: string[];
-  loadingCatalogoBases: boolean;
   documentosCatalogo: DocumentoCatalogo[];
   loadingDocumentosCatalogo: boolean;
   loading_opciones: boolean;
   opciones: Opcion[];
   opcionesNuevas: string[];
+  hayCambiosOpcionesPendientes: boolean;
+  estadoPendienteOpcion: (opcion: Opcion) => "nueva" | "modificada" | null;
   opcionEditandoId: number | null;
   opcionEditandoValor: string;
   setOpcionEditandoValor: (value: string) => void;
@@ -97,9 +86,8 @@ export interface PreguntaFormProps {
   agregarOpcion: () => void;
   columnaCatalogoAbierta: number | null;
   setColumnaCatalogoAbierta: (index: number | null) => void;
-  cargarBasesCatalogo: () => void;
-  cargarTablasCatalogo: (baseDatos: string) => void;
-  cargarColumnasCatalogo: (baseDatos: string, tabla: string) => void;
+  cargarTablasCatalogo: () => void;
+  cargarColumnasCatalogo: (tabla: string) => void;
   opcionAEliminar: number | null;
   setOpcionAEliminar: (id: number | null) => void;
   confirmarEliminarOpcion: () => void;
@@ -130,13 +118,10 @@ export function PreguntaForm({
   preguntas,
   opcionesPreguntaPadre,
   loadingOpcionesPreguntaPadre,
-  filtroBaseDatos,
-  setFiltroBaseDatos,
   filtroTabla,
   setFiltroTabla,
   filtroColumna,
   setFiltroColumna,
-  basesFiltradas,
   tablasFiltradas,
   columnasFiltradas,
   catalogoTablas,
@@ -146,21 +131,13 @@ export function PreguntaForm({
   filtroLlave,
   setFiltroLlave,
   llaveFiltrada,
-  filtroPrecargaTabla,
-  setFiltroPrecargaTabla,
-  filtroPrecargaColumna,
-  setFiltroPrecargaColumna,
-  catalogoPrecargaTablas,
-  catalogoPrecargaColumnas,
-  loadingCatalogoPrecargaTablas,
-  loadingCatalogoPrecargaColumnas,
-  catalogoBases,
-  loadingCatalogoBases,
   documentosCatalogo,
   loadingDocumentosCatalogo,
   loading_opciones,
   opciones,
   opcionesNuevas,
+  hayCambiosOpcionesPendientes,
+  estadoPendienteOpcion,
   opcionEditandoId,
   opcionEditandoValor,
   setOpcionEditandoValor,
@@ -174,7 +151,6 @@ export function PreguntaForm({
   agregarOpcion,
   columnaCatalogoAbierta,
   setColumnaCatalogoAbierta,
-  cargarBasesCatalogo,
   cargarTablasCatalogo,
   cargarColumnasCatalogo,
   opcionAEliminar,
@@ -184,6 +160,7 @@ export function PreguntaForm({
   setSuccessMessage,
 }: PreguntaFormProps) {
   const [avanzadasAbiertas, setAvanzadasAbiertas] = useState(false);
+  const [mostrarConfirmarDescartar, setMostrarConfirmarDescartar] = useState(false);
 
   // El toast reemplaza el ConfirmModal de "Pregunta creada/editada" — el
   // formulario ya se cierra solo (usePreguntaEditor limpia
@@ -209,11 +186,23 @@ export function PreguntaForm({
   const tipoActualLabel = tipoActualCatalogo ? getTipoLabel(tipoActualCatalogo) : fallbackTipoLabels[formPregunta.tipo];
 
   const cerrarFormulario = () => {
+    setMostrarConfirmarDescartar(false);
     setNuevaPregunta(false);
     setEditandoPregunta(null);
     setOpciones([]);
+    setOpcionesNuevas([]);
     setNuevaOpcion("");
     setErrorPregunta(null);
+  };
+
+  // Los cambios de opciones viven en memoria hasta "Guardar": antes de
+  // cerrar con la X o "Cancelar" se avisa que se van a descartar.
+  const intentarCerrarFormulario = () => {
+    if (hayCambiosOpcionesPendientes) {
+      setMostrarConfirmarDescartar(true);
+      return;
+    }
+    cerrarFormulario();
   };
 
   return (
@@ -241,7 +230,7 @@ export function PreguntaForm({
                     <p className="text-xs text-[#c7d7fe] mt-0.5 truncate">{tipoActualLabel}</p>
                   </div>
                   <button
-                    onClick={cerrarFormulario}
+                    onClick={intentarCerrarFormulario}
                     className="flex-shrink-0 p-2 rounded-[10px] bg-white/20 hover:bg-white/30 transition-colors">
                     <X className="h-4 w-4" />
                   </button>
@@ -311,22 +300,17 @@ export function PreguntaForm({
                     nuevaPregunta={nuevaPregunta}
                     secciones={secciones}
                     preguntas={preguntas}
-                    filtroBaseDatos={filtroBaseDatos}
-                    setFiltroBaseDatos={setFiltroBaseDatos}
                     filtroTabla={filtroTabla}
                     setFiltroTabla={setFiltroTabla}
                     filtroColumna={filtroColumna}
                     setFiltroColumna={setFiltroColumna}
                     filtroLlave={filtroLlave}
                     setFiltroLlave={setFiltroLlave}
-                    basesFiltradas={basesFiltradas}
                     tablasFiltradas={tablasFiltradas}
                     columnasFiltradas={columnasFiltradas}
                     llaveFiltrada={llaveFiltrada}
-                    catalogoBases={catalogoBases}
                     catalogoTablas={catalogoTablas}
                     catalogoColumnas={catalogoColumnas}
-                    loadingCatalogoBases={loadingCatalogoBases}
                     loadingCatalogoTablas={loadingCatalogoTablas}
                     loadingCatalogoColumnas={loadingCatalogoColumnas}
                   />
@@ -351,17 +335,6 @@ export function PreguntaForm({
                           <PreguntaFormPrecarga
                             formPregunta={formPregunta}
                             setFormPregunta={setFormPregunta}
-                            filtroBaseDatos={filtroBaseDatos}
-                            setFiltroBaseDatos={setFiltroBaseDatos}
-                            filtroPrecargaTabla={filtroPrecargaTabla}
-                            setFiltroPrecargaTabla={setFiltroPrecargaTabla}
-                            filtroPrecargaColumna={filtroPrecargaColumna}
-                            setFiltroPrecargaColumna={setFiltroPrecargaColumna}
-                            basesFiltradas={basesFiltradas}
-                            catalogoPrecargaTablas={catalogoPrecargaTablas}
-                            catalogoPrecargaColumnas={catalogoPrecargaColumnas}
-                            loadingCatalogoPrecargaTablas={loadingCatalogoPrecargaTablas}
-                            loadingCatalogoPrecargaColumnas={loadingCatalogoPrecargaColumnas}
                           />
 
                           <PreguntaFormFuenteExterna
@@ -386,6 +359,7 @@ export function PreguntaForm({
                         loading_opciones={loading_opciones}
                         opciones={opciones}
                         opcionesNuevas={opcionesNuevas}
+                        estadoPendienteOpcion={estadoPendienteOpcion}
                         opcionEditandoId={opcionEditandoId}
                         opcionEditandoValor={opcionEditandoValor}
                         setOpcionEditandoValor={setOpcionEditandoValor}
@@ -410,25 +384,19 @@ export function PreguntaForm({
                         nuevaPregunta={nuevaPregunta}
                         columnaCatalogoAbierta={columnaCatalogoAbierta}
                         setColumnaCatalogoAbierta={setColumnaCatalogoAbierta}
-                        filtroBaseDatos={filtroBaseDatos}
-                        setFiltroBaseDatos={setFiltroBaseDatos}
                         filtroTabla={filtroTabla}
                         setFiltroTabla={setFiltroTabla}
                         filtroColumna={filtroColumna}
                         setFiltroColumna={setFiltroColumna}
                         filtroLlave={filtroLlave}
                         setFiltroLlave={setFiltroLlave}
-                        basesFiltradas={basesFiltradas}
                         tablasFiltradas={tablasFiltradas}
                         columnasFiltradas={columnasFiltradas}
                         llaveFiltrada={llaveFiltrada}
-                        catalogoBases={catalogoBases}
                         catalogoTablas={catalogoTablas}
                         catalogoColumnas={catalogoColumnas}
-                        loadingCatalogoBases={loadingCatalogoBases}
                         loadingCatalogoTablas={loadingCatalogoTablas}
                         loadingCatalogoColumnas={loadingCatalogoColumnas}
-                        cargarBasesCatalogo={cargarBasesCatalogo}
                         cargarTablasCatalogo={cargarTablasCatalogo}
                         cargarColumnasCatalogo={cargarColumnasCatalogo}
                       />
@@ -512,14 +480,7 @@ export function PreguntaForm({
                   Guardar
                 </button>
                 <button
-                  onClick={() => {
-                    setNuevaPregunta(false);
-                    setEditandoPregunta(null);
-                    setOpciones([]);
-                    setOpcionesNuevas([]);
-                    setNuevaOpcion("");
-                    setErrorPregunta(null);
-                  }}
+                  onClick={intentarCerrarFormulario}
                   className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors duration-150 text-xs">
                   Cancelar
                 </button>
@@ -532,11 +493,22 @@ export function PreguntaForm({
       <ConfirmModal
         isOpen={opcionAEliminar !== null}
         title="Eliminar opción"
-        message="¿Estás seguro de que deseas eliminar esta opción? Las respuestas asociadas quedarán sin opción."
+        message="La opción se quitará de la lista y se desactivará al dar Guardar. Si das Cancelar, no se elimina."
         confirmText="Eliminar"
         isDangerous
         onConfirm={confirmarEliminarOpcion}
         onCancel={() => setOpcionAEliminar(null)}
+      />
+
+      <ConfirmModal
+        isOpen={mostrarConfirmarDescartar}
+        title="Descartar cambios"
+        message="Hiciste cambios en las opciones que aún no se han guardado. Si cierras, se descartan."
+        confirmText="Descartar"
+        cancelText="Seguir editando"
+        isDangerous
+        onConfirm={cerrarFormulario}
+        onCancel={() => setMostrarConfirmarDescartar(false)}
       />
 
       <ConfirmModal

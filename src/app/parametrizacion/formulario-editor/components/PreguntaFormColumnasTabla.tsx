@@ -13,27 +13,21 @@ interface PreguntaFormColumnasTablaProps {
   nuevaPregunta: boolean;
   columnaCatalogoAbierta: number | null;
   setColumnaCatalogoAbierta: (index: number | null) => void;
-  filtroBaseDatos: string;
-  setFiltroBaseDatos: (value: string) => void;
   filtroTabla: string;
   setFiltroTabla: (value: string) => void;
   filtroColumna: string;
   setFiltroColumna: (value: string) => void;
   filtroLlave: string;
   setFiltroLlave: (value: string) => void;
-  basesFiltradas: string[];
   tablasFiltradas: string[];
   columnasFiltradas: string[];
   llaveFiltrada: string[];
-  catalogoBases: string[];
   catalogoTablas: string[];
   catalogoColumnas: string[];
-  loadingCatalogoBases: boolean;
   loadingCatalogoTablas: boolean;
   loadingCatalogoColumnas: boolean;
-  cargarBasesCatalogo: () => void;
-  cargarTablasCatalogo: (baseDatos: string) => void;
-  cargarColumnasCatalogo: (baseDatos: string, tabla: string) => void;
+  cargarTablasCatalogo: () => void;
+  cargarColumnasCatalogo: (tabla: string) => void;
 }
 
 export function PreguntaFormColumnasTabla({
@@ -43,25 +37,19 @@ export function PreguntaFormColumnasTabla({
   nuevaPregunta,
   columnaCatalogoAbierta,
   setColumnaCatalogoAbierta,
-  filtroBaseDatos,
-  setFiltroBaseDatos,
   filtroTabla,
   setFiltroTabla,
   filtroColumna,
   setFiltroColumna,
   filtroLlave,
   setFiltroLlave,
-  basesFiltradas,
   tablasFiltradas,
   columnasFiltradas,
   llaveFiltrada,
-  catalogoBases,
   catalogoTablas,
   catalogoColumnas,
-  loadingCatalogoBases,
   loadingCatalogoTablas,
   loadingCatalogoColumnas,
-  cargarBasesCatalogo,
   cargarTablasCatalogo,
   cargarColumnasCatalogo,
 }: PreguntaFormColumnasTablaProps) {
@@ -133,9 +121,6 @@ export function PreguntaFormColumnasTabla({
                         });
                         if (nuevoTipo === "CATALOGO") {
                           setColumnaCatalogoAbierta(index);
-                          setFiltroBaseDatos(
-                            nuevas[index].catalogo_base_datos || "",
-                          );
                           setFiltroTabla(
                             nuevas[index].catalogo_tabla || "",
                           );
@@ -145,18 +130,12 @@ export function PreguntaFormColumnasTabla({
                           setFiltroLlave(
                             nuevas[index].catalogo_pk_column || "",
                           );
-                          cargarBasesCatalogo();
-                          if (nuevas[index].catalogo_tabla) {
-                            cargarTablasCatalogo(
-                              nuevas[index].catalogo_base_datos || "",
-                            );
-                          }
+                          cargarTablasCatalogo();
                           if (
                             nuevas[index].catalogo_tabla &&
                             nuevas[index].catalogo_columna
                           ) {
                             cargarColumnasCatalogo(
-                              nuevas[index].catalogo_base_datos || "",
                               nuevas[index].catalogo_tabla || "",
                             );
                           }
@@ -250,9 +229,6 @@ export function PreguntaFormColumnasTabla({
                           type="button"
                           onClick={() => {
                             setColumnaCatalogoAbierta(index);
-                            setFiltroBaseDatos(
-                              columna.catalogo_base_datos || "",
-                            );
                             setFiltroTabla(columna.catalogo_tabla || "");
                             setFiltroColumna(
                               columna.catalogo_columna || "",
@@ -260,15 +236,9 @@ export function PreguntaFormColumnasTabla({
                             setFiltroLlave(
                               columna.catalogo_pk_column || "",
                             );
-                            cargarBasesCatalogo();
-                            cargarTablasCatalogo(
-                              columna.catalogo_base_datos || "",
-                            );
+                            cargarTablasCatalogo();
                             if (columna.catalogo_tabla) {
-                              cargarColumnasCatalogo(
-                                columna.catalogo_base_datos || "",
-                                columna.catalogo_tabla,
-                              );
+                              cargarColumnasCatalogo(columna.catalogo_tabla);
                             }
                           }}
                           className="text-xs text-gray-700 underline hover:text-gray-900"
@@ -294,17 +264,12 @@ export function PreguntaFormColumnasTabla({
                             });
                           }}
                           onCerrar={() => setColumnaCatalogoAbierta(null)}
-                          catalogoBases={catalogoBases}
                           catalogoTablas={catalogoTablas}
                           catalogoColumnas={catalogoColumnas}
-                          basesFiltradas={basesFiltradas}
                           tablasFiltradas={tablasFiltradas}
                           columnasFiltradas={columnasFiltradas}
-                          loadingCatalogoBases={loadingCatalogoBases}
                           loadingCatalogoTablas={loadingCatalogoTablas}
                           loadingCatalogoColumnas={loadingCatalogoColumnas}
-                          filtroBaseDatos={filtroBaseDatos}
-                          setFiltroBaseDatos={setFiltroBaseDatos}
                           filtroTabla={filtroTabla}
                           setFiltroTabla={setFiltroTabla}
                           filtroColumna={filtroColumna}
@@ -312,7 +277,6 @@ export function PreguntaFormColumnasTabla({
                           llaveFiltrada={llaveFiltrada}
                           filtroLlave={filtroLlave}
                           setFiltroLlave={setFiltroLlave}
-                          cargarTablasCatalogo={cargarTablasCatalogo}
                           cargarColumnasCatalogo={cargarColumnasCatalogo}
                           columnasCatalogoDisponibles={formPregunta.tabla_columnas
                             .filter(

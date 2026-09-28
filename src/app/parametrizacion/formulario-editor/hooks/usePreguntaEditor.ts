@@ -94,6 +94,11 @@ export function usePreguntaEditor({
   const [nuevaPregunta, setNuevaPregunta] = useState(false);
   const [formPregunta, setFormPregunta] = useState<FormPreguntaState>(FORM_PREGUNTA_DEFAULT);
   const [opciones, setOpciones] = useState<Opcion[]>([]);
+  // Al editar una pregunta, `opciones` es la copia de trabajo y esta la foto
+  // de cómo estaban en la BD al abrir. Agregar/renombrar/eliminar solo toca
+  // la copia; al dar "Guardar" se manda la diferencia (aplicarCambiosOpciones)
+  // y "Cancelar" la descarta. Antes cada clic llamaba al backend.
+  const [opcionesOriginales, setOpcionesOriginales] = useState<Opcion[]>([]);
   const [nuevaOpcion, setNuevaOpcion] = useState("");
   const [loading_opciones, setLoading_opciones] = useState(false);
   const [opcionesNuevas, setOpcionesNuevas] = useState<string[]>([]);
@@ -284,6 +289,35 @@ export function usePreguntaEditor({
     }
     return true;
   }, [formPregunta, seccionSeleccionada, formularioIdNumber, editandoPregunta, opciones, opcionesNuevas]);
+
+  const textoOpcion = (o: Opcion | undefined) => (o?.fpo_valor || o?.op_descripcion || "").trim();
+
+  // Opciones agregadas en esta edición: id temporal negativo hasta guardar.
+  const cambiosOpciones = useMemo(() => {
+    const originalesPorId = new Map(opcionesOriginales.map((o) => [o.fpo_id, o]));
+    const idsActuales = new Set(opciones.map((o) => o.fpo_id));
+    return {
+      crear: opciones.filter((o) => o.fpo_id < 0).map(textoOpcion),
+      renombrar: opciones
+        .filter((o) => o.fpo_id > 0 && originalesPorId.has(o.fpo_id))
+        .filter((o) => textoOpcion(o) !== textoOpcion(originalesPorId.get(o.fpo_id)))
+        .map((o) => ({ fpo_id: o.fpo_id, fpo_valor: textoOpcion(o) })),
+      eliminar: opcionesOriginales.filter((o) => !idsActuales.has(o.fpo_id)).map((o) => o.fpo_id),
+    };
+  }, [opciones, opcionesOriginales]);
+
+  const hayCambiosOpcionesPendientes =
+    !!editandoPregunta &&
+    TIPOS_SELECT_MULTISELECT.includes(formPregunta.tipo) &&
+    (cambiosOpciones.crear.length > 0 ||
+      cambiosOpciones.renombrar.length > 0 ||
+      cambiosOpciones.eliminar.length > 0);
+
+  const estadoPendienteOpcion = (opcion: Opcion): "nueva" | "modificada" | null => {
+    if (opcion.fpo_id < 0) return "nueva";
+    const original = opcionesOriginales.find((o) => o.fpo_id === opcion.fpo_id);
+    return original && textoOpcion(original) !== textoOpcion(opcion) ? "modificada" : null;
+  };
 
   const guardarPregunta = () => {
     const targetSeccionId = formPregunta.fp_fs_id ?? seccionSeleccionada;
@@ -504,11 +538,44 @@ export function usePreguntaEditor({
 
       if (editandoPregunta) {
         await formularioPreguntasService.update(editandoPregunta, payload);
+
+        // Las opciones van después de la pregunta: si fallan, el modal sigue
+        // abierto con los cambios en memoria y "Guardar" se puede reintentar
+        // (actualizar la pregunta otra vez no hace daño).
+        let opcionesGuardadas: Opcion[] | null = null;
+        if (hayCambiosOpcionesPendientes) {
+          opcionesGuardadas = await formularioPreguntasService.aplicarCambiosOpciones(
+            editandoPregunta,
+            cambiosOpciones,
+          );
+        }
+
+        // Textos de opción renombrados: el backend ya actualizó
+        // fp_valor_padre_disparador de las dependientes; se refleja aquí.
+        const renombres = new Map(
+          cambiosOpciones.renombrar.map((r) => [
+            textoOpcion(opcionesOriginales.find((o) => o.fpo_id === r.fpo_id)).toLowerCase(),
+            r.fpo_valor,
+          ]),
+        );
+
         // Actualizar el estado local en lugar de recargar todo
         setPreguntas((prev) =>
-          prev.map((p) =>
-            p.fp_id === editandoPregunta ? { ...p, ...payload, fp_descripcion: descripcionPersistida } : p,
-          ),
+          prev.map((p) => {
+            if (p.fp_id === editandoPregunta) {
+              return {
+                ...p,
+                ...payload,
+                fp_descripcion: descripcionPersistida,
+                ...(opcionesGuardadas ? { opciones: opcionesGuardadas } : {}),
+              };
+            }
+            const valorNuevo =
+              opcionesGuardadas && p.fp_pregunta_padre_id === editandoPregunta
+                ? renombres.get((p.fp_valor_padre_disparador || "").trim().toLowerCase())
+                : undefined;
+            return valorNuevo ? { ...p, fp_valor_padre_disparador: valorNuevo } : p;
+          }),
         );
         setSuccessMessage("editada");
       } else {
@@ -555,6 +622,8 @@ export function usePreguntaEditor({
       setEditandoPregunta(null);
       setNuevaPregunta(false);
       setOpcionesNuevas([]);
+      setOpciones([]);
+      setOpcionesOriginales([]);
       setFiltroTabla("");
       setFiltroColumna("");
       setCatalogoColumnas([]);
@@ -688,6 +757,7 @@ export function usePreguntaEditor({
       // El listado de preguntas ya trae las opciones precargadas (endpoint
       // "completo" batched), asi que no hace falta otra llamada de red aqui.
       setOpciones(pregunta.opciones);
+      setOpcionesOriginales(pregunta.opciones);
       setOpcionesNuevas(
         pregunta.opciones
           .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
@@ -698,12 +768,12 @@ export function usePreguntaEditor({
         setLoading_opciones(true);
         const data = await formularioPreguntasService.getOpciones(pregunta.fp_id);
         setOpciones(data);
+        setOpcionesOriginales(data);
         setOpcionesNuevas(
           data
             .map((item: Opcion) => item.fpo_valor || item.op_descripcion)
             .filter((item: string | undefined): item is string => Boolean(item?.trim())),
         );
-        console.log("✅ Opciones cargadas:", data);
       } catch (error) {
         console.error("❌ Error cargando opciones:", error);
       } finally {
@@ -711,37 +781,42 @@ export function usePreguntaEditor({
       }
     } else {
       setOpciones([]);
+      setOpcionesOriginales([]);
       setOpcionesNuevas([]);
     }
   };
 
-  const agregarOpcion = async () => {
-    if (!nuevaOpcion.trim() || !editandoPregunta) {
-      if (!nuevaOpcion.trim()) {
-        setError("Ingresa una opción válida");
-        return;
-      }
-      setOpcionesNuevas((prev) => [...prev, nuevaOpcion.trim()]);
+  const existeOpcionConTexto = (texto: string, excluirId?: number) =>
+    opciones.some((o) => o.fpo_id !== excluirId && textoOpcion(o).toLowerCase() === texto.toLowerCase());
+
+  const agregarOpcion = () => {
+    const valor = nuevaOpcion.trim();
+    if (!valor) {
+      setError("Ingresa una opción válida");
+      return;
+    }
+    if (!editandoPregunta) {
+      setOpcionesNuevas((prev) => [...prev, valor]);
       setNuevaOpcion("");
       return;
     }
-    try {
-      const nuevaOp = await formularioPreguntasService.createOpcion(editandoPregunta, nuevaOpcion);
-      setOpciones([...opciones, nuevaOp]);
-      setNuevaOpcion("");
-      console.log("✅ Opción agregada:", nuevaOp);
-    } catch (error) {
-      console.error("❌ Error agregando opción:", error);
-      setError(error instanceof Error ? error.message : "Error al agregar opción");
+    if (existeOpcionConTexto(valor)) {
+      setError(`Ya existe la opción "${valor}"`);
+      return;
     }
+    // Solo en memoria: se crea en la BD al dar "Guardar".
+    const idTemporal = Math.min(0, ...opciones.map((o) => o.fpo_id)) - 1;
+    setOpciones([...opciones, { fpo_id: idTemporal, fpo_valor: valor, fpo_estado: true }]);
+    setNuevaOpcion("");
   };
 
   // Preguntas que se muestran/ocultan según que esta opción sea la respuesta
   // seleccionada en `editandoPregunta` (fp_pregunta_padre_id + fp_valor_padre_disparador).
+  // Se compara con el texto guardado en la BD: un renombre aún sin guardar
+  // no cambia fp_valor_padre_disparador de las dependientes.
   const obtenerPreguntasDependientesDeOpcion = (fpoId: number): Pregunta[] => {
-    if (!editandoPregunta) return [];
-    const opcion = opciones.find((o) => o.fpo_id === fpoId);
-    const valorOpcion = (opcion?.fpo_valor || opcion?.op_descripcion || "").trim().toLowerCase();
+    if (!editandoPregunta || fpoId < 0) return [];
+    const valorOpcion = textoOpcion(opcionesOriginales.find((o) => o.fpo_id === fpoId)).toLowerCase();
     if (!valorOpcion) return [];
     return preguntas.filter(
       (p) =>
@@ -760,60 +835,22 @@ export function usePreguntaEditor({
     setOpcionEditandoValor("");
   };
 
-  const guardarEdicionOpcion = async () => {
+  // Solo en memoria. Al guardar, el backend renombra la opción (conserva
+  // fpo_id y fpo_codigo) y actualiza el texto en las preguntas dependientes.
+  const guardarEdicionOpcion = () => {
     if (!editandoPregunta || opcionEditandoId === null) return;
     const valorNuevo = opcionEditandoValor.trim();
     if (!valorNuevo) {
       setError("El valor de la opción no puede quedar vacío");
       return;
     }
-    const opcionActual = opciones.find((o) => o.fpo_id === opcionEditandoId);
-    const valorAnterior = (opcionActual?.fpo_valor || opcionActual?.op_descripcion || "").trim();
-
-    try {
-      const actualizada = await formularioPreguntasService.updateOpcion(editandoPregunta, opcionEditandoId, {
-        fpo_valor: valorNuevo,
-      });
-      setOpciones(
-        opciones.map((o) => (o.fpo_id === opcionEditandoId ? { ...o, ...actualizada, fpo_valor: valorNuevo } : o)),
-      );
-
-      // Si esta opción es el valor que dispara alguna pregunta dependiente,
-      // le actualizamos el texto también para que la dependencia no se rompa.
-      if (valorAnterior && valorAnterior.toLowerCase() !== valorNuevo.toLowerCase()) {
-        const dependientes = preguntas.filter(
-          (p) =>
-            p.fp_pregunta_padre_id === editandoPregunta &&
-            (p.fp_valor_padre_disparador || "").trim().toLowerCase() === valorAnterior.toLowerCase(),
-        );
-        if (dependientes.length > 0) {
-          await Promise.all(
-            dependientes.map((p) =>
-              formularioPreguntasService.update(p.fp_id, {
-                fp_valor_padre_disparador: valorNuevo,
-              }),
-            ),
-          );
-          // Actualizar el estado local en lugar de recargar todo
-          setPreguntas((prev) =>
-            prev.map((p) =>
-              dependientes.some((d) => d.fp_id === p.fp_id)
-                ? {
-                    ...p,
-                    fp_valor_padre_disparador: valorNuevo,
-                  }
-                : p,
-            ),
-          );
-        }
-      }
-
-      setOpcionEditandoId(null);
-      setOpcionEditandoValor("");
-    } catch (error) {
-      console.error("❌ Error editando opción:", error);
-      setError(error instanceof Error ? error.message : "Error al editar opción");
+    if (existeOpcionConTexto(valorNuevo, opcionEditandoId)) {
+      setError(`Ya existe la opción "${valorNuevo}"`);
+      return;
     }
+    setOpciones(opciones.map((o) => (o.fpo_id === opcionEditandoId ? { ...o, fpo_valor: valorNuevo } : o)));
+    setOpcionEditandoId(null);
+    setOpcionEditandoValor("");
   };
 
   const eliminarOpcion = (opcionId: number) => {
@@ -829,21 +866,21 @@ export function usePreguntaEditor({
       );
       return;
     }
+    // Una opción agregada en esta misma edición se quita sin preguntar.
+    if (opcionId < 0) {
+      setOpciones(opciones.filter((o) => o.fpo_id !== opcionId));
+      return;
+    }
     setOpcionAEliminar(opcionId);
   };
 
-  const confirmarEliminarOpcion = async () => {
+  // Solo en memoria: se desactiva en la BD (fpo_estado = false) al guardar.
+  const confirmarEliminarOpcion = () => {
     if (!editandoPregunta || opcionAEliminar === null) return;
     const opcionId = opcionAEliminar;
     setOpcionAEliminar(null);
-    try {
-      await formularioPreguntasService.deleteOpcion(editandoPregunta, opcionId);
-      setOpciones(opciones.filter((o) => o.fpo_id !== opcionId));
-      console.log("✅ Opción eliminada:", opcionId);
-    } catch (error) {
-      console.error("❌ Error eliminando opción:", error);
-      setError(error instanceof Error ? error.message : "Error al eliminar opción");
-    }
+    setOpciones(opciones.filter((o) => o.fpo_id !== opcionId));
+    if (opcionEditandoId === opcionId) cancelarEdicionOpcion();
   };
 
   const eliminarOpcionNueva = (indice: number) => {
@@ -864,6 +901,7 @@ export function usePreguntaEditor({
         setEditandoPregunta(null);
         setNuevaPregunta(false);
         setOpciones([]);
+        setOpcionesOriginales([]);
         setNuevaOpcion("");
       }
       // Actualizar el estado local en lugar de recargar todo
@@ -971,6 +1009,8 @@ export function usePreguntaEditor({
     setNuevaOpcion,
     loading_opciones,
     opcionesNuevas,
+    hayCambiosOpcionesPendientes,
+    estadoPendienteOpcion,
     setOpcionesNuevas,
     // Catálogo
     catalogoTablas,

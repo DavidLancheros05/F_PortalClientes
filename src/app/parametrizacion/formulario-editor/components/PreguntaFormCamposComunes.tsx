@@ -115,8 +115,12 @@ export function PreguntaFormTipo({
         disabled={protegida}
         onChange={(e) => {
           const tipo = e.target.value as Pregunta["fp_tipo"];
-          setOpciones([]);
-          setOpcionesNuevas([]);
+          // Al editar no se vacía la lista: es la copia de trabajo de las
+          // opciones de la BD y vaciarla haría que "Guardar" las eliminara.
+          if (!editandoPregunta) {
+            setOpciones([]);
+            setOpcionesNuevas([]);
+          }
           setFormPregunta((prev) => {
             if (tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA) {
               return {
@@ -126,7 +130,6 @@ export function PreguntaFormTipo({
                 patron: "",
                 tipo_documento_id: null,
                 descripcion: "Nombre del documento",
-                catalogo_base_datos: "",
                 catalogo_tabla: "Tipos_documentos",
                 catalogo_columna: "tdo_nombre",
                 catalogo_pk_column: "tdo_id",
@@ -138,7 +141,6 @@ export function PreguntaFormTipo({
                 tipo,
                 subtipo: "",
                 patron: "",
-                catalogo_base_datos: "",
                 catalogo_tabla: "",
                 catalogo_columna: "",
                 catalogo_pk_column: "",
@@ -156,7 +158,6 @@ export function PreguntaFormTipo({
                 dependencia_pregunta_id: null,
                 dependencia_valor: "",
                 tipo_documento_id: null,
-                catalogo_base_datos: "",
                 catalogo_tabla: "",
                 catalogo_columna: "",
                 catalogo_pk_column: "",
@@ -180,7 +181,6 @@ export function PreguntaFormTipo({
                         : "",
                 patron: "",
                 tipo_documento_id: null,
-                catalogo_base_datos: "",
                 catalogo_tabla: "",
                 catalogo_columna: "",
                 catalogo_pk_column: "",
@@ -192,7 +192,6 @@ export function PreguntaFormTipo({
               subtipo: "",
               patron: "",
               tipo_documento_id: null,
-              catalogo_base_datos: "",
               catalogo_tabla: "",
               catalogo_columna: "",
               catalogo_pk_column: "",
