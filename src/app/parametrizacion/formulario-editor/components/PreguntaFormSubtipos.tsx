@@ -76,7 +76,7 @@ export function PreguntaFormSubtipos({
               subtipo: "LISTA",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Lista desplegable
@@ -93,7 +93,7 @@ export function PreguntaFormSubtipos({
               subtipo: "CHECK",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Checks visibles (una sola opción)
@@ -123,7 +123,7 @@ export function PreguntaFormSubtipos({
               subtipo: "",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Número simple
@@ -140,7 +140,7 @@ export function PreguntaFormSubtipos({
               subtipo: "MONEDA",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Moneda ($) — formatea con separador de miles
@@ -157,7 +157,7 @@ export function PreguntaFormSubtipos({
               subtipo: "DIA_MES",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Día del mes (1-31) — lista desplegable
@@ -174,7 +174,7 @@ export function PreguntaFormSubtipos({
               subtipo: "DURACION_ANIOS_MESES",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Duración (años y meses) — dos campos combinados en un solo valor
@@ -200,7 +200,7 @@ export function PreguntaFormSubtipos({
               subtipo: "",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Normal — el usuario elige la fecha
@@ -217,7 +217,7 @@ export function PreguntaFormSubtipos({
               subtipo: "ACTUAL",
             }))
           }
-          className="w-3.5 h-3.5 accent-blue-600"
+          className="w-3.5 h-3.5 accent-brand-600"
         />
         <span className={FILA_TEXTO}>
           Autocompletar con la fecha actual — el usuario puede
@@ -249,7 +249,7 @@ export function PreguntaFormSubtipos({
                 patron: preset.patron,
               }))
             }
-            className="w-3.5 h-3.5 accent-blue-600"
+            className="w-3.5 h-3.5 accent-brand-600"
           />
           <span className={FILA_TEXTO}>
             {preset.label}

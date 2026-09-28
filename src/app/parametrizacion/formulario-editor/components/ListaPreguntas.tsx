@@ -331,7 +331,7 @@ export function ListaPreguntas({
       <ConfirmModal
         isOpen={preguntaAEliminar !== null}
         title="Eliminar pregunta"
-        message="¿Estás seguro de que deseas eliminar esta pregunta? Se eliminarán sus respuestas y opciones asociadas."
+        message="La pregunta dejará de aparecer en el formulario. Sus opciones y las respuestas ya guardadas no se borran."
         confirmText="Eliminar"
         isDangerous
         onConfirm={confirmarEliminarPregunta}

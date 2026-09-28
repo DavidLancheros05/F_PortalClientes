@@ -97,7 +97,7 @@ export function PreguntaFormColumnasTabla({
                           tabla_columnas: nuevas,
                         });
                       }}
-                      className="flex-1 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="flex-1 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <select
                       value={columna.tipo}
@@ -143,7 +143,7 @@ export function PreguntaFormColumnasTabla({
                           setColumnaCatalogoAbierta(null);
                         }
                       }}
-                      className="border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                      className="border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
                     >
                       <option value="TEXTO">Texto libre</option>
                       <option value="NUMERO">Solo números</option>
@@ -313,7 +313,7 @@ export function PreguntaFormColumnasTabla({
                             });
                           }}
                           placeholder="Sin mínimo"
-                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                         />
                       </label>
                       <label className="flex items-center gap-1 text-xs text-gray-700">
@@ -336,7 +336,7 @@ export function PreguntaFormColumnasTabla({
                             });
                           }}
                           placeholder="Sin máximo"
-                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                         />
                       </label>
                       <label
@@ -361,7 +361,7 @@ export function PreguntaFormColumnasTabla({
                             });
                           }}
                           placeholder="Sin suma"
-                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-24 border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                         />
                       </label>
                     </div>
@@ -381,7 +381,7 @@ export function PreguntaFormColumnasTabla({
               ],
             })
           }
-          className="px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150"
+          className="px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150"
         >
           <Plus className="h-3 w-3" />
           Agregar columna

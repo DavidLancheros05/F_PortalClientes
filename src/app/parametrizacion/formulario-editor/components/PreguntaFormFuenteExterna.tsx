@@ -61,7 +61,7 @@ export function PreguntaFormFuenteExterna({
               documento?.tdo_nombre ? [documento.tdo_nombre] : [],
             );
           }}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
         >
           <option value="">
             {loadingDocumentosCatalogo
@@ -104,7 +104,7 @@ export function PreguntaFormFuenteExterna({
                 documento?.tdo_nombre || prev.descripcion,
             }));
           }}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
         >
           <option value="">
             {loadingDocumentosCatalogo

@@ -26,11 +26,11 @@ export function PreguntaFormDependencia({
     <>
       {/* Dependencia */}
       {formPregunta.dependiente && (
-        <div className="space-y-1.5 p-3 bg-[#f5f8ff] border border-blue-100 rounded-xl">
-          <p className="text-[12.5px] font-bold text-blue-900">Comportamiento condicional</p>
+        <div className="space-y-1.5 p-3 bg-slate-50 border border-gray-200 rounded-xl">
+          <p className="text-[12.5px] font-bold text-gray-800">Comportamiento condicional</p>
 
           <div className="space-y-1">
-            <label className="block text-[13px] font-semibold text-blue-900 leading-tight">
+            <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
               Sección padre <span className="text-red-500">*</span>
             </label>
             <select
@@ -42,7 +42,7 @@ export function PreguntaFormDependencia({
                   dependencia_pregunta_id: null,
                 })
               }
-              className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors">
+              className="w-full border border-gray-200 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors">
               <option value="">Seleccione sección padre</option>
               {secciones.map((seccion) => (
                 <option key={seccion.fs_id || seccion.fp_fs_id} value={seccion.fs_id || seccion.fp_fs_id}>
@@ -53,7 +53,7 @@ export function PreguntaFormDependencia({
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[13px] font-semibold text-blue-900 leading-tight">
+            <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
               Pregunta padre <span className="text-red-500">*</span>
             </label>
             <select
@@ -65,7 +65,7 @@ export function PreguntaFormDependencia({
                   dependencia_valor: "",
                 })
               }
-              className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
+              className="w-full border border-gray-200 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
               disabled={!formPregunta.dependencia_fp_fs_id}>
               <option value="">Seleccione pregunta padre</option>
               {preguntas
@@ -79,7 +79,7 @@ export function PreguntaFormDependencia({
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[13px] font-semibold text-blue-900 leading-tight">
+            <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
               Respuesta que dispara <span className="text-red-500">*</span>
             </label>
             {opcionesPreguntaPadre.length > 0 ? (
@@ -91,7 +91,7 @@ export function PreguntaFormDependencia({
                     dependencia_valor: e.target.value,
                   })
                 }
-                className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors">
+                className="w-full border border-gray-200 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors">
                 <option value="">Selecciona una respuesta</option>
                 {opcionesPreguntaPadre
                   .filter((o) => o.fpo_estado)
@@ -114,7 +114,7 @@ export function PreguntaFormDependencia({
                       dependencia_valor: e.target.value,
                     })
                   }
-                  className="w-full border border-blue-100 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors disabled:bg-gray-100"
+                  className="w-full border border-gray-200 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors disabled:bg-gray-100"
                 />
                 {formPregunta.dependencia_pregunta_id && !loadingOpcionesPreguntaPadre && (
                   <p className="text-xs text-gray-500">
@@ -123,7 +123,7 @@ export function PreguntaFormDependencia({
                 )}
               </>
             )}
-            <p className="text-xs text-blue-700 font-medium mt-2">
+            <p className="text-xs text-brand-600 font-medium mt-2">
               Esta pregunta se mostrará cuando la pregunta padre tenga este valor
             </p>
           </div>

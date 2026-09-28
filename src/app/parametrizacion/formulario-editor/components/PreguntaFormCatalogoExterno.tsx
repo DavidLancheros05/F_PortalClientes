@@ -83,7 +83,7 @@ export function PreguntaFormCatalogoExterno({
           placeholder="Escribe para filtrar (ej: cli)..."
           value={filtroTabla}
           onChange={(e) => setFiltroTabla(e.target.value)}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors"
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 transition-colors"
         />
         {(!formPregunta.catalogo_tabla || filtroTabla !== formPregunta.catalogo_tabla) && (
           <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
@@ -136,7 +136,7 @@ export function PreguntaFormCatalogoExterno({
           value={filtroColumna}
           onChange={(e) => setFiltroColumna(e.target.value)}
           disabled={!formPregunta.catalogo_tabla}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
         />
         {(!formPregunta.catalogo_columna || filtroColumna !== formPregunta.catalogo_columna) && (
           <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
@@ -187,7 +187,7 @@ export function PreguntaFormCatalogoExterno({
           value={filtroLlave}
           onChange={(e) => setFiltroLlave(e.target.value)}
           disabled={!formPregunta.catalogo_tabla}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 disabled:bg-gray-100 transition-colors"
         />
         {(!formPregunta.catalogo_pk_column || filtroLlave !== formPregunta.catalogo_pk_column) && (
           <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
@@ -287,7 +287,7 @@ export function PreguntaFormCatalogoExterno({
                 catalogo_filtro_dependiente: e.target.checked,
               })
             }
-            className="w-3.5 h-3.5 accent-blue-600"
+            className="w-3.5 h-3.5 accent-brand-600"
           />
           <span className="font-medium text-gray-800">Estas opciones dependen de la respuesta de otra pregunta</span>
         </label>
@@ -430,7 +430,7 @@ export function PreguntaFormCatalogoExterno({
                     catalogo_filtro_reglas: [...formPregunta.catalogo_filtro_reglas, { valor: "", valor_filtro: "" }],
                   })
                 }
-                className="px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150">
+                className="px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150">
                 <Plus className="h-3 w-3" />
                 Agregar regla
               </button>

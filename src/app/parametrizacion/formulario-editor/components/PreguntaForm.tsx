@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
-import { ChevronDown, Save, X } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Save, X } from "lucide-react";
 import { ConfirmModal, ModalPortal } from "@/components/modals";
 import { Toast } from "@/components/Toast";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
@@ -211,30 +211,31 @@ export function PreguntaForm({
       {(nuevaPregunta || editandoPregunta) && (
         <ModalPortal>
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95">
-              <div
-                className="flex-shrink-0 rounded-t-[20px] px-5 py-4 text-white"
-                style={{
-                  background: "linear-gradient(135deg, #2563eb, #1d4ed8 55%, #3730a3)",
-                }}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    {seccionActualNombre && (
-                      <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-blue-200 truncate">
-                        {seccionActualNombre}
-                      </p>
-                    )}
-                    <h3 className="text-[19px] font-bold truncate mt-0.5">
-                      {editandoPregunta ? "Editar pregunta" : "Nueva pregunta"}
-                    </h3>
-                    <p className="text-xs text-[#c7d7fe] mt-0.5 truncate">{tipoActualLabel}</p>
-                  </div>
-                  <button
-                    onClick={intentarCerrarFormulario}
-                    className="flex-shrink-0 p-2 rounded-[10px] bg-white/20 hover:bg-white/30 transition-colors">
-                    <X className="h-4 w-4" />
-                  </button>
+            <div className="bg-white rounded-[22px] shadow-[0_20px_50px_rgba(15,23,42,0.15)] w-full max-w-2xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95">
+              <div className="bg-brand-gradient rounded-t-[22px] overflow-hidden px-7 py-[22px] flex items-center gap-4 flex-shrink-0">
+                <div className="w-[42px] h-[42px] rounded-xl bg-white/16 flex items-center justify-center flex-shrink-0">
+                  {editandoPregunta ? (
+                    <Pencil size={20} className="text-white" strokeWidth={2} />
+                  ) : (
+                    <Plus size={20} className="text-white" strokeWidth={2} />
+                  )}
                 </div>
+                <div className="min-w-0 flex-1">
+                  {seccionActualNombre && (
+                    <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#c3d5f5] m-0 truncate">
+                      {seccionActualNombre}
+                    </p>
+                  )}
+                  <h2 className="text-[19px] font-extrabold text-white tracking-[-0.01em] m-0 truncate">
+                    {editandoPregunta ? "Editar pregunta" : "Nueva pregunta"}
+                  </h2>
+                  <p className="text-[12.5px] text-[#c3d5f5] mt-[3px] m-0 truncate">{tipoActualLabel}</p>
+                </div>
+                <button
+                  onClick={intentarCerrarFormulario}
+                  className="w-[34px] h-[34px] rounded-[10px] bg-white/14 hover:bg-white/20 flex items-center justify-center text-white flex-shrink-0 transition-colors">
+                  <X size={16} strokeWidth={2.3} />
+                </button>
               </div>
 
               {errorPregunta && (
@@ -431,7 +432,7 @@ export function PreguntaForm({
                             espacio_lineas: e.target.value,
                           })
                         }
-                        className="border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                       <p className="text-xs text-gray-500">
                         Alto del espacio en blanco que se dibuja en el PDF para que el cliente firme a mano tras
@@ -458,7 +459,7 @@ export function PreguntaForm({
                             archivo_maximo: e.target.value,
                           })
                         }
-                        className="border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                       <p className="text-xs text-gray-500">
                         Si pones más de 1, el cliente podrá subir varios archivos para esta pregunta (ej. varios
@@ -475,7 +476,7 @@ export function PreguntaForm({
                   onClick={guardarPregunta}
                   disabled={!puedeGuardarPregunta}
                   title={puedeGuardarPregunta ? undefined : "Completa los campos requeridos para poder guardar"}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-150 flex items-center justify-center gap-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40">
+                  className="flex-1 px-3 py-2 bg-brand-600 text-white font-semibold rounded-lg hover:bg-brand-700 shadow-[0_6px_16px_rgba(0,61,153,0.22)] transition-colors duration-150 flex items-center justify-center gap-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40">
                   <Save className="h-3.5 w-3.5" />
                   Guardar
                 </button>

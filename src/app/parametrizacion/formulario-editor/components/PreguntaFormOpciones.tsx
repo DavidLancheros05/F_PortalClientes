@@ -110,7 +110,7 @@ export function PreguntaFormOpciones({
                               if (e.key === "Escape")
                                 cancelarEdicionOpcion();
                             }}
-                            className="flex-1 border border-gray-300 rounded-[9px] px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="flex-1 border border-gray-300 rounded-[9px] px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
                           />
                         ) : (
                           <span className="font-medium text-xs text-gray-800 flex-1">
@@ -138,7 +138,7 @@ export function PreguntaFormOpciones({
                           <>
                             <button
                               onClick={guardarEdicionOpcion}
-                              className="p-1.5 text-green-700 hover:bg-green-50 rounded-lg"
+                              className="p-1.5 text-brand-600 hover:bg-brand-600/10 rounded-lg"
                               title="Guardar"
                             >
                               <Save className="h-3 w-3" />
@@ -227,11 +227,11 @@ export function PreguntaFormOpciones({
                   onKeyPress={(e) => {
                     if (e.key === "Enter") agregarOpcion();
                   }}
-                  className="flex-1 border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 border border-gray-300 rounded-[9px] px-2.5 py-2 text-[13.5px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <button
                   onClick={agregarOpcion}
-                  className="px-2.5 py-1 bg-emerald-600 text-white rounded-[9px] hover:bg-emerald-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150"
+                  className="px-2.5 py-1 bg-brand-600 text-white rounded-[9px] hover:bg-brand-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150"
                 >
                   <Plus className="h-3 w-3" />
                   Agregar

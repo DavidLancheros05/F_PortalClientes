@@ -67,7 +67,7 @@ export function ColumnaCatalogoPicker({
           placeholder="Escribe para filtrar (ej: pais)..."
           value={filtroTabla}
           onChange={(e) => setFiltroTabla(e.target.value)}
-          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
         />
         {(!columna.catalogo_tabla || filtroTabla !== columna.catalogo_tabla) && (
           <div className="max-h-28 overflow-y-auto border border-gray-200 rounded-[9px] bg-white divide-y divide-gray-100">
@@ -116,7 +116,7 @@ export function ColumnaCatalogoPicker({
           value={filtroColumna}
           onChange={(e) => setFiltroColumna(e.target.value)}
           disabled={!columna.catalogo_tabla}
-          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white disabled:bg-gray-100"
         />
         {(!columna.catalogo_columna ||
           filtroColumna !== columna.catalogo_columna) && (
@@ -164,7 +164,7 @@ export function ColumnaCatalogoPicker({
           value={filtroLlave}
           onChange={(e) => setFiltroLlave(e.target.value)}
           disabled={!columna.catalogo_tabla}
-          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-100"
+          className="w-full border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white disabled:bg-gray-100"
         />
         {(!columna.catalogo_pk_column ||
           filtroLlave !== columna.catalogo_pk_column) && (

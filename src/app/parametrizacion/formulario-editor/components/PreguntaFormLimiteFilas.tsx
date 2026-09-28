@@ -40,7 +40,7 @@ export function PreguntaFormLimiteFilas({
                   tabla_limite_modo: "SIN_LIMITE",
                 })
               }
-              className="w-3.5 h-3.5 accent-blue-600"
+              className="w-3.5 h-3.5 accent-brand-600"
             />
             <span className="font-medium text-gray-800">Sin límite</span>
           </label>
@@ -56,7 +56,7 @@ export function PreguntaFormLimiteFilas({
                   tabla_limite_modo: "FIJO",
                 })
               }
-              className="w-3.5 h-3.5 accent-blue-600"
+              className="w-3.5 h-3.5 accent-brand-600"
             />
             <span className="font-medium text-gray-800">Número fijo de filas</span>
           </label>
@@ -72,7 +72,7 @@ export function PreguntaFormLimiteFilas({
                   tabla_limite_fijo: e.target.value,
                 })
               }
-              className="ml-5 border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="ml-5 border border-gray-300 rounded-[9px] px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           )}
 
@@ -87,7 +87,7 @@ export function PreguntaFormLimiteFilas({
                   tabla_limite_modo: "CONDICIONAL",
                 })
               }
-              className="w-3.5 h-3.5 accent-blue-600"
+              className="w-3.5 h-3.5 accent-brand-600"
             />
             <span className="font-medium text-gray-800">Depende de otra pregunta</span>
           </label>
@@ -206,7 +206,7 @@ export function PreguntaFormLimiteFilas({
                       tabla_limite_reglas: [...formPregunta.tabla_limite_reglas, { valor: "", limite: "" }],
                     })
                   }
-                  className="px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150">
+                  className="px-2 py-1 bg-brand-600 text-white rounded hover:bg-brand-700 text-xs flex items-center gap-0.5 font-semibold transition-colors duration-150">
                   <Plus className="h-3 w-3" />
                   Agregar regla
                 </button>

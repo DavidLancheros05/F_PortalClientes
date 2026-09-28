@@ -25,8 +25,8 @@ function SwitchField({ label, description, checked, onChange }: SwitchFieldProps
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 ${
-          checked ? "bg-blue-600" : "bg-slate-200"
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 ${
+          checked ? "bg-brand-600" : "bg-slate-200"
         }`}>
         <span
           className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-150 ${
@@ -58,7 +58,7 @@ function AnchoColumnasField({ value, onChange }: AnchoColumnasFieldProps) {
             aria-pressed={value === n}
             onClick={() => onChange(n)}
             className={`w-7 h-6 text-[11px] font-semibold transition-colors ${
-              value === n ? "bg-blue-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"
+              value === n ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"
             } ${n !== 1 ? "border-l border-gray-200" : ""}`}>
             {n}
           </button>
@@ -198,7 +198,7 @@ export function PreguntaFormTipo({
             };
           });
         }}
-        className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500">
+        className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500">
         {(() => {
           const tiposActivos = tiposPregunta.filter((t) => t.fti_estado);
           const tiposBase = editandoPregunta ? tiposPregunta : tiposActivos.length > 0 ? tiposActivos : tiposPregunta;
@@ -279,7 +279,7 @@ export function PreguntaFormDescripcionSeccion({
                 })
               }
               rows={6}
-              className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors resize-y max-h-64 overflow-y-auto"
+              className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors resize-y max-h-64 overflow-y-auto"
             />
           ) : (
             <input
@@ -297,7 +297,7 @@ export function PreguntaFormDescripcionSeccion({
                 })
               }
               disabled={formPregunta.tipo === TIPOS_PREGUNTA.DOCUMENTOS_TABLA}
-              className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 text-gray-900 text-[13.5px] transition-colors"
+              className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white disabled:bg-gray-100 text-gray-900 text-[13.5px] transition-colors"
             />
           )}
         </div>
@@ -316,7 +316,7 @@ export function PreguntaFormDescripcionSeccion({
               fp_fs_id: e.target.value ? parseInt(e.target.value) : null,
             });
           }}
-          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors">
+          className="w-full border border-gray-300 rounded-[9px] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-white text-gray-900 text-[13.5px] transition-colors">
           <option value="">Selecciona una sección</option>
           {secciones.map((seccion) => (
             <option key={seccion.fs_id || seccion.fp_fs_id} value={seccion.fs_id || seccion.fp_fs_id}>
