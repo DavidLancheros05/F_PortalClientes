@@ -138,7 +138,7 @@ export interface FormularioPreguntaResponse {
   fp_orden: number;
   fp_fv_id: number;
   fp_created_at?: Date;
-  fp_requerida: boolean;
+  fp_obligatoria: boolean;
   fp_minimo: number | null;
   fp_maximo: number | null;
   fp_subtipo: string | null;

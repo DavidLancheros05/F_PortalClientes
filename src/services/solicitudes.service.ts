@@ -314,7 +314,7 @@ export const solicitudesService = {
   },
 
   // Guardar concepto Comité Crédito 2 (backward compatibility wrapper)
-  async guardarConceptoComiteCredito2(id: number, data: { comentario: string; recomendacion?: string }) {
+  async guardarConceptoComiteCredito2(id: number, data: { comentario: string; recomendacion?: string; cupo?: number; plazoPago?: number; formaPago?: string; condicionPago?: string }) {
     return workflowSolicitudesService.guardarConceptoComiteCredito2(id, data);
   },
 

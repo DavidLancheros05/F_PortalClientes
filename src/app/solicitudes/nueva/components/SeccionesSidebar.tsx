@@ -25,7 +25,6 @@ interface SeccionesSidebarProps {
   secciones: SeccionLite[];
   seccionSeleccionada: number | null;
   setSeccionSeleccionada: (id: number) => void;
-  shouldShowQuestion: (pregunta: any) => boolean;
   seccionProgress: Map<number, ProgresoSeccion>;
 }
 
@@ -33,7 +32,6 @@ export function SeccionesSidebar({
   secciones,
   seccionSeleccionada,
   setSeccionSeleccionada,
-  shouldShowQuestion,
   seccionProgress,
 }: SeccionesSidebarProps) {
   // La lista de secciones tiene su propio scroll (puede haber más secciones
@@ -65,9 +63,6 @@ export function SeccionesSidebar({
       <div className="flex gap-1.5 overflow-x-auto pb-1 snap-x snap-mandatory lg:flex-1 lg:flex-col lg:overflow-y-auto lg:space-y-1 lg:pb-0">
         {secciones.map((seccion) => {
           const seccionPreguntas = seccion.preguntas;
-          const seccionRespondibles = seccionPreguntas.filter(
-            (pregunta) => shouldShowQuestion(pregunta) && !["NOTA", "FECHA_HORA_ACTUAL"].includes(pregunta.fp_tipo),
-          ).length;
           const progresoSeccion = seccionProgress.get(seccion.fp_fs_id);
           const todasCompletadas =
             (progresoSeccion?.displayTotal ?? 0) > 0 &&
@@ -96,9 +91,6 @@ export function SeccionesSidebar({
                       <Check className="mt-0.5 h-3 w-3 shrink-0 text-brand-600" />
                     )}
                   </div>
-                  <p className="mt-0.5 text-[10px] text-slate-500">
-                    {seccionRespondibles} campo{seccionRespondibles === 1 ? "" : "s"}
-                  </p>
                 </div>
                 {progresoSeccion && (
                   <span className="hidden rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 lg:inline-flex">

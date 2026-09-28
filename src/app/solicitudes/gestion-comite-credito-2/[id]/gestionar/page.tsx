@@ -3,7 +3,7 @@ import { solicitudesService } from "@/services/solicitudes.service";
 import { parametrosService } from "@/services/parametros.service";
 import {
   condicionesFinancierasService,
-  FormaPago,
+  CondicionPago,
 } from "@/services/condiciones-financieras/condiciones-financieras.service";
 import { DocumentosCargadosSolicitud } from "@/components/DocumentosCargadosSolicitud";
 import { SoportesAnalisis } from "@/components/SoportesAnalisis";
@@ -61,6 +61,7 @@ interface RegistroState {
   cupoDisplay: string;
   plazoPago: string;
   formaPago: string;
+  condicionPago: string;
   nombreAprueba: string;
   fecha: string;
   firma: string;
@@ -79,7 +80,7 @@ export default function GestionComiteCredito2Page() {
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [loading, setLoading] = useState(true);
   const [diasRespuesta, setDiasRespuesta] = useState<DiasRespuesta>({});
-  const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+  const [formasPago, setFormasPago] = useState<CondicionPago[]>([]);
   const { historial: historialWorkflow } = useHistorialWorkflow(solicitudId);
   const [registro, setRegistro] = useState<RegistroState>({
     recomendacion: "",
@@ -88,6 +89,7 @@ export default function GestionComiteCredito2Page() {
     cupoDisplay: "",
     plazoPago: "",
     formaPago: "",
+    condicionPago: "",
     nombreAprueba: user?.nombre || "",
     fecha: new Date().toISOString().split("T")[0],
     firma: "",
@@ -113,7 +115,7 @@ export default function GestionComiteCredito2Page() {
         const [solicitudData, dias, formas] = await Promise.all([
           solicitudesService.getById(id),
           parametrosService.getDiasRespuesta(),
-          condicionesFinancierasService.getFormasPago(),
+          condicionesFinancierasService.getCondicionesPago(),
         ]);
         if (cancelled) return;
 
@@ -155,7 +157,7 @@ export default function GestionComiteCredito2Page() {
   const puedeGuardar =
     registro.recomendacion !== "" &&
     (registro.recomendacion !== "aprobado" ||
-      (registro.cupo.trim() !== "" && registro.plazoPago.trim() !== "" && registro.formaPago.trim() !== ""));
+      (registro.cupo.trim() !== "" && registro.plazoPago.trim() !== "" && registro.formaPago.trim() !== "" && registro.condicionPago.trim() !== ""));
 
   const handleGuardarRevision = () => {
     if (!solicitud || !puedeGuardar) return;
@@ -180,6 +182,7 @@ export default function GestionComiteCredito2Page() {
         payloadComite.cupo = parseFloat(registro.cupo) || undefined;
         payloadComite.plazoPago = parseInt(registro.plazoPago) || undefined;
         payloadComite.formaPago = registro.formaPago || undefined;
+        payloadComite.condicionPago = registro.condicionPago || undefined;
       }
 
       const resultado = await solicitudesService.guardarConceptoComiteCredito2(solicitud.sol_id, payloadComite);
@@ -337,7 +340,7 @@ export default function GestionComiteCredito2Page() {
                           Condiciones financieras
                         </p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[12px] font-bold text-[#065f46] mb-1.5">
                               Cupo ($) <span className="text-[#dc2626]">*</span>
@@ -383,10 +386,29 @@ export default function GestionComiteCredito2Page() {
                                 }))
                               }
                               className="w-full border border-[#a7f3d0] rounded-[9px] px-3 py-2.5 text-[13px] outline-none font-sans bg-white focus:border-[#059669] focus:ring-[3px] focus:ring-[#059669]/[0.15]">
-                              <option value="">Selecciona una forma de pago</option>
-                              {formasPago.map((fp) => (
-                                <option key={fp.fpg_id} value={fp.fpg_nombre}>
-                                  {fp.fpg_nombre}
+                              <option value="">Selecciona tipo de pago</option>
+                              <option value="Efectivo">Efectivo</option>
+                              <option value="Tarjeta">Tarjeta</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[12px] font-bold text-[#065f46] mb-1.5">
+                              Condición de pago <span className="text-[#dc2626]">*</span>
+                            </label>
+                            <select
+                              value={registro.condicionPago}
+                              onChange={(e) =>
+                                setRegistro((prev) => ({
+                                  ...prev,
+                                  condicionPago: e.target.value,
+                                }))
+                              }
+                              className="w-full border border-[#a7f3d0] rounded-[9px] px-3 py-2.5 text-[13px] outline-none font-sans bg-white focus:border-[#059669] focus:ring-[3px] focus:ring-[#059669]/[0.15]">
+                              <option value="">Selecciona condición de pago</option>
+                              {formasPago.map((cp) => (
+                                <option key={cp.cp_id} value={cp.cp_descripcion}>
+                                  {cp.cp_descripcion}
                                 </option>
                               ))}
                             </select>

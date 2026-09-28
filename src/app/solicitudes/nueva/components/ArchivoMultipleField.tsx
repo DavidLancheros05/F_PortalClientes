@@ -148,7 +148,7 @@ export function ArchivoMultipleField({
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-semibold text-slate-900 leading-tight">
             {pregunta.fp_descripcion}
-            {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
+            {pregunta.fp_obligatoria && <span className="text-red-500 ml-1">*</span>}
           </p>
           <p className="text-xs text-slate-500">
             Puedes subir hasta {maximoArchivos} archivos ({totalActual}/{maximoArchivos})

@@ -63,25 +63,19 @@ export function CampoFechaVigencia({
           }`)
     : resumenVigencia &&
       (resumenVigencia.diasRestantes >= 0
-        ? `Faltan ${resumenVigencia.diasRestantes} día${
-            resumenVigencia.diasRestantes === 1 ? "" : "s"
-          }`
+        ? `Faltan ${resumenVigencia.diasRestantes} día${resumenVigencia.diasRestantes === 1 ? "" : "s"}`
         : `Vencido hace ${Math.abs(resumenVigencia.diasRestantes)} día${
             Math.abs(resumenVigencia.diasRestantes) === 1 ? "" : "s"
           }`);
 
-  const resumenValido = esReglaAnio
-    ? (resumenAnio?.valido ?? true)
-    : (resumenVigencia?.diasRestantes ?? 0) >= 0;
+  const resumenValido = esReglaAnio ? (resumenAnio?.valido ?? true) : (resumenVigencia?.diasRestantes ?? 0) >= 0;
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
       <label className="flex items-center gap-1 text-xs font-medium text-slate-700">
         <Calendar className="h-3.5 w-3.5 text-slate-400" />
         {preguntaFechaAsociada?.fp_descripcion || "Fecha de emisión"}
-        {preguntaFechaAsociada?.fp_requerida && (
-          <span className="text-red-500">*</span>
-        )}
+        {preguntaFechaAsociada?.fp_obligatoria && <span className="text-red-500">*</span>}
       </label>
       <input
         type="date"
@@ -96,11 +90,8 @@ export function CampoFechaVigencia({
       {resumenTexto ? (
         <span
           className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-            resumenValido
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-red-50 text-red-700"
-          }`}
-        >
+            resumenValido ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+          }`}>
           {resumenTexto}
         </span>
       ) : (

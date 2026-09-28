@@ -9,14 +9,14 @@ export interface CondicionFinanciera {
   usuario_aprueba: number;
 }
 
-export interface FormaPago {
-  fpg_id: number;
-  fpg_nombre: string;
+export interface CondicionPago {
+  cp_id: number;
+  cp_descripcion: string;
 }
 
 export const condicionesFinancierasService = {
-  getFormasPago: async (): Promise<FormaPago[]> => {
-    const res = await api.get("/condiciones-financieras/formas-pago");
+  getCondicionesPago: async (): Promise<CondicionPago[]> => {
+    const res = await api.get("/condiciones-financieras/condiciones-pago");
     return res.data;
   },
 

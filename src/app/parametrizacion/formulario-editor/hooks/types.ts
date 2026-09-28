@@ -33,7 +33,7 @@ export type Pregunta = {
     | "ESPACIO_FIRMA";
   fp_orden: number;
   fp_estado: boolean;
-  fp_requerida?: boolean;
+  fp_obligatoria?: boolean;
   fp_subtipo?: string | null;
   fp_patron?: string | null;
   fp_fs_id?: number;

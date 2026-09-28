@@ -155,7 +155,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
         <>
           <label className="block text-xs font-medium text-gray-800 mb-1">
             {pregunta.fp_descripcion}
-            {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
+            {pregunta.fp_obligatoria && <span className="text-red-500 ml-1">*</span>}
           </label>
           {pregunta.fp_descripcion_adicional?.trim() && (
             <p className="mb-1 text-[11px] text-slate-600 leading-relaxed">
@@ -388,8 +388,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
           );
         })()}
 
-      {((pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo !== "CHECK") ||
-        pregunta.fp_tipo === "SELECT_TABLA") && (
+      {((pregunta.fp_tipo === "SELECT" && pregunta.fp_subtipo !== "CHECK") || pregunta.fp_tipo === "SELECT_TABLA") && (
         <>
           <SearchableSelect
             options={
@@ -466,8 +465,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                     readOnly
                       ? "cursor-not-allowed opacity-70"
                       : `cursor-pointer ${marcada ? "hover:bg-brand-600/10" : "hover:border-brand-600/30 hover:bg-gray-50"}`
-                  }`}
-                >
+                  }`}>
                   <input
                     type="checkbox"
                     checked={marcada}
@@ -494,8 +492,7 @@ export function PreguntaRenderer(props: PreguntaRendererProps) {
                   <span
                     className={`flex h-4 w-4 shrink-0 items-center justify-center border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600/30 ${
                       esSeleccionUnica ? "rounded-full" : "rounded"
-                    } ${marcada ? "border-brand-600 bg-brand-600" : "border-gray-300 bg-white"}`}
-                  >
+                    } ${marcada ? "border-brand-600 bg-brand-600" : "border-gray-300 bg-white"}`}>
                     {marcada && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                   </span>
                   <span className={marcada ? "font-medium" : ""}>{label}</span>

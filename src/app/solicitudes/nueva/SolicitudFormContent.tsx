@@ -515,11 +515,9 @@ export default function SolicitudFormContent({
     const normalizar = (texto?: string | null) => (texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
     const esPreguntaSeleccion = (pregunta: FormularioPregunta) =>
-      [
-        TIPOS_PREGUNTA.SELECT,
-        TIPOS_PREGUNTA.SELECT_TABLA,
-        TIPOS_PREGUNTA.DOCUMENTOS_TABLA,
-      ].includes(pregunta.fp_tipo as any);
+      [TIPOS_PREGUNTA.SELECT, TIPOS_PREGUNTA.SELECT_TABLA, TIPOS_PREGUNTA.DOCUMENTOS_TABLA].includes(
+        pregunta.fp_tipo as any,
+      );
 
     const findByDescripcion = (patrones: RegExp[]) =>
       preguntas.find(
@@ -552,7 +550,7 @@ export default function SolicitudFormContent({
   const getValidationRules = (pregunta: FormularioPregunta): ValidationRule => {
     const rules: ValidationRule = {
       required: ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(pregunta.fp_tipo as any)
-        ? (pregunta.fp_requerida ?? false)
+        ? (pregunta.fp_obligatoria ?? false)
         : false,
     };
 
@@ -768,7 +766,7 @@ export default function SolicitudFormContent({
 
       if (
         (pregunta.fp_tipo === TIPOS_PREGUNTA.ARCHIVO || pregunta.fp_tipo === TIPOS_PREGUNTA.IMAGEN) &&
-        pregunta.fp_requerida
+        pregunta.fp_obligatoria
       ) {
         const tieneArchivoNuevo = respuestaTieneArchivoNuevo(respuestas[pregunta.fp_id]);
         const tieneArchivoExistente = Boolean(archivosExistentes[pregunta.fp_id]);
@@ -799,7 +797,7 @@ export default function SolicitudFormContent({
           }
         }
 
-        if (pregunta.fp_requerida) {
+        if (pregunta.fp_obligatoria) {
           const tieneArchivoNuevo = respuestas[pregunta.fp_id]?.archivo instanceof File;
           const tieneArchivoExistente = Boolean(archivosExistentes[pregunta.fp_id]);
 
@@ -1134,7 +1132,7 @@ export default function SolicitudFormContent({
       // Si el documento exige año específico y es obligatorio, una fecha
       // fuera del rango permitido no cuenta como respondida (deja el
       // formulario incompleto en vez de mostrar un bloqueo aparte).
-      if (pregunta.fp_requerida && documento?.tdo_regla_vigencia === "ANIO" && fechaEmisionValor) {
+      if (pregunta.fp_obligatoria && documento?.tdo_regla_vigencia === "ANIO" && fechaEmisionValor) {
         const estadoAnio = calcularEstadoAnioDocumento(fechaEmisionValor, documento.tdo_anios_atras_permitidos);
         if (estadoAnio && !estadoAnio.valido) {
           return false;
@@ -1312,7 +1310,7 @@ export default function SolicitudFormContent({
       const respondibles = visibles.filter(
         (p) => ![TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL].includes(p.fp_tipo as any),
       );
-      const requeridas = respondibles.filter((p) => p.fp_requerida);
+      const requeridas = respondibles.filter((p) => p.fp_obligatoria);
       const answered = requeridas.filter(isAnswered).length;
       const required = requeridas.length;
       const percent = required === 0 ? 100 : Math.round((answered / required) * 100);
@@ -1767,8 +1765,7 @@ export default function SolicitudFormContent({
   // de solicitud) y a "Versión 1" fijo, y esos valores fabricados se veían
   // un instante antes de que llegaran los reales (useSolicitudEdicion los
   // resuelve juntos, ver hooks/useSolicitudEdicion.ts:100-102).
-  const versionFormularioMostrar =
-    formularioVersionObjetivo ?? formulario?.formulario_version ?? null;
+  const versionFormularioMostrar = formularioVersionObjetivo ?? formulario?.formulario_version ?? null;
   const encabezadoNumeroDescripcion = solicitudId
     ? numeroSolicitud
       ? `${numeroSolicitud} • ${formulario?.frs_descripcion || "Completa el formulario por secciones"}`
@@ -1858,7 +1855,6 @@ export default function SolicitudFormContent({
                 secciones={secciones}
                 seccionSeleccionada={seccionSeleccionada}
                 setSeccionSeleccionada={setSeccionSeleccionada}
-                shouldShowQuestion={shouldShowQuestion}
                 seccionProgress={seccionProgress}
               />
 

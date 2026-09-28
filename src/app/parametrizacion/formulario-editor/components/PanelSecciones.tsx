@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
 import { DndContext, closestCenter, type useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ChevronDown, ChevronUp, Edit2, Plus, Save, Trash2, X } from "lucide-react";
-import { ConfirmModal, ErrorModal } from "@/components/modals";
-import { Toast } from "@/components/Toast";
+import { ConfirmModal, ErrorModal, SuccessModal } from "@/components/modals";
 import { SortableItem } from "./SortableItem";
 import type { Pregunta, Seccion } from "../hooks/types";
 
@@ -78,18 +76,11 @@ export function PanelSecciones({
   setSeccionAEliminar,
   confirmarEliminarSeccion,
 }: PanelSeccionesProps) {
-  useEffect(() => {
-    if (!successMessageSeccion) return;
-    const timer = setTimeout(() => setSuccessMessageSeccion(null), 2500);
-    return () => clearTimeout(timer);
-  }, [successMessageSeccion, setSuccessMessageSeccion]);
-
-  const toastMessageSeccion =
+  const successTituloSeccion = successMessageSeccion === "creada" ? "Sección creada" : "Sección actualizada";
+  const successTextoSeccion =
     successMessageSeccion === "creada"
-      ? "Sección creada correctamente"
-      : successMessageSeccion === "editada"
-        ? "Sección actualizada correctamente"
-        : null;
+      ? "La sección se creó correctamente."
+      : "La sección se actualizó correctamente.";
 
   return (
     <>
@@ -308,7 +299,15 @@ export function PanelSecciones({
         onAction={() => setErrorMessageSeccion(null)}
       />
 
-      <Toast message={toastMessageSeccion} />
+      <SuccessModal
+        isOpen={!!successMessageSeccion}
+        title={successTituloSeccion}
+        message={successTextoSeccion}
+        actionText="Aceptar"
+        onAction={() => setSuccessMessageSeccion(null)}
+        autoClose
+        autoCloseDelay={2500}
+      />
     </>
   );
 }

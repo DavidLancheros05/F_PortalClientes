@@ -97,17 +97,32 @@ export default function ClientesPage() {
 
     fetchCentros();
 
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      // Sin sessionStorage disponible (SSR): igual carga el pool para que
+      // las sugerencias (razón social/NIT/dirección) tengan datos desde ya,
+      // sin esperar a que el usuario dé "Buscar".
+      fetchClientesList(undefined);
+      return;
+    }
     try {
       // Marca de un solo uso: si no está, esta carga no vino de "Ver"/
       // "Editar" (fue un reload o una navegación desde otra página), así
-      // que no se restaura nada y la tabla arranca vacía.
+      // que no se restaura la búsqueda guardada.
       const hasReturnMarker = sessionStorage.getItem(RETURN_MARKER_KEY);
-      if (!hasReturnMarker) return;
+      if (!hasReturnMarker) {
+        // Igual carga el pool de clientes (sin marcar hasSearched) para que
+        // los campos con sugerencias tengan de dónde sugerir desde el
+        // primer foco, aunque el usuario todavía no haya buscado nada.
+        fetchClientesList(undefined);
+        return;
+      }
       sessionStorage.removeItem(RETURN_MARKER_KEY);
 
       const raw = sessionStorage.getItem(FILTROS_STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) {
+        fetchClientesList(undefined);
+        return;
+      }
       const saved = JSON.parse(raw);
       setCentroSeleccionado(saved.centroSeleccionado);
       setSearchInputValue(saved.searchInputValue ?? "");
@@ -120,9 +135,13 @@ export default function ClientesPage() {
       // obsoletos ni depender de que la lista cacheada siga siendo valida.
       if (saved.hasSearched) {
         fetchClientesList(saved.centroSeleccionado).then(() => setHasSearched(true));
+      } else {
+        fetchClientesList(undefined);
       }
     } catch {
-      // sessionStorage corrupto o no disponible: arranca limpio, sin filtros restaurados.
+      // sessionStorage corrupto o no disponible: arranca limpio, sin filtros
+      // restaurados, pero igual carga el pool para las sugerencias.
+      fetchClientesList(undefined);
     }
   }, [authLoading]);
 

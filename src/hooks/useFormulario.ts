@@ -7,7 +7,7 @@ export interface Pregunta {
   fp_tipo: string;
   fp_estado: boolean;
   fp_orden: number;
-  fp_requerida: boolean;
+  fp_obligatoria: boolean;
   fp_minimo: number | null;
   fp_maximo: number | null;
   fp_subtipo: string | null;

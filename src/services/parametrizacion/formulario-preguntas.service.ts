@@ -12,7 +12,7 @@ export interface FormularioPregunta {
   fp_patron?: string | null;
   fp_fs_id?: number | null;
   fp_estado?: boolean;
-  fp_requerida?: boolean;
+  fp_obligatoria?: boolean;
   fp_orden?: number;
   fp_fv_id?: number;
   // Al crear: número visible de la versión; el backend lo resuelve a fp_fv_id.

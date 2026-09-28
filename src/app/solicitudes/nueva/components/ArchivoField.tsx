@@ -161,7 +161,7 @@ export function ArchivoField({
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-semibold text-slate-900 leading-tight">
             {pregunta.fp_descripcion}
-            {pregunta.fp_requerida && <span className="text-red-500 ml-1">*</span>}
+            {pregunta.fp_obligatoria && <span className="text-red-500 ml-1">*</span>}
           </p>
           {documento?.tdo_descripcion && (
             <p className="text-xs text-slate-500 whitespace-pre-wrap break-words leading-relaxed">

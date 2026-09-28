@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { ChevronDown, Pencil, Plus, Save, X } from "lucide-react";
-import { ConfirmModal, ModalPortal } from "@/components/modals";
-import { Toast } from "@/components/Toast";
+import { ConfirmModal, ModalPortal, SuccessModal } from "@/components/modals";
 import { TIPOS_PREGUNTA } from "@/constants/tipos-pregunta";
 import { fallbackTipoLabels, getTipoLabel } from "../lib/tipo-labels";
 import {
@@ -162,22 +161,11 @@ export function PreguntaForm({
   const [avanzadasAbiertas, setAvanzadasAbiertas] = useState(false);
   const [mostrarConfirmarDescartar, setMostrarConfirmarDescartar] = useState(false);
 
-  // El toast reemplaza el ConfirmModal de "Pregunta creada/editada" — el
-  // formulario ya se cierra solo (usePreguntaEditor limpia
-  // nuevaPregunta/editandoPregunta al guardar), así que basta con
-  // autodesvanecer el aviso.
-  useEffect(() => {
-    if (!successMessage) return;
-    const timer = setTimeout(() => setSuccessMessage(null), 2500);
-    return () => clearTimeout(timer);
-  }, [successMessage, setSuccessMessage]);
-
-  const toastMessage =
+  const successTitle = successMessage === "creada" ? "Pregunta creada" : "Pregunta actualizada";
+  const successText =
     successMessage === "creada"
-      ? "Pregunta creada correctamente"
-      : successMessage === "editada"
-        ? "Pregunta actualizada correctamente"
-        : null;
+      ? "La pregunta se creó correctamente."
+      : "La pregunta se actualizó correctamente.";
 
   const seccionActual = secciones.find((s) => (s.fs_id || s.fp_fs_id) === formPregunta.fp_fs_id);
   const seccionActualNombre = seccionActual?.fs_nombre || seccionActual?.seccion_nombre;
@@ -524,7 +512,15 @@ export function PreguntaForm({
         onCancel={() => setMostrarConfirmarGuardarPregunta(false)}
       />
 
-      <Toast message={toastMessage} />
+      <SuccessModal
+        isOpen={!!successMessage}
+        title={successTitle}
+        message={successText}
+        actionText="Aceptar"
+        onAction={() => setSuccessMessage(null)}
+        autoClose
+        autoCloseDelay={2500}
+      />
     </>
   );
 }

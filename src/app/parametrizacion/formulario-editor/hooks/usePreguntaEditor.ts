@@ -17,10 +17,7 @@ import type {
 // anotación, TS infiere el tipo unión angosto de los literales listados y
 // .includes() rechaza cualquier valor del tipo completo (más amplio) que no
 // esté en esa lista puntual — de ahí salían los `as any` de más abajo.
-const TIPOS_CON_OPCIONES_FIJAS: Pregunta["fp_tipo"][] = [
-  TIPOS_PREGUNTA.SELECT,
-  TIPOS_PREGUNTA.MULTISELECT,
-];
+const TIPOS_CON_OPCIONES_FIJAS: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.SELECT, TIPOS_PREGUNTA.MULTISELECT];
 const TIPOS_CATALOGO_DOCUMENTOS: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.ARCHIVO, TIPOS_PREGUNTA.DOCUMENTOS_TABLA];
 const TIPOS_SIN_REQUERIDA: Pregunta["fp_tipo"][] = [TIPOS_PREGUNTA.NOTA, TIPOS_PREGUNTA.FECHA_HORA_ACTUAL];
 const TIPOS_CON_SINCRONIZACION_OPCIONES: Pregunta["fp_tipo"][] = [
@@ -237,12 +234,7 @@ export function usePreguntaEditor({
       return;
     }
     cargarColumnasCatalogo(formPregunta.catalogo_tabla || "");
-  }, [
-    formPregunta.tipo,
-    formPregunta.catalogo_tabla,
-    nuevaPregunta,
-    editandoPregunta,
-  ]);
+  }, [formPregunta.tipo, formPregunta.catalogo_tabla, nuevaPregunta, editandoPregunta]);
 
   // Espeja las validaciones de guardarPregunta, pero sin efectos secundarios
   // (no llama a setError), para poder deshabilitar el botón "Guardar" mientras
@@ -309,9 +301,7 @@ export function usePreguntaEditor({
   const hayCambiosOpcionesPendientes =
     !!editandoPregunta &&
     TIPOS_SELECT_MULTISELECT.includes(formPregunta.tipo) &&
-    (cambiosOpciones.crear.length > 0 ||
-      cambiosOpciones.renombrar.length > 0 ||
-      cambiosOpciones.eliminar.length > 0);
+    (cambiosOpciones.crear.length > 0 || cambiosOpciones.renombrar.length > 0 || cambiosOpciones.eliminar.length > 0);
 
   const estadoPendienteOpcion = (opcion: Opcion): "nueva" | "modificada" | null => {
     if (opcion.fpo_id < 0) return "nueva";
@@ -392,7 +382,7 @@ export function usePreguntaEditor({
         fp_descripcion: descripcionPersistida,
         fp_tipo: formPregunta.tipo,
         fp_estado: true,
-        fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
+        fp_obligatoria: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
         fp_orden: ordenFinal,
         fp_fs_id: targetSeccionId,
         frs_id: formularioIdNumber,
@@ -592,7 +582,7 @@ export function usePreguntaEditor({
             fp_descripcion: `${descripcionPersistida} - Fecha de emisión`,
             fp_tipo: TIPOS_PREGUNTA.FECHA,
             fp_estado: true,
-            fp_requerida: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
+            fp_obligatoria: TIPOS_SIN_REQUERIDA.includes(formPregunta.tipo) ? false : formPregunta.requerida,
             fp_orden: nuevoOrden + 1,
             fp_fs_id: targetSeccionId,
             frs_id: formularioIdNumber,
@@ -655,7 +645,7 @@ export function usePreguntaEditor({
             : "",
       patron: pregunta.fp_tipo === TIPOS_PREGUNTA.TEXTO ? (pregunta.fp_patron ?? "") : "",
       fp_fs_id: pregunta.fp_fs_id ?? null,
-      requerida: Boolean(pregunta.fp_requerida),
+      requerida: Boolean(pregunta.fp_obligatoria),
       tipo_documento_id: pregunta.fp_tdo_id ?? null,
       catalogo_tabla: pregunta.fp_catalogo_tabla ?? "",
       catalogo_columna: pregunta.fp_catalogo_columna ?? "",

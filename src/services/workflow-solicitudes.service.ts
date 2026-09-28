@@ -88,6 +88,7 @@ export const workflowSolicitudesService = {
       cupo?: number;
       plazoPago?: number;
       formaPago?: string;
+      condicionPago?: string;
     },
   ) {
     const response = await api.put(

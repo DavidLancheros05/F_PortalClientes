@@ -31,7 +31,14 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 0,
+    maxHeight: 320,
+    openUp: false,
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -60,13 +67,32 @@ export function SearchableSelect({
   useEffect(() => {
     if (!isOpen) return;
 
+    const MARGEN = 8;
+    // Alto que ocuparía el menú completo (buscador + lista) si no tuviera
+    // que recortarse — usado solo para decidir si abrir hacia arriba.
+    const ALTO_DESEADO = 320;
+
     const updatePosition = () => {
       if (!buttonRef.current) return;
       const rect = buttonRef.current.getBoundingClientRect();
+      const espacioAbajo = window.innerHeight - rect.bottom - MARGEN;
+      const espacioArriba = rect.top - MARGEN;
+      // Si no cabe completo abajo pero sí hay más espacio arriba, abre hacia
+      // arriba; si no, se queda abajo y simplemente se acota su alto al
+      // espacio real disponible (nunca se sale de la ventana).
+      const openUp = espacioAbajo < ALTO_DESEADO && espacioArriba > espacioAbajo;
+      const maxHeight = Math.min(ALTO_DESEADO, Math.max(150, openUp ? espacioArriba : espacioAbajo));
       setMenuPosition({
-        top: rect.bottom + 4,
+        // Ancla al botón (bottom cuando abre hacia arriba, top cuando abre
+        // hacia abajo) en vez de calcular top restando un alto asumido: así
+        // el menú crece desde el botón según su contenido real, sin dejar
+        // un hueco cuando tiene menos opciones de las que caben en maxHeight.
+        top: openUp ? 0 : rect.bottom + 4,
+        bottom: openUp ? window.innerHeight - rect.top + 4 : 0,
         left: rect.left,
         width: rect.width,
+        maxHeight,
+        openUp,
       });
     };
 
@@ -138,16 +164,17 @@ export function SearchableSelect({
       {isOpen && createPortal(
         <div
           ref={menuRef}
-          className="fixed bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-max"
+          className="fixed bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-max flex flex-col"
           style={{
-            top: menuPosition.top,
+            ...(menuPosition.openUp ? { bottom: menuPosition.bottom } : { top: menuPosition.top }),
             left: menuPosition.left,
             minWidth: menuPosition.width,
             maxWidth: `calc(100vw - ${menuPosition.left + 10}px)`,
+            maxHeight: menuPosition.maxHeight,
           }}
         >
           {/* Buscador */}
-          <div className="p-3 border-b border-gray-200 sticky top-0 bg-white rounded-t-lg">
+          <div className="p-3 border-b border-gray-200 sticky top-0 bg-white rounded-t-lg shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -168,7 +195,7 @@ export function SearchableSelect({
           </div>
 
           {/* Lista de opciones */}
-          <ul className="max-h-64 overflow-y-auto">
+          <ul className="overflow-y-auto min-h-0">
             {!options || options.length === 0 ? (
               <li className="px-4 py-3 text-center text-sm text-gray-500">
                 No hay opciones disponibles
