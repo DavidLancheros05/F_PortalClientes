@@ -82,7 +82,12 @@ interface PreguntaFormTipoProps {
   // intentarlo y se lleve un error recién al guardar.
   protegida?: boolean;
   protegidaMotivo?: "flujo" | "siesa" | "flujo_siesa" | null;
+  // Tipo guardado en la BD de la pregunta en edición (para avisar qué se
+  // pierde al cambiarlo).
+  tipoOriginal?: string;
 }
+
+const TIPOS_CON_OPCIONES = ["SELECT", "MULTISELECT", "DOCUMENTOS_TABLA"];
 
 export function PreguntaFormTipo({
   formPregunta,
@@ -93,7 +98,15 @@ export function PreguntaFormTipo({
   editandoPregunta,
   protegida,
   protegidaMotivo,
+  tipoOriginal,
 }: PreguntaFormTipoProps) {
+  const pierdeOpciones =
+    !!editandoPregunta &&
+    !!tipoOriginal &&
+    TIPOS_CON_OPCIONES.includes(tipoOriginal) &&
+    !TIPOS_CON_OPCIONES.includes(formPregunta.tipo);
+  const pierdeFiltroCatalogo =
+    !!editandoPregunta && tipoOriginal === "SELECT_TABLA" && formPregunta.tipo !== "SELECT_TABLA";
   return (
     <div className="space-y-1">
       <label className="block text-[13px] font-semibold text-gray-800 leading-tight">
@@ -241,6 +254,13 @@ export function PreguntaFormTipo({
           );
         })()}
       </select>
+      {(pierdeOpciones || pierdeFiltroCatalogo) && (
+        <p className="text-xs text-amber-700">
+          {pierdeOpciones
+            ? "Al guardar con este tipo, las opciones actuales se desactivan; si luego vuelve a ser de selección, empieza sin opciones."
+            : "Al guardar con este tipo, se quita el filtro de catálogo configurado."}
+        </p>
+      )}
     </div>
   );
 }
@@ -369,7 +389,8 @@ export function PreguntaFormPresentacion({ formPregunta, setFormPregunta }: Preg
               onChange={(value) => setFormPregunta({ ...formPregunta, requerida: value })}
             />
             <SwitchField
-              label="Dependiente de otra pregunta"
+              label="Mostrar solo según otra pregunta"
+              description="La pregunta aparece únicamente cuando otra tiene cierta respuesta"
               checked={formPregunta.dependiente}
               onChange={(value) =>
                 setFormPregunta({

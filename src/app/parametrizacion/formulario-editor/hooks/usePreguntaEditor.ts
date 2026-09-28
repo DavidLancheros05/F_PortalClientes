@@ -568,6 +568,9 @@ export function usePreguntaEditor({
                 ...payload,
                 fp_descripcion: descripcionPersistida,
                 ...(opcionesGuardadas ? { opciones: opcionesGuardadas } : {}),
+                // El backend desactiva las opciones si la pregunta deja de
+                // ser de un tipo con opciones.
+                ...(TIPOS_CON_SINCRONIZACION_OPCIONES.includes(formPregunta.tipo) ? {} : { opciones: [] }),
               };
             }
             const valorNuevo =
@@ -862,7 +865,7 @@ export function usePreguntaEditor({
           .map((p) => p.fp_descripcion)
           .join(
             '", "',
-          )}" dependen de ella. Primero cambia o quita esa dependencia (sección "Dependiente de otra pregunta") y luego elimina la opción.`,
+          )}" dependen de ella. Primero cambia o quita esa dependencia (interruptor "Mostrar solo según otra pregunta") y luego elimina la opción.`,
       );
       return;
     }
@@ -912,21 +915,25 @@ export function usePreguntaEditor({
     }
   };
 
-  const guardarOrdenPreguntas = async (ordenadas: Pregunta[]) => {
+  // Mueve en pantalla y guarda el orden de toda la sección en una sola
+  // transacción. Si falla, se vuelve al orden anterior (antes se mandaba un
+  // PUT por pregunta en paralelo y un fallo dejaba la BD a medias).
+  const aplicarOrdenSeccion = async (reordenadas: Pregunta[]) => {
+    const fsId = reordenadas[0]?.fp_fs_id;
+    if (!fsId) return;
+    const ordenPorId = new Map(reordenadas.map((p, index) => [p.fp_id, index + 1]));
+    const anteriores = preguntas;
+    setPreguntas((prev) =>
+      prev.map((p) => (ordenPorId.has(p.fp_id) ? { ...p, fp_orden: ordenPorId.get(p.fp_id)! } : p)),
+    );
     try {
-      await Promise.all(
-        ordenadas.map((pregunta) =>
-          formularioPreguntasService.update(pregunta.fp_id, {
-            fp_descripcion: pregunta.fp_descripcion,
-            fp_tipo: pregunta.fp_tipo,
-            fp_orden: pregunta.fp_orden,
-            fp_fs_id: pregunta.fp_fs_id,
-            fp_estado: pregunta.fp_estado,
-          }),
-        ),
+      await formularioPreguntasService.reordenar(
+        fsId,
+        reordenadas.map((p) => p.fp_id),
       );
     } catch (error) {
       console.error("Error guardando orden de preguntas:", error);
+      setPreguntas(anteriores);
       setError(error instanceof Error ? error.message : "Error al guardar el orden de las preguntas");
     }
   };
@@ -939,59 +946,21 @@ export function usePreguntaEditor({
     const oldIndex = lista.findIndex((p) => `pregunta-${p.fp_id}` === active.id);
     const newIndex = lista.findIndex((p) => `pregunta-${p.fp_id}` === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    const reordenadas = arrayMove(lista, oldIndex, newIndex).map((pregunta, index) => ({
-      ...pregunta,
-      fp_orden: index + 1,
-    }));
-    const nuevasPreguntas = preguntas.map((pregunta) => {
-      const encontrada = reordenadas.find((p) => p.fp_id === pregunta.fp_id);
-      return encontrada ? { ...pregunta, fp_orden: encontrada.fp_orden } : pregunta;
-    });
-    setPreguntas(nuevasPreguntas);
-    await guardarOrdenPreguntas(reordenadas);
+    await aplicarOrdenSeccion(arrayMove(lista, oldIndex, newIndex));
   };
 
   const cambiarOrdenPregunta = async (preguntaId: number, direccion: "arriba" | "abajo") => {
+    if (readonly) return;
     const index = preguntasDeSeccion.findIndex((p) => p.fp_id === preguntaId);
-    if ((direccion === "arriba" && index === 0) || (direccion === "abajo" && index === preguntasDeSeccion.length - 1)) {
+    if (
+      index === -1 ||
+      (direccion === "arriba" && index === 0) ||
+      (direccion === "abajo" && index === preguntasDeSeccion.length - 1)
+    ) {
       return;
     }
     const swapIndex = direccion === "arriba" ? index - 1 : index + 1;
-    const preguntaActual = preguntasDeSeccion[index];
-    const preguntaSwap = preguntasDeSeccion[swapIndex];
-    try {
-      await Promise.all([
-        formularioPreguntasService.update(preguntaActual.fp_id, {
-          fp_descripcion: preguntaActual.fp_descripcion,
-          fp_tipo: preguntaActual.fp_tipo,
-          fp_orden: preguntaSwap.fp_orden,
-          fp_fs_id: preguntaActual.fp_fs_id,
-          fp_estado: preguntaActual.fp_estado,
-        }),
-        formularioPreguntasService.update(preguntaSwap.fp_id, {
-          fp_descripcion: preguntaSwap.fp_descripcion,
-          fp_tipo: preguntaSwap.fp_tipo,
-          fp_orden: preguntaActual.fp_orden,
-          fp_fs_id: preguntaSwap.fp_fs_id,
-          fp_estado: preguntaSwap.fp_estado,
-        }),
-      ]);
-      // Actualizar el estado local intercambiando órdenes
-      setPreguntas((prev) =>
-        prev.map((p) => {
-          if (p.fp_id === preguntaActual.fp_id) {
-            return { ...p, fp_orden: preguntaSwap.fp_orden };
-          }
-          if (p.fp_id === preguntaSwap.fp_id) {
-            return { ...p, fp_orden: preguntaActual.fp_orden };
-          }
-          return p;
-        }),
-      );
-    } catch (error) {
-      console.error("Error cambiando orden de pregunta:", error);
-      setError("Error al cambiar orden de pregunta");
-    }
+    await aplicarOrdenSeccion(arrayMove(preguntasDeSeccion, index, swapIndex));
   };
 
   return {
@@ -1061,7 +1030,6 @@ export function usePreguntaEditor({
     obtenerPreguntasDependientesDeOpcion,
     eliminarOpcionNueva,
     cambiarOrdenPregunta,
-    guardarOrdenPreguntas,
     handlePreguntaDragEnd,
     FORM_PREGUNTA_DEFAULT,
     successMessage,

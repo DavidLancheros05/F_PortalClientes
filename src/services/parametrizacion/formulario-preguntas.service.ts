@@ -126,6 +126,15 @@ export const formularioPreguntasService = {
     }
   },
 
+  // Guarda el orden completo de una sección en una transacción del backend.
+  async reordenar(fsId: number, fpIds: number[]): Promise<void> {
+    try {
+      await api.put(`/parametrizacion/formulario-preguntas/orden`, { fs_id: fsId, fp_ids: fpIds });
+    } catch (error) {
+      throw new Error(extraerMensajeError(error, "Error al guardar el orden de las preguntas"));
+    }
+  },
+
   // Guarda de una vez (en una transacción del backend) los cambios de
   // opciones hechos al editar una pregunta. Devuelve las opciones activas.
   async aplicarCambiosOpciones(

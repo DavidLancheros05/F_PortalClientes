@@ -27,7 +27,7 @@ export function PreguntaFormDependencia({
       {/* Dependencia */}
       {formPregunta.dependiente && (
         <div className="space-y-1.5 p-3 bg-slate-50 border border-gray-200 rounded-xl">
-          <p className="text-[12.5px] font-bold text-gray-800">Comportamiento condicional</p>
+          <p className="text-[12.5px] font-bold text-gray-800">Mostrar solo según otra pregunta</p>
 
           <div className="space-y-1">
             <label className="block text-[13px] font-semibold text-gray-800 leading-tight">

@@ -275,7 +275,10 @@ export function PreguntaFormCatalogoExterno({
           respuesta de otra pregunta. */}
       <div className="h-px bg-gray-200" />
       <div className="space-y-1.5">
-        <h4 className="text-[12.5px] font-bold text-gray-800">Filtro de catálogo</h4>
+        <h4 className="text-[12.5px] font-bold text-gray-800">Filtrar opciones según otra pregunta</h4>
+        <p className="text-xs text-gray-600 leading-relaxed">
+          No oculta la pregunta: reduce las opciones de la tabla según lo que se respondió en otra (ej. Departamento según País).
+        </p>
 
         <label className="flex items-center gap-1.5 p-1.5 bg-white rounded-[9px] border border-slate-200 cursor-pointer hover:bg-slate-50 text-xs">
           <input
@@ -289,7 +292,7 @@ export function PreguntaFormCatalogoExterno({
             }
             className="w-3.5 h-3.5 accent-brand-600"
           />
-          <span className="font-medium text-gray-800">Estas opciones dependen de la respuesta de otra pregunta</span>
+          <span className="font-medium text-gray-800">Filtrar las opciones de esta lista según otra pregunta</span>
         </label>
 
         {formPregunta.catalogo_filtro_dependiente && (

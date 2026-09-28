@@ -262,6 +262,7 @@ export function PreguntaForm({
                     editandoPregunta={editandoPregunta}
                     protegida={preguntaEditando?.fp_protegida}
                     protegidaMotivo={preguntaEditando?.fp_protegida_motivo}
+                    tipoOriginal={preguntaEditando?.fp_tipo}
                   />
 
                   <PreguntaFormSubtipos formPregunta={formPregunta} setFormPregunta={setFormPregunta} />
